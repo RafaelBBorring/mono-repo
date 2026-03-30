@@ -1,0 +1,22 @@
+# ============================================================
+# .env.example — Codex Arcanum
+# ============================================================
+# Copie este arquivo como .env e preencha os valores reais.
+# NUNCA commite o .env no Git — ele contém segredos.
+#
+# No Dokploy: configure estas variáveis no painel da aplicação
+# (aba "Environment Variables"), não via arquivo .env.
+# ============================================================
+
+# Chave de API do OpenRouter
+# Obtenha em: https://openrouter.ai/settings/keys
+OPENROUTE_API_KEY=sk-or-v1-XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# URL pública da aplicação (sem barra no final)
+# Usada como HTTP-Referer nas requisições ao OpenRouter
+# Exemplo: https://codex.seudominio.com
+APP_PUBLIC_URL=https://codex.seudominio.com
+
+# Porta interna do container (padrão: 5000)
+# Normalmente não precisa alterar
+PORT=5000
