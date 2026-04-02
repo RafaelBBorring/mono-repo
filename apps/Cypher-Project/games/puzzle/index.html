@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYPHER — Hacker Puzzle System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- ── AMBIENT FX ─────────────────────────────────────────── -->
+<div id="cursor-glow"></div>
+<div id="particles"></div>
+<div id="toasts"></div>
+
+<!-- ══ OVERLAY: MENU ══════════════════════════════════════ -->
+<div id="ov-menu" class="overlay">
+  <div class="ov-title">CYPHER</div>
+  <div class="ov-sub">Sistema de Invasão v4.0 — Selecione a Missão</div>
+  <div class="ov-desc">
+    Conecte os componentes octagonais para criar um caminho de sinal da
+    <strong style="color:var(--ac)">FONTE</strong> até o
+    <strong style="color:var(--yl)">ALVO</strong>.<br>
+    Cada peça pode ser girada 90°. O sinal flui onde dois lados adjacentes estão abertos.
+  </div>
+  <div class="menu-grid">
+    <div class="menu-card lt" onclick="startTutorial()">
+      <div class="menu-icon">📡</div>
+      <div class="menu-name">Tutorial</div>
+      <div class="menu-desc">Aprenda a mecânica passo a passo</div>
+    </div>
+    <div class="menu-card le" onclick="startGame('easy')">
+      <div class="menu-icon">◈</div>
+      <div class="menu-name">Fácil</div>
+      <div class="menu-desc">4×4 · 3 tipos<br>Caminho direto</div>
+    </div>
+    <div class="menu-card lm" onclick="startGame('medium')">
+      <div class="menu-icon">◈◈</div>
+      <div class="menu-name">Médio</div>
+      <div class="menu-desc">5×5 · 5 tipos<br>Curvas e bifurcações</div>
+    </div>
+    <div class="menu-card lh" onclick="startGame('hard')">
+      <div class="menu-icon">◈◈◈</div>
+      <div class="menu-name">Difícil</div>
+      <div class="menu-desc">6×6 · 7 tipos<br>Labirinto complexo</div>
+    </div>
+  </div>
+  <div style="font-size:7px;color:var(--t2);letter-spacing:3px;">RECOMENDAMOS INICIAR PELO TUTORIAL</div>
+</div>
+
+<!-- ══ OVERLAY: WIN ═══════════════════════════════════════ -->
+<div id="ov-win" class="overlay off">
+  <div style="font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;letter-spacing:6px;
+              color:var(--gn);text-shadow:0 0 22px rgba(0,232,150,.5);margin-bottom:5px;">
+    SISTEMA INVADIDO
+  </div>
+  <div class="ov-sub" style="margin-bottom:26px;">Root access concedido · Missão completa</div>
+  <div class="win-stats">
+    <div class="win-stat">
+      <div class="win-stat-label">Tempo</div>
+      <div class="win-stat-val" id="win-time">--</div>
+    </div>
+    <div class="win-stat">
+      <div class="win-stat-label">Movimentos</div>
+      <div class="win-stat-val" id="win-moves">0</div>
+    </div>
+    <div class="win-stat">
+      <div class="win-stat-label">Dificuldade</div>
+      <div class="win-stat-val" id="win-diff">-</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;">
+    <button class="btn bg" onclick="resetPuzzle()" style="padding:11px 24px;font-size:11px;letter-spacing:3px;">↺ NOVO PUZZLE</button>
+    <button class="btn bc" onclick="showMenu()"    style="padding:11px 24px;font-size:11px;letter-spacing:3px;">⌂ MENU</button>
+  </div>
+</div>
+
+<!-- ══ OVERLAY: TUTORIAL ══════════════════════════════════ -->
+<div id="ov-tutorial" class="off">
+  <div class="tut-box">
+    <div class="tut-header">
+      <div class="tut-header-title">PROTOCOLO DE TREINAMENTO</div>
+      <div class="tut-header-count" id="tut-counter">Passo 1 de 6</div>
+    </div>
+    <div class="tut-body">
+      <div class="tut-left">
+        <div class="tut-step-title" id="tut-title"></div>
+        <div class="tut-text"       id="tut-body"></div>
+        <div class="tut-tip"        id="tut-tip"></div>
+      </div>
+      <div class="tut-right" id="tut-vis"></div>
+    </div>
+    <div class="tut-footer">
+      <div class="tut-dots" id="tut-dots"></div>
+      <div class="tut-nav">
+        <button class="btn bc" id="tut-prev" onclick="tutNav(-1)" style="padding:7px 16px;font-size:9px;">← ANTERIOR</button>
+        <button class="btn bg" id="tut-next" onclick="tutNav(1)"  style="padding:7px 16px;font-size:9px;">PRÓXIMO →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP SHELL ══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="logo">CY<em>PH</em>ER</div>
+    <div class="topbar-stats">
+      <div class="stat-block">
+        <div class="stat-label">Sinal</div>
+        <div class="stat-value" id="stat-signal">—</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">Nós</div>
+        <div class="stat-value" id="stat-nodes">0</div>
+      </div>
+      <div id="diff-badge" class="badge be">FÁCIL</div>
+      <div class="stat-block">
+        <div class="stat-label">Movimentos</div>
+        <div class="stat-value" id="stat-moves">0</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">Score</div>
+        <div class="stat-value" id="stat-score">0</div>
+      </div>
+    </div>
+    <button class="btn bc" onclick="showMenu()" style="padding:4px 13px;font-size:8px;">⌂ MENU</button>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- LEFT PANEL: Component Inventory -->
+    <div id="left-panel">
+      <div class="panel-label">Componentes</div>
+      <div id="comp-list"></div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:9px;">
+        <div class="panel-label" style="margin-top:5px;">Legenda</div>
+        <div class="legend-row"><div class="legend-dot" style="background:rgba(0,200,240,.4);"></div>Fonte de Sinal</div>
+        <div class="legend-row"><div class="legend-dot" style="background:rgba(240,192,48,.4);"></div>Alvo do Sistema</div>
+        <div class="legend-row"><div class="legend-dot" style="background:rgba(0,232,150,.2);"></div>Energizado</div>
+        <div class="legend-row"><div class="legend-dot" style="background:rgba(240,104,48,.15);"></div>Pré-instalado</div>
+        <div class="legend-row"><div class="legend-dot" style="background:rgba(0,50,80,.1);"></div>Vazio</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+          <button class="btn by" onclick="resetPuzzle()" style="font-size:8px;">↺ RESET</button>
+          <button class="btn br" onclick="showMenu()"    style="font-size:8px;">✕ SAIR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PUZZLE AREA -->
+    <div id="puzzle-area">
+      <!-- Signal strip -->
+      <div id="signal-strip">
+        <div class="signal-node">
+          <div class="signal-node-label">Sinal Atual</div>
+          <div class="signal-node-val sna" id="signal-current">0</div>
+        </div>
+        <div class="signal-pipe"></div>
+        <div class="signal-node">
+          <div class="signal-node-label">Meta do Sistema</div>
+          <div class="signal-node-val snt" id="signal-target">0</div>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div id="grid-wrapper">
+        <svg id="conn-svg"></svg>
+        <div id="cell-container"></div>
+      </div>
+
+      <div class="kbd-hint">
+        CLIQUE ESQUERDO: Colocar &nbsp;·&nbsp; CLIQUE DIREITO: Girar 90° &nbsp;·&nbsp; SHIFT+CLIQUE: Remover
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Diagnostics -->
+    <div id="right-panel">
+      <div class="panel-label">Diagnóstico</div>
+
+      <div class="diag-block">
+        <div class="diag-title">Tempo de Sessão</div>
+        <div id="timer">00:00</div>
+      </div>
+
+      <div class="diag-block">
+        <div class="diag-title">Progresso da Invasão</div>
+        <div class="diag-row">Nós energizados <span id="diag-nodes">0/0</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-nodes" style="width:0%"></div></div>
+        <div class="diag-row" style="margin-top:6px;">Sinal <span id="diag-signal">0%</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-signal" style="width:0%;background:linear-gradient(90deg,var(--gn),var(--yl));"></div></div>
+      </div>
+
+      <div class="diag-block">
+        <div class="diag-title">Status do Alvo</div>
+        <div class="diag-row">Firewall     <span id="diag-firewall" style="color:var(--gn)">BYPASS</span></div>
+        <div class="diag-row">Encriptação  <span id="diag-encrypt"  style="color:var(--yl)">ATIVA</span></div>
+        <div class="diag-row">Rastreador   <span id="diag-tracker"  style="color:var(--rd)">ONLINE</span></div>
+        <div class="diag-row">Root Access  <span id="diag-root"     style="color:var(--t2)">NEGADO</span></div>
+      </div>
+
+      <div class="diag-block">
+        <div class="diag-title">Componente Selecionado</div>
+        <div id="sel-info" style="font-size:8px;color:var(--t2);line-height:1.7;">Nenhum. Escolha à esquerda.</div>
+      </div>
+
+      <div style="margin-top:auto;" class="diag-block">
+        <div class="diag-title">Dica Operacional</div>
+        <div id="hint-text" style="font-size:8px;color:var(--t2);line-height:1.7;">
+          Conecte FONTE → ALVO com um caminho contínuo de sinal.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#main -->
+</div><!-- /#app -->
+
+<!-- ── SCRIPTS (order matters: engine → renderer → ui) ── -->
+<script src="js/engine.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/ui.js"></script>
+
+</body>
+</html>
