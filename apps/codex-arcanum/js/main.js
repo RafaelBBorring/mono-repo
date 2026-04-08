@@ -160,11 +160,21 @@ document.addEventListener('paste', function(e) {
 function loadAvatarFile(file) {
   const reader = new FileReader();
   reader.onload = function(ev) {
-    window.avatarDataUrl = window.avatarOriginalDataUrl = ev.target.result;
-    window.avatarTransform = { x: 0, y: 0, scale: 1 };
-    document.getElementById('avatarPreviewImg').src = ev.target.result;
-    document.getElementById('dzEmpty').style.display   = 'none';
-    document.getElementById('dzPreview').style.display = 'flex';
+    const original = ev.target.result;
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width  = 300;
+      canvas.height = 300;
+      canvas.getContext('2d').drawImage(img, 0, 0, 300, 300);
+      const resized = canvas.toDataURL('image/png');
+      window.avatarDataUrl = window.avatarOriginalDataUrl = resized;
+      window.avatarTransform = { x: 0, y: 0, scale: 1 };
+      document.getElementById('avatarPreviewImg').src = resized;
+      document.getElementById('dzEmpty').style.display   = 'none';
+      document.getElementById('dzPreview').style.display = 'flex';
+    };
+    img.src = original;
   };
   reader.readAsDataURL(file);
 }
