@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Codex Arcanum — Entrar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:   #c9a84c;
+      --gold2:  #e8c96a;
+      --dark:   #0d0d14;
+      --dark2:  #13131f;
+      --dark3:  #1a1a2e;
+      --border: rgba(201,168,76,.22);
+      --text1:  #f0e6c8;
+      --text2:  #9e8e6a;
+      --red:    #e05252;
+      --green:  #6dcc80;
+    }
+
+    body {
+      background: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Rajdhani', sans-serif;
+      color: var(--text1);
+    }
+
+    .bg-deco {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 15% 25%, rgba(201,168,76,.07) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 60% at 85% 75%, rgba(80,60,160,.09) 0%, transparent 65%);
+    }
+
+    .wrap {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 420px;
+      padding: 1.5rem;
+    }
+
+    /* ── Logo ── */
+    .logo { text-align: center; margin-bottom: 2.25rem; }
+    .logo-ornament {
+      display: flex; align-items: center; justify-content: center;
+      gap: .8rem; margin-bottom: .6rem;
+    }
+    .logo-line    { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .logo-diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); flex-shrink: 0; }
+    .logo-title {
+      font-family: 'Cinzel', serif; font-size: 1.9rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: .18em;
+    }
+    .logo-sub {
+      font-family: 'Crimson Text', serif; font-style: italic;
+      color: var(--text2); font-size: .95rem; margin-top: .3rem;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: linear-gradient(145deg, var(--dark2), var(--dark3));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,.55), inset 0 1px 0 rgba(201,168,76,.07);
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: .4rem;
+      background: rgba(0,0,0,.35); border-radius: 9px; padding: .3rem;
+      margin-bottom: 1.8rem;
+    }
+    .tab {
+      flex: 1; padding: .55rem; border: none;
+      background: transparent; color: var(--text2);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .95rem; font-weight: 600; letter-spacing: .05em;
+      border-radius: 7px; cursor: pointer; transition: all .2s;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, rgba(201,168,76,.18), rgba(201,168,76,.08));
+      color: var(--gold); border: 1px solid rgba(201,168,76,.28);
+    }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 1.1rem; }
+    .field label {
+      display: block; font-size: .78rem; font-weight: 600;
+      letter-spacing: .09em; color: var(--text2);
+      text-transform: uppercase; margin-bottom: .4rem;
+    }
+    .field input {
+      width: 100%; padding: .65rem .95rem;
+      background: rgba(0,0,0,.28); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text1);
+      font-family: 'Rajdhani', sans-serif; font-size: 1rem;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .field input:focus {
+      border-color: rgba(201,168,76,.5);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.09);
+    }
+    .field input::placeholder { color: rgba(158,142,106,.35); }
+
+    /* ── Error ── */
+    .error-box {
+      background: rgba(224,82,82,.1); border: 1px solid rgba(224,82,82,.28);
+      border-radius: 8px; padding: .65rem .95rem;
+      color: var(--red); font-size: .88rem;
+      margin-bottom: 1rem; display: none;
+      align-items: center; gap: .5rem;
+    }
+
+    /* ── Submit btn ── */
+    .btn-submit {
+      width: 100%; padding: .8rem;
+      background: linear-gradient(135deg, #c9a84c, #9a7228);
+      border: none; border-radius: 9px;
+      color: #1a0e00;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem; font-weight: 700; letter-spacing: .1em;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+      margin-top: .25rem; display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    .btn-submit:hover  { opacity: .9; }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="bg-deco"></div>
+  <div class="wrap">
+
+    <div class="logo">
+      <div class="logo-ornament">
+        <div class="logo-line"></div>
+        <div class="logo-diamond"></div>
+        <div class="logo-line"></div>
+      </div>
+      <div class="logo-title">CODEX ARCANUM</div>
+      <div class="logo-sub">Gerador Automático de Fichas de Personagem</div>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" id="tab-login"    onclick="switchTab('login')">Entrar</button>
+        <button class="tab"        id="tab-register" onclick="switchTab('register')">Criar Conta</button>
+      </div>
+
+      <div class="error-box" id="error-box">
+        <i class="bi bi-exclamation-circle"></i>
+        <span id="error-msg"></span>
+      </div>
+
+      <!-- ── LOGIN ── -->
+      <div id="panel-login">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="l-email" placeholder="seu@email.com" autocomplete="email"/>
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password"/>
+        </div>
+        <button class="btn-submit" id="btn-login" onclick="doLogin()">
+          <i class="bi bi-box-arrow-in-right"></i> Entrar
+        </button>
+      </div>
+
+      <!-- ── REGISTRO ── -->
+      <div id="panel-register" style="display:none">
+        <div class="field">
+          <label>Nome de Usuário</label>
+          <input type="text" id="r-name" placeholder="Seu nome de aventureiro" autocomplete="username"/>
+        </div>
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="r-email" placeholder="seu@email.com" autocomplete="email"/>
+        </div>
+        <div class="field">
+          <label>Senha <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#6a5e42">(mínimo 6 caracteres)</span></label>
+          <input type="password" id="r-pw" placeholder="••••••••" autocomplete="new-password"/>
+        </div>
+        <button class="btn-submit" id="btn-register" onclick="doRegister()">
+          <i class="bi bi-person-plus"></i> Criar Conta
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    // Redireciona se já logado
+    getSession().then(session => {
+        if (session) window.location.href = '/hub.html';
+    });
+
+    function switchTab(t) {
+      document.getElementById('panel-login').style.display    = t === 'login'    ? '' : 'none';
+      document.getElementById('panel-register').style.display = t === 'register' ? '' : 'none';
+      document.getElementById('tab-login').classList.toggle('active',    t === 'login');
+      document.getElementById('tab-register').classList.toggle('active', t === 'register');
+      hideError();
+    }
+
+    function showError(msg) {
+      const b = document.getElementById('error-box');
+      document.getElementById('error-msg').textContent = msg;
+      b.style.display = 'flex';
+    }
+    function hideError() { document.getElementById('error-box').style.display = 'none'; }
+
+    async function doLogin() {
+      hideError();
+      const email = document.getElementById('l-email').value.trim().toLowerCase();
+      const pw    = document.getElementById('l-pw').value;
+      if (!email || !pw) return showError('Preencha e-mail e senha.');
+      
+      const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: pw
+      });
+
+      if (error) return showError('E-mail ou senha incorretos.');
+      window.location.href = '/hub.html';
+    }
+
+    async function doRegister() {
+      hideError();
+      const name  = document.getElementById('r-name').value.trim();
+      const email = document.getElementById('r-email').value.trim().toLowerCase();
+      const pw    = document.getElementById('r-pw').value;
+      if (!name || !email || !pw) return showError('Preencha todos os campos.');
+      if (pw.length < 6) return showError('Senha precisa ter ao menos 6 caracteres.');
+      
+      const { data, error } = await window.supabaseClient.auth.signUp({
+        email: email,
+        password: pw,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
+
+      if (error) return showError(error.message);
+      window.location.href = '/hub.html';
+    }
+
+    // Enter para submeter
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const isLogin = document.getElementById('panel-login').style.display !== 'none';
+      isLogin ? doLogin() : doRegister();
+    });
+  </script>
+</body>
+</html>

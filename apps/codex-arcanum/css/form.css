@@ -16,33 +16,37 @@
 
 /* ── Variáveis globais ─────────────────────────────────── */
 :root {
-  --bg:        #090c12;   /* fundo principal da página     */
-  --bg2:       #10141e;   /* fundo de cards                */
-  --bg3:       #171c29;   /* fundo de inputs / sub-cards   */
-  --bg4:       #1e2436;   /* camadas mais claras internas  */
+  --bg:        #06070e;
+  --bg2:       #0b0d18;
+  --bg3:       #101320;
+  --bg4:       #171b2e;
 
-  --border:    #252d42;   /* borda padrão                  */
-  --border2:   #35405a;   /* borda de destaque leve        */
+  --border:    #1c2035;
+  --border2:   #2a304e;
 
-  --gold:      #c9a84c;   /* dourado escuro (bordas)       */
-  --gold2:     #e8c96d;   /* dourado médio (textos)        */
-  --gold3:     #f5e0a0;   /* dourado claro (destaques)     */
+  --gold:      #c9a84c;
+  --gold2:     #e8c96d;
+  --gold3:     #f5e0a0;
 
   --red:       #c0392b;
   --red2:      #e74c3c;
 
-  --blue:      #2980b9;
-  --blue2:     #3498db;
+  --blue:      #2563eb;
+  --blue2:     #60a5fa;
 
-  --purple:    #8e44ad;
-  --purple2:   #9b59b6;
+  --purple:    #7c3aed;
+  --purple2:   #a78bfa;
 
-  --green:     #27ae60;
-  --neon:      #00ff41;   /* verde neon: PV e level badge  */
+  --green:     #059669;
+  --neon:      #34d399;
 
-  --text:      #d4c9b0;   /* texto principal               */
-  --text2:     #7a7264;   /* texto secundário / muted      */
-  --text3:     #c4b896;   /* texto intermediário           */
+  --text:      #ddd0b8;
+  --text2:     #64605a;
+  --text3:     #c4b896;
+
+  --glow-gold:   rgba(201,168,76,0.20);
+  --glow-neon:   rgba(52,211,153,0.18);
+  --glow-purple: rgba(124,58,237,0.18);
 }
 
 /* ── Reset mínimo ────────────────────────────────────────── */
@@ -60,9 +64,10 @@ body {
   position: fixed; inset: 0;
   pointer-events: none; z-index: 0;
   background:
-    radial-gradient(ellipse at 15% 60%, rgba(201,168,76,0.05) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 15%, rgba(142,68,173,0.06) 0%, transparent 50%),
-    url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30Z' fill='none' stroke='%23ffffff05' stroke-width='0.5'/%3E%3C/svg%3E");
+    radial-gradient(ellipse 80% 60% at 10% 30%, rgba(124,58,237,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 70% at 90% 80%, rgba(201,168,76,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 10%, rgba(52,211,153,0.04) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 2L78 40L40 78L2 40Z' fill='none' stroke='%23ffffff04' stroke-width='0.6'/%3E%3Ccircle cx='40' cy='40' r='3' fill='none' stroke='%23ffffff03' stroke-width='0.5'/%3E%3C/svg%3E");
 }
 
 /* Wrapper de conteúdo acima do fundo */
@@ -87,15 +92,24 @@ body {
 
 /* ── Card / painel do formulário ─────────────────────────── */
 .rpg-card {
-  background: var(--bg2);
+  background: linear-gradient(145deg, var(--bg2), var(--bg3));
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
   margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
 }
+.rpg-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.3), transparent);
+}
+.rpg-card:hover { border-color: var(--border2); }
 .rpg-card-title {
   font-family: 'Cinzel', serif;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--gold);
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -154,23 +168,29 @@ textarea.form-control       { resize: vertical; min-height: 90px; }
 /* ── Cards de perfil (Guerreiro / Especialista / Místico) ── */
 .profile-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem; }
 .profile-card {
-  background: var(--bg3);
+  background: linear-gradient(145deg, var(--bg3), var(--bg4));
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem 0.75rem;
+  border-radius: 10px;
+  padding: 1.35rem 0.75rem;
   cursor: pointer;
   text-align: center;
-  transition: all 0.2s;
+  transition: all 0.25s;
   color: var(--text);
   user-select: none;
+  position: relative; overflow: hidden;
 }
-.profile-card:hover           { border-color: var(--gold); }
-.profile-card.active          { border-color: var(--gold); background: rgba(201,168,76,0.07); color: var(--gold2); box-shadow: inset 0 0 20px rgba(201,168,76,0.07); }
-/* Ícone do perfil — usa Bootstrap Icons */
-.profile-card .p-icon         { font-size: 1.8rem; margin-bottom: 0.4rem; color: var(--text2); transition: color 0.2s; }
-.profile-card:hover .p-icon   { color: var(--gold); }
+.profile-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(201,168,76,0.05), transparent);
+  opacity: 0; transition: opacity 0.25s;
+}
+.profile-card:hover           { border-color: rgba(201,168,76,0.45); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.profile-card:hover::after    { opacity: 1; }
+.profile-card.active          { border-color: var(--gold); background: linear-gradient(145deg, rgba(201,168,76,0.08), rgba(201,168,76,0.04)); color: var(--gold2); box-shadow: 0 0 20px var(--glow-gold), inset 0 0 20px rgba(201,168,76,0.04); }
+.profile-card .p-icon         { font-size: 1.9rem; margin-bottom: 0.45rem; color: var(--text2); transition: all 0.2s; display: block; }
+.profile-card:hover .p-icon   { color: var(--gold); transform: scale(1.1); }
 .profile-card.active .p-icon  { color: var(--gold2); }
-.profile-card .p-name         { font-family: 'Cinzel', serif; font-size: 0.88rem; letter-spacing: 0.04em; }
+.profile-card .p-name         { font-family: 'Cinzel', serif; font-size: 0.85rem; letter-spacing: 0.06em; }
 
 /* ── Pills de distribuição de atributos ──────────────────── */
 .dist-pill {
@@ -231,27 +251,29 @@ textarea.form-control       { resize: vertical; min-height: 90px; }
 /* ── Botão principal de geração ──────────────────────────── */
 .btn-generate {
   width: 100%;
-  padding: 0.85rem;
-  background: linear-gradient(135deg, #7a5c10, #c9a84c, #7a5c10);
-  background-size: 200% 100%;
-  border: none; border-radius: 7px;
-  color: #09090e;
+  padding: 1rem;
+  background: linear-gradient(135deg, #5a3e0a 0%, #c9a84c 40%, #e8c96d 60%, #8a5e12 100%);
+  background-size: 300% 100%;
+  border: none; border-radius: 10px;
+  color: #06070e;
   font-family: 'Cinzel', serif;
   font-size: 1rem; font-weight: 700;
-  letter-spacing: 0.18em; text-transform: uppercase;
+  letter-spacing: 0.2em; text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.4s;
   position: relative; overflow: hidden;
+  box-shadow: 0 4px 20px rgba(201,168,76,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
 }
-.btn-generate:hover:not(:disabled) { background-position: right; box-shadow: 0 4px 24px rgba(201,168,76,0.25); }
-.btn-generate:disabled             { opacity: 0.45; cursor: not-allowed; }
-/* Efeito de brilho no hover */
-.btn-generate::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
-  transform: translateX(-100%); transition: transform 0.5s;
+.btn-generate:hover:not(:disabled) { background-position: right center; box-shadow: 0 6px 32px rgba(201,168,76,0.35), inset 0 1px 0 rgba(255,255,255,0.2); letter-spacing: 0.28em; }
+.btn-generate:disabled             { opacity: 0.4; cursor: not-allowed; }
+.btn-generate::before {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  skewX: -20deg;
+  transition: left 0.6s;
 }
-.btn-generate:hover:not(:disabled)::after { transform: translateX(100%); }
+.btn-generate:hover:not(:disabled)::before { left: 140%; }
 
 /* ── Alerta de erro ──────────────────────────────────────── */
 .rpg-alert {
@@ -293,6 +315,8 @@ textarea.form-control       { resize: vertical; min-height: 90px; }
 }
 .btn-export:hover          { border-color: var(--gold); color: var(--gold); }
 .btn-export.primary        { background: rgba(201,168,76,0.09); border-color: var(--gold); color: var(--gold2); }
+.btn-export.danger         { border-color: rgba(231,76,60,.35); color: #e74c3c; }
+.btn-export.danger:hover   { background: rgba(231,76,60,.08); border-color: #e74c3c; color: #ff6b6b; }
 
 /* ── Responsivo ──────────────────────────────────────────── */
 @media (max-width: 768px) {

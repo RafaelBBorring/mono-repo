@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Codex Arcanum — Minhas Fichas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/form.css"/>
+  <link rel="stylesheet" href="css/sheet.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* ── Topbar ── */
+    .topbar {
+      position:fixed;top:0;left:0;right:0;z-index:200;
+      background:rgba(6,7,14,.96);backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(201,168,76,.16);
+      display:flex;align-items:center;gap:.75rem;padding:.5rem 1.5rem;height:50px;
+    }
+    .tb-brand { font-family:'Cinzel',serif;font-size:.88rem;letter-spacing:.14em;
+      background:linear-gradient(135deg,#c9a84c,#e8c96a);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap; }
+    .tb-sep    { width:1px;height:20px;background:rgba(201,168,76,.18); }
+    .tb-spacer { flex:1; }
+    .tb-user   { font-size:.82rem;color:#64605a; }
+    .tb-user b { color:#c9a84c; }
+    .tb-btn {
+      padding:.3rem .8rem;border-radius:6px;border:1px solid rgba(201,168,76,.22);
+      background:transparent;color:#64605a;font-family:'Rajdhani',sans-serif;
+      font-size:.8rem;font-weight:600;cursor:pointer;transition:all .18s;
+      display:flex;align-items:center;gap:.35rem;text-decoration:none;white-space:nowrap;
+    }
+    .tb-btn:hover    { color:#c9a84c;border-color:rgba(201,168,76,.45);background:rgba(201,168,76,.07); }
+    .tb-btn.red      { color:#e05252;border-color:rgba(224,82,82,.25); }
+    .tb-btn.red:hover{ background:rgba(224,82,82,.07); }
+    .tb-btn.primary  { color:#e8c96a;border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07); }
+    .tb-btn.primary:hover { background:rgba(201,168,76,.14); }
+
+    /* ── Layout ── */
+    .page  { position:relative;z-index:1;padding-top:68px;min-height:100vh; }
+    .inner { max-width:1100px;margin:0 auto;padding:2rem 1.5rem 4rem; }
+
+    /* ── Page header ── */
+    .page-hdr {
+      display:flex;align-items:center;justify-content:space-between;
+      margin-bottom:2rem;padding-bottom:1rem;
+      border-bottom:1px solid rgba(201,168,76,.15);
+      flex-wrap:wrap;gap:1rem;
+    }
+    .page-hdr-left { display:flex;align-items:center;gap:1rem; }
+    .page-hdr-icon {
+      width:44px;height:44px;border-radius:10px;
+      background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.3rem;color:#c9a84c;
+    }
+    .page-hdr-title {
+      font-family:'Cinzel',serif;font-size:1.4rem;font-weight:700;
+      background:linear-gradient(135deg,#c9a84c,#e8c96a);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .page-hdr-sub { font-size:.8rem;color:#64605a;margin-top:.15rem; }
+
+    .btn-new-sheet {
+      display:flex;align-items:center;gap:.5rem;
+      padding:.55rem 1.2rem;border-radius:8px;
+      background:linear-gradient(135deg,#5a3e0a,#c9a84c);
+      border:none;color:#06070e;
+      font-family:'Cinzel',serif;font-size:.8rem;font-weight:700;
+      letter-spacing:.08em;cursor:pointer;transition:all .2s;
+      text-decoration:none;box-shadow:0 4px 16px rgba(201,168,76,.2);
+    }
+    .btn-new-sheet:hover { box-shadow:0 6px 24px rgba(201,168,76,.35);transform:translateY(-1px); }
+
+    .btn-action-outline {
+      display:flex;align-items:center;gap:.45rem;
+      padding:.5rem 1.1rem;border-radius:8px;
+      border:1px solid rgba(201,168,76,.35);background:transparent;
+      color:#c9a84c;font-family:'Rajdhani',sans-serif;
+      font-size:.82rem;font-weight:700;letter-spacing:.06em;
+      cursor:pointer;transition:all .2s;white-space:nowrap;
+    }
+    .btn-action-outline:hover { background:rgba(201,168,76,.08);border-color:rgba(201,168,76,.6); }
+
+    /* ── Filter bar ── */
+    .filter-bar  { display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap; }
+    .search-wrap { position:relative;flex:1;min-width:200px;max-width:320px; }
+    .search-wrap i { position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:#64605a;font-size:.85rem; }
+    .search-input {
+      width:100%;padding:.45rem .75rem .45rem 2.2rem;
+      background:rgba(16,19,32,.8);border:1px solid rgba(201,168,76,.15);
+      border-radius:8px;color:#ddd0b8;font-family:'Rajdhani',sans-serif;font-size:.88rem;
+      outline:none;transition:border-color .2s;
+    }
+    .search-input:focus        { border-color:rgba(201,168,76,.4); }
+    .search-input::placeholder { color:#64605a; }
+    .filter-count { font-size:.8rem;color:#64605a;white-space:nowrap; }
+
+    /* ── Grid ── */
+    .sheets-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+      gap:1rem;
+    }
+
+    /* ── Card ── */
+    .sheet-card {
+      background:linear-gradient(145deg,rgba(11,13,24,.95),rgba(16,19,32,.98));
+      border:1px solid rgba(201,168,76,.16);border-radius:14px;
+      padding:1.1rem;cursor:pointer;transition:all .22s;
+      position:relative;overflow:hidden;
+      display:flex;flex-direction:column;gap:.65rem;
+    }
+    .sheet-card::before {
+      content:'';position:absolute;top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(201,168,76,.25),transparent);
+    }
+    .sheet-card:hover {
+      border-color:rgba(201,168,76,.4);transform:translateY(-3px);
+      box-shadow:0 12px 32px rgba(0,0,0,.5),0 0 0 1px rgba(201,168,76,.08);
+    }
+    .sheet-card.selected { border-color:rgba(201,168,76,.7)!important;background:rgba(201,168,76,.06)!important; }
+
+    .sc-checkbox {
+      position:absolute;top:.55rem;right:.55rem;z-index:10;
+      width:18px;height:18px;border-radius:4px;
+      border:1.5px solid rgba(201,168,76,.5);background:rgba(6,7,14,.8);
+      display:none;align-items:center;justify-content:center;
+      font-size:.7rem;color:#e8c96a;pointer-events:none;
+    }
+    body.select-mode .sc-checkbox       { display:flex; }
+    body.select-mode .sc-avatar-overlay { display:none!important; }
+    body.select-mode .sc-actions        { display:none!important; }
+    .sheet-card.selected .sc-checkbox { background:rgba(201,168,76,.9);color:#06070e;border-color:#c9a84c; }
+
+    .sc-header { display:flex;align-items:center;gap:.75rem; }
+    .sc-avatar {
+      width:52px;height:52px;border-radius:9px;flex-shrink:0;
+      background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.18);
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;position:relative;
+    }
+    .sc-avatar img      { width:100%;height:100%;object-fit:cover;border-radius:8px; }
+    .sc-avatar-ph       { width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#c9a84c; }
+    .sc-avatar-overlay  {
+      position:absolute;inset:0;border-radius:9px;
+      background:rgba(0,0,0,.55);
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transition:opacity .18s;cursor:pointer;
+      font-size:1.1rem;color:#e8c96a;
+    }
+    .sheet-card:hover .sc-avatar-overlay { opacity:1; }
+
+    .sc-info    { flex:1;min-width:0; }
+    .sc-name    { font-family:'Cinzel',serif;font-size:.85rem;font-weight:600;color:#e8c96a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .sc-profile { font-size:.68rem;color:#a78bfa;margin-top:.15rem; }
+
+    .sc-tags { display:flex;flex-wrap:wrap;gap:.3rem; }
+    .sc-tag  {
+      font-size:.62rem;font-weight:700;letter-spacing:.05em;
+      padding:.14rem .42rem;border-radius:4px;
+      background:rgba(201,168,76,.1);color:#c9a84c;border:1px solid rgba(201,168,76,.2);
+    }
+
+    .sc-footer  { display:flex;align-items:center;justify-content:space-between;margin-top:.2rem; }
+    .sc-date    { font-size:.65rem;color:#64605a; }
+    .sc-actions { display:flex;gap:.35rem; }
+    .sc-btn {
+      width:28px;height:28px;border-radius:6px;border:1px solid rgba(201,168,76,.18);
+      background:transparent;color:#64605a;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;font-size:.78rem;
+      transition:all .15s;
+    }
+    .sc-btn:hover     { color:#c9a84c;border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07); }
+    .sc-btn.del:hover { color:#e05252;border-color:rgba(224,82,82,.35);background:rgba(224,82,82,.06); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      grid-column:1/-1;padding:4rem 2rem;text-align:center;
+      display:flex;flex-direction:column;align-items:center;gap:1rem;
+    }
+    .empty-icon  {
+      width:72px;height:72px;border-radius:16px;
+      background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.12);
+      display:flex;align-items:center;justify-content:center;
+      font-size:2rem;color:rgba(201,168,76,.4);
+    }
+    .empty-title { font-family:'Cinzel',serif;font-size:1rem;color:#c4b896; }
+    .empty-sub   { font-size:.85rem;color:#64605a;font-style:italic; }
+
+    /* ── Viewer ── */
+    #sheet-viewer {
+      display:none;position:fixed;inset:0;z-index:300;
+      background:rgba(4,5,12,.92);backdrop-filter:blur(8px);
+      overflow-y:auto;padding:5rem 1rem 3rem;
+    }
+    .sv-inner { max-width:920px;margin:0 auto; }
+    .sv-bar {
+      position:fixed;top:0;left:0;right:0;z-index:400;
+      background:rgba(6,7,14,.97);backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(201,168,76,.18);
+      display:flex;align-items:center;gap:.6rem;padding:.5rem 1.25rem;height:50px;
+    }
+    .sv-title {
+      font-family:'Cinzel',serif;font-size:.88rem;color:#c9a84c;flex:1;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .sv-btn {
+      padding:.3rem .85rem;border-radius:6px;border:1px solid rgba(201,168,76,.22);
+      background:transparent;color:#9e8e6a;font-family:'Rajdhani',sans-serif;
+      font-size:.8rem;font-weight:600;cursor:pointer;transition:all .18s;
+      display:flex;align-items:center;gap:.35rem;white-space:nowrap;
+    }
+    .sv-btn:hover    { color:#c9a84c;border-color:rgba(201,168,76,.45);background:rgba(201,168,76,.08); }
+    .sv-btn.save     { background:linear-gradient(135deg,rgba(201,168,76,.15),rgba(201,168,76,.08));color:#e8c96a;border-color:rgba(201,168,76,.4); }
+    .sv-btn.save:hover { background:rgba(201,168,76,.22);box-shadow:0 0 16px rgba(201,168,76,.2); }
+    .sv-btn.danger   { color:#e05252;border-color:rgba(224,82,82,.25); }
+    .sv-btn.danger:hover { background:rgba(224,82,82,.07); }
+
+    /* ── Toast ── */
+    .sv-toast {
+      position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;
+      background:rgba(11,13,24,.97);border:1px solid rgba(52,211,153,.35);
+      border-radius:10px;padding:.65rem 1.1rem;
+      font-size:.85rem;color:#34d399;
+      display:flex;align-items:center;gap:.5rem;
+      opacity:0;transition:opacity .3s;pointer-events:none;
+    }
+    .sv-toast.show { opacity:1; }
+
+    #import-toast {
+      position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:900;
+      background:rgba(11,13,24,.97);border:1px solid rgba(52,211,153,.35);
+      border-radius:10px;padding:.7rem 1.3rem;
+      font-size:.88rem;color:#34d399;
+      display:flex;align-items:center;gap:.55rem;
+      opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;
+    }
+    #import-toast.show  { opacity:1; }
+    #import-toast.error { border-color:rgba(224,82,82,.4);color:#e05252; }
+
+    /* ── Export bar ── */
+    #export-bar {
+      position:fixed;bottom:1.8rem;left:50%;transform:translateX(-50%) translateY(120%);
+      z-index:700;display:flex;align-items:center;gap:.8rem;
+      background:rgba(11,13,24,.97);border:1px solid rgba(201,168,76,.35);
+      border-radius:12px;padding:.65rem 1.1rem;
+      box-shadow:0 8px 32px rgba(0,0,0,.6);
+      transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap;
+    }
+    #export-bar.show { transform:translateX(-50%) translateY(0); }
+    .eb-label  { font-family:'Cinzel',serif;font-size:.78rem;color:#c9a84c; }
+    .eb-count  {
+      font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;
+      background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);
+      border-radius:6px;padding:.1rem .55rem;color:#e8c96a;
+    }
+    .eb-sep { width:1px;height:20px;background:rgba(201,168,76,.15); }
+    .eb-btn {
+      padding:.38rem .9rem;border-radius:7px;border:1px solid rgba(201,168,76,.35);
+      background:transparent;color:#c9a84c;font-family:'Rajdhani',sans-serif;
+      font-size:.8rem;font-weight:700;cursor:pointer;transition:all .18s;
+      display:flex;align-items:center;gap:.35rem;
+    }
+    .eb-btn:hover    { background:rgba(201,168,76,.1);border-color:rgba(201,168,76,.6); }
+    .eb-btn.primary  { background:linear-gradient(135deg,rgba(201,168,76,.2),rgba(201,168,76,.1));color:#e8c96a;border-color:rgba(201,168,76,.5); }
+    .eb-btn.primary:hover { background:rgba(201,168,76,.25); }
+    .eb-btn.cancel   { color:#64605a;border-color:rgba(100,96,90,.25); }
+    .eb-btn.cancel:hover { color:#9e8e6a;border-color:rgba(100,96,90,.5); }
+
+    /* ── Icon modal ── */
+    #icon-modal-backdrop {
+      display:none;position:fixed;inset:0;z-index:800;
+      background:rgba(4,5,12,.88);backdrop-filter:blur(6px);
+      align-items:center;justify-content:center;
+    }
+    #icon-modal-backdrop.open { display:flex; }
+    #icon-modal {
+      background:linear-gradient(145deg,#0e101e,#13152a);
+      border:1px solid rgba(201,168,76,.28);border-radius:16px;
+      padding:1.75rem;width:100%;max-width:400px;
+      box-shadow:0 24px 64px rgba(0,0,0,.7);
+      position:relative;outline:none;
+    }
+    .im-title {
+      font-family:'Cinzel',serif;font-size:.95rem;font-weight:600;
+      color:#e8c96a;letter-spacing:.08em;margin-bottom:1.25rem;
+      display:flex;align-items:center;gap:.6rem;
+    }
+    .im-close { position:absolute;top:1rem;right:1rem;background:none;border:none;color:#64605a;font-size:1.1rem;cursor:pointer;transition:color .15s; }
+    .im-close:hover { color:#e05252; }
+    .im-dropzone {
+      border:2px dashed rgba(201,168,76,.25);border-radius:11px;
+      padding:1.5rem 1rem;text-align:center;cursor:pointer;
+      transition:all .2s;margin-bottom:1rem;background:rgba(0,0,0,.2);
+    }
+    .im-dropzone:hover,.im-dropzone.dragover { border-color:rgba(201,168,76,.6);background:rgba(201,168,76,.05); }
+    .im-dz-icon  { font-size:2rem;color:rgba(201,168,76,.4);margin-bottom:.5rem; }
+    .im-dz-text  { font-size:.82rem;color:#64605a;line-height:1.6; }
+    .im-dz-text b{ color:#9e8e6a; }
+    .im-dz-hint  { font-size:.72rem;color:rgba(201,168,76,.4);margin-top:.35rem; }
+    .im-preview-wrap { display:none;flex-direction:column;align-items:center;gap:.75rem;margin-bottom:1rem; }
+    .im-preview-wrap.visible { display:flex; }
+    .im-preview-img { width:110px;height:110px;border-radius:12px;object-fit:cover;border:2px solid rgba(201,168,76,.35);box-shadow:0 4px 16px rgba(0,0,0,.5); }
+    .im-preview-label { font-size:.75rem;color:#9e8e6a; }
+    .im-footer { display:flex;gap:.6rem; }
+    .im-btn {
+      flex:1;padding:.6rem;border-radius:8px;
+      font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;
+      cursor:pointer;transition:all .2s;border:1px solid;
+      display:flex;align-items:center;justify-content:center;gap:.4rem;
+    }
+    .im-btn.cancel   { background:transparent;border-color:rgba(201,168,76,.2);color:#64605a; }
+    .im-btn.cancel:hover { border-color:rgba(201,168,76,.4);color:#9e8e6a; }
+    .im-btn.confirm  { background:linear-gradient(135deg,rgba(201,168,76,.2),rgba(201,168,76,.1));border-color:rgba(201,168,76,.4);color:#e8c96a; }
+    .im-btn.confirm:hover { background:rgba(201,168,76,.25);box-shadow:0 0 16px rgba(201,168,76,.2); }
+    .im-btn.confirm:disabled { opacity:.4;cursor:not-allowed; }
+  </style>
+</head>
+<body>
+
+  <div class="bg-deco"></div>
+
+  <!-- Topbar -->
+  <nav class="topbar">
+    <span class="tb-brand">CODEX ARCANUM</span>
+    <div class="tb-sep"></div>
+    <div class="tb-spacer"></div>
+    <div class="tb-user">Olá, <b id="tb-username">—</b></div>
+    <a href="index.html" class="tb-btn primary"><i class="bi bi-plus-lg"></i> Nova Ficha</a>
+    <a href="board.html" class="tb-btn"><i class="bi bi-layout-wtf"></i> Quadro</a>
+    <a href="hub.html"   class="tb-btn"><i class="bi bi-house"></i> Início</a>
+    <button class="tb-btn red" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> Sair</button>
+  </nav>
+
+  <!-- Conteúdo -->
+  <div class="page">
+    <div class="inner">
+
+      <div class="page-hdr">
+        <div class="page-hdr-left">
+          <div class="page-hdr-icon"><i class="bi bi-collection-fill"></i></div>
+          <div>
+            <div class="page-hdr-title">MINHAS FICHAS</div>
+            <div class="page-hdr-sub" id="sheets-count">Carregando...</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+          <label class="btn-action-outline" title="Importar fichas de arquivos .codex">
+            <i class="bi bi-box-arrow-in-down"></i> Importar .codex
+            <input type="file" id="import-input" accept=".codex" multiple
+                   style="display:none" onchange="importSheets(this)"/>
+          </label>
+          <button class="btn-action-outline" id="btn-select-mode" onclick="toggleSelectMode()">
+            <i class="bi bi-check2-square"></i> Selecionar
+          </button>
+          <a href="index.html" class="btn-new-sheet">
+            <i class="bi bi-plus-lg"></i> Criar Nova Ficha
+          </a>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <i class="bi bi-search"></i>
+          <input class="search-input" id="search-input" type="text"
+                 placeholder="Buscar ficha por nome..." oninput="filterSheets()"/>
+        </div>
+        <div class="filter-count" id="filter-count"></div>
+      </div>
+
+      <div class="sheets-grid" id="sheets-grid"></div>
+    </div>
+  </div>
+
+  <!-- Viewer -->
+  <div id="sheet-viewer">
+    <div class="sv-bar">
+      <span class="sv-title" id="sv-title">—</span>
+      <button class="sv-btn save" onclick="saveSheetEdits()">
+        <i class="bi bi-floppy2-fill"></i> Salvar Alterações
+      </button>
+      <button class="sv-btn" onclick="exportSheetFromViewer()">
+        <i class="bi bi-box-arrow-up"></i> .codex
+      </button>
+      <button class="sv-btn" onclick="openIconModal(window._currentSheetId)">
+        <i class="bi bi-image"></i> Ícone
+      </button>
+      <button class="sv-btn" onclick="window.location.href='board.html'">
+        <i class="bi bi-layout-wtf"></i> Quadro
+      </button>
+      <button class="sv-btn" onclick="exportImage()">
+        <i class="bi bi-image"></i> Imagem
+      </button>
+      <button class="sv-btn" onclick="exportPDF()">
+        <i class="bi bi-file-earmark-pdf"></i> PDF
+      </button>
+      <button class="sv-btn danger" onclick="deleteViewedSheet()">
+        <i class="bi bi-trash3"></i> Apagar
+      </button>
+      <div style="width:1px;height:20px;background:rgba(201,168,76,.18);margin:0 .25rem;"></div>
+      <button class="sv-btn" onclick="closeViewer()">
+        <i class="bi bi-x-lg"></i> Fechar
+      </button>
+    </div>
+    <div class="sv-inner">
+      <div id="sheet-output"></div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="sv-toast" id="sv-toast">
+    <i class="bi bi-check-circle-fill"></i>
+    <span id="sv-toast-msg">Alterações salvas!</span>
+  </div>
+
+  <div id="import-toast">
+    <i id="import-toast-icon" class="bi bi-check-circle-fill"></i>
+    <span id="import-toast-msg"></span>
+  </div>
+
+  <!-- Export bar (select mode) -->
+  <div id="export-bar">
+    <span class="eb-label"><i class="bi bi-check2-square me-1"></i>Selecionadas:</span>
+    <span class="eb-count" id="eb-count">0</span>
+    <div class="eb-sep"></div>
+    <button class="eb-btn" onclick="selectAllSheets()"><i class="bi bi-ui-checks me-1"></i>Todas</button>
+    <button class="eb-btn primary" onclick="exportSelected()"><i class="bi bi-box-arrow-up me-1"></i>Exportar .codex</button>
+    <div class="eb-sep"></div>
+    <button class="eb-btn cancel" onclick="exitSelectMode()"><i class="bi bi-x me-1"></i>Cancelar</button>
+  </div>
+
+  <!-- Modal de ícone -->
+  <div id="icon-modal-backdrop">
+    <div id="icon-modal" tabindex="-1">
+      <button class="im-close" onclick="closeIconModal()"><i class="bi bi-x-lg"></i></button>
+      <div class="im-title"><i class="bi bi-image"></i> Alterar Ícone da Ficha</div>
+      <div class="im-dropzone" id="im-dropzone"
+           onclick="document.getElementById('im-file-input').click()"
+           ondragover="imDragOver(event)"
+           ondragleave="imDragLeave()"
+           ondrop="imDrop(event)">
+        <input type="file" id="im-file-input" accept="image/*"
+               style="display:none" onchange="imFileChange(event)"/>
+        <div class="im-dz-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+        <div class="im-dz-text"><b>Arraste uma imagem aqui</b><br/>ou clique para selecionar do computador</div>
+        <div class="im-dz-hint"><i class="bi bi-clipboard me-1"></i>Ctrl+V para colar imagem copiada</div>
+      </div>
+      <div class="im-preview-wrap" id="im-preview-wrap">
+        <img class="im-preview-img" id="im-preview-img" src="" alt="preview"/>
+        <div class="im-preview-label">Nova imagem — clique em Aplicar para confirmar</div>
+      </div>
+      <div class="im-footer">
+        <button class="im-btn cancel" onclick="closeIconModal()">Cancelar</button>
+        <button class="im-btn confirm" id="im-confirm-btn" onclick="confirmIconChange()" disabled>
+          <i class="bi bi-check-lg"></i> Aplicar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts — ordem importa: supabase CDN antes de supabase.js -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/sheet.js"></script>
+  <script src="js/export.js"></script>
+
+  <script>
+    // ══════════════════════════════════════════════════════
+    // ESTADO GLOBAL
+    // ══════════════════════════════════════════════════════
+    let currentUser  = null;
+    let _allSheets   = [];
+    let _selectMode  = false;
+    const _selectedIds = new Set();
+
+    const PROFILE_NAMES = {
+      guerreiro:   'Guerreiro',
+      especialista:'Especialista',
+      mistico:     'Místico'
+    };
+
+    // Estado do viewer / avatar (lido por sheet.js e export.js)
+    window._currentSheetId       = null;
+    window.avatarDataUrl         = '';
+    window.avatarOriginalDataUrl = '';
+    window.avatarTransform       = { x:0, y:0, scale:1 };
+
+    // ══════════════════════════════════════════════════════
+    // AUTH
+    // ══════════════════════════════════════════════════════
+    async function initAuth() {
+      try {
+        // waitForSession() aguarda INITIAL_SESSION do Supabase v2,
+        // garantindo que a sessão seja restaurada do localStorage
+        // antes de continuar — corrige o "Olá, —" e a grid vazia.
+        let session = await waitForSession();
+        if (!session) session = await getSession(); // fallback
+
+        if (!session) {
+          window.location.href = '/login.html';
+          return;
+        }
+
+        currentUser = session.user;
+
+        const displayName =
+          currentUser.user_metadata?.name      ||
+          currentUser.user_metadata?.full_name ||
+          currentUser.email.split('@')[0];
+
+        document.getElementById('tb-username').textContent = displayName;
+
+        await loadPage();
+
+        // Abre viewer direto se URL tem ?open=ID
+        const urlId = new URLSearchParams(location.search).get('open');
+        if (urlId) openViewer(urlId);
+
+      } catch (err) {
+        console.error('[initAuth]', err);
+        document.getElementById('tb-username').textContent = '(erro)';
+        document.getElementById('sheets-count').textContent =
+          'Erro de conexão — verifique a SUPABASE_ANON_KEY em js/supabase.js';
+      }
+    }
+
+    async function doLogout() {
+      await window.supabaseClient.auth.signOut();
+      window.location.href = '/login.html';
+    }
+
+    // ══════════════════════════════════════════════════════
+    // DADOS
+    // ══════════════════════════════════════════════════════
+    async function _getSheets() {
+      if (!currentUser) return [];
+      const { data, error } = await window.supabaseClient
+        .from('sheets')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('updated_at', { ascending: false });
+
+      if (error) { console.error('[_getSheets]', error); return []; }
+      return data || [];
+    }
+
+    async function loadPage() {
+      document.getElementById('sheets-count').textContent = 'Carregando...';
+      try {
+        _allSheets = await _getSheets();
+        const n = _allSheets.length;
+        document.getElementById('sheets-count').textContent =
+          n === 0 ? 'Nenhuma ficha criada ainda'
+          : n === 1 ? '1 ficha salva'
+          : `${n} fichas salvas`;
+      } catch (err) {
+        console.error('[loadPage]', err);
+        document.getElementById('sheets-count').textContent = 'Erro ao carregar fichas';
+      }
+      filterSheets();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // GRID
+    // ══════════════════════════════════════════════════════
+    function filterSheets() {
+      const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+      const filtered = q
+        ? _allSheets.filter(s => s.nome && s.nome.toLowerCase().includes(q))
+        : _allSheets;
+
+      const countEl = document.getElementById('filter-count');
+      countEl.textContent = q
+        ? `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''}`
+        : '';
+
+      renderGrid(filtered);
+    }
+
+    function renderGrid(sheets) {
+      const grid = document.getElementById('sheets-grid');
+
+      if (!sheets || !sheets.length) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon"><i class="bi bi-journal-x"></i></div>
+            <div class="empty-title">Nenhuma ficha encontrada</div>
+            <div class="empty-sub">Crie sua primeira ficha clicando em "Criar Nova Ficha"</div>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = sheets.map(s => {
+        const isSelected  = _selectedIds.has(String(s.id));
+        const date        = new Date(s.updated_at || s.created_at).toLocaleDateString('pt-BR');
+        const profileName = PROFILE_NAMES[s.profile] || s.profile || '—';
+        return `
+          <div class="sheet-card${isSelected ? ' selected' : ''}"
+               data-id="${s.id}"
+               onclick="_onCardClick(event,'${s.id}')">
+            <div class="sc-checkbox"><i class="bi bi-check-lg"></i></div>
+            <div class="sc-header">
+              <div class="sc-avatar" id="av-${s.id}">
+                <span class="sc-avatar-ph"><i class="bi bi-person-fill"></i></span>
+                <div class="sc-avatar-overlay"
+                     onclick="event.stopPropagation();openIconModal('${s.id}')"
+                     title="Alterar ícone">
+                  <i class="bi bi-camera-fill"></i>
+                </div>
+              </div>
+              <div class="sc-info">
+                <div class="sc-name" title="${s.nome}">${s.nome}</div>
+                <div class="sc-profile"><i class="bi bi-stars me-1"></i>${profileName}</div>
+              </div>
+            </div>
+            <div class="sc-tags">
+              <span class="sc-tag">Nível ${s.nivel || 1}</span>
+              <span class="sc-tag">NA ${s.na || '1'}</span>
+            </div>
+            <div class="sc-footer">
+              <div class="sc-date"><i class="bi bi-calendar3 me-1"></i>${date}</div>
+              <div class="sc-actions">
+                <button class="sc-btn" title="Exportar como .codex"
+                  onclick="event.stopPropagation();exportSheet('${s.id}')">
+                  <i class="bi bi-box-arrow-up"></i>
+                </button>
+                <button class="sc-btn del" title="Apagar ficha"
+                  onclick="event.stopPropagation();deleteSheet('${s.id}')">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      _lazyLoadAvatars(sheets);
+    }
+
+    function _lazyLoadAvatars(sheets) {
+      if (!('IntersectionObserver' in window)) {
+        sheets.forEach(s => { if (s.avatar) _setAvatar(s.id, s.avatar); });
+        return;
+      }
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const el  = entry.target;
+          const sid = el.dataset.sheetId;
+          const sh  = _allSheets.find(s => String(s.id) === sid);
+          if (sh && sh.avatar) _setAvatar(sid, sh.avatar);
+          obs.unobserve(el);
+        });
+      }, { rootMargin: '100px' });
+
+      sheets.forEach(s => {
+        const el = document.getElementById('av-' + s.id);
+        if (el) { el.dataset.sheetId = String(s.id); obs.observe(el); }
+      });
+    }
+
+    function _setAvatar(id, src) {
+      const el = document.getElementById('av-' + id);
+      if (!el) return;
+      const ph = el.querySelector('.sc-avatar-ph');
+      if (ph) ph.remove();
+      if (!el.querySelector('img')) {
+        const img = document.createElement('img');
+        img.src = src; img.alt = 'avatar';
+        el.insertBefore(img, el.firstChild);
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // MODO SELEÇÃO
+    // ══════════════════════════════════════════════════════
+    function _onCardClick(e, id) {
+      if (_selectMode) {
+        e.stopPropagation();
+        id = String(id);
+        const card = document.querySelector(`.sheet-card[data-id="${id}"]`);
+        if (_selectedIds.has(id)) {
+          _selectedIds.delete(id);
+          card && card.classList.remove('selected');
+        } else {
+          _selectedIds.add(id);
+          card && card.classList.add('selected');
+        }
+        document.getElementById('eb-count').textContent = _selectedIds.size;
+      } else {
+        openViewer(id);
+      }
+    }
+
+    function toggleSelectMode() { _selectMode ? exitSelectMode() : enterSelectMode(); }
+
+    function enterSelectMode() {
+      _selectMode = true;
+      _selectedIds.clear();
+      document.body.classList.add('select-mode');
+      document.getElementById('btn-select-mode').innerHTML = '<i class="bi bi-x-lg"></i> Cancelar';
+      document.getElementById('export-bar').classList.add('show');
+      document.getElementById('eb-count').textContent = '0';
+    }
+
+    function exitSelectMode() {
+      _selectMode = false;
+      _selectedIds.clear();
+      document.body.classList.remove('select-mode');
+      document.getElementById('btn-select-mode').innerHTML = '<i class="bi bi-check2-square"></i> Selecionar';
+      document.getElementById('export-bar').classList.remove('show');
+      document.querySelectorAll('.sheet-card.selected').forEach(c => c.classList.remove('selected'));
+    }
+
+    function selectAllSheets() {
+      _allSheets.forEach(s => _selectedIds.add(String(s.id)));
+      document.querySelectorAll('.sheet-card[data-id]')
+        .forEach(c => { if (_selectedIds.has(c.dataset.id)) c.classList.add('selected'); });
+      document.getElementById('eb-count').textContent = _selectedIds.size;
+    }
+
+    function exportSelected() {
+      if (!_selectedIds.size) return;
+      const sheets = _allSheets.filter(s => _selectedIds.has(String(s.id)));
+      if (!sheets.length) return;
+      _downloadCodex(sheets);
+      showToast(`${sheets.length} ficha${sheets.length !== 1 ? 's' : ''} exportada${sheets.length !== 1 ? 's' : ''}!`);
+      exitSelectMode();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // VIEWER
+    // ══════════════════════════════════════════════════════
+    function openViewer(id) {
+      id = String(id);
+      const sheet = _allSheets.find(s => String(s.id) === id);
+      if (!sheet) return;
+
+      window._currentSheetId       = id;
+      window.avatarDataUrl         = sheet.avatar || '';
+      window.avatarOriginalDataUrl = sheet.avatar || '';
+      window.avatarTransform       = { x:0, y:0, scale:1 };
+
+      document.getElementById('sv-title').textContent = sheet.nome;
+      document.getElementById('sheet-viewer').style.display = 'block';
+      document.body.style.overflow = 'hidden';
+
+      renderSheet(sheet.data);
+    }
+
+    function closeViewer() {
+      document.getElementById('sheet-viewer').style.display = 'none';
+      document.body.style.overflow = '';
+      window._currentSheetId = null;
+      loadPage();
+    }
+
+    async function saveSheetEdits() {
+      const id  = String(window._currentSheetId);
+      if (!id || id === 'null') return;
+      const idx = _allSheets.findIndex(s => String(s.id) === id);
+      if (idx === -1) return;
+
+      const s   = _allSheets[idx];
+      const out = document.getElementById('sheet-output');
+      if (!out) return;
+
+      const nomeEl = out.querySelector('[data-field="nome"]');
+      if (nomeEl) {
+        s.nome = nomeEl.textContent.trim();
+        s.data.nome = s.nome;
+        document.getElementById('sv-title').textContent = s.nome;
+      }
+
+      ['vida','ca','reac','arm','ba','bd','dano'].forEach(field => {
+        const el = out.querySelector(`[data-field="${field}"]`);
+        if (el) {
+          const val = el.textContent.trim();
+          s.data.stats[field] = isNaN(Number(val)) ? val : Number(val);
+        }
+      });
+
+      if (s.data.attrs) {
+        s.data.attrs.forEach((_, i) => {
+          const el = out.querySelector(`[data-field="attr-${i}"]`);
+          if (el) s.data.attrs[i] = parseInt(el.textContent.trim()) || s.data.attrs[i];
+        });
+      }
+
+      if (s.data.abilities) {
+        s.data.abilities.forEach((ab, i) => {
+          const nameEl = out.querySelector(`[data-field="ab-name-${i}"]`);
+          const descEl = out.querySelector(`[data-field="ab-desc-${i}"]`);
+          if (nameEl) ab.name        = nameEl.textContent.trim();
+          if (descEl) ab.description = descEl.textContent.trim();
+          if (ab.stats) {
+            ab.stats.forEach((_, si) => {
+              const stEl = out.querySelector(`[data-field="ab-stat-${i}-${si}"]`);
+              if (stEl) ab.stats[si] = stEl.textContent.trim();
+            });
+          }
+        });
+      }
+
+      if (window.avatarDataUrl) s.avatar = window.avatarDataUrl;
+      s.updated_at = new Date().toISOString();
+
+      const { error } = await window.supabaseClient
+        .from('sheets')
+        .update({ nome: s.nome, avatar: s.avatar, data: s.data, updated_at: s.updated_at })
+        .eq('id', s.id);
+
+      if (error) { console.error('[saveSheetEdits]', error); return; }
+      showToast('Alterações salvas!');
+    }
+
+    async function deleteViewedSheet() {
+      const id = String(window._currentSheetId);
+      if (!id || id === 'null') return;
+      if (!confirm('Apagar esta ficha permanentemente?')) return;
+      const { error } = await window.supabaseClient.from('sheets').delete().eq('id', id);
+      if (error) { console.error('[deleteViewedSheet]', error); return; }
+      closeViewer();
+    }
+
+    async function deleteSheet(id) {
+      id = String(id);
+      if (!confirm('Apagar esta ficha permanentemente?')) return;
+      const { error } = await window.supabaseClient.from('sheets').delete().eq('id', id);
+      if (error) { console.error('[deleteSheet]', error); return; }
+      loadPage();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // TOASTS
+    // ══════════════════════════════════════════════════════
+    let _toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('sv-toast');
+      document.getElementById('sv-toast-msg').textContent = msg;
+      t.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    let _importToastTimer;
+    function _showImportToast(msg, isError) {
+      const t    = document.getElementById('import-toast');
+      const icon = document.getElementById('import-toast-icon');
+      document.getElementById('import-toast-msg').textContent = msg;
+      t.classList.toggle('error', isError);
+      icon.className = isError ? 'bi bi-exclamation-circle-fill' : 'bi bi-check-circle-fill';
+      t.classList.add('show');
+      clearTimeout(_importToastTimer);
+      _importToastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // ══════════════════════════════════════════════════════
+    // EXPORTAR .codex
+    // ══════════════════════════════════════════════════════
+    function exportSheet(id) {
+      const sheet = _allSheets.find(s => String(s.id) === String(id));
+      if (sheet) _downloadCodex([sheet]);
+    }
+
+    function exportSheetFromViewer() {
+      const id = String(window._currentSheetId);
+      if (!id || id === 'null') return;
+      saveSheetEdits();
+      const sheet = _allSheets.find(s => String(s.id) === id);
+      if (sheet) _downloadCodex([sheet]);
+    }
+
+    function _downloadCodex(sheets) {
+      const payload = {
+        __codex_version: 1,
+        exportedAt: new Date().toISOString(),
+        sheets: sheets.map(s => ({
+          id:        s.id,
+          nome:      s.nome,
+          profile:   s.profile,
+          nivel:     s.nivel,
+          na:        s.na,
+          avatar:    s.avatar || null,
+          data:      s.data,
+          createdAt: s.created_at,
+          updatedAt: s.updated_at || null
+        }))
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = sheets.length === 1
+        ? sheets[0].nome.replace(/[^a-z0-9áéíóúãõâêôçñ ]/gi, '_').trim() + '.codex'
+        : `fichas_codex_${Date.now()}.codex`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ══════════════════════════════════════════════════════
+    // IMPORTAR .codex
+    // ══════════════════════════════════════════════════════
+    async function importSheets(input) {
+      if (!currentUser) return;
+      const files = Array.from(input.files);
+      if (!files.length) return;
+
+      let totalImported = 0, totalErrors = 0;
+
+      for (const file of files) {
+        try {
+          const text = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload  = e => resolve(e.target.result);
+            reader.onerror = e => reject(e);
+            reader.readAsText(file);
+          });
+
+          const payload = JSON.parse(text);
+          if (!payload.__codex_version || !Array.isArray(payload.sheets))
+            throw new Error('Arquivo inválido');
+
+          const toInsert = [];
+
+          payload.sheets.forEach(s => {
+            if (!s.nome || !s.data) return;
+
+            // Não enviamos o id — deixamos o Supabase gerar um novo.
+            // Isso evita erros 400 por conflito de tipo (bigint vs uuid vs string)
+            // com ids vindos de versões antigas do .codex.
+            toInsert.push({
+              user_id:    currentUser.id,
+              nome:       s.nome,
+              profile:    s.profile || 'especialista',
+              nivel:      Number(s.nivel) || 1,
+              na:         String(s.na != null ? s.na : '1'),
+              avatar:     s.avatar || null,
+              data:       s.data,
+              created_at: s.createdAt || new Date().toISOString(),
+              updated_at: s.updatedAt || new Date().toISOString()
+            });
+            totalImported++;
+          });
+
+          if (toInsert.length) {
+            const { error } = await window.supabaseClient.from('sheets').insert(toInsert);
+            if (error) {
+              console.error('[importSheets] Supabase error:', JSON.stringify(error));
+              throw error;
+            }
+          }
+        } catch (err) {
+          console.error('[importSheets] Erro no arquivo:', err?.message || err);
+          totalErrors++;
+        }
+      }
+
+      await loadPage();
+      input.value = '';
+      _showImportToast(
+        totalErrors === 0
+          ? `${totalImported} ficha${totalImported !== 1 ? 's' : ''} importada${totalImported !== 1 ? 's' : ''} com sucesso!`
+          : `${totalImported} importada${totalImported !== 1 ? 's' : ''}, ${totalErrors} erro${totalErrors !== 1 ? 's' : ''}.`,
+        totalErrors > 0
+      );
+    }
+
+    // ══════════════════════════════════════════════════════
+    // MODAL DE ÍCONE
+    // ══════════════════════════════════════════════════════
+    let _iconModalSheetId = null;
+    let _pendingIconUrl   = null;
+
+    function openIconModal(sheetId) {
+      if (!sheetId || sheetId === 'null') return;
+      _iconModalSheetId = String(sheetId);
+      _pendingIconUrl   = null;
+      document.getElementById('im-preview-wrap').classList.remove('visible');
+      document.getElementById('im-preview-img').src = '';
+      document.getElementById('im-confirm-btn').disabled = true;
+      document.getElementById('im-file-input').value = '';
+      document.getElementById('icon-modal-backdrop').classList.add('open');
+      setTimeout(() => { const m = document.getElementById('icon-modal'); if(m) m.focus(); }, 50);
+    }
+
+    function closeIconModal() {
+      document.getElementById('icon-modal-backdrop').classList.remove('open');
+      _iconModalSheetId = null;
+      _pendingIconUrl   = null;
+    }
+
+    document.getElementById('icon-modal-backdrop').addEventListener('click', function(e) {
+      if (e.target === this) closeIconModal();
+    });
+
+    function imDragOver(e)  { e.preventDefault(); document.getElementById('im-dropzone').classList.add('dragover'); }
+    function imDragLeave()  { document.getElementById('im-dropzone').classList.remove('dragover'); }
+    function imDrop(e) {
+      e.preventDefault();
+      document.getElementById('im-dropzone').classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) _loadIconFile(file);
+    }
+    function imFileChange(e) { if (e.target.files[0]) _loadIconFile(e.target.files[0]); }
+
+    document.addEventListener('paste', function(e) {
+      if (!document.getElementById('icon-modal-backdrop').classList.contains('open')) return;
+      const tag = document.activeElement ? document.activeElement.tagName : '';
+      if (tag === 'INPUT' && document.activeElement.type !== 'file') return;
+      if (tag === 'TEXTAREA') return;
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items || [];
+      for (const item of items) {
+        if (item.type.startsWith('image/')) { e.preventDefault(); _loadIconFile(item.getAsFile()); break; }
+      }
+    });
+
+    function _loadIconFile(file) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        _pendingIconUrl = ev.target.result;
+        document.getElementById('im-preview-img').src = _pendingIconUrl;
+        document.getElementById('im-preview-wrap').classList.add('visible');
+        document.getElementById('im-confirm-btn').disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function confirmIconChange() {
+      if (!_iconModalSheetId || !_pendingIconUrl) return;
+      const idx = _allSheets.findIndex(s => String(s.id) === _iconModalSheetId);
+      if (idx === -1) return;
+
+      _allSheets[idx].avatar     = _pendingIconUrl;
+      _allSheets[idx].updated_at = new Date().toISOString();
+
+      const { error } = await window.supabaseClient
+        .from('sheets')
+        .update({ avatar: _pendingIconUrl, updated_at: _allSheets[idx].updated_at })
+        .eq('id', _allSheets[idx].id);
+
+      if (error) { console.error('[confirmIconChange]', error); return; }
+
+      _setAvatar(_iconModalSheetId, _pendingIconUrl);
+
+      if (String(window._currentSheetId) === _iconModalSheetId) {
+        window.avatarDataUrl         = _pendingIconUrl;
+        window.avatarOriginalDataUrl = _pendingIconUrl;
+        const shAvatar = document.getElementById('sh-avatar-img');
+        if (shAvatar) shAvatar.style.backgroundImage = `url('${_pendingIconUrl}')`;
+      }
+
+      showToast('Ícone atualizado!');
+      closeIconModal();
+    }
+
+    // ══════════════════════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════════════════════
+    initAuth();
+  </script>
+</body>
+</html>
