@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYPHER — Sistema de Invasão</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --bg:    #050a0f;
+      --panel: #0a1420;
+      --b1:    #0d1e2e;
+      --b2:    #071018;
+      --ac:    #00c8f0;
+      --gn:    #00e896;
+      --or:    #f06830;
+      --yl:    #f0c030;
+      --rd:    #e83058;
+      --mg:    #c040f0;
+      --tx:    #6aacbf;
+      --t2:    #2a5870;
+      --t3:    #1a3a50;
+      --ez:    cubic-bezier(.4,0,.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+    body {
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--tx);
+      user-select: none;
+    }
+
+    /* ── SCANLINES ──────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg, transparent 0, transparent 3px,
+        rgba(0,0,0,.07) 3px, rgba(0,0,0,.07) 4px
+      );
+    }
+
+    /* ── GRID BG ────────────────────────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,150,190,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,150,190,.025) 1px, transparent 1px);
+      background-size: 52px 52px;
+      animation: bg-shift 30s linear infinite;
+    }
+    @keyframes bg-shift { to { background-position: 52px 52px; } }
+
+    /* ── AMBIENT GLOW ───────────────────────────────────────── */
+    #cursor-glow {
+      position: fixed;
+      width: 380px; height: 380px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,200,240,.035) 0%, transparent 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 2;
+      transition: opacity .3s;
+    }
+
+    /* ── PARTICLES ──────────────────────────────────────────── */
+    #particles { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+    .p {
+      position: absolute; border-radius: 50%; opacity: 0;
+      animation: prise linear infinite;
+    }
+    @keyframes prise {
+      0%   { transform: translateY(105vh); opacity: 0; }
+      8%   { opacity: .45; }
+      92%  { opacity: .08; }
+      100% { transform: translateY(-5vh) translateX(var(--dx,0)); opacity: 0; }
+    }
+
+    /* ══ HUB MENU ════════════════════════════════════════════ */
+    #hub {
+      position: relative; z-index: 10;
+      width: 100vw; height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    .hub-header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadedown .8s var(--ez) both;
+    }
+    @keyframes fadedown {
+      from { opacity: 0; transform: translateY(-22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hub-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 900;
+      letter-spacing: 14px;
+      background: linear-gradient(120deg, var(--ac) 0%, var(--gn) 50%, var(--ac) 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 28px rgba(0,200,240,.3));
+      animation: logo-shimmer 4s linear infinite;
+    }
+    @keyframes logo-shimmer { to { background-position: 200% center; } }
+
+    .hub-logo em {
+      -webkit-text-fill-color: var(--or);
+      font-style: normal;
+      filter: drop-shadow(0 0 12px rgba(240,104,48,.4));
+    }
+
+    .hub-sub {
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: var(--t2);
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    .hub-tagline {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--tx);
+      margin-top: 6px;
+      opacity: .7;
+    }
+
+    /* ── GAME CARDS GRID ────────────────────────────────────── */
+    .cards-row {
+      display: flex;
+      gap: 32px;
+      align-items: stretch;
+      animation: fadeup .8s .2s var(--ez) both;
+    }
+    @keyframes fadeup {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .game-card {
+      position: relative;
+      width: clamp(260px, 28vw, 360px);
+      background: var(--panel);
+      border: 1px solid var(--t3);
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color .3s var(--ez), transform .3s var(--ez), box-shadow .3s var(--ez);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(0,200,240,.03));
+      pointer-events: none;
+    }
+
+    .game-card:hover {
+      transform: translateY(-6px);
+    }
+
+    .game-card.words:hover {
+      border-color: var(--gn);
+      box-shadow: 0 0 32px rgba(0,232,150,.12), 0 12px 40px rgba(0,0,0,.4);
+    }
+    .game-card.words:hover .card-glow { opacity: 1; background: radial-gradient(circle at 50% 0%, rgba(0,232,150,.08) 0%, transparent 70%); }
+    .game-card.puzzle:hover {
+      border-color: var(--ac);
+      box-shadow: 0 0 32px rgba(0,200,240,.12), 0 12px 40px rgba(0,0,0,.4);
+    }
+    .game-card.puzzle:hover .card-glow { opacity: 1; background: radial-gradient(circle at 50% 0%, rgba(0,200,240,.08) 0%, transparent 70%); }
+
+    .card-glow {
+      position: absolute; inset: 0;
+      opacity: 0;
+      transition: opacity .4s var(--ez);
+      pointer-events: none;
+    }
+
+    /* ── CARD HEADER STRIP ──────────────────────────────────── */
+    .card-strip {
+      height: 3px;
+      width: 100%;
+    }
+    .game-card.words .card-strip  { background: linear-gradient(90deg, var(--gn), var(--ac)); }
+    .game-card.puzzle .card-strip { background: linear-gradient(90deg, var(--ac), var(--mg)); }
+
+    /* ── CARD PREVIEW ───────────────────────────────────────── */
+    .card-preview {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid var(--b2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Words preview: floating word tokens */
+    .preview-words { width: 100%; height: 100%; position: relative; }
+    .pw-token {
+      position: absolute;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 4px 10px;
+      border-radius: 2px;
+      border: 1px solid;
+      white-space: nowrap;
+      animation: pw-drift linear infinite;
+    }
+    @keyframes pw-drift {
+      from { transform: translateX(110%); }
+      to   { transform: translateX(-120%); }
+    }
+
+    /* Puzzle preview: mini octagon grid */
+    .preview-puzzle {
+      display: grid;
+      grid-template-columns: repeat(4, 30px);
+      grid-template-rows: repeat(3, 30px);
+      gap: 4px;
+      opacity: .8;
+    }
+    .px-oct {
+      width: 30px; height: 30px;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .px-oct svg { width: 100%; height: 100%; }
+
+    /* ── CARD BODY ──────────────────────────────────────────── */
+    .card-body {
+      padding: 20px 22px 22px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-tag {
+      font-size: 8px;
+      letter-spacing: 4px;
+      color: var(--t2);
+      text-transform: uppercase;
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 4px;
+    }
+    .game-card.words  .card-title { color: var(--gn); }
+    .game-card.puzzle .card-title { color: var(--ac); }
+
+    .card-desc {
+      font-size: 10px;
+      line-height: 1.8;
+      color: var(--tx);
+      opacity: .75;
+    }
+
+    /* ── CARD BADGES ────────────────────────────────────────── */
+    .card-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .badge {
+      font-size: 7px;
+      letter-spacing: 2px;
+      padding: 3px 8px;
+      border-radius: 2px;
+      text-transform: uppercase;
+    }
+    .b-gn { background: rgba(0,232,150,.1); color: var(--gn); border: 1px solid rgba(0,232,150,.2); }
+    .b-ac { background: rgba(0,200,240,.1); color: var(--ac); border: 1px solid rgba(0,200,240,.2); }
+    .b-or { background: rgba(240,104,48,.1); color: var(--or); border: 1px solid rgba(240,104,48,.2); }
+    .b-mg { background: rgba(192,64,240,.1); color: var(--mg); border: 1px solid rgba(192,64,240,.2); }
+
+    /* ── CARD CTA ───────────────────────────────────────────── */
+    .card-cta {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--b2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .cta-btn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 2px;
+      border: 1px solid;
+      cursor: pointer;
+      background: transparent;
+      transition: background .25s, color .25s, box-shadow .25s;
+    }
+    .game-card.words .cta-btn {
+      color: var(--gn); border-color: rgba(0,232,150,.35);
+    }
+    .game-card.words:hover .cta-btn {
+      background: rgba(0,232,150,.12);
+      box-shadow: 0 0 14px rgba(0,232,150,.15);
+    }
+    .game-card.puzzle .cta-btn {
+      color: var(--ac); border-color: rgba(0,200,240,.35);
+    }
+    .game-card.puzzle:hover .cta-btn {
+      background: rgba(0,200,240,.12);
+      box-shadow: 0 0 14px rgba(0,200,240,.15);
+    }
+
+    .cta-hint {
+      font-size: 7px;
+      letter-spacing: 2px;
+      color: var(--t2);
+    }
+
+    /* ── DIVIDER ─────────────────────────────────────────────── */
+    .cards-divider {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--t3);
+      font-size: 8px;
+      letter-spacing: 2px;
+      padding: 0 4px;
+    }
+    .cards-divider::before,
+    .cards-divider::after {
+      content: '';
+      width: 1px;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, var(--t3));
+    }
+    .cards-divider::after {
+      background: linear-gradient(to top, transparent, var(--t3));
+    }
+
+    /* ── FOOTER ─────────────────────────────────────────────── */
+    .hub-footer {
+      margin-top: 36px;
+      font-size: 8px;
+      letter-spacing: 3px;
+      color: var(--t2);
+      text-align: center;
+      animation: fadeup .8s .4s var(--ez) both;
+    }
+
+    /* ══ GAME FRAME OVERLAY ══════════════════════════════════ */
+    #game-frame {
+      position: fixed; inset: 0; z-index: 100;
+      display: none;
+      flex-direction: column;
+      background: var(--bg);
+    }
+    #game-frame.active { display: flex; }
+
+    /* ── FRAME TOP BAR ──────────────────────────────────────── */
+    #frame-bar {
+      height: 40px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--b2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 101;
+    }
+    #frame-bar::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ac) 40%, var(--gn) 60%, transparent);
+      opacity: .25;
+    }
+
+    .frame-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      background: linear-gradient(90deg, var(--ac), var(--gn));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .frame-game-name {
+      font-size: 9px;
+      letter-spacing: 4px;
+      color: var(--t2);
+      text-transform: uppercase;
+    }
+
+    #back-btn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 3px;
+      padding: 5px 14px;
+      background: transparent;
+      border: 1px solid rgba(0,200,240,.3);
+      color: var(--ac);
+      border-radius: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background .2s, box-shadow .2s;
+    }
+    #back-btn:hover {
+      background: rgba(0,200,240,.1);
+      box-shadow: 0 0 10px rgba(0,200,240,.15);
+    }
+
+    /* ── IFRAME ─────────────────────────────────────────────── */
+    #game-iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+    }
+
+    /* ── LOADING STATE ──────────────────────────────────────── */
+    #frame-loading {
+      position: absolute;
+      inset: 40px 0 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 102;
+      background: var(--bg);
+      transition: opacity .4s;
+    }
+    #frame-loading.hidden { opacity: 0; pointer-events: none; }
+
+    .loading-logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: var(--ac);
+      animation: pulse-glow 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(0,200,240,.3)); }
+      50%       { filter: drop-shadow(0 0 20px rgba(0,200,240,.7)); }
+    }
+    .loading-bar-wrap {
+      width: 200px;
+      height: 2px;
+      background: var(--b1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--ac), var(--gn));
+      animation: load-fill 1.2s var(--ez) forwards;
+    }
+    @keyframes load-fill { from { width: 0%; } to { width: 100%; } }
+    .loading-txt {
+      font-size: 8px;
+      letter-spacing: 4px;
+      color: var(--t2);
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+<body>
+
+<!-- AMBIENT -->
+<div id="cursor-glow"></div>
+<div id="particles"></div>
+
+<!-- ══ HUB MENU ══════════════════════════════════════════════ -->
+<div id="hub">
+
+  <!-- HEADER -->
+  <div class="hub-header">
+    <div class="hub-logo">CY<em>PH</em>ER</div>
+    <div class="hub-sub">Sistema de Invasão — Selecione o Módulo</div>
+    <div class="hub-tagline">Dois vetores de ataque. Uma missão.</div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="cards-row">
+
+    <!-- CARD: CHYPER WORDS -->
+    <div class="game-card words" onclick="launchGame('words')">
+      <div class="card-glow"></div>
+      <div class="card-strip"></div>
+
+      <div class="card-preview">
+        <div class="preview-words" id="pw-preview"></div>
+      </div>
+
+      <div class="card-body">
+        <div class="card-tag">Módulo 01 · Digitação</div>
+        <div class="card-title">CHYPER WORDS</div>
+        <div class="card-desc">
+          Palavras-chave de hacking flutuam pela tela em direção ao firewall.<br>
+          Digite-as antes que o sistema detecte sua intrusão.
+        </div>
+        <div class="card-badges">
+          <span class="badge b-gn">5 Fases</span>
+          <span class="badge b-ac">4 Dificuldades</span>
+          <span class="badge b-or">Sistema de Combo</span>
+        </div>
+        <div class="card-cta">
+          <button class="cta-btn">▶ INICIAR</button>
+          <span class="cta-hint">EASY → INSANE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIVIDER -->
+    <div class="cards-divider">VS</div>
+
+    <!-- CARD: CYPHER PUZZLE -->
+    <div class="game-card puzzle" onclick="launchGame('puzzle')">
+      <div class="card-glow"></div>
+      <div class="card-strip"></div>
+
+      <div class="card-preview">
+        <div class="preview-puzzle" id="px-preview"></div>
+      </div>
+
+      <div class="card-body">
+        <div class="card-tag">Módulo 02 · Puzzle</div>
+        <div class="card-title">CYPHER PUZZLE</div>
+        <div class="card-desc">
+          Conecte componentes octagonais para criar um caminho de sinal
+          da fonte até o alvo do sistema. Gire e posicione cada peça.
+        </div>
+        <div class="card-badges">
+          <span class="badge b-ac">3 Dificuldades</span>
+          <span class="badge b-mg">7 Tipos de Cabo</span>
+          <span class="badge b-or">Tutorial Integrado</span>
+        </div>
+        <div class="card-cta">
+          <button class="cta-btn">▶ INICIAR</button>
+          <span class="cta-hint">FÁCIL → DIFÍCIL</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="hub-footer">SELECIONE UM MÓDULO PARA INICIAR A INVASÃO</div>
+
+</div><!-- /#hub -->
+
+<!-- ══ GAME FRAME ════════════════════════════════════════════ -->
+<div id="game-frame">
+  <div id="frame-bar">
+    <div class="frame-logo">CYPHER</div>
+    <div class="frame-game-name" id="frame-game-name">—</div>
+    <button id="back-btn" onclick="exitGame()">⌂ MENU</button>
+  </div>
+  <div id="frame-loading">
+    <div class="loading-logo" id="loading-logo">—</div>
+    <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+    <div class="loading-txt">CARREGANDO MÓDULO...</div>
+  </div>
+  <iframe id="game-iframe" allowfullscreen></iframe>
+</div>
+
+<script>
+  /* ── AMBIENT SETUP ──────────────────────────────────────── */
+  (function particles() {
+    const c = document.getElementById('particles');
+    for (let i = 0; i < 32; i++) {
+      const p = document.createElement('div');
+      p.className = 'p';
+      p.style.cssText = `
+        left:${Math.random()*100}%;
+        --dx:${(Math.random()-.5)*90}px;
+        width:${1+Math.random()*2}px;
+        height:${1+Math.random()*2}px;
+        background:${Math.random()>.5?'var(--ac)':'var(--gn)'};
+        animation-duration:${9+Math.random()*14}s;
+        animation-delay:${Math.random()*12}s;`;
+      c.appendChild(p);
+    }
+  })();
+
+  document.addEventListener('mousemove', e => {
+    const g = document.getElementById('cursor-glow');
+    if (g) { g.style.left = e.clientX+'px'; g.style.top = e.clientY+'px'; }
+  });
+
+  /* ── WORDS PREVIEW ANIMATION ────────────────────────────── */
+  (function wordsPreview() {
+    const container = document.getElementById('pw-preview');
+    const wordList = [
+      { text: 'kernel',    color: '#00c8f0', pts: '+12' },
+      { text: 'bypass',    color: '#00e896', pts: '+9'  },
+      { text: 'payload',   color: '#f06830', pts: '+14' },
+      { text: 'root',      color: '#f0c030', pts: '+6'  },
+      { text: 'cipher',    color: '#00c8f0', pts: '+11' },
+      { text: 'overflow',  color: '#00e896', pts: '+16' },
+      { text: 'sudo',      color: '#f06830', pts: '+5'  },
+      { text: 'firewall',  color: '#c040f0', pts: '+18' },
+    ];
+
+    const rows = [22, 52, 82, 112];
+    const usedRows = new Set();
+
+    function spawnToken() {
+      const w = wordList[Math.floor(Math.random() * wordList.length)];
+      let row;
+      const available = rows.filter(r => !usedRows.has(r));
+      if (!available.length) return;
+      row = available[Math.floor(Math.random() * available.length)];
+      usedRows.add(row);
+
+      const el = document.createElement('div');
+      el.className = 'pw-token';
+      const speed = 5 + Math.random() * 6;
+      el.style.cssText = `
+        top: ${row}px;
+        color: ${w.color};
+        border-color: ${w.color}44;
+        background: ${w.color}0f;
+        animation-duration: ${speed}s;
+        animation-delay: -${Math.random() * speed}s;
+      `;
+      el.textContent = w.text;
+      container.appendChild(el);
+
+      el.addEventListener('animationiteration', () => {
+        usedRows.delete(row);
+        el.remove();
+        setTimeout(spawnToken, 200);
+      });
+    }
+
+    for (let i = 0; i < 4; i++) {
+      setTimeout(spawnToken, i * 600);
+    }
+  })();
+
+  /* ── PUZZLE PREVIEW GRID ────────────────────────────────── */
+  (function puzzlePreview() {
+    const container = document.getElementById('px-preview');
+    // 4x3 mini grid, some cells have connection lines
+    const cells = [
+      { type: 'src', sides: [1] },           // source
+      { type: 'curve', sides: [3, 2] },
+      { type: 'straight', sides: [3, 1] },
+      { type: 'empty' },
+      { type: 'empty' },
+      { type: 'straight', sides: [0, 2] },
+      { type: 'empty' },
+      { type: 'tee', sides: [0, 1, 2] },
+      { type: 'empty' },
+      { type: 'empty' },
+      { type: 'curve', sides: [0, 1] },
+      { type: 'tgt' },
+    ];
+
+    const powered = new Set([0, 1, 2, 5, 7, 10, 11]);
+    const DIRS = [[0,-14],[14,0],[0,14],[-14,0]]; // N E S W
+
+    cells.forEach((cell, i) => {
+      const el = document.createElement('div');
+      el.className = 'px-oct';
+
+      // octagon clip
+      const cl = 7;
+      const S = 30;
+      const pts = [
+        [cl,0],[S-cl,0],[S,cl],[S,S-cl],[S-cl,S],[cl,S],[0,S-cl],[0,cl]
+      ].map(p=>p.join(',')).join(' ');
+
+      let color = powered.has(i) ? '#00e896' : '#2a5870';
+      let fill  = powered.has(i) ? 'rgba(0,232,150,.08)' : 'rgba(0,30,50,.4)';
+      if (cell.type === 'src') { color = '#00c8f0'; fill = 'rgba(0,200,240,.12)'; }
+      if (cell.type === 'tgt') { color = '#f0c030'; fill = 'rgba(240,192,48,.12)'; }
+
+      let arms = '';
+      const cx = 15, cy = 15;
+      if (cell.sides) {
+        cell.sides.forEach(d => {
+          const [dx, dy] = DIRS[d];
+          arms += `<line x1="${cx}" y1="${cy}" x2="${cx+dx}" y2="${cy+dy}"
+                    stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+          arms += `<circle cx="${cx+dx}" cy="${cy+dy}" r="2.5" fill="${color}"/>`;
+        });
+      }
+
+      const label = cell.type === 'src' ? '◉' : cell.type === 'tgt' ? '◎' : '';
+
+      el.innerHTML = `<svg viewBox="0 0 30 30" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="${pts}" fill="${fill}" stroke="${color}" stroke-width="1"/>
+        ${arms}
+        <circle cx="15" cy="15" r="${cell.sides ? 2 : 0}" fill="${color}"/>
+        <text x="15" y="19" text-anchor="middle" font-size="9" fill="${color}" font-family="Share Tech Mono">${label}</text>
+      </svg>`;
+      container.appendChild(el);
+    });
+  })();
+
+  /* ── GAME LAUNCHER ──────────────────────────────────────── */
+  const GAMES = {
+    words:  { src: 'games/words/index.html',  name: 'CHYPER WORDS — MÓDULO 01',  logo: 'WORDS'  },
+    puzzle: { src: 'games/puzzle/index.html', name: 'CYPHER PUZZLE — MÓDULO 02', logo: 'PUZZLE' },
+  };
+
+  let activeGame = null;
+
+  function launchGame(id) {
+    if (!GAMES[id]) return;
+    activeGame = id;
+    const g = GAMES[id];
+
+    // Setup frame
+    document.getElementById('frame-game-name').textContent = g.name;
+    document.getElementById('loading-logo').textContent = g.logo;
+
+    // Show frame
+    const frame = document.getElementById('game-frame');
+    frame.classList.add('active');
+
+    // Reset loading bar animation
+    const loadWrap = document.getElementById('frame-loading');
+    loadWrap.classList.remove('hidden');
+    const fill = loadWrap.querySelector('.loading-bar-fill');
+    fill.style.animation = 'none';
+    fill.offsetHeight; // reflow
+    fill.style.animation = '';
+
+    // Load iframe
+    const iframe = document.getElementById('game-iframe');
+    iframe.src = g.src;
+
+    // Hide loading after iframe loads
+    iframe.onload = () => {
+      setTimeout(() => {
+        loadWrap.classList.add('hidden');
+      }, 400);
+    };
+  }
+
+  function exitGame() {
+    const frame = document.getElementById('game-frame');
+    const iframe = document.getElementById('game-iframe');
+    frame.classList.remove('active');
+    iframe.src = '';
+    activeGame = null;
+  }
+</script>
+</body>
+</html>

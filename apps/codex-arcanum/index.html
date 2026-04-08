@@ -3,55 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Codex Arcanum — Gerador de Fichas RPG</title>
+  <title>Codex Arcanum — Nova Ficha</title>
 
-  <!-- ── Google Fonts ── -->
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- ── Bootstrap 5.3 CSS ── -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-
-  <!-- ── Bootstrap Icons ── -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/form.css" />
+  <link rel="stylesheet" href="css/sheet.css" />
 
-  <!-- ── Projeto CSS (separado em dois arquivos de responsabilidade) ── -->
-  <link rel="stylesheet" href="css/form.css" />    <!-- Estilo do formulário de entrada -->
-  <link rel="stylesheet" href="css/sheet.css" />   <!-- Estilo da ficha final gerada   -->
-
-  <!-- ── Libs externas para export (carregadas antes do body) ── -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    .topbar {
+      position:fixed;top:0;left:0;right:0;z-index:200;
+      background:rgba(6,7,14,.96);backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(201,168,76,.16);
+      display:flex;align-items:center;gap:.75rem;padding:.5rem 1.5rem;height:50px;
+    }
+    .tb-brand{font-family:'Cinzel',serif;font-size:.88rem;letter-spacing:.14em;
+      background:linear-gradient(135deg,#c9a84c,#e8c96a);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;}
+    .tb-sep{width:1px;height:20px;background:rgba(201,168,76,.18);}
+    .tb-spacer{flex:1;}
+    .tb-user{font-size:.82rem;color:#64605a;}
+    .tb-user b{color:#c9a84c;}
+    .tb-btn{padding:.3rem .8rem;border-radius:6px;border:1px solid rgba(201,168,76,.22);
+      background:transparent;color:#64605a;font-family:'Rajdhani',sans-serif;
+      font-size:.8rem;font-weight:600;cursor:pointer;transition:all .18s;
+      display:flex;align-items:center;gap:.35rem;text-decoration:none;white-space:nowrap;}
+    .tb-btn:hover{color:#c9a84c;border-color:rgba(201,168,76,.45);background:rgba(201,168,76,.07);}
+    .tb-btn.red{color:#e05252;border-color:rgba(224,82,82,.25);}
+    .tb-btn.red:hover{background:rgba(224,82,82,.07);}
+
+    /* Barra de ações */
+    .export-bar {
+      display:flex;gap:.65rem;justify-content:flex-start;
+      margin-top:1.25rem;flex-wrap:wrap;align-items:center;
+    }
+    .export-divider { width:1px;height:28px;background:rgba(201,168,76,.15);margin:0 .1rem; }
+
+    /* Botão Salvar Ficha */
+    .btn-save-sheet {
+      display:flex;align-items:center;gap:.5rem;
+      padding:.62rem 1.5rem;border-radius:8px;
+      background:linear-gradient(135deg,#5a3e0a 0%,#c9a84c 50%,#e8c96d 100%);
+      background-size:200% 100%;
+      border:none;color:#06070e;
+      font-family:'Cinzel',serif;font-size:.82rem;font-weight:700;
+      letter-spacing:.1em;cursor:pointer;transition:all .3s;
+      box-shadow:0 4px 20px rgba(201,168,76,.25);
+    }
+    .btn-save-sheet:hover { background-position:right center;box-shadow:0 6px 28px rgba(201,168,76,.42);transform:translateY(-1px); }
+    .btn-save-sheet:disabled { opacity:.38;cursor:not-allowed;transform:none; }
+
+    /* Indicador "não salva" */
+    #unsaved-indicator {
+      display:none;align-items:center;gap:.35rem;
+      font-size:.73rem;color:rgba(232,201,109,.7);
+      font-family:'Rajdhani',sans-serif;
+    }
+
+    /* Toast */
+    .page-toast {
+      position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;
+      background:rgba(11,13,24,.97);border:1px solid rgba(52,211,153,.35);
+      border-radius:10px;padding:.65rem 1.1rem;
+      font-size:.85rem;color:#34d399;
+      display:flex;align-items:center;gap:.5rem;
+      opacity:0;transition:opacity .3s;pointer-events:none;
+    }
+    .page-toast.show { opacity:1; }
+  </style>
 </head>
 <body>
 
-  <!-- ── Fundo decorativo (padrão geométrico + gradientes de cor) ── -->
   <div class="bg-deco"></div>
 
-  <div class="app-wrap">
-    <div class="container" style="max-width:980px; padding-top:1.5rem; padding-bottom:3rem;">
+  <nav class="topbar">
+    <span class="tb-brand">CODEX ARCANUM</span>
+    <div class="tb-sep"></div>
+    <div class="tb-spacer"></div>
+    <div class="tb-user">Olá, <b id="tb-username">—</b></div>
+    <a href="fichas.html" class="tb-btn"><i class="bi bi-collection"></i> Minhas Fichas</a>
+    <a href="board.html"  class="tb-btn"><i class="bi bi-layout-wtf"></i> Quadro</a>
+    <a href="hub.html"    class="tb-btn"><i class="bi bi-house"></i> Início</a>
+    <button class="tb-btn red" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> Sair</button>
+  </nav>
 
-      <!-- ════════════════════════════════
-           CABEÇALHO DO SITE
-      ════════════════════════════════ -->
+  <div class="app-wrap">
+    <div class="container" style="max-width:980px; padding-top:4.5rem; padding-bottom:3rem;">
+
       <header class="site-header">
         <div class="logo-ornament">
           <div class="logo-line"></div>
           <div class="logo-diamond"></div>
           <div class="logo-line"></div>
         </div>
-        <h1 class="site-title">CODEX ARCANUM</h1>
-        <p class="site-sub">Gerador Automático de Fichas de Personagem RPG</p>
+        <h1 class="site-title">NOVA FICHA</h1>
+        <p class="site-sub">Preencha os campos abaixo para gerar uma nova ficha de personagem</p>
       </header>
 
-      <!-- ── Caixa de alerta de erro (oculta por padrão) ── -->
       <div class="rpg-alert mb-3" id="errorMsg"></div>
 
-      <!-- ════════════════════════════════
-           SEÇÃO DO FORMULÁRIO DE ENTRADA
-      ════════════════════════════════ -->
+      <!-- ── Formulário ── -->
       <div id="form-section">
 
-        <!-- Parâmetros Principais: Nível, NA, Nome -->
         <div class="rpg-card">
           <div class="rpg-card-title"><span class="ti"></span>Parâmetros Principais</div>
           <div class="row g-3">
@@ -88,31 +145,21 @@
           </div>
         </div>
 
-        <!-- Upload de Avatar: arrastar / clicar / colar -->
         <div class="rpg-card">
           <div class="rpg-card-title">
             <span class="ti"></span>Avatar / Imagem do Personagem
             <span class="optional-label">&nbsp;— opcional</span>
           </div>
-          <div
-            class="avatar-dropzone"
-            id="avatarDropzone"
-            ondragover="dzDragOver(event)"
-            ondragleave="dzDragLeave(event)"
-            ondrop="dzDrop(event)"
-            onclick="dzClick(event)"
-            tabindex="0"
-          >
-            <!-- Input de arquivo oculto -->
+          <div class="avatar-dropzone" id="avatarDropzone"
+               ondragover="dzDragOver(event)" ondragleave="dzDragLeave(event)"
+               ondrop="dzDrop(event)" onclick="dzClick(event)" tabindex="0">
             <input type="file" id="avatarFileInput" accept="image/*" onchange="dzFileChange(event)" />
-
-            <!-- Estado vazio: instruções -->
             <div id="dzEmpty" style="display:flex;flex-direction:column;align-items:center;gap:0.5rem">
               <div class="dz-icon"><i class="bi bi-cloud-arrow-up"></i></div>
               <div class="dz-text">
                 <strong style="color:var(--text3)">Arraste uma imagem aqui</strong><br />
                 ou <span class="dz-link">clique para selecionar arquivo</span><br />
-                <span style="font-size:0.73rem;color:var(--text2)">Suporta colar (Ctrl+V) imagem copiada</span>
+                <span style="font-size:0.73rem;color:var(--text2)">Suporta colar (Ctrl+V)</span>
               </div>
               <div style="display:flex;gap:1.5rem;margin-top:0.25rem">
                 <span class="dz-hint"><i class="bi bi-arrow-down-up me-1"></i>Arrastar</span>
@@ -120,8 +167,6 @@
                 <span class="dz-hint"><i class="bi bi-clipboard me-1"></i>Colar</span>
               </div>
             </div>
-
-            <!-- Estado com preview da imagem carregada -->
             <div id="dzPreview" style="display:none;flex-direction:column;align-items:center;gap:0.5rem">
               <div class="avatar-preview-wrap">
                 <img id="avatarPreviewImg" src="" alt="Avatar" />
@@ -136,7 +181,6 @@
           </div>
         </div>
 
-        <!-- Perfil Base: Guerreiro / Especialista / Místico -->
         <div class="rpg-card">
           <div class="rpg-card-title"><span class="ti"></span>Perfil Base de Estatísticas</div>
           <div class="profile-grid">
@@ -155,7 +199,6 @@
           </div>
         </div>
 
-        <!-- Distribuição de Atributos -->
         <div class="rpg-card">
           <div class="rpg-card-title"><span class="ti"></span>Distribuição de Atributos</div>
           <label class="form-label d-block mb-2">Estilo de distribuição</label>
@@ -167,68 +210,83 @@
           <small class="text-muted" style="font-size:0.73rem">* Extrema disponível apenas para Nível 15+</small>
         </div>
 
-        <!-- Descrição Temática para a IA -->
         <div class="rpg-card">
           <div class="rpg-card-title">
             <span class="ti"></span>Descrição do Personagem
             <span class="optional-label">&nbsp;— guia a IA na criação das habilidades</span>
           </div>
           <label class="form-label">Descreva o personagem, sua origem, estilo de combate ou tema</label>
-          <textarea
-            class="form-control"
-            id="habilDesc"
-            placeholder="Ex: Uma assassina das sombras que usa veneno e ilusões. Prefere ataques furtivos e nunca confronta o inimigo diretamente..."
-          ></textarea>
+          <textarea class="form-control" id="habilDesc"
+            placeholder="Ex: Uma assassina das sombras que usa veneno e ilusões. Prefere ataques furtivos e nunca confronta o inimigo diretamente..."></textarea>
         </div>
 
-        <!-- Botão principal de geração -->
         <button class="btn-generate" onclick="generateSheet()" id="genBtn">
           <i class="bi bi-lightning-charge-fill me-2"></i>Gerar Ficha
         </button>
       </div>
-      <!-- /form-section -->
 
-      <!-- ════════════════════════════════
-           TELA DE CARREGAMENTO
-      ════════════════════════════════ -->
+      <!-- ── Loading ── -->
       <div class="loading-screen" id="loadingArea">
         <div class="loading-spinner"></div>
         <div>Forjando a ficha<span class="loading-dots"></span></div>
         <div class="loading-sub">A IA está criando habilidades únicas para o personagem...</div>
       </div>
 
-      <!-- ════════════════════════════════
-           SAÍDA: FICHA GERADA
-      ════════════════════════════════ -->
+      <!-- ── Ficha gerada ── -->
       <div id="sheet-container">
-        <!-- A ficha é injetada aqui via JavaScript (renderSheet em js/sheet.js) -->
         <div id="sheet-output"></div>
 
-        <!-- Barra de ações pós-geração -->
         <div class="export-bar">
-          <button class="btn-export" onclick="resetForm()">
-            <i class="bi bi-arrow-counterclockwise"></i> Nova Ficha
+          <!-- Principal: Salvar -->
+          <button class="btn-save-sheet" id="btn-save-sheet" onclick="saveNewSheet()">
+            <i class="bi bi-floppy2-fill"></i> Salvar Ficha
+          </button>
+          <span id="unsaved-indicator">
+            <i class="bi bi-circle-fill" style="font-size:.5rem"></i> não salva
+          </span>
+
+          <div class="export-divider"></div>
+
+          <button class="btn-export" onclick="goToFichas()">
+            <i class="bi bi-collection"></i> Minhas Fichas
+          </button>
+          <button class="btn-export" onclick="goToBoard()">
+            <i class="bi bi-layout-wtf"></i> Quadro
           </button>
           <button class="btn-export" onclick="exportImage()">
-            <i class="bi bi-image"></i> Exportar Imagem
+            <i class="bi bi-image"></i> Imagem
           </button>
-          <button class="btn-export primary" onclick="exportPDF()">
-            <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+          <button class="btn-export" onclick="exportPDF()">
+            <i class="bi bi-file-earmark-pdf"></i> PDF
+          </button>
+
+          <div class="export-divider"></div>
+
+          <button class="btn-export" onclick="resetForm()">
+            <i class="bi bi-arrow-counterclockwise"></i> Nova Ficha
           </button>
         </div>
       </div>
 
     </div>
-  </div><!-- /app-wrap -->
+  </div>
 
-  <!-- ── Bootstrap JS ── -->
+  <div class="page-toast" id="page-toast">
+    <i class="bi bi-check-circle-fill"></i>
+    <span id="page-toast-msg">Ficha salva com sucesso!</span>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- ── Módulos do projeto (ordem importa) ── -->
-  <script src="js/data.js"></script>      <!-- Tabelas de dados: perfis, NA_MODS, ATTR_DIST -->
-  <script src="js/api.js"></script>       <!-- Chamada à API de IA (OpenRouter / Anthropic)  -->
-  <script src="js/sheet.js"></script>     <!-- Renderização da ficha e edição inline          -->
-  <script src="js/export.js"></script>    <!-- Exportação para PNG e PDF                      -->
-  <script src="js/main.js"></script>      <!-- Controlador principal: form, dropzone, geração -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/sheet.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    function goToBoard()  { window.location.href = 'board.html'; }
+    function goToFichas() { window.location.href = 'fichas.html'; }
+  </script>
 </body>
 </html>

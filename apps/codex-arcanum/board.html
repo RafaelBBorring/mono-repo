@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Codex Arcanum — Quadro de Sessão</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold:   #c9a84c; --gold2: #e8c96a;
+      --dark:   #06070e; --dark2: #0b0d18; --dark3: #101320;
+      --border: rgba(201,168,76,.18);
+      --text1:  #ddd0b8; --text2: #64605a;
+      --red: #e05252; --green: #34d399; --blue: #60a5fa; --purple: #a78bfa;
+    }
+    body { background: #060710; overflow: hidden; font-family: 'Rajdhani', sans-serif; color: var(--text1); user-select: none; }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(9,9,16,.96); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .75rem;
+      padding: .5rem 1.25rem; height: 48px;
+    }
+    .tb-brand { font-family: 'Cinzel', serif; font-size: .82rem; letter-spacing: .14em;
+      background: linear-gradient(135deg,var(--gold),var(--gold2));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; white-space:nowrap; }
+    .tb-sep { width: 1px; height: 20px; background: var(--border); }
+    .tb-title { font-size: .82rem; color: var(--text2); letter-spacing: .06em; white-space:nowrap; }
+    .tb-spacer { flex: 1; }
+    .tb-btn {
+      padding: .3rem .75rem; border-radius: 6px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text2); font-family: 'Rajdhani',sans-serif;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      transition: all .18s; white-space: nowrap;
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .tb-btn:hover { color: var(--gold); border-color: rgba(201,168,76,.4); background: rgba(201,168,76,.06); }
+    .tb-btn.primary { color: var(--gold); border-color: rgba(201,168,76,.35); }
+    .tb-btn.danger  { color: var(--red);  border-color: rgba(224,82,82,.3); }
+    .tb-btn.danger:hover { background: rgba(224,82,82,.08); }
+
+    /* ── Quadro infinito ── */
+    #board {
+      position: fixed; top: 48px; left: 0; right: 0; bottom: 0;
+      overflow: hidden; cursor: grab;
+      background-color: #090910;
+      background-image:
+        radial-gradient(circle, rgba(201,168,76,.12) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    #board.panning { cursor: grabbing; }
+    #board-canvas {
+      position: absolute; top: 0; left: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* ── Mini-card no quadro ── */
+    .board-card {
+      position: absolute;
+      width: 260px;
+      background: linear-gradient(145deg, rgba(19,19,31,.97), rgba(13,13,22,.98));
+      border: 1px solid rgba(201,168,76,.25);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.6);
+      cursor: default;
+      transition: box-shadow .15s;
+    }
+    .board-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,.8), 0 0 0 1px rgba(201,168,76,.3); }
+
+    /* Header do card */
+    .bc-header {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .65rem .75rem .5rem;
+      border-bottom: 1px solid rgba(201,168,76,.12);
+      cursor: grab;
+    }
+    .bc-header:active { cursor: grabbing; }
+    .bc-avatar {
+      width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0;
+      background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: var(--gold); overflow: hidden;
+    }
+    .bc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .bc-info { flex: 1; min-width: 0; }
+    .bc-name {
+      font-family: 'Cinzel', serif; font-size: .78rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .bc-tags { display: flex; gap: .25rem; margin-top: .2rem; flex-wrap: wrap; }
+    .bc-tag {
+      font-size: .58rem; font-weight: 700; letter-spacing: .05em;
+      padding: .1rem .35rem; border-radius: 3px;
+      background: rgba(201,168,76,.12); color: var(--gold);
+      border: 1px solid rgba(201,168,76,.2);
+    }
+    .bc-tag.profile { background: rgba(80,60,160,.2); color: #a090e0; border-color: rgba(80,60,160,.3); }
+    .bc-close {
+      background: none; border: none; color: rgba(224,82,82,.4);
+      cursor: pointer; padding: .2rem; font-size: .85rem; flex-shrink: 0;
+    }
+    .bc-close:hover { color: var(--red); }
+
+    /* Stats principais editáveis */
+    .bc-stats {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px; background: rgba(201,168,76,.08);
+      border-bottom: 1px solid rgba(201,168,76,.1);
+    }
+    .bc-stat {
+      background: rgba(13,13,22,.98);
+      padding: .45rem .3rem; text-align: center;
+    }
+    .bc-stat-val {
+      font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 700;
+      color: var(--text1); line-height: 1;
+      outline: none; min-width: 1ch; display: inline-block;
+      border-bottom: 1px solid transparent;
+      transition: border-color .15s;
+    }
+    .bc-stat-val:focus { border-bottom-color: var(--gold); color: var(--gold2); }
+    .bc-stat-val.hp { color: var(--green); }
+    .bc-stat-val.hp:focus { color: var(--green); }
+    .bc-stat-lbl { font-size: .6rem; color: var(--text2); letter-spacing: .07em; margin-top: .2rem; text-transform: uppercase; }
+
+    /* PV com barra de vida */
+    .bc-hp-wrap { grid-column: 1/-1; background: rgba(13,13,22,.98); padding: .5rem .75rem; }
+    .bc-hp-row  { display: flex; align-items: center; justify-content: space-between; margin-bottom: .3rem; }
+    .bc-hp-label { font-size: .65rem; color: var(--text2); letter-spacing: .07em; text-transform: uppercase; }
+    .bc-hp-val {
+      font-family: 'Cinzel', serif; font-size: .95rem; font-weight: 700;
+      color: var(--green); outline: none;
+      border-bottom: 1px dashed transparent;
+    }
+    .bc-hp-val:focus { border-bottom-color: var(--green); }
+    .bc-hp-max { font-size: .7rem; color: var(--text2); }
+    .bc-hp-bar { height: 5px; background: rgba(255,255,255,.07); border-radius: 3px; overflow: hidden; }
+    .bc-hp-fill { height: 100%; border-radius: 3px; transition: width .3s, background-color .3s; }
+
+    /* Seção de habilidades colapsável */
+    .bc-section-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .4rem .75rem; cursor: pointer;
+      border-top: 1px solid rgba(201,168,76,.1);
+      font-size: .7rem; color: var(--text2); letter-spacing: .07em;
+      transition: color .15s;
+    }
+    .bc-section-toggle:hover { color: var(--gold); }
+    .bc-abilities { padding: 0 .6rem .5rem; display: none; }
+    .bc-abilities.open { display: block; }
+    .bc-ab {
+      padding: .35rem .4rem; border-radius: 5px; margin-bottom: .25rem;
+      border-left: 2px solid rgba(201,168,76,.3);
+      font-size: .72rem; color: var(--text2);
+    }
+    .bc-ab-name { color: var(--text3, #c8b88a); font-weight: 600; font-size: .75rem; margin-bottom: .1rem; }
+    .bc-ab.passiva  { border-left-color: rgba(110,180,110,.5); }
+    .bc-ab.ultimate { border-left-color: rgba(180,100,220,.5); }
+
+    /* Texto selecionável nas habilidades e stats do board */
+    .bc-ab, .bc-ab-name, .bc-ab-desc, .bc-ab-stats,
+    .bc-stat-val, .bc-hp-max {
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: text;
+    }
+    .bc-ab { cursor: default; }
+    .bc-ab-name { cursor: text; }
+
+    /* Quick actions */
+    .bc-actions {
+      display: flex; gap: .3rem; padding: .45rem .6rem;
+      border-top: 1px solid rgba(201,168,76,.08);
+    }
+    .bc-act {
+      flex: 1; padding: .3rem .2rem; border-radius: 5px;
+      border: 1px solid rgba(201,168,76,.15); background: transparent;
+      color: var(--text2); font-family: 'Rajdhani',sans-serif;
+      font-size: .68rem; font-weight: 600; cursor: pointer;
+      transition: all .15s; text-align: center;
+    }
+    .bc-act:hover { color: var(--gold); border-color: rgba(201,168,76,.4); background: rgba(201,168,76,.07); }
+    .bc-act.red:hover { color: var(--red); border-color: rgba(224,82,82,.35); background: rgba(224,82,82,.06); }
+    .bc-act.active { color: var(--gold); border-color: rgba(201,168,76,.5); background: rgba(201,168,76,.1); }
+    .bc-act.active.dmg { color: var(--red); border-color: rgba(224,82,82,.5); background: rgba(224,82,82,.08); }
+
+    /* ── Inline HP panel ── */
+    .bc-hp-panel {
+      display: none; flex-direction: column; gap: 0;
+      border-top: 1px solid rgba(201,168,76,.08);
+      overflow: hidden;
+      animation: slideDown .18s ease;
+    }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+    .bc-hp-panel.open { display: flex; }
+    .bc-hp-panel-inner {
+      display: flex; align-items: center; gap: .4rem;
+      padding: .45rem .6rem;
+    }
+    .bc-hp-panel.dmg-mode .bc-hp-panel-inner { background: rgba(224,82,82,.04); }
+    .bc-hp-panel.heal-mode .bc-hp-panel-inner { background: rgba(52,211,153,.04); }
+    .bc-hp-panel-label {
+      font-family: 'Rajdhani',sans-serif; font-size: .68rem; font-weight:700;
+      letter-spacing: .06em; white-space:nowrap;
+    }
+    .bc-hp-panel.dmg-mode  .bc-hp-panel-label { color: var(--red); }
+    .bc-hp-panel.heal-mode .bc-hp-panel-label { color: #34d399; }
+    .bc-hp-input {
+      flex: 1; min-width: 0;
+      background: rgba(6,7,14,.8); border: 1px solid rgba(201,168,76,.2);
+      border-radius: 5px; color: #ddd0b8;
+      font-family: 'Rajdhani',sans-serif; font-size: .9rem; font-weight:700;
+      padding: .22rem .5rem; text-align: center; outline: none;
+      transition: border-color .15s;
+    }
+    .bc-hp-panel.dmg-mode  .bc-hp-input:focus { border-color: rgba(224,82,82,.5); }
+    .bc-hp-panel.heal-mode .bc-hp-input:focus { border-color: rgba(52,211,153,.45); }
+    .bc-hp-apply {
+      padding: .22rem .7rem; border-radius: 5px; border: none;
+      font-family: 'Rajdhani',sans-serif; font-size: .75rem; font-weight:700;
+      cursor: pointer; transition: all .15s; white-space:nowrap;
+    }
+    .bc-hp-panel.dmg-mode  .bc-hp-apply { background: rgba(224,82,82,.75); color:#fff; }
+    .bc-hp-panel.dmg-mode  .bc-hp-apply:hover { background: rgba(224,82,82,.95); }
+    .bc-hp-panel.heal-mode .bc-hp-apply { background: rgba(52,211,153,.7); color:#06070e; }
+    .bc-hp-panel.heal-mode .bc-hp-apply:hover { background: rgba(52,211,153,.9); }
+    .bc-hp-cancel {
+      background: none; border: none; color: #64605a; cursor:pointer;
+      font-size:.85rem; padding:.1rem .2rem; transition: color .15s;
+      line-height:1;
+    }
+    .bc-hp-cancel:hover { color: #9e8e6a; }
+
+    /* ── Sidebar de fichas ── */
+    .sidebar {
+      position: fixed; top: 48px; right: 0; bottom: 0;
+      width: 220px; z-index: 100;
+      background: rgba(13,13,20,.97); backdrop-filter: blur(8px);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform .25s;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-header {
+      padding: .85rem 1rem .65rem;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Cinzel', serif; font-size: .82rem;
+      letter-spacing: .09em; color: var(--gold);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sidebar-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 1rem; }
+    .sidebar-list { flex: 1; overflow-y: auto; padding: .5rem; }
+    .sidebar-list::-webkit-scrollbar { width: 4px; }
+    .sidebar-list::-webkit-scrollbar-thumb { background: rgba(201,168,76,.2); border-radius: 2px; }
+    .sl-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .55rem .6rem; border-radius: 8px;
+      border: 1px solid transparent; cursor: pointer;
+      margin-bottom: .3rem; transition: all .15s;
+    }
+    .sl-item:hover { border-color: rgba(201,168,76,.3); background: rgba(201,168,76,.06); }
+    .sl-avatar {
+      width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+      background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; color: var(--gold); overflow: hidden;
+    }
+    .sl-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sl-info { min-width: 0; }
+    .sl-name { font-size: .78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sl-meta { font-size: .65rem; color: var(--text2); }
+    .sl-empty { padding: 1rem; text-align: center; color: var(--text2); font-size: .82rem; font-style: italic; }
+
+    /* ── Zoom indicator ── */
+    .zoom-indicator {
+      position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+      background: rgba(13,13,20,.9); border: 1px solid var(--border);
+      border-radius: 8px; padding: .3rem .75rem;
+      font-size: .75rem; color: var(--text2); pointer-events: none;
+      opacity: 0; transition: opacity .3s;
+    }
+    .zoom-indicator.visible { opacity: 1; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: rgba(13,13,20,.95); border: 1px solid rgba(109,204,128,.3);
+      border-radius: 9px; padding: .65rem 1rem;
+      font-size: .85rem; color: var(--green);
+      display: flex; align-items: center; gap: .5rem;
+      opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Topbar ── -->
+  <nav class="topbar">
+    <span class="tb-brand">CODEX ARCANUM</span>
+    <div class="tb-sep"></div>
+    <span class="tb-title">Quadro de Sessão</span>
+    <div class="tb-spacer"></div>
+    <button class="tb-btn primary" onclick="toggleSidebar()">
+      <i class="bi bi-plus-lg"></i> Adicionar Ficha
+    </button>
+    <button class="tb-btn" onclick="resetView()">
+      <i class="bi bi-fullscreen"></i> Centralizar
+    </button>
+    <button class="tb-btn" onclick="clearBoard()">
+      <i class="bi bi-trash3"></i> Limpar Quadro
+    </button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="window.location.href='fichas.html'">
+      <i class="bi bi-collection"></i> Fichas
+    </button>
+    <button class="tb-btn" onclick="window.location.href='hub.html'">
+      <i class="bi bi-arrow-left"></i> Início
+    </button>
+  </nav>
+
+  <!-- ── Quadro ── -->
+  <div id="board">
+    <div id="board-canvas"></div>
+  </div>
+
+  <!-- ── Sidebar de fichas disponíveis ── -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span>Fichas Salvas</span>
+      <button class="sidebar-close" onclick="toggleSidebar()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="sidebar-list" id="sidebar-list"></div>
+  </div>
+
+  <!-- ── Zoom indicator ── -->
+  <div class="zoom-indicator" id="zoom-ind">100%</div>
+
+  <!-- ── Toast ── -->
+  <div class="toast" id="toast"><i class="bi bi-check-circle"></i> <span id="toast-msg"></span></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    let currentUser = null;
+    let _allSheets = [];
+
+    // ════════════════════════════════════════════════════════
+    // AUTH GUARD
+    // ════════════════════════════════════════════════════════
+    async function initAuth() {
+      try {
+        let session = await waitForSession();
+        if (!session) session = await getSession();
+        if (!session) {
+          window.location.href = '/login.html';
+          return;
+        }
+        currentUser = session.user;
+        await loadBoard();
+      } catch(err) {
+        console.error('[board initAuth]', err);
+        showToast('Erro de conexão com o banco');
+      }
+    }
+
+    // ════════════════════════════════════════════════════════
+    // ESTADO DO QUADRO
+    // ════════════════════════════════════════════════════════
+    let pan   = { x: 0, y: 0 };
+    let zoom  = 1;
+    let cards = []; // [{id, sheetId, x, y, hpCurrent}]
+
+    const board  = document.getElementById('board');
+    const canvas = document.getElementById('board-canvas');
+
+    // ── Carregar estado salvo ─────────────────────────────
+    async function loadBoard() {
+      // 1. Carregar fichas para referência
+      const { data: sheetsData } = await window.supabaseClient
+        .from('sheets')
+        .select('*')
+        .eq('user_id', currentUser.id);
+      _allSheets = sheetsData || [];
+
+      // 2. Carregar estado do board
+      const { data, error } = await window.supabaseClient
+        .from('board_state')
+        .select('cards')
+        .eq('user_id', currentUser.id)
+        .single();
+        
+      if (data && data.cards) {
+        cards = data.cards;
+      } else {
+        cards = [];
+      }
+      
+      renderBoard();
+    }
+    
+    let boardSaveTimeout = null;
+    async function saveBoard() {
+      if (!currentUser) return;
+      
+      // Salva com debounce para evitar requisições excessivas (Ex: ao arrastar card)
+      clearTimeout(boardSaveTimeout);
+      boardSaveTimeout = setTimeout(async () => {
+        await window.supabaseClient
+          .from('board_state')
+          .upsert({ user_id: currentUser.id, cards: cards, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      }, 500);
+    }
+
+    // ── Fichas do usuário ─────────────────────────────────
+    function getSheets() {
+      return _allSheets;
+    }
+    const PROFILE_NAMES = { guerreiro: 'Guerreiro', especialista: 'Especialista', mistico: 'Místico' };
+
+    // ════════════════════════════════════════════════════════
+    // PAN & ZOOM
+    // ════════════════════════════════════════════════════════
+    function applyTransform() {
+      canvas.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+    }
+
+    let isPanning = false, panStart = { x: 0, y: 0 };
+
+    board.addEventListener('mousedown', e => {
+      if (e.target !== board && e.target !== canvas) return;
+      isPanning = true;
+      panStart = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+      board.classList.add('panning');
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isPanning) return;
+      pan = { x: e.clientX - panStart.x, y: e.clientY - panStart.y };
+      applyTransform();
+    });
+    window.addEventListener('mouseup', () => {
+      isPanning = false; board.classList.remove('panning');
+    });
+
+    board.addEventListener('wheel', e => {
+      e.preventDefault();
+      const rect   = board.getBoundingClientRect();
+      const mx     = e.clientX - rect.left;
+      const my     = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      const newZ   = Math.min(3, Math.max(0.2, zoom * factor));
+      pan.x = mx - (mx - pan.x) * (newZ / zoom);
+      pan.y = my - (my - pan.y) * (newZ / zoom);
+      zoom  = newZ;
+      applyTransform();
+      showZoom();
+    }, { passive: false });
+
+    // Touch pan
+    let touches = null;
+    board.addEventListener('touchstart', e => {
+      if (e.touches.length === 1 && (e.target === board || e.target === canvas)) {
+        touches = e.touches[0];
+        panStart = { x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y };
+      }
+    }, { passive: true });
+    board.addEventListener('touchmove', e => {
+      if (e.touches.length === 1 && touches) {
+        pan = { x: e.touches[0].clientX - panStart.x, y: e.touches[0].clientY - panStart.y };
+        applyTransform();
+      }
+    }, { passive: true });
+
+    function resetView() {
+      pan = { x: 80, y: 80 }; zoom = 1; applyTransform();
+    }
+
+    let zoomTimer;
+    function showZoom() {
+      const ind = document.getElementById('zoom-ind');
+      ind.textContent = `${Math.round(zoom * 100)}%`;
+      ind.classList.add('visible');
+      clearTimeout(zoomTimer);
+      zoomTimer = setTimeout(() => ind.classList.remove('visible'), 1200);
+    }
+
+    // ════════════════════════════════════════════════════════
+    // RENDERIZAÇÃO DOS CARDS NO QUADRO
+    // ════════════════════════════════════════════════════════
+    function renderBoard() {
+      canvas.innerHTML = '';
+      cards.forEach(c => {
+        const sheet = getSheets().find(s => s.id === c.sheetId);
+        if (!sheet) return;
+        canvas.appendChild(createBoardCard(c, sheet));
+      });
+    }
+
+    function createBoardCard(cardState, sheet) {
+      const el = document.createElement('div');
+      el.className = 'board-card';
+      el.dataset.cardId = cardState.id;
+      el.style.left = cardState.x + 'px';
+      el.style.top  = cardState.y + 'px';
+
+      const data  = sheet.data || {};
+      const stats = data.stats || {};
+      const maxHp = stats.vida || 0;
+      const curHp = cardState.hpCurrent ?? maxHp;
+      const hpPct = maxHp > 0 ? Math.max(0, Math.min(100, (curHp / maxHp) * 100)) : 100;
+      const hpColor = hpPct > 60 ? '#6dcc80' : hpPct > 30 ? '#e8c96a' : '#e05252';
+
+      const abilities = data.abilities || [];
+      const avatarHtml = sheet.avatar
+        ? `<img src="${sheet.avatar}" alt="avatar"/>`
+        : `<i class="bi bi-person-fill"></i>`;
+
+      el.innerHTML = `
+        <!-- Header arrastável -->
+        <div class="bc-header" data-drag="true">
+          <div class="bc-avatar">${avatarHtml}</div>
+          <div class="bc-info">
+            <div class="bc-name" title="${sheet.nome}">${sheet.nome}</div>
+            <div class="bc-tags">
+              <span class="bc-tag">Nv ${sheet.nivel}</span>
+              <span class="bc-tag">NA ${sheet.na}</span>
+              <span class="bc-tag profile">${PROFILE_NAMES[sheet.profile] || sheet.profile}</span>
+            </div>
+          </div>
+          <button class="bc-close" onclick="removeCardFromBoard('${cardState.id}')" title="Remover do quadro">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <!-- PV com barra -->
+        <div class="bc-hp-wrap">
+          <div class="bc-hp-row">
+            <span class="bc-hp-label"><i class="bi bi-heart-fill me-1"></i>Pontos de Vida</span>
+            <span>
+              <span class="bc-hp-val" contenteditable="true"
+                    data-field="hp" data-card="${cardState.id}" data-max="${maxHp}"
+                    title="Clique para editar">${curHp}</span>
+              <span class="bc-hp-max"> / ${maxHp}</span>
+            </span>
+          </div>
+          <div class="bc-hp-bar">
+            <div class="bc-hp-fill" id="hp-bar-${cardState.id}"
+                 style="width:${hpPct}%; background:${hpColor}"></div>
+          </div>
+        </div>
+
+        <!-- Stats CA / Arm / BA / BD / Reações -->
+        <div class="bc-stats">
+          <div class="bc-stat">
+            <div class="bc-stat-val">${stats.ca ?? '—'}</div>
+            <div class="bc-stat-lbl">CA</div>
+          </div>
+          <div class="bc-stat">
+            <div class="bc-stat-val">+${stats.ba ?? '—'}</div>
+            <div class="bc-stat-lbl">Ataque</div>
+          </div>
+          <div class="bc-stat">
+            <div class="bc-stat-val">+${stats.bd ?? '—'}</div>
+            <div class="bc-stat-lbl">Defesa</div>
+          </div>
+          <div class="bc-stat">
+            <div class="bc-stat-val">${stats.arm ?? '—'}</div>
+            <div class="bc-stat-lbl">Armadura</div>
+          </div>
+          <div class="bc-stat">
+            <div class="bc-stat-val">${stats.reac ?? '—'}</div>
+            <div class="bc-stat-lbl">Reações</div>
+          </div>
+          <div class="bc-stat">
+            <div class="bc-stat-val" style="font-size:.75rem">${stats.dano || '—'}</div>
+            <div class="bc-stat-lbl">Dano</div>
+          </div>
+        </div>
+
+        <!-- Habilidades colapsáveis -->
+        ${abilities.length ? `
+        <div class="bc-section-toggle" onclick="toggleAbilities(this)">
+          <span><i class="bi bi-stars me-1"></i>Habilidades (${abilities.length})</span>
+          <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="bc-abilities">
+          ${abilities.map(ab => `
+            <div class="bc-ab ${ab.type || ''}">
+              <div class="bc-ab-name">${ab.name}</div>
+              <div class="bc-ab-desc" style="font-size:.68rem;line-height:1.4;margin-top:.1rem;user-select:text;-webkit-user-select:text;cursor:text">${ab.description || ''}</div>
+              ${ab.stats?.length ? `<div class="bc-ab-stats" style="margin-top:.25rem;font-size:.65rem;color:#c9a84c;user-select:text;-webkit-user-select:text;cursor:text">${ab.stats.join(' · ')}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>` : ''}
+
+        <!-- Quick actions -->
+        <div class="bc-actions">
+          <button class="bc-act" id="btn-dmg-${cardState.id}"
+                  onclick="toggleHpPanel('${cardState.id}','dmg')">
+            <i class="bi bi-dash-circle"></i> Dano
+          </button>
+          <button class="bc-act" id="btn-heal-${cardState.id}"
+                  onclick="toggleHpPanel('${cardState.id}','heal')">
+            <i class="bi bi-plus-circle"></i> Cura
+          </button>
+          <button class="bc-act" onclick="copyStats('${cardState.id}')">
+            <i class="bi bi-clipboard"></i> Copiar
+          </button>
+          <button class="bc-act red" onclick="resetHp('${cardState.id}')">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+        </div>
+        <!-- Inline HP panel -->
+        <div class="bc-hp-panel" id="hp-panel-${cardState.id}">
+          <div class="bc-hp-panel-inner">
+            <span class="bc-hp-panel-label" id="hp-panel-lbl-${cardState.id}">DANO</span>
+            <input class="bc-hp-input" type="number" min="0" id="hp-panel-inp-${cardState.id}"
+                   placeholder="0"
+                   onkeydown="if(event.key==='Enter') applyHpPanel('${cardState.id}')"
+                   onclick="event.stopPropagation()"/>
+            <button class="bc-hp-apply" onclick="applyHpPanel('${cardState.id}')">Aplicar</button>
+            <button class="bc-hp-cancel" onclick="closeHpPanel('${cardState.id}')"><i class="bi bi-x"></i></button>
+          </div>
+        </div>
+      `;
+
+      // ── Drag do card ──
+      makeDraggable(el, cardState);
+
+      // ── Editar HP inline ──
+      el.querySelectorAll('[data-field="hp"]').forEach(input => {
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        });
+        input.addEventListener('blur', () => {
+          const val = parseInt(input.textContent) || 0;
+          const max = parseInt(input.dataset.max) || 1;
+          updateHp(cardState.id, val, max);
+        });
+        // Previne arrastar o card ao clicar no HP
+        input.addEventListener('mousedown', e => e.stopPropagation());
+      });
+
+      return el;
+    }
+
+    function toggleAbilities(toggle) {
+      const panel = toggle.nextElementSibling;
+      const icon  = toggle.querySelector('.bi-chevron-down, .bi-chevron-up');
+      panel.classList.toggle('open');
+      if (icon) icon.className = panel.classList.contains('open') ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+    }
+
+    // ════════════════════════════════════════════════════════
+    // DRAG DOS CARDS
+    // ════════════════════════════════════════════════════════
+    function makeDraggable(el, cardState) {
+      const handle = el.querySelector('[data-drag="true"]');
+      let dragging = false, startX, startY, startLeft, startTop;
+
+      handle.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        dragging = true; e.stopPropagation();
+        startX = e.clientX; startY = e.clientY;
+        startLeft = parseInt(el.style.left) || 0;
+        startTop  = parseInt(el.style.top)  || 0;
+        el.style.zIndex = 1000;
+        el.style.boxShadow = '0 16px 48px rgba(0,0,0,.8), 0 0 0 1px rgba(201,168,76,.4)';
+      });
+
+      window.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        const dx = (e.clientX - startX) / zoom;
+        const dy = (e.clientY - startY) / zoom;
+        el.style.left = (startLeft + dx) + 'px';
+        el.style.top  = (startTop  + dy) + 'px';
+      });
+
+      window.addEventListener('mouseup', e => {
+        if (!dragging) return;
+        dragging = false;
+        el.style.zIndex = '';
+        el.style.boxShadow = '';
+        cardState.x = parseInt(el.style.left);
+        cardState.y = parseInt(el.style.top);
+        saveBoard();
+      });
+    }
+
+    // ════════════════════════════════════════════════════════
+    // AÇÕES DOS CARDS
+    // ════════════════════════════════════════════════════════
+    function getCard(id) { return cards.find(c => c.id === id); }
+
+    function updateHp(cardId, newHp, max) {
+      const c = getCard(cardId);
+      if (!c) return;
+      c.hpCurrent = Math.max(0, Math.min(newHp, max));
+      saveBoard();
+
+      // Atualiza visualmente sem re-render completo
+      const bar  = document.getElementById(`hp-bar-${cardId}`);
+      const pct  = max > 0 ? (c.hpCurrent / max) * 100 : 0;
+      const col  = pct > 60 ? '#6dcc80' : pct > 30 ? '#e8c96a' : '#e05252';
+      if (bar) { bar.style.width = pct + '%'; bar.style.backgroundColor = col; }
+      const valEl = document.querySelector(`[data-field="hp"][data-card="${cardId}"]`);
+      if (valEl) valEl.textContent = c.hpCurrent;
+    }
+
+    // ── Inline HP panel (substitui prompt) ──────────────────
+    let _activePanelCard = null;
+    let _activePanelMode = null;
+
+    function toggleHpPanel(cardId, mode) {
+      // Se já está aberto no mesmo card e modo, fecha
+      if (_activePanelCard === cardId && _activePanelMode === mode) {
+        closeHpPanel(cardId);
+        return;
+      }
+      // Fecha qualquer painel aberto
+      if (_activePanelCard) closeHpPanel(_activePanelCard);
+
+      const panel = document.getElementById('hp-panel-' + cardId);
+      const lbl   = document.getElementById('hp-panel-lbl-' + cardId);
+      const inp   = document.getElementById('hp-panel-inp-' + cardId);
+      const btnD  = document.getElementById('btn-dmg-'  + cardId);
+      const btnH  = document.getElementById('btn-heal-' + cardId);
+      if (!panel || !inp) return;
+
+      _activePanelCard = cardId;
+      _activePanelMode = mode;
+
+      panel.className = 'bc-hp-panel open ' + (mode === 'dmg' ? 'dmg-mode' : 'heal-mode');
+      lbl.textContent  = mode === 'dmg' ? 'DANO' : 'CURA';
+      inp.value = '';
+
+      if (btnD) btnD.classList.toggle('active',    mode === 'dmg');
+      if (btnD) btnD.classList.toggle('dmg',       mode === 'dmg');
+      if (btnH) btnH.classList.toggle('active',    mode === 'heal');
+
+      // Foca o input com pequeno delay (rendering)
+      setTimeout(() => inp.focus(), 50);
+    }
+
+    function closeHpPanel(cardId) {
+      const panel = document.getElementById('hp-panel-' + cardId);
+      const btnD  = document.getElementById('btn-dmg-'  + cardId);
+      const btnH  = document.getElementById('btn-heal-' + cardId);
+      if (panel) { panel.classList.remove('open'); }
+      if (btnD)  { btnD.classList.remove('active','dmg'); }
+      if (btnH)  { btnH.classList.remove('active'); }
+      if (_activePanelCard === cardId) {
+        _activePanelCard = null;
+        _activePanelMode = null;
+      }
+    }
+
+    function applyHpPanel(cardId) {
+      const inp  = document.getElementById('hp-panel-inp-' + cardId);
+      if (!inp) return;
+      const val = parseInt(inp.value);
+      if (isNaN(val) || val < 0) { inp.focus(); return; }
+
+      const c = getCard(cardId);
+      if (!c) return;
+      const sheet = getSheets().find(s => String(s.id) === String(c.sheetId));
+      const max   = sheet?.data?.stats?.vida || c.hpCurrent;
+
+      if (_activePanelMode === 'dmg') {
+        updateHp(cardId, (c.hpCurrent ?? max) - val, max);
+        showToast(`-${val} PV`);
+      } else {
+        updateHp(cardId, (c.hpCurrent ?? max) + val, max);
+        showToast(`+${val} PV`);
+      }
+      closeHpPanel(cardId);
+    }
+
+    function resetHp(cardId) {
+      const c = getCard(cardId);
+      if (!c) return;
+      const sheet = getSheets().find(s => s.id === c.sheetId);
+      const max   = sheet?.data?.stats?.vida || 0;
+      updateHp(cardId, max, max);
+      showToast('PV restaurado');
+    }
+
+    function copyStats(cardId) {
+      const c = getCard(cardId);
+      if (!c) return;
+      const sheet = getSheets().find(s => s.id === c.sheetId);
+      if (!sheet) return;
+      const s = sheet.data?.stats || {};
+      const text = [
+        `📋 ${sheet.nome} (Nv ${sheet.nivel} · NA ${sheet.na})`,
+        `❤️ PV: ${c.hpCurrent ?? s.vida} / ${s.vida}`,
+        `🛡️ CA: ${s.ca}  |  Arm: ${s.arm}`,
+        `⚔️ Ataque: d20+${s.ba}  |  Defesa: d20+${s.bd}`,
+        `🎲 Dano: ${s.dano}${s.danoExtra || ''}`,
+        `⚡ Reações: ${s.reac}`,
+      ].join('\n');
+      navigator.clipboard.writeText(text).then(() => showToast('Stats copiados!')).catch(() => {});
+    }
+
+    function removeCardFromBoard(cardId) {
+      cards = cards.filter(c => c.id !== cardId);
+      saveBoard();
+      renderBoard();
+    }
+
+    function clearBoard() {
+      if (!confirm('Remover todas as fichas do quadro?')) return;
+      cards = []; saveBoard(); renderBoard();
+    }
+
+    // ════════════════════════════════════════════════════════
+    // SIDEBAR — adicionar fichas ao quadro
+    // ════════════════════════════════════════════════════════
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      sb.classList.toggle('open');
+      if (sb.classList.contains('open')) renderSidebar();
+    }
+
+    function renderSidebar() {
+      const list   = document.getElementById('sidebar-list');
+      const sheets = getSheets();
+      if (!sheets.length) {
+        list.innerHTML = '<div class="sl-empty">Nenhuma ficha salva.<br/>Crie fichas primeiro.</div>';
+        return;
+      }
+      list.innerHTML = sheets.map(s => {
+        const avatarHtml = s.avatar
+          ? `<img src="${s.avatar}" alt="av"/>`
+          : `<i class="bi bi-person-fill"></i>`;
+        return `
+          <div class="sl-item" onclick="addToBoard('${s.id}')">
+            <div class="sl-avatar">${avatarHtml}</div>
+            <div class="sl-info">
+              <div class="sl-name" title="${s.nome}">${s.nome}</div>
+              <div class="sl-meta">Nv ${s.nivel} · ${PROFILE_NAMES[s.profile] || s.profile}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function addToBoard(sheetId) {
+      // Calcula posição central do viewport atual
+      const bRect = board.getBoundingClientRect();
+      const cx = (bRect.width  / 2 - pan.x) / zoom - 130;
+      const cy = (bRect.height / 2 - pan.y) / zoom - 100;
+
+      // Offset para não sobrepor cards existentes
+      const offset = cards.length * 30;
+
+      const sheet = getSheets().find(s => s.id === sheetId);
+      const newCard = {
+        id:        Date.now().toString(),
+        sheetId,
+        x:         cx + offset,
+        y:         cy + offset,
+        hpCurrent: sheet?.data?.stats?.vida ?? 0
+      };
+      cards.push(newCard);
+      saveBoard();
+      renderBoard();
+      showToast(`${sheet?.nome || 'Ficha'} adicionada ao quadro`);
+    }
+
+    // ════════════════════════════════════════════════════════
+    // TOAST
+    // ════════════════════════════════════════════════════════
+    let toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // ════════════════════════════════════════════════════════
+    // INIT
+    // ════════════════════════════════════════════════════════
+    initAuth();
+    resetView();
+  </script>
+</body>
+</html>

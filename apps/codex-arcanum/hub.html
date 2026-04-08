@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Codex Arcanum — Início</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold:   #c9a84c; --gold2:  #e8c96a;
+      --dark:   #06070e; --dark2:  #0b0d18; --dark3:  #101320;
+      --border: rgba(201,168,76,.2);
+      --text1:  #ddd0b8; --text2:  #64605a; --text3: #c4b896;
+      --red: #e05252; --green: #34d399; --purple: #a78bfa;
+    }
+    body { background: var(--dark); min-height: 100vh; font-family: 'Rajdhani', sans-serif; color: var(--text1); }
+
+    .bg-deco {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 10% 20%, rgba(124,58,237,.07) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 55% at 90% 80%, rgba(201,168,76,.06) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(52,211,153,.03) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 2L78 40L40 78L2 40Z' fill='none' stroke='%23ffffff04' stroke-width='0.6'/%3E%3C/svg%3E");
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(13,13,20,.93); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .6rem 2rem;
+    }
+    .tb-brand { font-family: 'Cinzel', serif; font-size: .9rem; letter-spacing: .15em;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .tb-right { display: flex; align-items: center; gap: 1rem; }
+    .tb-user  { font-size: .85rem; color: var(--text2); }
+    .tb-user span { color: var(--gold); font-weight: 600; }
+    .btn-logout {
+      padding: .32rem .8rem; border-radius: 6px;
+      border: 1px solid rgba(224,82,82,.3); background: transparent;
+      color: var(--red); font-family: 'Rajdhani', sans-serif;
+      font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; gap: .35rem;
+    }
+    .btn-logout:hover { background: rgba(224,82,82,.08); }
+
+    /* ── Layout ── */
+    .page { position: relative; z-index: 1; padding-top: 80px; min-height: 100vh; }
+    .inner { max-width: 1000px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+    /* ── Header ── */
+    .page-header { text-align: center; margin-bottom: 3rem; }
+    .logo-ornament {
+      display: flex; align-items: center; justify-content: center;
+      gap: .8rem; margin-bottom: .6rem;
+    }
+    .logo-line    { flex: 1; max-width: 120px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .logo-diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); flex-shrink: 0; }
+    .page-title {
+      font-family: 'Cinzel', serif; font-size: 2rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: .15em;
+    }
+    .page-sub { font-family: 'Crimson Text', serif; font-style: italic; color: var(--text2); margin-top: .4rem; }
+
+    /* ── Nav buttons (os 2 caminhos) ── */
+    .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 3rem; }
+    @media(max-width:600px){ .nav-grid { grid-template-columns: 1fr; } }
+    .nav-card {
+      background: linear-gradient(145deg, var(--dark2), var(--dark3));
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 2rem 1.75rem; cursor: pointer;
+      transition: all .25s; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: .75rem;
+      position: relative; overflow: hidden;
+    }
+    .nav-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201,168,76,0.35), transparent);
+    }
+    .nav-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(201,168,76,.06), transparent);
+      opacity: 0; transition: opacity .25s;
+    }
+    .nav-card:hover { border-color: rgba(201,168,76,.55); transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(201,168,76,.12); }
+    .nav-card:hover::after { opacity: 1; }
+    .nav-card-icon { font-size: 2.2rem; color: var(--gold); }
+    .nav-card-title { font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 600; letter-spacing: .08em; }
+    .nav-card-desc  { font-size: .88rem; color: var(--text2); line-height: 1.5; }
+    .nav-card-arrow { margin-top: auto; color: var(--gold); font-size: .85rem; display: flex; align-items: center; gap: .4rem; }
+
+    /* ── Fichas recentes ── */
+    .section-title {
+      font-family: 'Cinzel', serif; font-size: .95rem; letter-spacing: .1em;
+      color: var(--gold); margin-bottom: 1.1rem;
+      display: flex; align-items: center; gap: .6rem;
+      padding-bottom: .6rem; border-bottom: 1px solid var(--border);
+    }
+    .sheets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: .85rem; }
+    .sheet-card {
+      background: linear-gradient(145deg, rgba(26,26,46,.9), rgba(19,19,31,.95));
+      border: 1px solid var(--border); border-radius: 11px;
+      padding: 1rem; cursor: pointer; transition: all .2s;
+      position: relative;
+    }
+    .sheet-card:hover { border-color: rgba(201,168,76,.45); transform: translateY(-2px); }
+    .sc-avatar {
+      width: 52px; height: 52px; border-radius: 8px;
+      background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: var(--gold);
+      margin-bottom: .65rem; overflow: hidden; flex-shrink: 0;
+    }
+    .sc-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sc-name {
+      font-family: 'Cinzel', serif; font-size: .82rem; font-weight: 600;
+      color: var(--text1); margin-bottom: .3rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sc-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .4rem; }
+    .sc-tag {
+      font-size: .62rem; font-weight: 700; letter-spacing: .06em;
+      padding: .15rem .45rem; border-radius: 4px;
+      background: rgba(201,168,76,.12); color: var(--gold);
+      border: 1px solid rgba(201,168,76,.2);
+    }
+    .sc-tag.profile { background: rgba(80,60,160,.2); color: #a090e0; border-color: rgba(80,60,160,.3); }
+    .sc-date { font-size: .68rem; color: var(--text2); }
+    .sc-del {
+      position: absolute; top: .55rem; right: .55rem;
+      background: none; border: none; color: rgba(224,82,82,.4);
+      cursor: pointer; font-size: .85rem; padding: .2rem;
+      opacity: 0; transition: opacity .15s;
+    }
+    .sheet-card:hover .sc-del { opacity: 1; }
+    .sc-del:hover { color: var(--red); }
+
+    .empty-state {
+      grid-column: 1/-1; text-align: center;
+      padding: 2.5rem; color: var(--text2);
+      font-family: 'Crimson Text', serif; font-style: italic; font-size: 1rem;
+    }
+    .empty-state i { font-size: 2rem; display: block; margin-bottom: .75rem; opacity: .4; }
+  </style>
+</head>
+<body>
+  <div class="bg-deco"></div>
+
+  <nav class="topbar">
+    <span class="tb-brand">CODEX ARCANUM</span>
+    <div class="tb-right">
+      <div class="tb-user">Olá, <span id="tb-username">—</span></div>
+      <button class="btn-logout" onclick="logout()">
+        <i class="bi bi-box-arrow-right"></i> Sair
+      </button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="inner">
+
+      <div class="page-header">
+        <div class="logo-ornament">
+          <div class="logo-line"></div>
+          <div class="logo-diamond"></div>
+          <div class="logo-line"></div>
+        </div>
+        <div class="page-title">BEM-VINDO</div>
+        <div class="page-sub">O que deseja fazer hoje?</div>
+      </div>
+
+      <!-- ── Os 2 caminhos ── -->
+      <div class="nav-grid">
+        <a class="nav-card" href="fichas.html">
+          <div class="nav-card-icon"><i class="bi bi-journal-bookmark-fill"></i></div>
+          <div class="nav-card-title">Minhas Fichas</div>
+          <div class="nav-card-desc">Visualize todas as fichas criadas, edite ou crie novas.</div>
+          <div class="nav-card-arrow"><i class="bi bi-arrow-right-circle"></i> Acessar fichas</div>
+        </a>
+        <a class="nav-card" href="board.html">
+          <div class="nav-card-icon"><i class="bi bi-layout-wtf"></i></div>
+          <div class="nav-card-title">Quadro de Sessão</div>
+          <div class="nav-card-desc">Arraste suas fichas para o quadro e gerencie combates ao vivo durante a sessão.</div>
+          <div class="nav-card-arrow"><i class="bi bi-arrow-right-circle"></i> Abrir quadro</div>
+        </a>
+      </div>
+
+      <!-- ── Fichas recentes ── -->
+      <div>
+        <div class="section-title">
+          <i class="bi bi-clock-history"></i> Fichas Recentes
+        </div>
+        <div class="sheets-grid" id="sheets-grid">
+          <div class="empty-state">
+            <i class="bi bi-journal-x"></i>
+            Nenhuma ficha criada ainda. Clique em "Minhas Fichas" para começar.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    let currentUser = null;
+
+    // ── Auth guard ─────────────────────────────────────────
+    async function initAuth() {
+      try {
+        let session = await waitForSession();
+        if (!session) session = await getSession();
+        if (!session) {
+          window.location.href = '/login.html';
+          return;
+        }
+        currentUser = session.user;
+        const displayName = currentUser.user_metadata?.name
+          || currentUser.user_metadata?.full_name
+          || currentUser.email.split('@')[0];
+        document.getElementById('tb-username').textContent = displayName;
+        renderSheets();
+      } catch(err) {
+        console.error('[initAuth] erro:', err);
+        document.getElementById('tb-username').textContent = '(erro)';
+      }
+    }
+    
+    async function logout() {
+      await window.supabaseClient.auth.signOut();
+      window.location.href = '/login.html';
+    }
+
+    // ── Carregar fichas recentes ───────────────────────────
+    async function getSheets() {
+      if (!currentUser) return [];
+      const { data, error } = await window.supabaseClient
+        .from('sheets')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('updated_at', { ascending: false })
+        .limit(12);
+        
+      if (error) {
+        console.error("Erro ao carregar fichas:", error);
+        return [];
+      }
+      return data;
+    }
+
+    async function deleteSheet(id, e) {
+      e.stopPropagation();
+      if (!confirm('Apagar esta ficha?')) return;
+      
+      const { error } = await window.supabaseClient
+        .from('sheets')
+        .delete()
+        .eq('id', id);
+        
+      if (!error) {
+        renderSheets();
+      } else {
+        console.error("Erro ao apagar ficha:", error);
+        alert("Não foi possível apagar a ficha.");
+      }
+    }
+
+    const PROFILE_NAMES = { guerreiro: 'Guerreiro', especialista: 'Especialista', mistico: 'Místico' };
+
+    async function renderSheets() {
+      const grid = document.getElementById('sheets-grid');
+      const sheets = await getSheets();
+      if (!sheets.length) {
+        grid.innerHTML = `<div class="empty-state">
+          <i class="bi bi-journal-x"></i>
+          Nenhuma ficha criada ainda. Clique em "Minhas Fichas" para começar.
+        </div>`;
+        return;
+      }
+      grid.innerHTML = sheets.map(s => {
+        const avatarHtml = s.avatar
+          ? `<img src="${s.avatar}" alt="avatar"/>`
+          : `<i class="bi bi-person-fill"></i>`;
+        const date = new Date(s.created_at || s.updated_at).toLocaleDateString('pt-BR');
+        return `
+          <div class="sheet-card" onclick="window.location.href='fichas.html?open=${s.id}'">
+            <button class="sc-del" onclick="deleteSheet('${s.id}', event)" title="Apagar ficha">
+              <i class="bi bi-trash3"></i>
+            </button>
+            <div class="sc-avatar">${avatarHtml}</div>
+            <div class="sc-name" title="${s.nome}">${s.nome}</div>
+            <div class="sc-tags">
+              <span class="sc-tag">Nv ${s.nivel}</span>
+              <span class="sc-tag">NA ${s.na}</span>
+              <span class="sc-tag profile">${PROFILE_NAMES[s.profile] || s.profile}</span>
+            </div>
+            <div class="sc-date"><i class="bi bi-calendar3 me-1"></i>${date}</div>
+          </div>`;
+      }).join('');
+    }
+
+    initAuth();
+  </script>
+</body>
+</html>
