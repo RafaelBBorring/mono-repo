@@ -1,0 +1,4 @@
+{
+  "template": "smoke",
+  "description": "Slow expanding smoke emitter with long lifetime."
+}

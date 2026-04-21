@@ -36,9 +36,19 @@ EXPOSE 5000
 #   --workers 2 → 2 processos paralelos (bom para VPS com 1-2 CPUs)
 #   --threads 4 → 4 threads por worker
 #   --timeout 120 → mata requisições travadas após 120s
+# ── Volume para persistir o banco local entre rebuilds ───────
+# O docker-compose monta ./data do host aqui dentro.
+# Sem isso, o local_db.json seria sobrescrito a cada "docker build".
+VOLUME ["/app/data"]
+
+# ── Comando de inicialização ─────────────────────────────────
+# --workers 1: essencial para consistência do banco local em arquivo.
+#   Com mais de 1 worker, cada processo teria seu próprio estado de
+#   leitura e as escritas poderiam se sobrepor de forma imprevisível.
+# --threads 8: compensa o worker único — requisições paralelas via threads.
 CMD gunicorn proxy:app \
-    --workers 2 \
-    --threads 4 \
+    --workers 1 \
+    --threads 8 \
     --timeout 120 \
     --bind 0.0.0.0:$PORT \
     --access-logfile - \

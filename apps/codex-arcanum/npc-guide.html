@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Codex Arcanum - Manual Codex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #c9a84c; --gold2: #e8c96a;
+      --dark: #06070e; --dark2: #0b0d18; --dark3: #101320;
+      --text1: #ddd0b8; --text2: #8d8577; --text3: #c8b88a;
+      --border: rgba(201,168,76,.18);
+      --green: #34d399; --blue: #60a5fa; --red: #e05252;
+    }
+    body {
+      background: radial-gradient(circle at top left, rgba(201,168,76,.06), transparent 32%), linear-gradient(180deg, #070810, #0b0d18 28%, #070810);
+      color: var(--text1);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+    }
+    .bg-deco {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 55% 45% at 12% 15%, rgba(96,165,250,.05), transparent 65%),
+        radial-gradient(ellipse 55% 45% at 88% 18%, rgba(201,168,76,.06), transparent 70%),
+        radial-gradient(ellipse 40% 30% at 50% 85%, rgba(52,211,153,.04), transparent 70%);
+    }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; padding: .7rem 1.5rem;
+      background: rgba(8,10,18,.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .tb-brand {
+      font-family: 'Cinzel', serif; font-size: .9rem; letter-spacing: .15em;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tb-actions { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
+    .tb-btn {
+      display:flex; align-items:center; gap:.4rem;
+      padding:.38rem .82rem; border-radius:8px; text-decoration:none;
+      color:var(--text2); border:1px solid rgba(201,168,76,.2);
+      background:rgba(255,255,255,.02); transition:all .18s;
+      font-size:.82rem; font-weight:700;
+    }
+    .tb-btn:hover { color:var(--gold2); border-color:rgba(201,168,76,.45); background:rgba(201,168,76,.07); }
+    .page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 2.25rem 1.4rem 4rem; }
+    .hero {
+      display:grid; grid-template-columns: 1.25fr .75fr; gap:1.25rem; align-items:stretch;
+      margin-bottom: 1.7rem;
+    }
+    .hero-card, .panel {
+      background: linear-gradient(145deg, rgba(14,17,30,.94), rgba(10,12,22,.96));
+      border: 1px solid var(--border); border-radius: 20px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.4);
+    }
+    .hero-card { padding: 2rem 1.8rem; overflow:hidden; position:relative; }
+    .hero-card::before {
+      content:''; position:absolute; inset:0;
+      background: linear-gradient(120deg, rgba(201,168,76,.1), transparent 35%, transparent 70%, rgba(96,165,250,.08));
+      pointer-events:none;
+    }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:.45rem; margin-bottom:.85rem;
+      font-size:.74rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--gold);
+    }
+    .hero h1 {
+      font-family:'Cinzel', serif; font-size:2rem; line-height:1.15; margin-bottom:.8rem;
+      color:var(--text1);
+    }
+    .hero p {
+      color:#c6bbab; font-size:1rem; line-height:1.7; max-width:60ch;
+    }
+    .hero-pills { display:flex; gap:.55rem; flex-wrap:wrap; margin-top:1.1rem; }
+    .hero-pill {
+      padding:.35rem .7rem; border-radius:999px;
+      border:1px solid rgba(201,168,76,.22); color:var(--text3);
+      background:rgba(201,168,76,.06); font-size:.76rem; font-weight:700;
+    }
+    .panel { padding: 1.35rem 1.2rem; }
+    .panel-title {
+      font-family:'Cinzel', serif; font-size:.92rem; color:var(--gold2); letter-spacing:.08em;
+      margin-bottom:.8rem;
+    }
+    .panel-list { display:flex; flex-direction:column; gap:.75rem; }
+    .panel-item {
+      padding:.75rem .85rem; border-radius:12px; background:rgba(255,255,255,.02);
+      border:1px solid rgba(201,168,76,.08);
+    }
+    .panel-item b { color:var(--text1); display:block; margin-bottom:.18rem; }
+    .panel-item span { color:var(--text2); line-height:1.55; font-size:.9rem; }
+    .section { margin-top: 1.8rem; }
+    .section-title {
+      display:flex; align-items:center; gap:.7rem; margin-bottom:1rem;
+      font-family:'Cinzel', serif; font-size:1rem; color:var(--gold2); letter-spacing:.08em;
+    }
+    .section-title::after {
+      content:''; flex:1; height:1px; background:linear-gradient(90deg, rgba(201,168,76,.2), transparent);
+    }
+    .grid-3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; }
+    .grid-2 { display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem; }
+    .card {
+      background: linear-gradient(145deg, rgba(15,18,31,.92), rgba(10,12,22,.98));
+      border:1px solid rgba(201,168,76,.14); border-radius:18px; padding:1.1rem;
+      transition:transform .18s, border-color .18s, box-shadow .18s;
+    }
+    .card:hover { transform:translateY(-3px); border-color:rgba(201,168,76,.3); box-shadow:0 12px 30px rgba(0,0,0,.32); }
+    .card h3 { font-family:'Cinzel', serif; font-size:.96rem; color:var(--text1); margin-bottom:.45rem; }
+    .card p { color:#beb4a5; line-height:1.65; font-size:.92rem; }
+    .card small { color:var(--text2); font-size:.76rem; display:block; margin-top:.55rem; }
+    .value-row { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.7rem; }
+    .value-pill {
+      font-size:.72rem; font-weight:700; border-radius:999px; padding:.26rem .58rem;
+      border:1px solid rgba(201,168,76,.16); background:rgba(255,255,255,.03); color:var(--text3);
+    }
+    .matrix {
+      display:grid; grid-template-columns: 1.1fr 1fr 1fr 1fr; gap:1px;
+      border:1px solid rgba(201,168,76,.12); border-radius:16px; overflow:hidden;
+      background:rgba(201,168,76,.08);
+    }
+    .cell {
+      background:rgba(11,13,24,.96); padding:.85rem .8rem; min-height:72px;
+      display:flex; flex-direction:column; justify-content:center;
+    }
+    .cell.head { background:rgba(201,168,76,.08); color:var(--gold2); font-weight:700; font-size:.8rem; }
+    .cell strong { color:var(--text1); font-size:.88rem; }
+    .cell span { color:var(--text2); font-size:.82rem; line-height:1.45; }
+    .example {
+      position:relative; overflow:hidden;
+    }
+    .example::after {
+      content:''; position:absolute; inset:auto -30% -40% auto; width:150px; height:150px;
+      background:radial-gradient(circle, rgba(201,168,76,.12), transparent 70%);
+      pointer-events:none;
+    }
+    .example-tag {
+      display:inline-flex; align-items:center; gap:.35rem; margin-bottom:.5rem;
+      font-size:.72rem; font-weight:700; color:var(--gold); letter-spacing:.08em; text-transform:uppercase;
+    }
+    .example-text {
+      white-space:pre-wrap; font-size:.9rem; line-height:1.7; color:#d2c7b6;
+      user-select:text; -webkit-user-select:text;
+    }
+    .example {
+      border:1px solid rgba(201,168,76,.18);
+      box-shadow:0 14px 34px rgba(0,0,0,.25);
+    }
+    .manual-note {
+      margin-top:.65rem;
+      font-size:.78rem;color:#cbbf9f;line-height:1.55;
+      padding:.55rem .7rem;border-radius:10px;
+      background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.12);
+    }
+    .table-shell {
+      background:linear-gradient(145deg, rgba(15,18,31,.92), rgba(10,12,22,.98));
+      border:1px solid rgba(201,168,76,.14); border-radius:18px;
+      overflow:hidden; box-shadow:0 14px 34px rgba(0,0,0,.25);
+    }
+    .table-wrap { overflow:auto; }
+    .manual-table {
+      width:100%; border-collapse:collapse; min-width:900px;
+      font-size:.84rem;
+    }
+    .manual-table th, .manual-table td {
+      padding:.82rem .78rem; text-align:left; border-bottom:1px solid rgba(201,168,76,.08);
+      vertical-align:top;
+    }
+    .manual-table th {
+      background:rgba(201,168,76,.08); color:var(--gold2); font-size:.76rem;
+      letter-spacing:.08em; text-transform:uppercase; font-weight:700;
+    }
+    .manual-table tr:nth-child(even) td { background:rgba(255,255,255,.015); }
+    .manual-table tr:hover td { background:rgba(201,168,76,.04); }
+    .level-pill, .na-pill {
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:.24rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700;
+      border:1px solid rgba(201,168,76,.22); background:rgba(201,168,76,.1); color:#f4e7bd;
+      white-space:nowrap;
+    }
+    .metric-stack { display:flex; flex-direction:column; gap:.16rem; min-width:190px; }
+    .metric-title { font-family:'Cinzel', serif; font-size:.84rem; color:#f3e4bc; }
+    .m-life { color:#34d399; }
+    .m-arm  { color:#60a5fa; }
+    .m-dmg  { color:#f87171; }
+    .m-ba   { color:#fbbf24; }
+    .m-reac { color:#a78bfa; }
+    .na-desc {
+      font-size:.8rem; color:#bdb19f; line-height:1.5;
+    }
+    @media (max-width: 980px) {
+      .hero, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .matrix { grid-template-columns: 1fr; }
+      .cell.head { min-height:auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-deco"></div>
+
+  <nav class="topbar">
+    <div class="tb-brand">CODEX ARCANUM</div>
+    <div class="tb-actions">
+      <a class="tb-btn" href="hub.html"><i class="bi bi-house"></i> Inicio</a>
+      <a class="tb-btn" href="fichas.html"><i class="bi bi-journal-bookmark-fill"></i> Fichas</a>
+      <a class="tb-btn" href="board.html"><i class="bi bi-layout-wtf"></i> Quadro</a>
+    </div>
+  </nav>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow"><i class="bi bi-journal-richtext"></i> Manual Codex</div>
+        <h1>Entenda com mais clareza o que cada valor faz antes de gerar um NPC.</h1>
+        <p>Esta aba agora funciona como um <b>manual rapido de consulta</b>: menos texto solto, mais leitura objetiva para definir <b>nivel</b>, <b>NA</b>, <b>perfil</b> e o papel que a ficha precisa cumprir na mesa.</p>
+        <div class="hero-pills">
+          <span class="hero-pill">Manual Codex</span>
+          <span class="hero-pill">Boss de sessao</span>
+          <span class="hero-pill">Elite de faccao</span>
+          <span class="hero-pill">Encontro de desgaste</span>
+        </div>
+      </div>
+      <aside class="panel">
+        <div class="panel-title">Perguntas uteis antes de gerar</div>
+        <div class="panel-list">
+          <div class="panel-item"><b>Ele entra para pressionar ou para durar?</b><span>Use isso para decidir entre perfil, nivel e NA. Nem todo NPC precisa ser um boss.</span></div>
+          <div class="panel-item"><b>Quantos personagens vao enfrenta-lo?</b><span>O NA ajuda a calibrar o quanto ele aguenta e quanto ele pune em troca.</span></div>
+          <div class="panel-item"><b>O foco e fantasia, ritmo ou risco?</b><span>Um inimigo memoravel nao precisa ter o maior dano, mas precisa ocupar um papel claro na cena.</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="bi bi-layers"></i> Como Pensar Nivel e NA</div>
+      <div class="matrix">
+        <div class="cell head">Faixa</div>
+        <div class="cell head">Uso Mais Comum</div>
+        <div class="cell head">Sensacao em Mesa</div>
+        <div class="cell head">Exemplo de Papel</div>
+
+        <div class="cell"><strong>Nivel 5 a 10</strong><span>Entrada, escaramuca, suporte, capanga forte.</span></div>
+        <div class="cell"><span>Combates curtos, encontros de abertura, guardas especiais.</span></div>
+        <div class="cell"><span>Perigoso o bastante para exigir atencao, mas sem travar o ritmo.</span></div>
+        <div class="cell"><span>Mercenario, vigia arcano, caçador local.</span></div>
+
+        <div class="cell"><strong>Nivel 15 a 25</strong><span>Centro de combate, elite, lider de patrulha.</span></div>
+        <div class="cell"><span>Confrontos importantes, mini-bosses e NPCs recorrentes.</span></div>
+        <div class="cell"><span>Ja exige leitura de posicionamento, reacoes e combos.</span></div>
+        <div class="cell"><span>Capitao da ordem, inquisidor, criatura ritual.</span></div>
+
+        <div class="cell"><strong>Nivel 30 a 40</strong><span>Boss de arco, horror lendario, duelo climatico.</span></div>
+        <div class="cell"><span>Sessoes de fechamento, encontros decisivos, lutas com preparacao.</span></div>
+        <div class="cell"><span>Domina a cena, pune erros e deve ter identidade forte.</span></div>
+        <div class="cell"><span>General demonico, santo corrompido, guardiao ancestral.</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="bi bi-bullseye"></i> Niveis de Ameaca</div>
+      <div class="grid-3">
+        <article class="card">
+          <h3>NA 0.25 a 0.5</h3>
+          <p>Melhor para hordas, pressao de numero e encontros que gastam recursos do grupo sem parar a sessao por muito tempo.</p>
+          <div class="value-row">
+            <span class="value-pill">Batedores</span>
+            <span class="value-pill">Criaturas fracas</span>
+            <span class="value-pill">Suporte descartavel</span>
+          </div>
+          <small>Uso ideal: quando a cena precisa de volume, nao de protagonismo.</small>
+        </article>
+        <article class="card">
+          <h3>NA 1 a 4</h3>
+          <p>Faixa ideal para duelos pontuais, elites de patrulha e NPCs que precisam ameaçar um grupo sem dominar a narrativa inteira.</p>
+          <div class="value-row">
+            <span class="value-pill">Rival</span>
+            <span class="value-pill">Elite</span>
+            <span class="value-pill">Mini-boss</span>
+          </div>
+          <small>Uso ideal: encontros principais de sessao comum.</small>
+        </article>
+        <article class="card">
+          <h3>NA 6 a 20</h3>
+          <p>Faixa para criaturas muito opressivas, chefes de combate e entidades que devem concentrar a atencao inteira da mesa.</p>
+          <div class="value-row">
+            <span class="value-pill">Boss</span>
+            <span class="value-pill">Lenda</span>
+            <span class="value-pill">Confronto final</span>
+          </div>
+          <small>Uso ideal: quando a luta e o evento da cena.</small>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="bi bi-diagram-3"></i> Perfis e Classes</div>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Guerreiro</h3>
+          <p>Para NPCs de linha de frente, perseguidores, duelistas e monstros que vencem pela presenca fisica.</p>
+          <div class="value-row">
+            <span class="value-pill">Pressao direta</span>
+            <span class="value-pill">Agressivo</span>
+            <span class="value-pill">Punicao imediata</span>
+          </div>
+          <div class="manual-note">Escolha quando o inimigo precisa ocupar espaco, trocar golpes e continuar ameacando mesmo sem truques complexos.</div>
+        </article>
+        <article class="card">
+          <h3>Especialista</h3>
+          <p>Ideal para assassinos, caçadores, estrategistas, arqueiros e NPCs com truques de controle e mobilidade.</p>
+          <div class="value-row">
+            <span class="value-pill">Precisao</span>
+            <span class="value-pill">Controle</span>
+            <span class="value-pill">Abertura de combo</span>
+          </div>
+          <div class="manual-note">Funciona melhor quando voce quer ritmo, deslocamento, pressao tecnica e golpes que mudam a leitura do turno.</div>
+        </article>
+        <article class="card">
+          <h3>Mistico</h3>
+          <p>Funciona melhor para sacerdotes, bruxos, criaturas arcanas e antagonistas que mexem no terreno e no ritmo do grupo.</p>
+          <div class="value-row">
+            <span class="value-pill">Area</span>
+            <span class="value-pill">Condicao</span>
+            <span class="value-pill">Fantasia forte</span>
+          </div>
+          <div class="manual-note">Use quando o valor principal da ficha esta em efeitos, zona de combate, ritual, controle ou impacto narrativo.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="bi bi-table"></i> Tabela Base por Nivel</div>
+      <div class="table-shell">
+        <div class="table-wrap">
+          <table class="manual-table">
+            <thead>
+              <tr>
+                <th>Nivel</th>
+                <th>Guerreiro</th>
+                <th>Especialista</th>
+                <th>Mistico</th>
+              </tr>
+            </thead>
+            <tbody id="profiles-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="bi bi-sliders"></i> Modificadores de cada NA</div>
+      <div class="table-shell">
+        <div class="table-wrap">
+          <table class="manual-table">
+            <thead>
+              <tr>
+                <th>NA</th>
+                <th>Leitura</th>
+                <th>Vida</th>
+                <th>Armadura</th>
+                <th>Dano Base</th>
+                <th>Bonus de Ataque</th>
+                <th>Reacoes</th>
+              </tr>
+            </thead>
+            <tbody id="na-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><i class="bi bi-journal-richtext"></i> Exemplos de Estruturacao</div>
+      <div class="grid-2">
+        <article class="card example">
+          <div class="example-tag"><i class="bi bi-shield-exclamation"></i> Encontro de Patrulha</div>
+          <div class="example-text"><b style="font-size:1rem;color:#f2e3b9;">Objetivo:</b> atrasar o grupo por 2 a 4 turnos.
+
+<span style="color:#34d399;font-weight:700;">Nivel sugerido:</span> 10 a 15
+<span style="color:#fbbf24;font-weight:700;">NA sugerido:</span> 0.5 a 1
+<span style="color:#e8c96a;font-weight:700;">Perfil:</span> guerreiro ou especialista
+
+<span style="color:#60a5fa;font-weight:700;">Quando usar:</span>
+- guardas de faccao
+- sentinelas de area proibida
+- criaturas que protegem um ponto de passagem
+
+<span style="color:#f87171;font-weight:700;">Sensacao esperada:</span>
+pressao moderada, leitura rapida, combate que nao rouba a sessao inteira.</div>
+        </article>
+        <article class="card example">
+          <div class="example-tag"><i class="bi bi-stars"></i> Rival Recorrente</div>
+          <div class="example-text"><b style="font-size:1rem;color:#f2e3b9;">Objetivo:</b> entrar em cena varias vezes sem morrer cedo demais.
+
+<span style="color:#34d399;font-weight:700;">Nivel sugerido:</span> 15 a 25
+<span style="color:#fbbf24;font-weight:700;">NA sugerido:</span> 1 a 3
+<span style="color:#e8c96a;font-weight:700;">Perfil:</span> especialista ou mistico
+
+<span style="color:#60a5fa;font-weight:700;">Quando usar:</span>
+- antagonista de investigacao
+- campeao de faccao
+- duelista que escapa e retorna depois
+
+<span style="color:#f87171;font-weight:700;">Sensacao esperada:</span>
+um inimigo com assinatura propria, reacoes marcantes e capacidade de gerar memoria na mesa.</div>
+        </article>
+        <article class="card example">
+          <div class="example-tag"><i class="bi bi-fire"></i> Boss de Sessao</div>
+          <div class="example-text"><b style="font-size:1rem;color:#f2e3b9;">Objetivo:</b> ser o centro de um combate inteiro.
+
+<span style="color:#34d399;font-weight:700;">Nivel sugerido:</span> 25 a 35
+<span style="color:#fbbf24;font-weight:700;">NA sugerido:</span> 4 a 10
+<span style="color:#e8c96a;font-weight:700;">Perfil:</span> guerreiro ou mistico
+
+<span style="color:#60a5fa;font-weight:700;">Quando usar:</span>
+- confronto final da noite
+- monstro de catedral
+- general ou avatar ritual
+
+<span style="color:#f87171;font-weight:700;">Sensacao esperada:</span>
+alto risco, pouca margem para erro e necessidade de o mestre ter rolagens claras na mao.</div>
+        </article>
+        <article class="card example">
+          <div class="example-tag"><i class="bi bi-moon-stars"></i> Horror Lendario</div>
+          <div class="example-text"><b style="font-size:1rem;color:#f2e3b9;">Objetivo:</b> mudar o tom da campanha por presenca.
+
+<span style="color:#34d399;font-weight:700;">Nivel sugerido:</span> 35 a 40
+<span style="color:#fbbf24;font-weight:700;">NA sugerido:</span> 10 a 20
+<span style="color:#e8c96a;font-weight:700;">Perfil:</span> mistico ou guerreiro
+
+<span style="color:#60a5fa;font-weight:700;">Quando usar:</span>
+- entidade de arco final
+- ser ancestral
+- boss que pede preparacao previa do grupo
+
+<span style="color:#f87171;font-weight:700;">Sensacao esperada:</span>
+combate-climax, cinematico, com habilidades que parecem injustas se usadas sem contexto narrativo.</div>
+        </article>
+      </div>
+    </section>
+  </main>
+  <script src="js/data.js"></script>
+  <script>
+    const PROFILE_ORDER = ['guerreiro', 'especialista', 'mistico'];
+    const LEVEL_ORDER = [5, 10, 15, 20, 25, 30, 35, 40];
+    const NA_NOTES = {
+      '0.25': 'capanga de volume',
+      '0.5': 'grupo de pressao',
+      '1': 'duelo padrao',
+      '1.5': 'elite leve',
+      '2': 'elite firme',
+      '3': 'mini-boss',
+      '4': 'boss de sessao',
+      '6': 'boss amplo',
+      '8': 'chefe opressivo',
+      '10': 'chefe de arco',
+      '12': 'ameaca maior',
+      '15': 'lenda de combate',
+      '18': 'evento cataclismico',
+      '20': 'fechamento extremo'
+    };
+
+    function renderProfilesTable() {
+      const body = document.getElementById('profiles-table-body');
+      if (!body || typeof PROFILES === 'undefined') return;
+      body.innerHTML = LEVEL_ORDER.map(level => `
+        <tr>
+          <td><span class="level-pill">Nivel ${level}</span></td>
+          ${PROFILE_ORDER.map(key => {
+            const profile = PROFILES[key];
+            const data = profile.levels[level];
+            return `
+              <td>
+                <div class="metric-stack">
+                  <span class="metric-title">${profile.name}</span>
+                  <span class="m-life">Vida: ${data.vida[0]} a ${data.vida[1]}</span>
+                  <span class="m-arm">Armadura: ${data.arm[0]} a ${data.arm[1]}</span>
+                  <span class="m-dmg">Dano base: ${data.dano}</span>
+                  <span class="m-ba">Bonus de ataque: +${data.ba}</span>
+                  <span class="m-reac">Reacoes: ${data.reac}</span>
+                </div>
+              </td>
+            `;
+          }).join('')}
+        </tr>
+      `).join('');
+    }
+
+    function signed(value, suffix = '') {
+      if (value > 0) return `+${value}${suffix}`;
+      if (value < 0) return `${value}${suffix}`;
+      return `0${suffix}`;
+    }
+
+    function renderNaTable() {
+      const body = document.getElementById('na-table-body');
+      if (!body || typeof NA_MODS === 'undefined') return;
+      const order = Object.keys(NA_MODS).sort((a, b) => Number(a) - Number(b));
+      body.innerHTML = order.map(na => {
+        const mod = NA_MODS[na];
+        return `
+          <tr>
+            <td><span class="na-pill">NA ${na}</span></td>
+            <td class="na-desc">${NA_NOTES[na] || mod.tag}</td>
+            <td class="m-life">${signed(mod.vida, '%')}</td>
+            <td class="m-arm">${signed(mod.arm)}</td>
+            <td class="m-dmg">${mod.danoBase || 'sem ajuste'}</td>
+            <td class="m-ba">${signed(mod.ba)}</td>
+            <td class="m-reac">${signed(mod.reac)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    renderProfilesTable();
+    renderNaTable();
+  </script>
+</body>
+</html>

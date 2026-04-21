@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Athena — Plataforma de Cristais</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./src/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <!-- ───── Main HUD ───── -->
+  <div id="ui">
+    <div class="ui-top">
+      <div class="logo">
+        <span class="logo-symbol">◈</span>
+        Athena
+        <span class="logo-sub">Plataforma de Cristais</span>
+      </div>
+      <div class="ui-top-right">
+        <span class="stat-pill" id="stat-total">8 cursos</span>
+        <span class="stat-pill" id="stat-active">2 insignias</span>
+      </div>
+    </div>
+    <div class="ui-bottom">
+      <div class="monolith-label">
+        <span class="label-category">Coleção Fundadora</span>
+        <em id="active-label">Crystallum Primum</em>
+      </div>
+      <div class="nav-arrows">
+        <button class="nav-btn" id="nav-prev" aria-label="Anterior">&#8592;</button>
+        <button class="nav-btn" id="nav-next" aria-label="Próximo">&#8594;</button>
+      </div>
+      <div class="ui-actions">
+        <button id="add-course-btn" class="btn-ghost">
+          <span>+</span> Novo Curso
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── Intro Screen ───── -->
+  <div id="intro-screen">
+    <div class="intro-runes">
+      <span class="rune r1">⬡</span>
+      <span class="rune r2">◈</span>
+      <span class="rune r3">✦</span>
+      <span class="rune r4">⬟</span>
+      <span class="rune r5">◉</span>
+    </div>
+    <div class="intro-card">
+      <span class="intro-tag">Athena EAD</span>
+      <h1>Biblioteca de<br/><em>Cristais</em></h1>
+      <p>Cada cristal é um curso. Explore, selecione e mergulhe no conhecimento cristalizado.</p>
+      <div class="intro-hint">
+        <span class="scroll-icon">↓</span>
+        Scroll para entrar
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── Course Side Panel ───── -->
+  <div id="course-panel" class="hidden">
+    <div class="course-panel-content">
+
+      <!-- Holographic border animation layer -->
+      <div class="panel-holo-border"></div>
+
+      <!-- Header -->
+      <div class="course-header">
+        <div class="course-crystal-thumb" id="course-thumb">
+          <div class="thumb-inner">
+            <span class="thumb-icon" id="thumb-icon">⬡</span>
+          </div>
+          <div class="thumb-glow" id="thumb-glow"></div>
+        </div>
+        <div class="course-header-text">
+          <div class="course-category-tag">Curso Ativo</div>
+          <h2 id="course-title">Título do Curso</h2>
+        </div>
+        <button id="exit-course-btn" class="close-btn" aria-label="Fechar">✕</button>
+      </div>
+
+      <!-- Description -->
+      <p class="course-description" id="course-description">Descrição do curso aparece aqui.</p>
+
+      <!-- Next Lesson -->
+      <div class="info-block">
+        <span class="block-label">▸ Próxima Aula</span>
+        <span class="block-value" id="next-lesson">—</span>
+      </div>
+
+      <!-- Overall Progress -->
+      <div class="info-block">
+        <span class="block-label">Progresso Geral</span>
+        <div class="overall-progress-row">
+          <div class="overall-bar-wrap">
+            <div class="overall-bar" id="course-progress-bar"></div>
+          </div>
+          <div class="overall-pct" id="progress-sphere">0%</div>
+        </div>
+      </div>
+
+      <!-- Skills Grid -->
+      <div class="skills-section">
+        <span class="block-label">Habilidades</span>
+        <div class="skills-grid" id="skills-grid">
+          <!-- injected by JS -->
+        </div>
+      </div>
+
+      <!-- Badge -->
+      <div class="badge-section" id="badge-section">
+        <span class="block-label">Insígnia do Curso</span>
+        <div class="badge-card" id="badge-card">
+          <div class="badge-visual" id="badge-visual">
+            <span class="badge-icon" id="badge-icon">⬡</span>
+            <div class="badge-ring" id="badge-ring"></div>
+          </div>
+          <div class="badge-info">
+            <span class="badge-name" id="badge-name">Nome da Insígnia</span>
+            <span class="badge-status" id="badge-status">Bloqueada</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action -->
+      <div class="panel-actions">
+        <button class="btn-primary" id="start-lesson-btn">
+          <span>Continuar Aprendendo</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ───── Add Course Modal ───── -->
+  <div id="create-course-modal" class="hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <h3>✦ Novo Cristal de Conhecimento</h3>
+      <p class="modal-sub">Um novo curso será manifestado na coleção.</p>
+      <label class="modal-label">Nome do Curso</label>
+      <input id="new-course-name" type="text" placeholder="ex: Python para Dados" autocomplete="off" />
+      <div class="modal-actions">
+        <button id="confirm-new-course-btn" class="btn-primary">Manifestar Curso</button>
+        <button id="cancel-new-course-btn" class="btn-ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── Loading Screen ───── -->
+  <div id="loading">
+    <div class="loading-symbol">◈</div>
+    <div class="loading-text">Lapidando cristais</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar" id="loading-bar"></div>
+    </div>
+    <div class="loading-sub">Athena EAD</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

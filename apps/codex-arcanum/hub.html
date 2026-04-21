@@ -71,8 +71,8 @@
     .page-sub { font-family: 'Crimson Text', serif; font-style: italic; color: var(--text2); margin-top: .4rem; }
 
     /* ── Nav buttons (os 2 caminhos) ── */
-    .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 3rem; }
-    @media(max-width:600px){ .nav-grid { grid-template-columns: 1fr; } }
+    .nav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 3rem; }
+    @media(max-width:900px){ .nav-grid { grid-template-columns: 1fr; } }
     .nav-card {
       background: linear-gradient(145deg, var(--dark2), var(--dark3));
       border: 1px solid var(--border); border-radius: 16px;
@@ -192,6 +192,12 @@
           <div class="nav-card-desc">Arraste suas fichas para o quadro e gerencie combates ao vivo durante a sessão.</div>
           <div class="nav-card-arrow"><i class="bi bi-arrow-right-circle"></i> Abrir quadro</div>
         </a>
+        <a class="nav-card" href="npc-guide.html">
+          <div class="nav-card-icon"><i class="bi bi-compass-fill"></i></div>
+          <div class="nav-card-title">Manual Codex</div>
+          <div class="nav-card-desc">Consulte niveis, NAs, perfis e exemplos de uso em uma leitura mais visual e rapida.</div>
+          <div class="nav-card-arrow"><i class="bi bi-arrow-right-circle"></i> Abrir manual</div>
+        </a>
       </div>
 
       <!-- ── Fichas recentes ── -->
@@ -212,50 +218,30 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/db.js"></script>
   <script>
     let currentUser = null;
 
     // ── Auth guard ─────────────────────────────────────────
-    async function initAuth() {
-      try {
-        let session = await waitForSession();
-        if (!session) session = await getSession();
-        if (!session) {
-          window.location.href = '/login.html';
-          return;
-        }
-        currentUser = session.user;
-        const displayName = currentUser.user_metadata?.name
-          || currentUser.user_metadata?.full_name
-          || currentUser.email.split('@')[0];
-        document.getElementById('tb-username').textContent = displayName;
-        renderSheets();
-      } catch(err) {
-        console.error('[initAuth] erro:', err);
-        document.getElementById('tb-username').textContent = '(erro)';
-      }
+        async function initAuth() {
+      currentUser = await DB.initAuth();
+      if (!currentUser) { window.location.href = '/login.html'; return; }
+      const displayName =
+        currentUser.user_metadata?.name      ||
+        currentUser.user_metadata?.full_name ||
+        currentUser.email?.split('@')[0]     || 'Mestre';
+      document.getElementById('tb-username').textContent = displayName;
+      loadSheets();
     }
     
     async function logout() {
-      await window.supabaseClient.auth.signOut();
-      window.location.href = '/login.html';
+      await DB.signOut();
     }
 
     // ── Carregar fichas recentes ───────────────────────────
-    async function getSheets() {
-      if (!currentUser) return [];
-      const { data, error } = await window.supabaseClient
-        .from('sheets')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('updated_at', { ascending: false })
-        .limit(12);
-        
-      if (error) {
-        console.error("Erro ao carregar fichas:", error);
-        return [];
-      }
-      return data;
+        async function getSheets() {
+      const all = await DB.getSheets();
+      return all.slice(0, 8);
     }
 
     async function deleteSheet(id, e) {

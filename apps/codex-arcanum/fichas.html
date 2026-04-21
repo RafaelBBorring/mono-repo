@@ -189,6 +189,42 @@
     }
     .empty-title { font-family:'Cinzel',serif;font-size:1rem;color:#c4b896; }
     .empty-sub   { font-size:.85rem;color:#64605a;font-style:italic; }
+    .grid-stage {
+      position:relative; min-height:220px;
+    }
+    .sheets-grid {
+      animation:gridFade .28s ease;
+    }
+    @keyframes gridFade {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .pagination-bar {
+      display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+      flex-wrap:wrap;margin-top:1rem;padding:.8rem .95rem;
+      background:linear-gradient(145deg,rgba(11,13,24,.88),rgba(16,19,32,.92));
+      border:1px solid rgba(201,168,76,.12);border-radius:12px;
+    }
+    .pagination-meta {
+      font-size:.78rem;color:#8d8477;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+    }
+    .pagination-controls {
+      display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;
+    }
+    .page-btn {
+      min-width:36px;height:34px;padding:0 .75rem;border-radius:8px;
+      border:1px solid rgba(201,168,76,.18);background:rgba(255,255,255,.02);
+      color:#9e8e6a;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;
+      display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .16s;
+    }
+    .page-btn:hover { color:#e8c96a;border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.08); }
+    .page-btn.active {
+      color:#06070e;background:linear-gradient(135deg,#c9a84c,#e8c96a);
+      border-color:rgba(201,168,76,.5);box-shadow:0 6px 18px rgba(201,168,76,.18);
+    }
+    .page-btn:disabled {
+      opacity:.35;cursor:not-allowed;box-shadow:none;background:rgba(255,255,255,.01);color:#666158;
+    }
 
     /* ── Viewer ── */
     #sheet-viewer {
@@ -216,6 +252,8 @@
     .sv-btn:hover    { color:#c9a84c;border-color:rgba(201,168,76,.45);background:rgba(201,168,76,.08); }
     .sv-btn.save     { background:linear-gradient(135deg,rgba(201,168,76,.15),rgba(201,168,76,.08));color:#e8c96a;border-color:rgba(201,168,76,.4); }
     .sv-btn.save:hover { background:rgba(201,168,76,.22);box-shadow:0 0 16px rgba(201,168,76,.2); }
+    .sv-btn.recalc   { color:#7ec8e3;border-color:rgba(126,200,227,.28); }
+    .sv-btn.recalc:hover { background:rgba(126,200,227,.09);border-color:rgba(126,200,227,.5); }
     .sv-btn.danger   { color:#e05252;border-color:rgba(224,82,82,.25); }
     .sv-btn.danger:hover { background:rgba(224,82,82,.07); }
 
@@ -318,6 +356,230 @@
     .im-btn.confirm  { background:linear-gradient(135deg,rgba(201,168,76,.2),rgba(201,168,76,.1));border-color:rgba(201,168,76,.4);color:#e8c96a; }
     .im-btn.confirm:hover { background:rgba(201,168,76,.25);box-shadow:0 0 16px rgba(201,168,76,.2); }
     .im-btn.confirm:disabled { opacity:.4;cursor:not-allowed; }
+    /* ══════════════════════════════════════════════════════
+       SISTEMA DE PASTAS — SIDEBAR
+       ══════════════════════════════════════════════════════ */
+    .folder-sidebar {
+      width:240px;flex-shrink:0;
+      background:linear-gradient(180deg,rgba(11,13,24,.92),rgba(14,16,30,.96));
+      border:1px solid rgba(201,168,76,.12);border-radius:14px;
+      padding:.85rem 0;align-self:flex-start;position:sticky;top:78px;
+      max-height:calc(100vh - 100px);overflow-y:auto;
+      scrollbar-width:thin;scrollbar-color:rgba(201,168,76,.15) transparent;
+    }
+    .folder-sidebar::-webkit-scrollbar { width:4px; }
+    .folder-sidebar::-webkit-scrollbar-thumb { background:rgba(201,168,76,.18);border-radius:4px; }
+    .fs-header {
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 1rem .65rem;border-bottom:1px solid rgba(201,168,76,.1);margin-bottom:.5rem;
+    }
+    .fs-header-title {
+      font-family:'Cinzel',serif;font-size:.72rem;font-weight:600;
+      color:#64605a;letter-spacing:.12em;text-transform:uppercase;
+    }
+    .fs-header-btn {
+      width:24px;height:24px;border-radius:6px;border:1px solid rgba(201,168,76,.15);
+      background:transparent;color:#64605a;cursor:pointer;font-size:.72rem;
+      display:flex;align-items:center;justify-content:center;transition:all .15s;
+    }
+    .fs-header-btn:hover { color:#c9a84c;border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.06); }
+
+    .fs-section { padding:.25rem .6rem; }
+    .fs-section-label {
+      font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;
+      color:rgba(201,168,76,.35);letter-spacing:.1em;text-transform:uppercase;
+      padding:.4rem .5rem .25rem;
+    }
+    .fs-item {
+      display:flex;align-items:center;gap:.5rem;
+      padding:.4rem .6rem;border-radius:8px;cursor:pointer;
+      transition:all .15s;color:#64605a;position:relative;
+      font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;
+      border:1px solid transparent;
+    }
+    .fs-item:hover { color:#c9a84c;background:rgba(201,168,76,.05);border-color:rgba(201,168,76,.12); }
+    .fs-item.active {
+      color:#e8c96a;background:rgba(201,168,76,.1);border-color:rgba(201,168,76,.28);
+      box-shadow:0 2px 12px rgba(201,168,76,.06);
+    }
+    .fs-item.hidden-folder { opacity:.45; }
+    .fs-item.hidden-folder .fs-item-name { text-decoration:line-through; }
+    .fs-item-icon { font-size:.85rem;flex-shrink:0;width:18px;text-align:center; }
+    .fs-item-name { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .fs-item-trailing {
+      display:flex;align-items:center;gap:.35rem;
+      flex-shrink:0;margin-left:auto;
+    }
+    .fs-item-count {
+      font-size:.62rem;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.15);
+      border-radius:8px;padding:.05rem .35rem;color:rgba(201,168,76,.6);flex-shrink:0;
+    }
+    .fs-item.active .fs-item-count { background:rgba(201,168,76,.2);border-color:rgba(201,168,76,.3);color:#c9a84c; }
+
+    .fs-item.sub {
+      position:relative;margin-left:.5rem;
+    }
+    .fs-item.sub::before {
+      content:'';position:absolute;left:-.6rem;top:0;bottom:0;
+      width:1px;background:rgba(201,168,76,.12);
+    }
+    .fs-item.sub::after {
+      content:'';position:absolute;left:-.6rem;top:50%;
+      width:.5rem;height:1px;background:rgba(201,168,76,.12);
+    }
+    .fs-item.sub.sub-2 { margin-left:1rem; }
+    .fs-item.sub.sub-2::before { left:-1.1rem; }
+    .fs-item.sub.sub-2::after  { left:-1.1rem;width:1rem; }
+    .fs-item.sub.sub-3 { margin-left:1.5rem; }
+    .fs-item.sub.sub-3::before { left:-1.6rem; }
+    .fs-item.sub.sub-3::after  { left:-1.6rem;width:1.5rem; }
+
+    .fs-item .exclude-btn {
+      width:22px;height:22px;border-radius:5px;border:none;
+      background:transparent;color:rgba(201,168,76,.35);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:all .15s;padding:0;flex-shrink:0;
+      opacity:0;visibility:hidden;pointer-events:none;
+    }
+    .fs-item:hover .exclude-btn { opacity:1;visibility:visible;pointer-events:auto; }
+    .fs-item.hidden-folder .exclude-btn { opacity:1;visibility:visible;pointer-events:auto;color:rgba(201,168,76,.55); }
+    .fs-item .exclude-btn:hover { color:#e8c96a;background:rgba(201,168,76,.12);box-shadow:0 0 6px rgba(201,168,76,.2); }
+    .fs-item.hidden-folder .exclude-btn:hover { color:#f0d070; }
+    .fs-item .exclude-btn .eye-icon { display:block; }
+
+    .fs-add-btn {
+      display:flex;align-items:center;gap:.4rem;
+      padding:.4rem .6rem;border-radius:8px;cursor:pointer;
+      border:1px dashed rgba(201,168,76,.15);background:transparent;
+      color:#64605a;font-family:'Rajdhani',sans-serif;font-size:.78rem;font-weight:600;
+      transition:all .15s;margin-top:.25rem;
+    }
+    .fs-add-btn:hover { color:#c9a84c;border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.04); }
+
+    .fs-divider { height:1px;background:rgba(201,168,76,.08);margin:.5rem .8rem; }
+
+    .fs-empty { font-size:.78rem;color:#64605a;text-align:center;padding:.75rem .5rem;font-style:italic; }
+
+    .main-with-sidebar { display:flex;gap:1.5rem; }
+
+    @media(max-width:768px) {
+      .folder-sidebar { width:100%;position:static;max-height:none;border-radius:10px; }
+      .main-with-sidebar { flex-direction:column; }
+    }
+
+    .sv-folder-select {
+      padding:.25rem .55rem;border-radius:6px;
+      border:1px solid rgba(201,168,76,.22);
+      background:rgba(10,12,22,.9);color:#9e8e6a;
+      font-family:'Rajdhani',sans-serif;font-size:.78rem;font-weight:600;
+      cursor:pointer;outline:none;max-width:140px;
+    }
+    .sv-folder-select:focus { border-color:rgba(201,168,76,.45); }
+    .sc-folder-badge {
+      font-size:.61rem;color:rgba(201,168,76,.55);
+      display:flex;align-items:center;gap:.22rem;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;
+    }
+    #folder-modal-backdrop {
+      display:none;position:fixed;inset:0;z-index:850;
+      background:rgba(4,5,12,.88);backdrop-filter:blur(6px);
+      align-items:center;justify-content:center;
+    }
+    #folder-modal-backdrop.open { display:flex; }
+    #folder-modal {
+      background:linear-gradient(145deg,#0e101e,#13152a);
+      border:1px solid rgba(201,168,76,.28);border-radius:16px;
+      padding:1.75rem;width:100%;max-width:420px;
+      box-shadow:0 24px 64px rgba(0,0,0,.7);
+      position:relative;outline:none;
+    }
+    .fm-title {
+      font-family:'Cinzel',serif;font-size:.92rem;font-weight:600;
+      color:#e8c96a;letter-spacing:.07em;margin-bottom:1.2rem;
+      display:flex;align-items:center;gap:.55rem;
+    }
+    .fm-close { position:absolute;top:1rem;right:1rem;background:none;border:none;color:#64605a;font-size:1.1rem;cursor:pointer; }
+    .fm-close:hover { color:#e05252; }
+    .fm-folder-list { display:flex;flex-direction:column;gap:.35rem;margin-bottom:1rem;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(201,168,76,.15) transparent; }
+    .fm-folder-list::-webkit-scrollbar { width:4px; }
+    .fm-folder-list::-webkit-scrollbar-thumb { background:rgba(201,168,76,.18);border-radius:4px; }
+    .fm-folder-item {
+      display:flex;align-items:center;gap:.45rem;
+      padding:.5rem .65rem;border-radius:8px;
+      border:1px solid rgba(201,168,76,.1);background:rgba(0,0,0,.2);transition:all .15s;
+    }
+    .fm-folder-item.clickable { cursor:pointer; }
+    .fm-folder-item.clickable:hover { background:rgba(201,168,76,.08);border-color:rgba(201,168,76,.3); }
+    .fm-fi-icon { color:#c9a84c;font-size:.85rem;flex-shrink:0; }
+    .fm-fi-name { flex:1;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:600;color:#ddd0b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0; }
+    .fm-fi-name-input {
+      flex:1;min-width:0;background:transparent;border:none;border-bottom:1px solid rgba(201,168,76,.35);
+      color:#e8c96a;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:600;outline:none;padding:.1rem 0;
+    }
+    .fm-fi-count { font-size:.68rem;color:#64605a;flex-shrink:0; }
+    .fm-fi-btns { display:flex;gap:.2rem;flex-shrink:0; }
+    .fm-fi-btn {
+      width:24px;height:24px;border-radius:5px;border:1px solid rgba(201,168,76,.12);
+      background:transparent;color:#64605a;cursor:pointer;font-size:.7rem;
+      display:flex;align-items:center;justify-content:center;transition:all .15s;
+    }
+    .fm-fi-btn:hover { color:#c9a84c;border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.06); }
+    .fm-fi-btn.del:hover { color:#e05252;border-color:rgba(224,82,82,.3);background:rgba(224,82,82,.05); }
+    .fm-fi-depth {
+      width:12px;flex-shrink:0;position:relative;
+    }
+    .fm-fi-depth::before {
+      content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;
+      background:rgba(201,168,76,.15);
+    }
+    .fm-fi-depth::after {
+      content:'';position:absolute;left:5px;top:50%;width:7px;height:1px;
+      background:rgba(201,168,76,.15);
+    }
+    .fm-create-row { display:flex;gap:.4rem;margin-bottom:.5rem; }
+    .fm-input {
+      flex:1;min-width:0;padding:.45rem .65rem;background:rgba(0,0,0,.3);
+      border:1px solid rgba(201,168,76,.2);border-radius:8px;
+      color:#ddd0b8;font-family:'Rajdhani',sans-serif;font-size:.85rem;outline:none;
+    }
+    .fm-input:focus { border-color:rgba(201,168,76,.45); }
+    .fm-input::placeholder { color:#64605a; }
+    .fm-parent-row {
+      display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;
+      padding:.35rem .5rem;border-radius:6px;background:rgba(0,0,0,.15);
+      border:1px solid rgba(201,168,76,.08);
+    }
+    .fm-parent-label {
+      font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:600;
+      color:rgba(201,168,76,.45);white-space:nowrap;
+    }
+    .fm-parent-select {
+      flex:1;padding:.25rem .5rem;border-radius:6px;
+      border:1px solid rgba(201,168,76,.15);background:rgba(0,0,0,.2);
+      color:#9e8e6a;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:600;
+      cursor:pointer;outline:none;
+    }
+    .fm-parent-select:focus { border-color:rgba(201,168,76,.35); }
+    .fm-create-btn {
+      padding:.45rem .85rem;border-radius:8px;
+      border:1px solid rgba(201,168,76,.35);background:rgba(201,168,76,.08);color:#e8c96a;
+      font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;
+      cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;
+    }
+    .fm-create-btn:hover { background:rgba(201,168,76,.18); }
+    .fm-move-hint { font-size:.8rem;color:#64605a;margin-bottom:.85rem;font-style:italic; }
+    .fm-remove-btn {
+      width:100%;margin-top:.75rem;padding:.45rem;border-radius:8px;
+      border:1px solid rgba(224,82,82,.2);background:transparent;
+      color:#e05252;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:600;
+      cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem;
+    }
+    .fm-remove-btn:hover { background:rgba(224,82,82,.07);border-color:rgba(224,82,82,.4); }
+    .fm-empty { font-size:.82rem;color:#64605a;text-align:center;padding:1rem 0;font-style:italic; }
+    .eb-btn.move { color:#a78bfa;border-color:rgba(167,139,250,.35); }
+    .eb-btn.move:hover { background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.6);color:#c4b5fd; }
+    @keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }
+
   </style>
 </head>
 <body>
@@ -330,6 +592,26 @@
     <div class="tb-sep"></div>
     <div class="tb-spacer"></div>
     <div class="tb-user">Olá, <b id="tb-username">—</b></div>
+    <div id="mode-pill" onclick="toggleStorageMode()" title="Clique para alternar o banco de dados" style="
+      display:flex; align-items:center; gap:.35rem;
+      padding:.25rem .7rem; border-radius:12px; cursor:pointer;
+      font-family:'Rajdhani',sans-serif; font-size:.72rem; font-weight:700;
+      letter-spacing:.05em; transition:all .2s; user-select:none;
+      border:1px solid rgba(201,168,76,.25); background:rgba(0,0,0,.2);
+      color:#9e8e6a;
+    "></div>
+    <button id="save-db-btn" onclick="persistDB()" title="Salvar banco de dados local no disco" style="
+      display:flex;align-items:center;gap:.35rem;
+      padding:.25rem .7rem;border-radius:12px;cursor:pointer;
+      font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:700;
+      letter-spacing:.05em;transition:all .2s;user-select:none;
+      border:1px solid rgba(52,211,153,.3);background:rgba(0,0,0,.2);
+      color:#6dc87a;
+    "><i class="bi bi-download"></i> Salvar DB</button>
+    <span id="db-status" style="
+      font-family:'Rajdhani',sans-serif;font-size:.65rem;font-weight:600;
+      color:rgba(100,96,90,.5);white-space:nowrap;
+    "></span>
     <a href="index.html" class="tb-btn primary"><i class="bi bi-plus-lg"></i> Nova Ficha</a>
     <a href="board.html" class="tb-btn"><i class="bi bi-layout-wtf"></i> Quadro</a>
     <a href="hub.html"   class="tb-btn"><i class="bi bi-house"></i> Início</a>
@@ -367,12 +649,27 @@
         <div class="search-wrap">
           <i class="bi bi-search"></i>
           <input class="search-input" id="search-input" type="text"
-                 placeholder="Buscar ficha por nome..." oninput="filterSheets()"/>
+                 placeholder="Buscar por nome, perfil ou pasta..." oninput="filterSheets()"/>
         </div>
         <div class="filter-count" id="filter-count"></div>
       </div>
 
-      <div class="sheets-grid" id="sheets-grid"></div>
+      <div class="main-with-sidebar">
+        <nav class="folder-sidebar" id="folder-sidebar"></nav>
+        <div style="flex:1;min-width:0;">
+          <div class="pagination-bar" id="pagination-bar-top" style="display:none">
+            <div class="pagination-meta" id="pagination-meta-top"></div>
+            <div class="pagination-controls" id="pagination-controls-top"></div>
+          </div>
+          <div class="grid-stage">
+            <div class="sheets-grid" id="sheets-grid"></div>
+          </div>
+          <div class="pagination-bar" id="pagination-bar-bottom" style="display:none">
+            <div class="pagination-meta" id="pagination-meta-bottom"></div>
+            <div class="pagination-controls" id="pagination-controls-bottom"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -380,8 +677,14 @@
   <div id="sheet-viewer">
     <div class="sv-bar">
       <span class="sv-title" id="sv-title">—</span>
+      <select class="sv-folder-select" id="sv-folder-select" title="Mover para pasta" onchange="moveViewedSheetToFolder(this.value)">
+        <option value="">📁 Sem pasta</option>
+      </select>
       <button class="sv-btn save" onclick="saveSheetEdits()">
         <i class="bi bi-floppy2-fill"></i> Salvar Alterações
+      </button>
+      <button class="sv-btn recalc" onclick="openRecalcModal()" title="Alterar Nível e NA e recalcular stats automaticamente">
+        <i class="bi bi-arrow-repeat"></i> Recalcular
       </button>
       <button class="sv-btn" onclick="exportSheetFromViewer()">
         <i class="bi bi-box-arrow-up"></i> .codex
@@ -429,8 +732,41 @@
     <div class="eb-sep"></div>
     <button class="eb-btn" onclick="selectAllSheets()"><i class="bi bi-ui-checks me-1"></i>Todas</button>
     <button class="eb-btn primary" onclick="exportSelected()"><i class="bi bi-box-arrow-up me-1"></i>Exportar .codex</button>
+    <button class="eb-btn move" onclick="moveSelectedToFolder()"><i class="bi bi-folder-symlink me-1"></i>Mover para Pasta</button>
+    <button class="eb-btn" style="color:#e05252;border-color:rgba(224,82,82,.35);" onclick="deleteSelectedSheets()"><i class="bi bi-trash3 me-1"></i>Apagar</button>
     <div class="eb-sep"></div>
     <button class="eb-btn cancel" onclick="exitSelectMode()"><i class="bi bi-x me-1"></i>Cancelar</button>
+  </div>
+
+  <!-- Modal de pastas -->
+  <div id="folder-modal-backdrop">
+    <div id="folder-modal" tabindex="-1">
+      <button class="fm-close" onclick="closeFolderModal()"><i class="bi bi-x-lg"></i></button>
+      <div class="fm-title" id="fm-modal-title"><i class="bi bi-folder2-open"></i> <span id="fm-title-text">Gerenciar Pastas</span></div>
+      <!-- Modo: gerenciar -->
+      <div id="fm-manage-body">
+        <div class="fm-folder-list" id="fm-folder-list"></div>
+        <div class="fm-create-row">
+          <input class="fm-input" id="fm-new-name" placeholder="Nome da nova pasta..."
+                 onkeydown="if(event.key==='Enter')createFolder()"/>
+          <button class="fm-create-btn" onclick="createFolder()"><i class="bi bi-plus-lg"></i> Criar</button>
+        </div>
+        <div class="fm-parent-row">
+          <span class="fm-parent-label"><i class="bi bi-diagram-2"></i> Dentro de:</span>
+          <select id="fm-parent-select" class="fm-parent-select">
+            <option value="">Raiz (pasta principal)</option>
+          </select>
+        </div>
+      </div>
+      <!-- Modo: mover ficha -->
+      <div id="fm-move-body" style="display:none">
+        <div class="fm-move-hint">Escolha uma pasta para mover a ficha:</div>
+        <div class="fm-folder-list" id="fm-move-list"></div>
+        <button class="fm-remove-btn" onclick="removeSheetFromFolder()">
+          <i class="bi bi-x-circle"></i> Remover de todas as pastas
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal de ícone -->
@@ -466,6 +802,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/db.js"></script>
   <script src="js/data.js"></script>
   <script src="js/api.js"></script>
   <script src="js/sheet.js"></script>
@@ -479,6 +816,119 @@
     let _allSheets   = [];
     let _selectMode  = false;
     const _selectedIds = new Set();
+    let _currentPage  = 1;
+    const _pageSize   = 24;
+
+    // ── Estado de pastas (localStorage) ──────────────────
+    let _folders          = [];   // [{id, name, parentId}]
+    let _folderAssignments = {};  // {sheetId: folderId}
+    let _activeFolder     = null; // null = "Todas"
+    let _movingSheetId    = null;
+    let _hiddenFolders    = new Set(); // folders whose sheets are excluded
+
+    async function _loadFolders() {
+      try {
+        const data = await DB.getFolders();
+        _folders          = data.folders || [];
+        _folderAssignments = data.assignments || {};
+      } catch (e) {
+        console.error('[_loadFolders]', e);
+        _folders = [];
+        _folderAssignments = {};
+      }
+    }
+
+    async function _saveFolders() {
+      try {
+        await DB.saveFolders(_folders, _folderAssignments);
+      } catch (e) {
+        console.error('[_saveFolders]', e);
+      }
+    }
+
+    function renderFolderSidebar() {
+      const sidebar = document.getElementById('folder-sidebar');
+      if (!sidebar) return;
+
+      const existingIds = new Set(_allSheets.map(s => String(s.id)));
+      const directCounts = {};
+      Object.entries(_folderAssignments).forEach(([sid, fid]) => {
+        if (existingIds.has(sid)) directCounts[fid] = (directCounts[fid] || 0) + 1;
+      });
+      // compute recursive totals (includes all descendant subfolders)
+      function getAllDescendants(fid) {
+        let ids = [fid];
+        _folders.filter(f => f.parentId === fid).forEach(child => {
+          ids = ids.concat(getAllDescendants(child.id));
+        });
+        return ids;
+      }
+      const counts = {};
+      _folders.forEach(f => {
+        counts[f.id] = getAllDescendants(f.id).reduce((sum, id) => sum + (directCounts[id] || 0), 0);
+      });
+
+      function folderTreeItems(parentId, depth) {
+        let html = '';
+        const children = _folders.filter(f => (f.parentId || null) === parentId);
+        children.forEach(f => {
+          const c = counts[f.id] || 0;
+          const depthCls = depth > 0 ? ` sub sub-${Math.min(depth, 3)}` : '';
+          const isActive = _activeFolder === f.id;
+          const isHidden = _hiddenFolders.has(f.id);
+          html += `<div class="fs-item${depthCls}${isActive ? ' active' : ''}${isHidden ? ' hidden-folder' : ''}"
+                       onclick="setActiveFolder('${f.id}')"
+                       title="${isHidden ? 'Clique para mostrar' : f.name}">
+              <span class="fs-item-icon"><i class="bi bi-folder${isActive ? '-fill' : '2'}"></i></span>
+              <span class="fs-item-name">${f.name}</span>
+              <span class="fs-item-trailing">
+                <span class="fs-item-count">${c}</span>
+                <button class="exclude-btn" title="${isHidden ? 'Mostrar pasta' : 'Ocultar fichas desta pasta'}"
+                        onclick="event.stopPropagation();toggleHideFolder('${f.id}')">
+                  <svg class="eye-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+                    ${isHidden
+                      ? `<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </g>`
+                      : `<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </g>`
+                    }
+                  </svg>
+                </button>
+              </span>
+            </div>`;
+          html += folderTreeItems(f.id, depth + 1);
+        });
+        return html;
+      }
+
+      let html = `<div class="fs-header">
+        <span class="fs-header-title">Pastas</span>
+        <button class="fs-header-btn" onclick="openFolderManagerModal()" title="Gerenciar pastas">
+          <i class="bi bi-gear"></i>
+        </button>
+      </div>`;
+
+      html += `<div class="fs-section">`;
+      html += `<div class="fs-item${_activeFolder === null ? ' active' : ''}" onclick="setActiveFolder(null)">
+          <span class="fs-item-icon"><i class="bi bi-collection"></i></span>
+          <span class="fs-item-name">Todas</span>
+          <span class="fs-item-count">${_allSheets.length}</span>
+        </div>`;
+
+      html += folderTreeItems(null, 0);
+
+      html += `<button class="fs-add-btn" onclick="openFolderManagerModal()">
+          <i class="bi bi-plus-lg"></i> Nova Pasta
+        </button>`;
+      html += `</div>`;
+
+      sidebar.innerHTML = html;
+    }
 
     const PROFILE_NAMES = {
       guerreiro:   'Guerreiro',
@@ -497,64 +947,42 @@
     // ══════════════════════════════════════════════════════
     async function initAuth() {
       try {
-        // waitForSession() aguarda INITIAL_SESSION do Supabase v2,
-        // garantindo que a sessão seja restaurada do localStorage
-        // antes de continuar — corrige o "Olá, —" e a grid vazia.
-        let session = await waitForSession();
-        if (!session) session = await getSession(); // fallback
-
-        if (!session) {
+        currentUser = await DB.initAuth();
+        if (!currentUser) {
           window.location.href = '/login.html';
           return;
         }
-
-        currentUser = session.user;
-
         const displayName =
           currentUser.user_metadata?.name      ||
           currentUser.user_metadata?.full_name ||
-          currentUser.email.split('@')[0];
-
+          currentUser.email?.split('@')[0]     || 'Mestre';
         document.getElementById('tb-username').textContent = displayName;
-
+        _updateModeIndicator();
         await loadPage();
-
-        // Abre viewer direto se URL tem ?open=ID
-        const urlId = new URLSearchParams(location.search).get('open');
-        if (urlId) openViewer(urlId);
-
-      } catch (err) {
+      } catch(err) {
         console.error('[initAuth]', err);
+        document.getElementById('sheets-count').textContent = 'Erro de conexão com o banco.';
         document.getElementById('tb-username').textContent = '(erro)';
-        document.getElementById('sheets-count').textContent =
-          'Erro de conexão — verifique a SUPABASE_ANON_KEY em js/supabase.js';
       }
     }
 
     async function doLogout() {
-      await window.supabaseClient.auth.signOut();
-      window.location.href = '/login.html';
+      await DB.signOut();
     }
 
     // ══════════════════════════════════════════════════════
     // DADOS
     // ══════════════════════════════════════════════════════
     async function _getSheets() {
-      if (!currentUser) return [];
-      const { data, error } = await window.supabaseClient
-        .from('sheets')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) { console.error('[_getSheets]', error); return []; }
-      return data || [];
+      return await DB.getSheets();
     }
 
     async function loadPage() {
       document.getElementById('sheets-count').textContent = 'Carregando...';
       try {
         _allSheets = await _getSheets();
+        await _loadFolders();
+        renderFolderSidebar();
         const n = _allSheets.length;
         document.getElementById('sheets-count').textContent =
           n === 0 ? 'Nenhuma ficha criada ainda'
@@ -572,20 +1000,60 @@
     // ══════════════════════════════════════════════════════
     function filterSheets() {
       const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
-      const filtered = q
-        ? _allSheets.filter(s => s.nome && s.nome.toLowerCase().includes(q))
-        : _allSheets;
+      let filtered = _allSheets;
+
+      if (_activeFolder !== null) {
+        const childFolderIds = _getChildFolderIds(_activeFolder);
+        childFolderIds.push(_activeFolder);
+        filtered = filtered.filter(s => {
+          const fid = _folderAssignments[String(s.id)];
+          return childFolderIds.includes(fid);
+        });
+      }
+
+      if (_hiddenFolders.size > 0) {
+        const hiddenIds = new Set();
+        _hiddenFolders.forEach(fid => {
+          hiddenIds.add(fid);
+          _getChildFolderIds(fid).forEach(id => hiddenIds.add(id));
+        });
+        filtered = filtered.filter(s => {
+          const fid = _folderAssignments[String(s.id)];
+          return !hiddenIds.has(fid);
+        });
+      }
+
+      if (q) {
+        filtered = filtered.filter(s => {
+          const nome   = (s.nome    || '').toLowerCase();
+          const perfil = (s.profile || '').toLowerCase();
+          // Inclui variações do nome do perfil em pt-BR
+          const perfilPt = perfil === 'mistico' ? 'místico' : perfil;
+          // Busca também pelo nome da pasta que a ficha pertence
+          const fid    = _folderAssignments[String(s.id)];
+          const pasta  = fid ? ((_folders.find(f => f.id === fid)?.name) || '').toLowerCase() : '';
+          return nome.includes(q) || perfil.includes(q) || perfilPt.includes(q) || pasta.includes(q);
+        });
+      }
 
       const countEl = document.getElementById('filter-count');
-      countEl.textContent = q
+      countEl.textContent = (q || _activeFolder !== null || _hiddenFolders.size > 0)
         ? `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''}`
         : '';
 
+      const totalPages = Math.max(1, Math.ceil(filtered.length / _pageSize));
+      if (_currentPage > totalPages) _currentPage = totalPages;
+      if (_currentPage < 1) _currentPage = 1;
       renderGrid(filtered);
     }
 
     function renderGrid(sheets) {
       const grid = document.getElementById('sheets-grid');
+      const paginationBar = document.getElementById('pagination-bar');
+      const total = sheets?.length || 0;
+      const totalPages = Math.max(1, Math.ceil(total / _pageSize));
+      const startIndex = total ? (_currentPage - 1) * _pageSize : 0;
+      const visibleSheets = total ? sheets.slice(startIndex, startIndex + _pageSize) : [];
 
       if (!sheets || !sheets.length) {
         grid.innerHTML = `
@@ -594,10 +1062,11 @@
             <div class="empty-title">Nenhuma ficha encontrada</div>
             <div class="empty-sub">Crie sua primeira ficha clicando em "Criar Nova Ficha"</div>
           </div>`;
+        if (paginationBar) paginationBar.style.display = 'none';
         return;
       }
 
-      grid.innerHTML = sheets.map(s => {
+      grid.innerHTML = visibleSheets.map(s => {
         const isSelected  = _selectedIds.has(String(s.id));
         const date        = new Date(s.updated_at || s.created_at).toLocaleDateString('pt-BR');
         const profileName = PROFILE_NAMES[s.profile] || s.profile || '—';
@@ -625,8 +1094,15 @@
               <span class="sc-tag">NA ${s.na || '1'}</span>
             </div>
             <div class="sc-footer">
-              <div class="sc-date"><i class="bi bi-calendar3 me-1"></i>${date}</div>
+              <div style="display:flex;flex-direction:column;gap:.2rem;min-width:0;">
+                <div class="sc-date"><i class="bi bi-calendar3 me-1"></i>${date}</div>
+                ${(() => { const fid = _folderAssignments[String(s.id)]; const fn = fid && _folders.find(f=>f.id===fid); return fn ? `<div class="sc-folder-badge"><i class="bi bi-folder-fill"></i>${fn.name}</div>` : ''; })()}
+              </div>
               <div class="sc-actions">
+                <button class="sc-btn" title="Mover para pasta"
+                  onclick="event.stopPropagation();openMoveModal('${s.id}')">
+                  <i class="bi bi-folder-symlink"></i>
+                </button>
                 <button class="sc-btn" title="Exportar como .codex"
                   onclick="event.stopPropagation();exportSheet('${s.id}')">
                   <i class="bi bi-box-arrow-up"></i>
@@ -640,7 +1116,8 @@
           </div>`;
       }).join('');
 
-      _lazyLoadAvatars(sheets);
+      _lazyLoadAvatars(visibleSheets);
+      _renderPagination(total, totalPages, startIndex);
     }
 
     function _lazyLoadAvatars(sheets) {
@@ -663,6 +1140,61 @@
         const el = document.getElementById('av-' + s.id);
         if (el) { el.dataset.sheetId = String(s.id); obs.observe(el); }
       });
+    }
+
+    function _renderPagination(totalItems, totalPages, startIndex) {
+      const regions = [
+        {
+          bar: document.getElementById('pagination-bar-top'),
+          meta: document.getElementById('pagination-meta-top'),
+          controls: document.getElementById('pagination-controls-top')
+        },
+        {
+          bar: document.getElementById('pagination-bar-bottom'),
+          meta: document.getElementById('pagination-meta-bottom'),
+          controls: document.getElementById('pagination-controls-bottom')
+        }
+      ].filter(region => region.bar && region.meta && region.controls);
+      if (!regions.length) return;
+
+      if (totalItems <= _pageSize) {
+        regions.forEach(region => { region.bar.style.display = 'none'; });
+        return;
+      }
+
+      const from = startIndex + 1;
+      const to = Math.min(startIndex + _pageSize, totalItems);
+
+      const pages = [];
+      const pushPage = p => {
+        pages.push(`<button class="page-btn${p === _currentPage ? ' active' : ''}" onclick="goToPage(${p})">${p}</button>`);
+      };
+
+      pages.push(`<button class="page-btn" onclick="goToPage(${_currentPage - 1})" ${_currentPage === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>`);
+
+      if (totalPages <= 7) {
+        for (let p = 1; p <= totalPages; p++) pushPage(p);
+      } else {
+        pushPage(1);
+        if (_currentPage > 3) pages.push(`<span class="page-btn" style="pointer-events:none">...</span>`);
+        for (let p = Math.max(2, _currentPage - 1); p <= Math.min(totalPages - 1, _currentPage + 1); p++) pushPage(p);
+        if (_currentPage < totalPages - 2) pages.push(`<span class="page-btn" style="pointer-events:none">...</span>`);
+        pushPage(totalPages);
+      }
+
+      pages.push(`<button class="page-btn" onclick="goToPage(${_currentPage + 1})" ${_currentPage === totalPages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>`);
+      regions.forEach(region => {
+        region.meta.innerHTML = `<i class="bi bi-collection"></i> Exibindo <b style="color:#e8c96a">${from}-${to}</b> de <b style="color:#e8c96a">${totalItems}</b> fichas`;
+        region.controls.innerHTML = pages.join('');
+        region.bar.style.display = 'flex';
+      });
+    }
+
+    function goToPage(page) {
+      const nextPage = Math.max(1, page);
+      if (nextPage === _currentPage) return;
+      _currentPage = nextPage;
+      filterSheets();
     }
 
     function _setAvatar(id, src) {
@@ -734,6 +1266,38 @@
       exitSelectMode();
     }
 
+    function moveSelectedToFolder() {
+      if (!_selectedIds.size) return;
+      if (!_folders.length) {
+        showToast('Crie uma pasta primeiro!');
+        return;
+      }
+      _movingSheetId = '__bulk__';
+      document.getElementById('fm-title-text').textContent = `Mover ${_selectedIds.size} ficha${_selectedIds.size !== 1 ? 's' : ''} para pasta`;
+      document.getElementById('fm-manage-body').style.display = 'none';
+      document.getElementById('fm-move-body').style.display   = '';
+      _renderMoveList();
+      document.getElementById('folder-modal-backdrop').classList.add('open');
+    }
+
+    async function deleteSelectedSheets() {
+      if (!_selectedIds.size) return;
+      const count = _selectedIds.size;
+      if (!confirm(`Apagar ${count} ficha${count !== 1 ? 's' : ''} permanentemente?`)) return;
+
+      const ids = Array.from(_selectedIds);
+      const { error } = await DB.deleteSheetsBatch(ids);
+      if (error) {
+        showToast('Erro ao apagar fichas.');
+        console.error('[deleteSelectedSheets]', error);
+        return;
+      }
+
+      exitSelectMode();
+      await loadPage();
+      showToast(`${count} ficha${count !== 1 ? 's' : ''} apagada${count !== 1 ? 's' : ''}!`);
+    }
+
     // ══════════════════════════════════════════════════════
     // VIEWER
     // ══════════════════════════════════════════════════════
@@ -748,6 +1312,7 @@
       window.avatarTransform       = { x:0, y:0, scale:1 };
 
       document.getElementById('sv-title').textContent = sheet.nome;
+      _updateViewerFolderSelect(id);
       document.getElementById('sheet-viewer').style.display = 'block';
       document.body.style.overflow = 'hidden';
 
@@ -767,6 +1332,13 @@
       const idx = _allSheets.findIndex(s => String(s.id) === id);
       if (idx === -1) return;
 
+      const saveBtn = document.querySelector('.sv-btn.save');
+      if (saveBtn) {
+        saveBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Salvando...';
+        saveBtn.style.pointerEvents = 'none';
+        saveBtn.style.opacity = '0.6';
+      }
+
       const s   = _allSheets[idx];
       const out = document.getElementById('sheet-output');
       if (!out) return;
@@ -776,6 +1348,13 @@
         s.nome = nomeEl.textContent.trim();
         s.data.nome = s.nome;
         document.getElementById('sv-title').textContent = s.nome;
+      }
+
+      // Raça
+      const racaEl = out.querySelector('[data-field="raca"]');
+      if (racaEl) {
+        const racaTxt = racaEl.textContent.trim();
+        s.data.raca = (racaTxt && racaTxt !== 'Livre') ? racaTxt : '';
       }
 
       ['vida','ca','reac','arm','ba','bd','dano'].forEach(field => {
@@ -811,20 +1390,37 @@
       if (window.avatarDataUrl) s.avatar = window.avatarDataUrl;
       s.updated_at = new Date().toISOString();
 
-      const { error } = await window.supabaseClient
-        .from('sheets')
-        .update({ nome: s.nome, avatar: s.avatar, data: s.data, updated_at: s.updated_at })
-        .eq('id', s.id);
+      const { error } = await DB.updateSheet(s.id, {
+        nome: s.nome, avatar: s.avatar, data: s.data, updated_at: s.updated_at
+      });
+      if (error) { console.error('[saveSheetEdits]', error); if(saveBtn){saveBtn.style.opacity='1';saveBtn.style.pointerEvents='';} return; }
 
-      if (error) { console.error('[saveSheetEdits]', error); return; }
       showToast('Alterações salvas!');
+
+      if (saveBtn) {
+        saveBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Salvo!';
+        saveBtn.style.borderColor = 'rgba(52,211,153,.5)';
+        saveBtn.style.color = '#34d399';
+        saveBtn.style.opacity = '1';
+        saveBtn.style.background = 'rgba(52,211,153,.1)';
+
+        setTimeout(() => {
+          saveBtn.innerHTML = '<i class="bi bi-floppy2-fill"></i> Salvar Alterações';
+          saveBtn.style.borderColor = '';
+          saveBtn.style.color = '';
+          saveBtn.style.pointerEvents = '';
+          saveBtn.style.opacity = '';
+          saveBtn.style.background = '';
+          saveBtn.style.transition = 'all .3s';
+        }, 2000);
+      }
     }
 
     async function deleteViewedSheet() {
       const id = String(window._currentSheetId);
       if (!id || id === 'null') return;
       if (!confirm('Apagar esta ficha permanentemente?')) return;
-      const { error } = await window.supabaseClient.from('sheets').delete().eq('id', id);
+      const { error } = await DB.deleteSheet(id);
       if (error) { console.error('[deleteViewedSheet]', error); return; }
       closeViewer();
     }
@@ -832,7 +1428,7 @@
     async function deleteSheet(id) {
       id = String(id);
       if (!confirm('Apagar esta ficha permanentemente?')) return;
-      const { error } = await window.supabaseClient.from('sheets').delete().eq('id', id);
+      const { error } = await DB.deleteSheet(id);
       if (error) { console.error('[deleteSheet]', error); return; }
       loadPage();
     }
@@ -936,7 +1532,7 @@
             // Isso evita erros 400 por conflito de tipo (bigint vs uuid vs string)
             // com ids vindos de versões antigas do .codex.
             toInsert.push({
-              user_id:    currentUser.id,
+              user_id:    currentUser?.id || DB.user?.id || 'local-user-00000000',
               nome:       s.nome,
               profile:    s.profile || 'especialista',
               nivel:      Number(s.nivel) || 1,
@@ -950,9 +1546,9 @@
           });
 
           if (toInsert.length) {
-            const { error } = await window.supabaseClient.from('sheets').insert(toInsert);
+            const { error } = await DB.insertSheets(toInsert);
             if (error) {
-              console.error('[importSheets] Supabase error:', JSON.stringify(error));
+              console.error('[importSheets] DB error:', error?.message || error);
               throw error;
             }
           }
@@ -1024,21 +1620,10 @@
     function _loadIconFile(file) {
       const reader = new FileReader();
       reader.onload = ev => {
-        const original = ev.target.result;
-        // Redimensiona para 300×300 antes de salvar
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width  = 300;
-          canvas.height = 300;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, 300, 300);
-          _pendingIconUrl = canvas.toDataURL('image/png');
-          document.getElementById('im-preview-img').src = _pendingIconUrl;
-          document.getElementById('im-preview-wrap').classList.add('visible');
-          document.getElementById('im-confirm-btn').disabled = false;
-        };
-        img.src = original;
+        _pendingIconUrl = ev.target.result;
+        document.getElementById('im-preview-img').src = _pendingIconUrl;
+        document.getElementById('im-preview-wrap').classList.add('visible');
+        document.getElementById('im-confirm-btn').disabled = false;
       };
       reader.readAsDataURL(file);
     }
@@ -1048,33 +1633,646 @@
       const idx = _allSheets.findIndex(s => String(s.id) === _iconModalSheetId);
       if (idx === -1) return;
 
+      const btn = document.getElementById('im-confirm-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Salvando...';
+
       _allSheets[idx].avatar     = _pendingIconUrl;
       _allSheets[idx].updated_at = new Date().toISOString();
 
-      const { error } = await window.supabaseClient
-        .from('sheets')
-        .update({ avatar: _pendingIconUrl, updated_at: _allSheets[idx].updated_at })
-        .eq('id', _allSheets[idx].id);
-
-      if (error) { console.error('[confirmIconChange]', error); return; }
+      if (window._currentSheetId && String(window._currentSheetId) === _iconModalSheetId) {
+        window.avatarDataUrl = _pendingIconUrl;
+        const avatarEl = document.querySelector('.sh-avatar-img');
+        if (avatarEl) {
+          avatarEl.style.backgroundImage = `url(${_pendingIconUrl})`;
+          avatarEl.style.backgroundSize  = 'cover';
+          avatarEl.style.backgroundPosition = 'center';
+        }
+      }
 
       _setAvatar(_iconModalSheetId, _pendingIconUrl);
 
-      if (String(window._currentSheetId) === _iconModalSheetId) {
-        window.avatarDataUrl         = _pendingIconUrl;
-        window.avatarOriginalDataUrl = _pendingIconUrl;
-        const shAvatar = document.getElementById('sh-avatar-img');
-        if (shAvatar) shAvatar.style.backgroundImage = `url('${_pendingIconUrl}')`;
+      const { error } = await DB.updateSheet(_allSheets[idx].id, {
+        avatar: _allSheets[idx].avatar,
+        updated_at: _allSheets[idx].updated_at
+      });
+      if (error) { console.error('[confirmIconChange]', error); return; }
+
+      btn.innerHTML = '<i class="bi bi-check-lg"></i> Aplicado!';
+      btn.style.borderColor = 'rgba(52,211,153,.5)';
+      btn.style.color = '#34d399';
+
+      showToast('Ícone atualizado com sucesso!');
+
+      setTimeout(() => {
+        closeIconModal();
+      }, 800);
+    }
+
+    function _getChildFolderIds(parentId) {
+      let ids = [];
+      _folders.filter(f => (f.parentId || null) === parentId).forEach(f => {
+        ids.push(f.id);
+        ids = ids.concat(_getChildFolderIds(f.id));
+      });
+      return ids;
+    }
+
+    function setActiveFolder(id) {
+      _activeFolder = id;
+      renderFolderSidebar();
+      filterSheets();
+    }
+
+    function toggleHideFolder(fid) {
+      if (_hiddenFolders.has(fid)) {
+        _hiddenFolders.delete(fid);
+      } else {
+        _hiddenFolders.add(fid);
+        if (_activeFolder === fid) _activeFolder = null;
+      }
+      renderFolderSidebar();
+      filterSheets();
+    }
+
+    // ── Viewer dropdown ───────────────────────────────────
+    function _updateViewerFolderSelect(sheetId) {
+      const sel = document.getElementById('sv-folder-select');
+      if (!sel) return;
+      const currentFid = _folderAssignments[String(sheetId)] || '';
+      let opts = `<option value="">📁 Sem pasta</option>`;
+      _folders.forEach(f => {
+        opts += `<option value="${f.id}"${f.id === currentFid ? ' selected' : ''}>${f.name}</option>`;
+      });
+      sel.innerHTML = opts;
+    }
+
+    function moveViewedSheetToFolder(folderId) {
+      const id = String(window._currentSheetId);
+      if (!id || id === 'null') return;
+      if (folderId) {
+        _folderAssignments[id] = folderId;
+      } else {
+        delete _folderAssignments[id];
+      }
+      _saveFolders();
+      renderFolderSidebar();
+    }
+
+    // ── Modal gerenciar ───────────────────────────────────
+    function openFolderManagerModal() {
+      _movingSheetId = null;
+      document.getElementById('fm-title-text').textContent = 'Gerenciar Pastas';
+      document.getElementById('fm-manage-body').style.display = '';
+      document.getElementById('fm-move-body').style.display   = 'none';
+      document.getElementById('fm-new-name').value = '';
+      _renderFolderManagerList();
+      document.getElementById('folder-modal-backdrop').classList.add('open');
+    }
+
+    function openMoveModal(sheetId) {
+      _movingSheetId = String(sheetId);
+      const sheet    = _allSheets.find(s => String(s.id) === _movingSheetId);
+      document.getElementById('fm-title-text').textContent =
+        sheet ? `Mover: ${sheet.nome}` : 'Mover Ficha';
+      document.getElementById('fm-manage-body').style.display = 'none';
+      document.getElementById('fm-move-body').style.display   = '';
+      _renderMoveList();
+      document.getElementById('folder-modal-backdrop').classList.add('open');
+    }
+
+    function closeFolderModal() {
+      document.getElementById('folder-modal-backdrop').classList.remove('open');
+      _movingSheetId = null;
+    }
+
+    document.getElementById('folder-modal-backdrop').addEventListener('click', function(e) {
+      if (e.target === this) closeFolderModal();
+    });
+
+    function _renderFolderManagerList() {
+      const list = document.getElementById('fm-folder-list');
+      if (!_folders.length) {
+        list.innerHTML = '<div class="fm-empty">Nenhuma pasta criada ainda.</div>';
+      } else {
+        const existingIds = new Set(_allSheets.map(s => String(s.id)));
+        const counts = {};
+        Object.entries(_folderAssignments).forEach(([sid, fid]) => {
+          if (existingIds.has(sid)) counts[fid] = (counts[fid] || 0) + 1;
+        });
+
+        function renderItems(parentId, depth) {
+          let html = '';
+          const children = _folders.filter(f => (f.parentId || null) === parentId);
+          children.forEach(f => {
+            const depthHtml = depth > 0 ? '<span class="fm-fi-depth"></span>' : '';
+            html += `<div class="fm-folder-item" id="fm-item-${f.id}">
+              ${depthHtml}
+              <i class="bi bi-folder2 fm-fi-icon"></i>
+              <span class="fm-fi-name" id="fm-name-${f.id}">${f.name}</span>
+              <span class="fm-fi-count">${counts[f.id] || 0}</span>
+              <div class="fm-fi-btns">
+                <button class="fm-fi-btn" title="Criar sub-pasta" onclick="startSubFolder('${f.id}')">
+                  <i class="bi bi-diagram-2"></i>
+                </button>
+                <button class="fm-fi-btn" title="Renomear" onclick="startRenameFolder('${f.id}')">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="fm-fi-btn del" title="Apagar pasta" onclick="deleteFolder('${f.id}')">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>`;
+            html += renderItems(f.id, depth + 1);
+          });
+          return html;
+        }
+
+        list.innerHTML = renderItems(null, 0);
       }
 
-      showToast('Ícone atualizado!');
-      closeIconModal();
+      const parentSel = document.getElementById('fm-parent-select');
+      if (parentSel) {
+        let opts = '<option value="">Raiz (pasta principal)</option>';
+        function addOpts(parentId, prefix) {
+          _folders.filter(f => (f.parentId || null) === parentId).forEach(f => {
+            opts += `<option value="${f.id}">${prefix}${f.name}</option>`;
+            addOpts(f.id, prefix + '└ ');
+          });
+        }
+        addOpts(null, '');
+        parentSel.innerHTML = opts;
+      }
+    }
+
+    function _renderMoveList() {
+      const list = document.getElementById('fm-move-list');
+      if (!_folders.length) {
+        list.innerHTML = '<div class="fm-empty">Nenhuma pasta criada ainda.<br>Feche e clique em "Nova Pasta".</div>';
+        return;
+      }
+      const currentFid = _movingSheetId ? (_folderAssignments[_movingSheetId] || null) : null;
+      function buildMoveTree(parentId, depth) {
+        let html = '';
+        const children = _folders.filter(f => (f.parentId || null) === parentId);
+        children.forEach(f => {
+          const isActive = currentFid === f.id;
+          const indentPx = depth > 0 ? (depth * 17 + 12) : 12;
+          const connector = depth > 0 ? `<span style="color:rgba(201,168,76,.4);margin-right:.3rem;font-size:.75rem;flex-shrink:0">└</span>` : '';
+          html += `<div class="fm-folder-item clickable${isActive ? ' active' : ''}"
+               style="padding-left:${indentPx}px"
+               onclick="assignSheetToFolder('${f.id}')">
+            ${connector}<i class="bi bi-folder${isActive ? '-fill' : '2'} fm-fi-icon"></i>
+            <span class="fm-fi-name">${f.name}</span>
+            ${isActive ? '<i class="bi bi-check-lg" style="color:#c9a84c;font-size:.85rem;"></i>' : ''}
+          </div>`;
+          html += buildMoveTree(f.id, depth + 1);
+        });
+        return html;
+      }
+      list.innerHTML = buildMoveTree(null, 0);
+    }
+
+    // ── CRUD pastas ───────────────────────────────────────
+    function createFolder(parentId) {
+      const input = document.getElementById('fm-new-name');
+      const name  = (input.value || '').trim();
+      if (!name) return;
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      const parent = parentId || document.getElementById('fm-parent-select')?.value || null;
+      _folders.push({ id, name, parentId: parent || null });
+      _saveFolders();
+      input.value = '';
+      if (document.getElementById('fm-parent-select')) document.getElementById('fm-parent-select').value = '';
+      _renderFolderManagerList();
+      renderFolderSidebar();
+      if (window._currentSheetId) _updateViewerFolderSelect(window._currentSheetId);
+    }
+
+    function startSubFolder(parentId) {
+      const parentFolder = _folders.find(f => f.id === parentId);
+      if (!parentFolder) return;
+      document.getElementById('fm-new-name').value = '';
+      document.getElementById('fm-new-name').placeholder = `Sub-pasta de "${parentFolder.name}"...`;
+      document.getElementById('fm-parent-select').value = parentId;
+      document.getElementById('fm-new-name').focus();
+    }
+
+    function startRenameFolder(fid) {
+      const nameEl = document.getElementById('fm-name-' + fid);
+      if (!nameEl) return;
+      const current = nameEl.textContent;
+      nameEl.outerHTML = `<input class="fm-fi-name-input" id="fm-name-${fid}"
+        value="${current}"
+        onblur="commitRename('${fid}', this.value)"
+        onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value='${current}';this.blur();}"/>`;
+      document.getElementById('fm-name-' + fid)?.focus();
+    }
+
+    function commitRename(fid, newName) {
+      newName = (newName || '').trim();
+      const f = _folders.find(x => x.id === fid);
+      if (f && newName) { f.name = newName; _saveFolders(); }
+      _renderFolderManagerList();
+      renderFolderSidebar();
+      if (window._currentSheetId) _updateViewerFolderSelect(window._currentSheetId);
+    }
+
+    function deleteFolder(fid) {
+      if (!confirm('Apagar esta pasta e suas sub-pastas? As fichas voltam para "Todas".')) return;
+      const toDelete = [fid, ..._getChildFolderIds(fid)];
+      _folders = _folders.filter(f => !toDelete.includes(f.id));
+      Object.keys(_folderAssignments).forEach(sid => {
+        if (toDelete.includes(_folderAssignments[sid])) delete _folderAssignments[sid];
+      });
+      if (toDelete.includes(_activeFolder)) _activeFolder = null;
+      _saveFolders();
+      _renderFolderManagerList();
+      renderFolderSidebar();
+      filterSheets();
+    }
+
+    function assignSheetToFolder(fid) {
+      if (!_movingSheetId) return;
+      if (_movingSheetId === '__bulk__') {
+        _selectedIds.forEach(sid => { _folderAssignments[sid] = fid; });
+        _saveFolders();
+        renderFolderSidebar();
+        filterSheets();
+        closeFolderModal();
+        showToast(`${_selectedIds.size} ficha${_selectedIds.size !== 1 ? 's' : ''} movida${_selectedIds.size !== 1 ? 's' : ''}!`);
+        exitSelectMode();
+        return;
+      }
+      _folderAssignments[_movingSheetId] = fid;
+      _saveFolders();
+      renderFolderSidebar();
+      filterSheets();
+      if (String(window._currentSheetId) === _movingSheetId)
+        _updateViewerFolderSelect(_movingSheetId);
+      closeFolderModal();
+      showToast('Ficha movida para pasta!');
+    }
+
+    function removeSheetFromFolder() {
+      if (!_movingSheetId) return;
+      if (_movingSheetId === '__bulk__') {
+        _selectedIds.forEach(sid => { delete _folderAssignments[sid]; });
+        _saveFolders();
+        renderFolderSidebar();
+        filterSheets();
+        closeFolderModal();
+        showToast(`${_selectedIds.size} ficha${_selectedIds.size !== 1 ? 's' : ''} removida${_selectedIds.size !== 1 ? 's' : ''}.`);
+        exitSelectMode();
+        return;
+      }
+      delete _folderAssignments[_movingSheetId];
+      _saveFolders();
+      renderFolderSidebar();
+      filterSheets();
+      if (String(window._currentSheetId) === _movingSheetId)
+        _updateViewerFolderSelect(_movingSheetId);
+      closeFolderModal();
+      showToast('Ficha removida da pasta.');
+    }
+
+
+    // ══════════════════════════════════════════════════════
+    // TOGGLE DE BANCO DE DADOS
+    // ══════════════════════════════════════════════════════
+    function _updateModeIndicator() {
+      const pill = document.getElementById('mode-pill');
+      const saveBtn = document.getElementById('save-db-btn');
+      if (!pill) return;
+      if (DB.isLocal()) {
+        pill.innerHTML = '<i class="bi bi-hdd-fill"></i> Local';
+        pill.style.borderColor = 'rgba(110,200,110,.4)';
+        pill.style.color       = '#6dc87a';
+        pill.title = 'Banco Local ativo · clique para Supabase';
+        if (saveBtn) saveBtn.style.display = 'flex';
+      } else {
+        pill.innerHTML = '<i class="bi bi-cloud-fill"></i> Supabase';
+        pill.style.borderColor = 'rgba(100,150,255,.35)';
+        pill.style.color       = '#7baaf7';
+        pill.title = 'Supabase ativo · clique para banco local';
+        if (saveBtn) saveBtn.style.display = 'none';
+      }
+    }
+
+    async function persistDB() {
+      const btn = document.getElementById('save-db-btn');
+      const status = document.getElementById('db-status');
+      if (!DB.isLocal()) {
+        if (status) status.textContent = '';
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:spin .8s linear infinite"></i> Salvando...';
+      btn.style.opacity = '.6';
+      try {
+        const resp = await fetch('/local/persist', { method: 'POST' });
+        const info = await resp.json();
+        const now = new Date();
+        const ts = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        if (!info.ok) {
+          if (status) {
+            status.innerHTML = `<i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b"></i> Falha na integridade! Disco=${info.sheets}`;
+            status.style.color = 'rgba(245,158,11,.7)';
+          }
+          btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Erro!';
+          btn.style.borderColor = 'rgba(245,158,11,.5)';
+          btn.style.color = '#f59e0b';
+          setTimeout(() => {
+            btn.innerHTML = '<i class="bi bi-download"></i> Salvar DB';
+            btn.style.borderColor = 'rgba(52,211,153,.3)';
+            btn.style.color = '#6dc87a';
+            btn.style.opacity = '1';
+            btn.disabled = false;
+          }, 3000);
+          return;
+        }
+        if (status) {
+          status.innerHTML = `<i class="bi bi-check-circle-fill" style="color:#34d399"></i> ${info.sheets} fichas · ${info.size_kb} KB · ${ts}`;
+          status.style.color = 'rgba(52,211,153,.6)';
+        }
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Salvo!';
+        btn.style.borderColor = 'rgba(52,211,153,.5)';
+        btn.style.color = '#34d399';
+        setTimeout(() => {
+          btn.innerHTML = '<i class="bi bi-download"></i> Salvar DB';
+          btn.style.borderColor = 'rgba(52,211,153,.3)';
+          btn.style.color = '#6dc87a';
+          btn.style.opacity = '1';
+          btn.disabled = false;
+        }, 1800);
+      } catch (e) {
+        if (status) {
+          status.innerHTML = `<i class="bi bi-exclamation-circle-fill" style="color:#e05252"></i> Erro ao salvar`;
+          status.style.color = 'rgba(224,82,82,.6)';
+        }
+        btn.innerHTML = '<i class="bi bi-download"></i> Salvar DB';
+        btn.style.opacity = '1';
+        btn.disabled = false;
+      }
+    }
+
+    async function toggleStorageMode() {
+      const next = DB.isLocal() ? 'supabase' : 'local';
+      DB.setMode(next);
+      _updateModeIndicator();
+      currentUser = await DB.initAuth();
+      if (!currentUser) { window.location.href = '/login.html'; return; }
+      const displayName =
+        currentUser.user_metadata?.name      ||
+        currentUser.user_metadata?.full_name ||
+        currentUser.email?.split('@')[0]     || 'Mestre';
+      document.getElementById('tb-username').textContent = displayName;
+      showToast(next === 'local' ? '🖥️ Banco local ativado' : '☁️ Supabase ativado');
+      await loadPage();
     }
 
     // ══════════════════════════════════════════════════════
     // INIT
     // ══════════════════════════════════════════════════════
     initAuth();
+
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════
+       MODAL: Recalcular Stats (Nível / NA)
+  ════════════════════════════════════════════════════ -->
+  <div id="recalc-modal-backdrop" onclick="if(event.target===this)closeRecalcModal()" style="
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+    z-index:9000;align-items:center;justify-content:center;">
+    <div style="
+      background:#0f0f1a;border:1px solid rgba(126,200,227,.3);border-radius:16px;
+      padding:1.75rem 2rem;width:400px;max-width:94vw;box-shadow:0 0 40px rgba(0,0,0,.6);">
+
+      <!-- Título -->
+      <div style="font-family:'Cinzel',serif;color:#7ec8e3;font-size:1rem;font-weight:700;margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;">
+        <i class="bi bi-arrow-repeat"></i> Recalcular Atributos Base
+      </div>
+      <div style="font-size:.78rem;color:#9e8e6a;margin-bottom:1.25rem;line-height:1.55;">
+        Altera o <b style="color:#ddd0b8;">Nível</b> e/ou <b style="color:#ddd0b8;">NA</b> e recalcula vida, armadura, ataque, defesa e dano automaticamente.<br/>
+        <span style="color:#e8c96a;opacity:.7;">⚠ Habilidades <b>não</b> serão alteradas.</span>
+      </div>
+
+      <!-- Inputs lado a lado -->
+      <div style="display:flex;gap:1rem;margin-bottom:1.4rem;">
+        <div style="flex:1;">
+          <label style="font-size:.72rem;color:#9e8e6a;display:block;margin-bottom:.4rem;font-weight:600;letter-spacing:.04em;">NÍVEL</label>
+          <select id="recalc-nivel" style="
+            width:100%;background:#06070e;border:1px solid rgba(126,200,227,.2);
+            border-radius:8px;color:#e8c96a;padding:.5rem .75rem;font-size:.88rem;
+            appearance:none;-webkit-appearance:none;cursor:pointer;">
+            <option value="5">Nível 5</option>
+            <option value="10">Nível 10</option>
+            <option value="15">Nível 15</option>
+            <option value="20">Nível 20</option>
+            <option value="25">Nível 25</option>
+            <option value="30">Nível 30</option>
+            <option value="35">Nível 35 ✦</option>
+            <option value="40">Nível 40 ✦✦</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:.72rem;color:#9e8e6a;display:block;margin-bottom:.4rem;font-weight:600;letter-spacing:.04em;">NA</label>
+          <select id="recalc-na" style="
+            width:100%;background:#06070e;border:1px solid rgba(126,200,227,.2);
+            border-radius:8px;color:#e8c96a;padding:.5rem .75rem;font-size:.82rem;
+            appearance:none;-webkit-appearance:none;cursor:pointer;">
+            <option value="0.25">0.25 — Horda</option>
+            <option value="0.5">0.5 — Grupo</option>
+            <option value="1">1 — 1v1</option>
+            <option value="1.5">1.5 — vs 1.5 PCs</option>
+            <option value="2">2 — vs 2 PCs</option>
+            <option value="3">3 — vs 3 PCs</option>
+            <option value="4">4 — vs 4 PCs</option>
+            <option value="6">6 — vs 6 PCs</option>
+            <option value="8">8 — vs 8 PCs</option>
+            <option value="10">10 — vs 10 PCs</option>
+            <option value="12">12 — vs 12 PCs ✦</option>
+            <option value="15">15 — vs 15 PCs ✦</option>
+            <option value="18">18 — vs 18 PCs ✦✦</option>
+            <option value="20">20 — vs 20 PCs ✦✦</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Preview de o que vai mudar -->
+      <div id="recalc-preview" style="
+        background:rgba(126,200,227,.04);border:1px solid rgba(126,200,227,.12);
+        border-radius:8px;padding:.65rem .85rem;font-size:.74rem;color:#9e8e6a;
+        margin-bottom:1.25rem;display:none;line-height:1.7;">
+      </div>
+
+      <!-- Ações -->
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+        <button onclick="closeRecalcModal()" style="
+          background:none;border:1px solid rgba(255,255,255,.12);color:#9e8e6a;
+          border-radius:8px;padding:.45rem 1.1rem;cursor:pointer;font-size:.82rem;
+          transition:all .2s;">Cancelar</button>
+        <button onclick="applyRecalc()" style="
+          background:linear-gradient(135deg,rgba(126,200,227,.18),rgba(126,200,227,.08));
+          border:1px solid rgba(126,200,227,.4);color:#7ec8e3;border-radius:8px;
+          padding:.45rem 1.3rem;cursor:pointer;font-size:.82rem;font-weight:700;
+          letter-spacing:.04em;transition:all .2s;">
+          <i class="bi bi-check-lg"></i> Aplicar Recálculo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ══════════════════════════════════════════════════════
+  // RECALCULAR STATS (Nível / NA) — funções auxiliares
+  // Espelha a lógica de main.js sem depender do contexto
+  // de geração (os dados originais são lidos do _allSheets)
+  // ══════════════════════════════════════════════════════
+
+  function _rcRand(a, b) {
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+  }
+
+  function _rcInterpolate(profile, level) {
+    const keys = Object.keys(profile.levels).map(Number).sort((a,b) => a - b);
+    if (level <= keys[0])             return { ...profile.levels[keys[0]] };
+    if (level >= keys[keys.length-1]) return { ...profile.levels[keys[keys.length-1]] };
+    let lo = keys[0], hi = keys[1];
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (keys[i] <= level && level <= keys[i+1]) { lo = keys[i]; hi = keys[i+1]; break; }
+    }
+    const t = (level - lo) / (hi - lo);
+    const a = profile.levels[lo], b = profile.levels[hi];
+    return {
+      vida: [Math.round(a.vida[0] + (b.vida[0] - a.vida[0]) * t),
+             Math.round(a.vida[1] + (b.vida[1] - a.vida[1]) * t)],
+      arm:  [Math.round(a.arm[0]  + (b.arm[0]  - a.arm[0])  * t),
+             Math.round(a.arm[1]  + (b.arm[1]  - a.arm[1])  * t)],
+      dano: a.dano,
+      ba:   Math.round(a.ba   + (b.ba   - a.ba)   * t),
+      reac: Math.round(a.reac + (b.reac - a.reac) * t)
+    };
+  }
+
+  function _rcApplyNA(base, naStr) {
+    const m    = NA_MODS[naStr];
+    const vida = Math.round(_rcRand(base.vida[0], base.vida[1]) * (1 + m.vida / 100));
+    const arm  = _rcRand(base.arm[0], base.arm[1]) + m.arm;
+    const ba   = base.ba + m.ba;
+    const bd   = ba - 3;
+    const ca   = 10 + bd;
+    const reac = Math.max(0, base.reac + m.reac);
+    return { vida, arm, ba, bd, ca, reac, dano: base.dano, danoExtra: m.danoBase, tag: m.tag };
+  }
+
+  function _rcGetAttrDist(level, distKey) {
+    const tbl = ATTR_DIST[distKey] || ATTR_DIST.balanceada;
+    const fb  = ATTR_DIST.balanceada;
+    const pick = t => {
+      if (level <= 7  && t['1-7'])   return t['1-7'];
+      if (level <= 14 && t['8-14'])  return t['8-14'];
+      if (level <= 22 && t['15-22']) return t['15-22'];
+      if (level <= 30 && t['23-30']) return t['23-30'];
+      if (t['31-40'])                return t['31-40'];
+      return null;
+    };
+    return pick(tbl) || pick(fb);
+  }
+
+  // ── Abre o modal preenchendo com os valores atuais da ficha ──
+  function openRecalcModal() {
+    const id = String(window._currentSheetId);
+    if (!id || id === 'null') return;
+    const sheet = _allSheets.find(s => String(s.id) === id);
+    if (!sheet) return;
+
+    document.getElementById('recalc-nivel').value = String(sheet.data.nivel || 10);
+    document.getElementById('recalc-na').value    = String(sheet.data.na    || '1');
+
+    // Esconde preview até o usuário alterar algo
+    document.getElementById('recalc-preview').style.display = 'none';
+
+    // Atualiza preview ao mudar selects
+    ['recalc-nivel','recalc-na'].forEach(id => {
+      document.getElementById(id).addEventListener('change', _updateRecalcPreview);
+    });
+
+    document.getElementById('recalc-modal-backdrop').style.display = 'flex';
+    _updateRecalcPreview();
+  }
+
+  function closeRecalcModal() {
+    document.getElementById('recalc-modal-backdrop').style.display = 'none';
+  }
+
+  // ── Prévia dos novos valores antes de confirmar ──────────────
+  function _updateRecalcPreview() {
+    const nivel   = parseInt(document.getElementById('recalc-nivel').value) || 10;
+    const naStr   = document.getElementById('recalc-na').value;
+    const id      = String(window._currentSheetId);
+    const sheet   = _allSheets.find(s => String(s.id) === id);
+    if (!sheet) return;
+
+    const profile = PROFILES[sheet.data.profile];
+    if (!profile || !NA_MODS[naStr]) return;
+
+    const base    = _rcInterpolate(profile, nivel);
+    const preview = _rcApplyNA(base, naStr);
+
+    const prev = document.getElementById('recalc-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      <b style="color:#7ec8e3;">Prévia dos novos valores:</b><br/>
+      Vida: <b style="color:#ddd0b8;">${preview.vida}</b> &nbsp;·&nbsp;
+      Armadura: <b style="color:#ddd0b8;">${preview.arm}</b> &nbsp;·&nbsp;
+      CA: <b style="color:#ddd0b8;">${preview.ca}</b><br/>
+      Ataque: <b style="color:#ddd0b8;">d20+${preview.ba}</b> &nbsp;·&nbsp;
+      Defesa: <b style="color:#ddd0b8;">d20+${preview.bd}</b> &nbsp;·&nbsp;
+      Reações: <b style="color:#ddd0b8;">${preview.reac}</b><br/>
+      Dano: <b style="color:#ddd0b8;">${preview.dano}${preview.danoExtra || ''}</b>
+      &nbsp;·&nbsp; Tag: <b style="color:#ddd0b8;">${preview.tag}</b>
+    `;
+  }
+
+  // ── Aplica o recálculo e re-renderiza a ficha ────────────────
+  function applyRecalc() {
+    const id  = String(window._currentSheetId);
+    if (!id || id === 'null') return;
+    const idx = _allSheets.findIndex(s => String(s.id) === id);
+    if (idx === -1) return;
+
+    const nivel   = parseInt(document.getElementById('recalc-nivel').value) || 10;
+    const naStr   = document.getElementById('recalc-na').value;
+    const s       = _allSheets[idx];
+    const profile = PROFILES[s.data.profile];
+
+    if (!profile) { showToast('Perfil não reconhecido.'); return; }
+    if (!NA_MODS[naStr]) { showToast('NA inválido.'); return; }
+
+    // Recalcula stats base + modificadores de NA
+    const base     = _rcInterpolate(profile, nivel);
+    const newStats = _rcApplyNA(base, naStr);
+
+    // Recalcula atributos respeitando a distribuição original (se detectável)
+    const distKey  = s.data.attrDist || 'balanceada';
+    const distArr  = _rcGetAttrDist(nivel, distKey);
+    const newAttrs = distArr
+      ? [...distArr].sort((a,b) => b - a).map(v => v + _rcRand(-1, 1))
+      : s.data.attrs; // fallback: mantém os originais
+
+    // Persiste na memória (salvo somente ao clicar "Salvar Alterações")
+    s.data.nivel  = nivel;
+    s.data.na     = naStr;
+    s.data.stats  = newStats;
+    s.data.attrs  = newAttrs;
+    s.nivel       = nivel;
+    s.na          = naStr;
+
+    closeRecalcModal();
+    renderSheet(s.data);
+    showToast(`✓ Nível ${nivel} · NA ${naStr} — stats recalculados!`);
+  }
   </script>
 </body>
 </html>

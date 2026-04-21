@@ -106,6 +106,12 @@
       cursor: pointer; padding: .2rem; font-size: .85rem; flex-shrink: 0;
     }
     .bc-close:hover { color: var(--red); }
+    .bc-open {
+      background: none; border: none; color: rgba(201,168,76,.55);
+      cursor: pointer; padding: .2rem; font-size: .85rem; flex-shrink: 0;
+      transition: color .15s;
+    }
+    .bc-open:hover { color: var(--gold2); }
 
     /* Stats principais editáveis */
     .bc-stats {
@@ -276,6 +282,20 @@
     .sl-name { font-size: .78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sl-meta { font-size: .65rem; color: var(--text2); }
     .sl-empty { padding: 1rem; text-align: center; color: var(--text2); font-size: .82rem; font-style: italic; }
+    .sidebar-filter {
+      width: 100%;
+      background: rgba(6,7,14,.85);
+      border: 1px solid rgba(201,168,76,.18);
+      border-radius: 8px;
+      color: #ddd0b8;
+      padding: .42rem .65rem;
+      font-size: .76rem;
+      box-sizing: border-box;
+      outline: none;
+      font-family: 'Rajdhani',sans-serif;
+      letter-spacing: .03em;
+    }
+    .sidebar-filter:focus { border-color: rgba(201,168,76,.4); }
 
     /* ── Zoom indicator ── */
     .zoom-indicator {
@@ -297,6 +317,309 @@
       opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
     }
     .toast.show { opacity: 1; }
+
+    /* ── Painel de Detalhe (esquerda) ── */
+    .detail-panel {
+      position: fixed; top: 48px; left: 0; bottom: 0;
+      width: 360px; z-index: 150;
+      background: rgba(9,9,18,.98); backdrop-filter: blur(14px);
+      border-right: 1px solid rgba(201,168,76,.2);
+      display: flex; flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform .28s cubic-bezier(.4,0,.2,1);
+      box-shadow: 4px 0 32px rgba(0,0,0,.7);
+    }
+    .detail-panel.open { transform: translateX(0); }
+
+    .dp-header {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .75rem 1rem;
+      border-bottom: 1px solid rgba(201,168,76,.15);
+      background: rgba(13,13,22,.95);
+      flex-shrink: 0;
+    }
+    .dp-avatar {
+      width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; color: var(--gold); overflow: hidden;
+    }
+    .dp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .dp-header-info { flex: 1; min-width: 0; }
+    .dp-name {
+      font-family: 'Cinzel', serif; font-size: .95rem; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background: linear-gradient(135deg,var(--gold),var(--gold2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .dp-sub { font-size: .7rem; color: var(--text2); margin-top: .15rem; }
+    .dp-close {
+      background: none; border: none; color: var(--text2); cursor: pointer;
+      font-size: 1.1rem; padding: .25rem; flex-shrink: 0;
+      transition: color .15s;
+    }
+    .dp-close:hover { color: var(--red); }
+
+    /* Stats no painel */
+    .dp-stats-row {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 1px; background: rgba(201,168,76,.08);
+      border-bottom: 1px solid rgba(201,168,76,.1); flex-shrink: 0;
+    }
+    .dp-stat {
+      background: rgba(11,13,24,.98);
+      padding: .5rem .3rem; text-align: center;
+    }
+    .dp-stat-val {
+      font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 700;
+      color: var(--text1); display: block;
+    }
+    .dp-stat-val.hp { color: var(--green); }
+    .dp-stat-lbl { font-size: .58rem; color: var(--text2); letter-spacing: .07em; text-transform: uppercase; margin-top: .15rem; }
+
+    /* Tabs */
+    .dp-tabs {
+      display: flex; border-bottom: 1px solid rgba(201,168,76,.12);
+      flex-shrink: 0;
+    }
+    .dp-tab {
+      flex: 1; padding: .5rem .5rem; text-align: center;
+      font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+      color: var(--text2); cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .18s;
+      background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .dp-tab:hover { color: var(--gold); }
+    .dp-tab.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(201,168,76,.04); }
+
+    /* Scroll area */
+    .dp-body {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+    }
+    .dp-body::-webkit-scrollbar { width: 4px; }
+    .dp-body::-webkit-scrollbar-thumb { background: rgba(201,168,76,.2); border-radius: 2px; }
+
+    /* Tab panes */
+    .dp-pane { display: none; padding: .75rem; }
+    .dp-pane.active { display: block; }
+
+    /* Ficha expandida */
+    .dp-section-title {
+      font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--gold); margin: .75rem 0 .4rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .dp-section-title::before {
+      content: ''; flex: 1; height: 1px; background: rgba(201,168,76,.15);
+    }
+    .dp-section-title::after {
+      content: ''; flex: 1; height: 1px; background: rgba(201,168,76,.15);
+    }
+
+    .dp-ab {
+      border-radius: 7px; padding: .55rem .65rem;
+      margin-bottom: .4rem;
+      border: 1px solid rgba(201,168,76,.12);
+      background: rgba(16,19,32,.7);
+      border-left: 3px solid rgba(201,168,76,.3);
+    }
+    .dp-ab.passiva { border-left-color: rgba(110,200,120,.5); }
+    .dp-ab.ativa   { border-left-color: rgba(96,165,250,.5); }
+    .dp-ab.ultimate { border-left-color: rgba(167,139,250,.6); }
+    .dp-ab-name {
+      font-family: 'Cinzel', serif; font-size: .86rem; font-weight: 600;
+      color: var(--text1); margin-bottom: .25rem;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .dp-ab-badge {
+      font-size: .52rem; font-weight: 700; letter-spacing: .07em;
+      padding: .1rem .3rem; border-radius: 3px; text-transform: uppercase;
+    }
+    .dp-ab-badge.passiva { background: rgba(110,200,120,.15); color: #6dc87a; border: 1px solid rgba(110,200,120,.3); }
+    .dp-ab-badge.ativa   { background: rgba(96,165,250,.15);  color: #60a5fa; border: 1px solid rgba(96,165,250,.3); }
+    .dp-ab-badge.ultimate { background: rgba(167,139,250,.15); color: #a78bfa; border: 1px solid rgba(167,139,250,.3); }
+    .dp-ab-desc {
+      font-size: .84rem; color: #c7bcaa; line-height: 1.65;
+      user-select: text; -webkit-user-select: text;
+    }
+    .dp-ab-stats {
+      margin-top: .42rem; font-size: .76rem; color: var(--gold);
+      line-height: 1.55; user-select: text; -webkit-user-select: text;
+    }
+
+    /* Attr grid no painel */
+    .dp-attr-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: .4rem;
+      margin-bottom: .5rem;
+    }
+    .dp-attr {
+      text-align: center; background: rgba(16,19,32,.7);
+      border: 1px solid rgba(201,168,76,.1); border-radius: 6px;
+      padding: .35rem .2rem;
+    }
+    .dp-attr-name { font-size: .58rem; color: var(--text2); letter-spacing: .06em; text-transform: uppercase; }
+    .dp-attr-val { font-family: 'Cinzel', serif; font-size: .95rem; color: var(--text1); font-weight: 700; }
+    .dp-attr-mod { font-size: .65rem; color: var(--gold); }
+
+    /* ── Aba de Análise IA ── */
+    .dp-ai-loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: .75rem; padding: 2rem 1rem; text-align: center;
+    }
+    .dp-ai-spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid rgba(201,168,76,.15);
+      border-top-color: var(--gold);
+      animation: dp-spin .8s linear infinite;
+    }
+    @keyframes dp-spin { to { transform: rotate(360deg); } }
+    .dp-ai-loading-txt { font-size: .78rem; color: var(--text2); }
+
+    .dp-ai-error {
+      padding: 1rem; text-align: center;
+      color: var(--red); font-size: .8rem;
+    }
+
+    /* Combo cards */
+    .combo-card {
+      border-radius: 8px; padding: .65rem .75rem;
+      margin-bottom: .55rem;
+      background: rgba(14,16,28,.8);
+      border: 1px solid rgba(201,168,76,.12);
+      border-left: 3px solid;
+      transition: border-color .2s, background .2s;
+    }
+    .combo-card:hover { background: rgba(20,22,38,.9); }
+    .combo-card.basic    { border-left-color: rgba(110,200,120,.5); }
+    .combo-card.advanced { border-left-color: rgba(96,165,250,.5); }
+    .combo-card.ultimate { border-left-color: rgba(167,139,250,.6); }
+
+    .combo-tier {
+      font-size: .55rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; margin-bottom: .3rem;
+      display: inline-flex; align-items: center; gap: .3rem;
+    }
+    .combo-tier.basic    { color: #6dc87a; }
+    .combo-tier.advanced { color: #60a5fa; }
+    .combo-tier.ultimate { color: #a78bfa; }
+
+    .combo-name {
+      font-family: 'Cinzel', serif; font-size: .92rem; font-weight: 600;
+      color: var(--text1); margin-bottom: .3rem;
+    }
+    .combo-desc {
+      font-size: .84rem; color: #cbc0ad; line-height: 1.65; margin-bottom: .42rem;
+      user-select: text; -webkit-user-select: text;
+    }
+    .combo-steps {
+      display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .3rem;
+    }
+    .combo-step {
+      font-size: .6rem; font-weight: 600; padding: .12rem .4rem;
+      border-radius: 4px; background: rgba(201,168,76,.1);
+      color: var(--gold); border: 1px solid rgba(201,168,76,.2);
+    }
+    .combo-effect {
+      font-size: .79rem; color: #dfc36d; font-style: italic; line-height: 1.55;
+      user-select: text; -webkit-user-select: text;
+    }
+    .combo-copy-row {
+      display: flex; justify-content: flex-end; margin-top: .45rem;
+    }
+    .combo-copy-btn, .quick-copy-btn {
+      background: rgba(201,168,76,.08);
+      border: 1px solid rgba(201,168,76,.2);
+      color: var(--gold);
+      border-radius: 6px;
+      padding: .22rem .5rem;
+      font-size: .68rem;
+      font-family: 'Rajdhani',sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .16s;
+    }
+    .combo-copy-btn:hover, .quick-copy-btn:hover {
+      background: rgba(201,168,76,.14);
+      border-color: rgba(201,168,76,.4);
+      color: var(--gold2);
+    }
+    .quick-card {
+      border-radius: 9px;
+      padding: .8rem .85rem;
+      margin-bottom: .65rem;
+      background: linear-gradient(145deg, rgba(18,20,36,.9), rgba(12,14,25,.94));
+      border: 1px solid rgba(201,168,76,.14);
+      border-left: 3px solid rgba(96,165,250,.55);
+    }
+    .quick-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: .65rem;
+      margin-bottom: .4rem;
+    }
+    .quick-name {
+      font-family: 'Cinzel', serif; font-size: .92rem; font-weight: 600; color: var(--text1);
+      line-height: 1.35;
+    }
+    .quick-roll {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .75rem; font-weight: 700; letter-spacing: .04em;
+      color: #8ec5ff;
+      background: rgba(96,165,250,.08);
+      border: 1px solid rgba(96,165,250,.22);
+      border-radius: 999px;
+      padding: .16rem .48rem;
+      margin-top: .3rem;
+      user-select: text; -webkit-user-select: text;
+    }
+    .quick-desc {
+      font-size: .86rem; color: #d0c5b3; line-height: 1.7; margin-bottom: .45rem;
+      user-select: text; -webkit-user-select: text;
+      white-space: pre-wrap;
+    }
+    .quick-metrics {
+      display: grid; grid-template-columns: 1fr; gap: .35rem; margin-bottom: .5rem;
+    }
+    .quick-metric {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(201,168,76,.08);
+      border-radius: 7px;
+      padding: .45rem .55rem;
+    }
+    .quick-metric-label {
+      font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); margin-bottom: .12rem;
+    }
+    .quick-metric-value {
+      font-size: .82rem; color: #ead8a1; line-height: 1.55;
+      user-select: text; -webkit-user-select: text;
+      white-space: pre-wrap;
+    }
+    .ai-copy-block {
+      background: rgba(8,9,18,.75);
+      border: 1px dashed rgba(201,168,76,.2);
+      border-radius: 8px;
+      padding: .55rem .6rem;
+      font-size: .82rem;
+      color: #ece2c8;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .dp-ai-copyable, .dp-ai-copyable * {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .dp-header-info, .dp-name, .dp-sub, .dp-stat-val, .dp-stat-lbl,
+    .dp-attr, .dp-attr-name, .dp-attr-val, .dp-attr-mod,
+    .dp-ab, .dp-ab-name, .dp-ab-badge, .dp-section-title {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .dp-ai-note {
+      font-size: .66rem; color: rgba(100,96,90,.8); text-align: center;
+      padding: .5rem; border-top: 1px solid rgba(201,168,76,.08); margin-top: .5rem;
+    }
   </style>
 </head>
 <body>
@@ -307,6 +630,13 @@
     <div class="tb-sep"></div>
     <span class="tb-title">Quadro de Sessão</span>
     <div class="tb-spacer"></div>
+    <div id="board-mode-pill" onclick="toggleBoardMode()" style="
+      display:flex; align-items:center; gap:.35rem;
+      padding:.22rem .65rem; border-radius:12px; cursor:pointer;
+      font-family:'Rajdhani',sans-serif; font-size:.7rem; font-weight:700;
+      border:1px solid rgba(201,168,76,.25); background:rgba(0,0,0,.2);
+      color:#9e8e6a; transition:all .2s; user-select:none;
+    "></div>
     <button class="tb-btn primary" onclick="toggleSidebar()">
       <i class="bi bi-plus-lg"></i> Adicionar Ficha
     </button>
@@ -336,6 +666,22 @@
       <span>Fichas Salvas</span>
       <button class="sidebar-close" onclick="toggleSidebar()"><i class="bi bi-x-lg"></i></button>
     </div>
+    <div style="padding:.55rem .6rem 0;">
+      <select id="sidebar-folder-filter" class="sidebar-filter" onchange="renderSidebar()">
+        <option value="">Todas as pastas</option>
+      </select>
+    </div>
+    <div style="padding:.55rem .6rem .2rem;">
+      <div style="position:relative;">
+        <i class="bi bi-search" style="position:absolute;left:.65rem;top:50%;transform:translateY(-50%);color:#64605a;font-size:.75rem;pointer-events:none;"></i>
+        <input id="sidebar-search" type="text" placeholder="Buscar por nome ou perfil..."
+               oninput="renderSidebar()"
+               style="width:100%;background:rgba(6,7,14,.85);border:1px solid rgba(201,168,76,.18);
+                      border-radius:8px;color:#ddd0b8;padding:.38rem .65rem .38rem 2rem;
+                      font-size:.76rem;box-sizing:border-box;outline:none;
+                      font-family:'Rajdhani',sans-serif;letter-spacing:.03em;"/>
+      </div>
+    </div>
     <div class="sidebar-list" id="sidebar-list"></div>
   </div>
 
@@ -345,24 +691,66 @@
   <!-- ── Toast ── -->
   <div class="toast" id="toast"><i class="bi bi-check-circle"></i> <span id="toast-msg"></span></div>
 
+  <!-- ── Painel de Detalhe (esquerda) ── -->
+  <aside class="detail-panel" id="detail-panel">
+    <div class="dp-header">
+      <div class="dp-avatar" id="dp-avatar"><i class="bi bi-person-fill"></i></div>
+      <div class="dp-header-info">
+        <div class="dp-name" id="dp-name">—</div>
+        <div class="dp-sub" id="dp-sub">—</div>
+      </div>
+      <button class="dp-close" onclick="closeDetailPanel()" title="Fechar"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dp-stats-row">
+      <div class="dp-stat"><span class="dp-stat-val hp" id="dp-hp">—</span><div class="dp-stat-lbl">PV</div></div>
+      <div class="dp-stat"><span class="dp-stat-val" id="dp-ca">—</span><div class="dp-stat-lbl">CA</div></div>
+      <div class="dp-stat"><span class="dp-stat-val" id="dp-dano">—</span><div class="dp-stat-lbl">Dano</div></div>
+      <div class="dp-stat"><span class="dp-stat-val" id="dp-ba">—</span><div class="dp-stat-lbl">Ataque</div></div>
+      <div class="dp-stat"><span class="dp-stat-val" id="dp-bd">—</span><div class="dp-stat-lbl">Defesa</div></div>
+      <div class="dp-stat"><span class="dp-stat-val" id="dp-arm">—</span><div class="dp-stat-lbl">Armadura</div></div>
+    </div>
+    <div class="dp-tabs">
+      <button class="dp-tab active" onclick="switchDpTab('ficha', this)"><i class="bi bi-person-lines-fill"></i> Ficha</button>
+      <button class="dp-tab"       onclick="switchDpTab('analise', this)"><i class="bi bi-lightning-charge-fill"></i> Análise IA</button>
+    </div>
+    <div class="dp-body">
+      <div class="dp-pane active" id="dp-pane-ficha"></div>
+      <div class="dp-pane" id="dp-pane-analise">
+        <div class="dp-ai-loading" id="dp-ai-loading" style="display:none">
+          <div class="dp-ai-spinner"></div>
+          <div class="dp-ai-loading-txt">Analisando ficha com IA…<br/><span style="font-size:.65rem;opacity:.6">Isso pode levar alguns segundos</span></div>
+        </div>
+        <div id="dp-ai-error" class="dp-ai-error" style="display:none"></div>
+        <div id="dp-ai-content" style="display:none;padding:.6rem .75rem"></div>
+        <div id="dp-ai-placeholder" style="padding:1.5rem .75rem;text-align:center;color:var(--text2);font-size:.78rem;">
+          <i class="bi bi-lightning-charge" style="font-size:1.5rem;color:var(--gold);display:block;margin-bottom:.5rem;opacity:.5"></i>
+          Clique em <strong style="color:var(--gold)">Analisar com IA</strong> para gerar um guia de combate com combos e sugestões táticas.
+        </div>
+        <div style="padding:.5rem .75rem .75rem;flex-shrink:0;">
+          <button id="dp-ai-btn" onclick="runAiAnalysis()" style="width:100%;padding:.52rem;border-radius:7px;background:linear-gradient(135deg,rgba(201,168,76,.15),rgba(201,168,76,.05));border:1px solid rgba(201,168,76,.35);color:var(--gold);font-family:'Rajdhani',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.05em;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem;">
+            <i class="bi bi-stars"></i> Analisar com IA
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/db.js"></script>
   <script>
     let currentUser = null;
     let _allSheets = [];
+    let _folders = [];
+    let _folderAssignments = {};
 
     // ════════════════════════════════════════════════════════
     // AUTH GUARD
     // ════════════════════════════════════════════════════════
-    async function initAuth() {
+        async function initAuth() {
       try {
-        let session = await waitForSession();
-        if (!session) session = await getSession();
-        if (!session) {
-          window.location.href = '/login.html';
-          return;
-        }
-        currentUser = session.user;
+        currentUser = await DB.initAuth();
+        if (!currentUser) { window.location.href = '/login.html'; return; }
         await loadBoard();
       } catch(err) {
         console.error('[board initAuth]', err);
@@ -382,45 +770,79 @@
 
     // ── Carregar estado salvo ─────────────────────────────
     async function loadBoard() {
-      // 1. Carregar fichas para referência
-      const { data: sheetsData } = await window.supabaseClient
-        .from('sheets')
-        .select('*')
-        .eq('user_id', currentUser.id);
-      _allSheets = sheetsData || [];
-
-      // 2. Carregar estado do board
-      const { data, error } = await window.supabaseClient
-        .from('board_state')
-        .select('cards')
-        .eq('user_id', currentUser.id)
-        .single();
-        
-      if (data && data.cards) {
-        cards = data.cards;
-      } else {
-        cards = [];
+      _allSheets = await DB.getSheets();
+      try {
+        const folderData = await DB.getFolders();
+        _folders = folderData.folders || [];
+        _folderAssignments = folderData.assignments || {};
+      } catch (e) {
+        console.error('[board folders]', e);
+        _folders = [];
+        _folderAssignments = {};
       }
-      
+      cards      = await DB.getBoard();
+      renderSidebarFolderFilter();
       renderBoard();
     }
     
     let boardSaveTimeout = null;
     async function saveBoard() {
-      if (!currentUser) return;
-      
-      // Salva com debounce para evitar requisições excessivas (Ex: ao arrastar card)
       clearTimeout(boardSaveTimeout);
-      boardSaveTimeout = setTimeout(async () => {
-        await window.supabaseClient
-          .from('board_state')
-          .upsert({ user_id: currentUser.id, cards: cards, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-      }, 500);
+      boardSaveTimeout = setTimeout(() => DB.saveBoard(cards), 500);
     }
 
     // ── Fichas do usuário ─────────────────────────────────
     function getSheets() {
       return _allSheets;
+    }
+
+    function getFolderNameBySheetId(sheetId) {
+      const folderId = _folderAssignments[String(sheetId)];
+      if (!folderId) return '';
+      return _folders.find(f => String(f.id) === String(folderId))?.name || '';
+    }
+
+    function getFolderPath(folderId) {
+      const names = [];
+      let current = _folders.find(f => String(f.id) === String(folderId));
+      while (current) {
+        names.unshift(current.name);
+        current = current.parentId ? _folders.find(f => String(f.id) === String(current.parentId)) : null;
+      }
+      return names.join(' / ');
+    }
+
+    function getDescendantFolderIds(folderId) {
+      const ids = new Set([String(folderId)]);
+      const walk = parentId => {
+        _folders
+          .filter(f => String(f.parentId || '') === String(parentId))
+          .forEach(f => {
+            ids.add(String(f.id));
+            walk(f.id);
+          });
+      };
+      walk(folderId);
+      return ids;
+    }
+
+    function renderSidebarFolderFilter() {
+      const select = document.getElementById('sidebar-folder-filter');
+      if (!select) return;
+      const current = select.value;
+      const options = ['<option value="">Todas as pastas</option>', '<option value="__no_folder__">Sem pasta</option>'];
+      const renderTree = (parentId = null, depth = 0) => {
+        _folders
+          .filter(f => String(f.parentId || '') === String(parentId || ''))
+          .forEach(f => {
+            const prefix = depth ? `${'&nbsp;'.repeat(depth * 2)}&#8627; ` : '';
+            options.push(`<option value="${f.id}">${prefix}${getFolderPath(f.id)}</option>`);
+            renderTree(f.id, depth + 1);
+          });
+      };
+      renderTree();
+      select.innerHTML = options.join('');
+      select.value = current;
     }
     const PROFILE_NAMES = { guerreiro: 'Guerreiro', especialista: 'Especialista', mistico: 'Místico' };
 
@@ -533,6 +955,9 @@
               <span class="bc-tag profile">${PROFILE_NAMES[sheet.profile] || sheet.profile}</span>
             </div>
           </div>
+          <button class="bc-open" onclick="openDetailPanel('${cardState.id}'); event.stopPropagation();" title="Abrir painel">
+            <i class="bi bi-layout-sidebar-inset"></i>
+          </button>
           <button class="bc-close" onclick="removeCardFromBoard('${cardState.id}')" title="Remover do quadro">
             <i class="bi bi-x"></i>
           </button>
@@ -632,6 +1057,24 @@
 
       // ── Drag do card ──
       makeDraggable(el, cardState);
+
+      // ── Clique esquerdo no card → abre painel de detalhe ──
+      // (apenas se não foi um drag — verificado no mouseup)
+      let _clickStartX, _clickStartY;
+      el.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        _clickStartX = e.clientX; _clickStartY = e.clientY;
+      });
+      el.addEventListener('click', e => {
+        const dx = Math.abs(e.clientX - _clickStartX);
+        const dy = Math.abs(e.clientY - _clickStartY);
+        // Só abre painel se foi clique sem arrastar (< 5px)
+        // e não clicou em botão, input ou contenteditable
+        if (dx < 5 && dy < 5) {
+          const isInteractive = e.target.closest('button, input, [contenteditable="true"], .bc-section-toggle');
+          if (!isInteractive) openDetailPanel(cardState.id);
+        }
+      });
 
       // ── Editar HP inline ──
       el.querySelectorAll('[data-field="hp"]').forEach(input => {
@@ -825,14 +1268,33 @@
     function toggleSidebar() {
       const sb = document.getElementById('sidebar');
       sb.classList.toggle('open');
-      if (sb.classList.contains('open')) renderSidebar();
+      if (sb.classList.contains('open')) {
+        renderSidebar();
+        setTimeout(() => document.getElementById('sidebar-search')?.focus(), 80);
+      } else {
+        const inp = document.getElementById('sidebar-search');
+        if (inp) inp.value = '';
+      }
     }
 
     function renderSidebar() {
-      const list   = document.getElementById('sidebar-list');
-      const sheets = getSheets();
+      const list = document.getElementById('sidebar-list');
+      const q    = (document.getElementById('sidebar-search')?.value || '').toLowerCase().trim();
+      let sheets = getSheets();
+
+      if (q) {
+        sheets = sheets.filter(s => {
+          const nome   = (s.nome    || '').toLowerCase();
+          const perfil = (s.profile || '').toLowerCase();
+          const perfilPt = perfil === 'mistico' ? 'místico' : perfil;
+          return nome.includes(q) || perfil.includes(q) || perfilPt.includes(q);
+        });
+      }
+
       if (!sheets.length) {
-        list.innerHTML = '<div class="sl-empty">Nenhuma ficha salva.<br/>Crie fichas primeiro.</div>';
+        list.innerHTML = q
+          ? `<div class="sl-empty">Nenhuma ficha encontrada<br/>para "<b>${q}</b>".</div>`
+          : '<div class="sl-empty">Nenhuma ficha salva.<br/>Crie fichas primeiro.</div>';
         return;
       }
       list.innerHTML = sheets.map(s => {
@@ -874,6 +1336,312 @@
     }
 
     // ════════════════════════════════════════════════════════
+    // PAINEL DE DETALHE (clique esquerdo no card do quadro)
+    // ════════════════════════════════════════════════════════
+
+    let _detailCardId  = null;   // card atualmente no painel
+    let _aiCache       = {};     // cache da análise por sheetId
+    let _aiRunning     = false;
+
+    const ATTR_NAMES_PANEL = ['FOR','DES','CON','INT','SAB','CAR'];
+
+    function attrModPanel(v) {
+      const m = Math.floor((parseInt(v) - 10) / 2);
+      return (m >= 0 ? '+' : '') + m;
+    }
+
+    // Abre o painel com os dados do card clicado
+    function openDetailPanel(cardId) {
+      const c = getCard(cardId);
+      if (!c) return;
+      const sheet = getSheets().find(s => String(s.id) === String(c.sheetId));
+      if (!sheet) return;
+
+      _detailCardId = cardId;
+      const data  = sheet.data || {};
+      const stats = data.stats  || {};
+      const curHp = c.hpCurrent ?? stats.vida ?? '—';
+
+      // Header
+      const avatarEl = document.getElementById('dp-avatar');
+      avatarEl.innerHTML = sheet.avatar
+        ? `<img src="${sheet.avatar}" alt="av"/>`
+        : `<i class="bi bi-person-fill"></i>`;
+
+      document.getElementById('dp-name').textContent = sheet.nome || '—';
+
+      const raca    = data.raca ? ` · ${data.raca}` : '';
+      const profile = (typeof PROFILE_NAMES !== 'undefined' ? PROFILE_NAMES[sheet.profile] : null) || sheet.profile || '—';
+      document.getElementById('dp-sub').textContent =
+        `Nv ${sheet.nivel} · NA ${sheet.na} · ${profile}${raca}`;
+
+      // Stats rápidos
+      document.getElementById('dp-hp'  ).textContent = `${curHp}/${stats.vida ?? '—'}`;
+      document.getElementById('dp-ca'  ).textContent = stats.ca   ?? '—';
+      document.getElementById('dp-dano').textContent = (stats.dano ?? '—') + (stats.danoExtra || '');
+      document.getElementById('dp-ba'  ).textContent = `+${stats.ba ?? '—'}`;
+      document.getElementById('dp-bd'  ).textContent = `+${stats.bd ?? '—'}`;
+      document.getElementById('dp-arm' ).textContent = stats.arm  ?? '—';
+
+      // Renderiza aba Ficha
+      renderDpFicha(sheet, c);
+
+      // Resetar aba análise se for nova ficha
+      if (!_aiCache[c.sheetId]) {
+        resetAiPane();
+      } else {
+        renderAiContent(_aiCache[c.sheetId]);
+      }
+
+      // Volta pra aba Ficha ao abrir
+      switchDpTab('ficha', document.querySelector('.dp-tab'));
+
+      document.getElementById('detail-panel').classList.add('open');
+    }
+
+    function closeDetailPanel() {
+      document.getElementById('detail-panel').classList.remove('open');
+      _detailCardId = null;
+    }
+
+    function switchDpTab(tab, btn) {
+      document.querySelectorAll('.dp-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.dp-pane').forEach(p => p.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const pane = document.getElementById('dp-pane-' + tab);
+      if (pane) pane.classList.add('active');
+    }
+
+    // Renderiza a ficha completa na aba Ficha
+    function renderDpFicha(sheet, cardState) {
+      const data  = sheet.data  || {};
+      const stats = data.stats  || {};
+      const abs   = data.abilities || [];
+      const attrs = data.attrs  || [];
+
+      // Atributos
+      const attrHtml = attrs.length
+        ? `<div class="dp-section-title">Atributos</div>
+           <div class="dp-attr-grid">
+             ${ATTR_NAMES_PANEL.map((n, i) => `
+               <div class="dp-attr">
+                 <div class="dp-attr-name">${n}</div>
+                 <div class="dp-attr-val">${attrs[i] ?? '—'}</div>
+                 <div class="dp-attr-mod">${attrs[i] != null ? attrModPanel(attrs[i]) : ''}</div>
+               </div>`).join('')}
+           </div>` : '';
+
+      // Habilidades
+      const typeLabel = { passiva: 'Passiva', ativa: 'Ativa', ultimate: 'Ultimate' };
+      const abHtml = abs.map(ab => `
+        <div class="dp-ab ${ab.type || ''}">
+          <div class="dp-ab-name">
+            <span class="dp-ab-badge ${ab.type || ''}">${typeLabel[ab.type] || ab.type}</span>
+            ${ab.name}
+          </div>
+          <div class="dp-ab-desc">${ab.description || ''}</div>
+          ${ab.stats && ab.stats.length
+            ? `<div class="dp-ab-stats">${ab.stats.join(' · ')}</div>` : ''}
+        </div>`).join('');
+
+      const raceBlock = data.raca
+        ? `<div class="dp-section-title">Raça</div>
+           <div style="font-size:.78rem;color:var(--text1);padding:.3rem .1rem .5rem;font-family:'Cinzel',serif">${data.raca}</div>`
+        : '';
+
+      document.getElementById('dp-pane-ficha').innerHTML =
+        `<div style="padding:.6rem .75rem">
+          ${raceBlock}
+          ${attrHtml}
+          <div class="dp-section-title">Habilidades</div>
+          ${abHtml || '<div style="font-size:.75rem;color:var(--text2);padding:.5rem 0">Sem habilidades registradas.</div>'}
+        </div>`;
+    }
+
+    // Reseta a aba de análise ao estado inicial (sem cache)
+    function resetAiPane() {
+      document.getElementById('dp-ai-loading'    ).style.display = 'none';
+      document.getElementById('dp-ai-error'      ).style.display = 'none';
+      document.getElementById('dp-ai-content'    ).style.display = 'none';
+      document.getElementById('dp-ai-placeholder').style.display = 'block';
+      const btn = document.getElementById('dp-ai-btn');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i> Analisar com IA'; }
+    }
+
+    // ── Chamada IA de análise ────────────────────────────────
+    async function runAiAnalysis() {
+      if (_aiRunning) return;
+      const c = _detailCardId ? getCard(_detailCardId) : null;
+      if (!c) return;
+      const sheet = getSheets().find(s => String(s.id) === String(c.sheetId));
+      if (!sheet) return;
+
+      // Usa cache se já analisou
+      if (_aiCache[c.sheetId]) {
+        renderAiContent(_aiCache[c.sheetId]);
+        return;
+      }
+
+      _aiRunning = true;
+      const btn = document.getElementById('dp-ai-btn');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Analisando…'; }
+
+      document.getElementById('dp-ai-placeholder').style.display = 'none';
+      document.getElementById('dp-ai-error'      ).style.display = 'none';
+      document.getElementById('dp-ai-content'    ).style.display = 'none';
+      document.getElementById('dp-ai-loading'    ).style.display = 'flex';
+
+      try {
+        const result = await callAiAnalysis(sheet);
+        _aiCache[c.sheetId] = result;
+        renderAiContent(result);
+      } catch (err) {
+        document.getElementById('dp-ai-loading').style.display = 'none';
+        document.getElementById('dp-ai-error'  ).style.display = 'block';
+        document.getElementById('dp-ai-error'  ).innerHTML =
+          `<i class="bi bi-exclamation-triangle"></i> ${err.message || 'Erro ao analisar. Tente novamente.'}`;
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Tentar novamente'; }
+      } finally {
+        _aiRunning = false;
+      }
+    }
+
+    // Constrói o prompt e chama a IA via proxy
+    async function callAiAnalysis(sheet) {
+      const data   = sheet.data  || {};
+      const stats  = data.stats  || {};
+      const abs    = data.abilities || [];
+      const attrs  = data.attrs  || [];
+      const profile = (typeof PROFILE_NAMES !== 'undefined' ? PROFILE_NAMES[sheet.profile] : null) || sheet.profile;
+      const raca   = data.raca ? `Raça: ${data.raca}` : '';
+
+      const abList = abs.map((ab, i) =>
+        `${i+1}. [${(ab.type||'').toUpperCase()}] ${ab.name}: ${ab.description}${ab.stats?.length ? ' | ' + ab.stats.join(', ') : ''}`
+      ).join('\n');
+
+      const attrStr = ATTR_NAMES_PANEL.map((n, i) => `${n}:${attrs[i]??'?'}`).join(' ');
+
+      const systemPrompt = `Você é um analista tático de RPG. Sua função é analisar fichas de personagem e retornar APENAS um JSON válido, sem texto antes ou depois, sem blocos de código markdown.`;
+
+      const userPrompt = `Analise este personagem e gere um guia de combate compacto com combos táticos.
+
+PERSONAGEM: ${sheet.nome}
+Perfil: ${profile} | Nível: ${sheet.nivel} | NA: ${sheet.na}
+${raca}
+Stats: PV:${stats.vida} CA:${stats.ca} Arm:${stats.arm} Ataque:+${stats.ba} Defesa:+${stats.bd} Dano:${stats.dano}${stats.danoExtra||''} Reações:${stats.reac}
+Atributos: ${attrStr}
+
+HABILIDADES:
+${abList}
+
+Gere combos e sugestões táticas, do mais simples ao mais avançado.
+Cada combo deve ter um nome criativo, descrever quais habilidades usar e em que ordem, o efeito esperado e os dados relevantes.
+
+Retorne SOMENTE este JSON:
+{
+  "combos": [
+    {
+      "tier": "basico",
+      "nome": "Nome do Combo",
+      "descricao": "Como executar este combo de forma resumida.",
+      "passos": ["Habilidade A", "Habilidade B"],
+      "efeito": "Efeito esperado com dados/valores relevantes.",
+      "dica": "Dica tática de quando usar."
+    }
+  ],
+  "resumo_tatico": "Parágrafo curto (2-3 frases) sobre o estilo de jogo ideal deste personagem.",
+  "ponto_forte": "Principal força em combate.",
+  "ponto_fraco": "Principal fraqueza ou limitação."
+}
+
+Gere entre 4 e 6 combos: 2 básicos, 2 avançados, 1-2 ultimate.
+Tiers possíveis: "basico", "avancado", "ultimate".`;
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt }
+      ];
+
+      const response = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API retornou ${response.status}: ${errText.slice(0, 120)}`);
+      }
+
+      const apiData = await response.json();
+      const rawText = apiData?.choices?.[0]?.message?.content || '';
+      if (!rawText) throw new Error('IA retornou resposta vazia.');
+
+      const cleanText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanText);
+      } catch {
+        const match = cleanText.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+        else throw new Error('IA não retornou JSON válido.');
+      }
+      if (!parsed.combos || !Array.isArray(parsed.combos)) throw new Error('Resposta inválida da IA.');
+      return parsed;
+    }
+
+    // Renderiza o conteúdo da análise no painel
+    function renderAiContent(data) {
+      document.getElementById('dp-ai-loading'    ).style.display = 'none';
+      document.getElementById('dp-ai-placeholder').style.display = 'none';
+      document.getElementById('dp-ai-error'      ).style.display = 'none';
+
+      const tierLabel = { basico: '⚔️ Básico', avancado: '🔥 Avançado', ultimate: '💥 Ultimate' };
+      const tierClass = { basico: 'basic', avancado: 'advanced', ultimate: 'ultimate' };
+
+      const combosHtml = (data.combos || []).map(c => `
+        <div class="combo-card ${tierClass[c.tier] || 'basic'}">
+          <div class="combo-tier ${tierClass[c.tier] || 'basic'}">${tierLabel[c.tier] || c.tier}</div>
+          <div class="combo-name">${c.nome}</div>
+          <div class="combo-desc">${c.descricao}</div>
+          ${c.passos?.length ? `<div class="combo-steps">${c.passos.map(p => `<span class="combo-step">${p}</span>`).join('')}</div>` : ''}
+          <div class="combo-effect"><i class="bi bi-arrow-right-short"></i> ${c.efeito}</div>
+          ${c.dica ? `<div style="font-size:.64rem;color:rgba(100,96,90,.9);margin-top:.25rem;font-style:italic"><i class="bi bi-lightbulb"></i> ${c.dica}</div>` : ''}
+        </div>`).join('');
+
+      const resumoHtml = data.resumo_tatico ? `
+        <div class="dp-section-title">Estilo de Jogo</div>
+        <div style="font-size:.72rem;color:var(--text2);line-height:1.55;margin-bottom:.5rem">${data.resumo_tatico}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.75rem">
+          <div style="background:rgba(110,200,120,.07);border:1px solid rgba(110,200,120,.2);border-radius:6px;padding:.4rem .5rem">
+            <div style="font-size:.56rem;color:#6dc87a;letter-spacing:.07em;text-transform:uppercase;margin-bottom:.15rem">✦ Ponto Forte</div>
+            <div style="font-size:.7rem;color:var(--text1)">${data.ponto_forte || '—'}</div>
+          </div>
+          <div style="background:rgba(224,82,82,.07);border:1px solid rgba(224,82,82,.2);border-radius:6px;padding:.4rem .5rem">
+            <div style="font-size:.56rem;color:var(--red);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.15rem">✦ Ponto Fraco</div>
+            <div style="font-size:.7rem;color:var(--text1)">${data.ponto_fraco || '—'}</div>
+          </div>
+        </div>` : '';
+
+      const contentEl = document.getElementById('dp-ai-content');
+      contentEl.innerHTML = `
+        ${resumoHtml}
+        <div class="dp-section-title">Combos & Táticas</div>
+        ${combosHtml}
+        <div class="dp-ai-note"><i class="bi bi-robot"></i> Gerado por IA · Pode conter imprecisões</div>
+        <div style="padding:.25rem 0 .5rem;text-align:center">
+          <button onclick="_aiCache[getCard(_detailCardId)?.sheetId]=null;resetAiPane();"
+            style="font-size:.65rem;color:var(--text2);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:'Rajdhani',sans-serif">
+            ↺ Regenerar análise
+          </button>
+        </div>`;
+      contentEl.style.display = 'block';
+
+      const btn = document.getElementById('dp-ai-btn');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i> Analisar com IA'; }
+    }
+
+    // ════════════════════════════════════════════════════════
     // TOAST
     // ════════════════════════════════════════════════════════
     let toastTimer;
@@ -885,11 +1653,680 @@
       toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
     }
 
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function copyTextBlock(text, successMsg = 'Texto copiado!') {
+      try {
+        await navigator.clipboard.writeText(String(text || '').trim());
+        showToast(successMsg);
+      } catch (e) {
+        console.error('[copyTextBlock]', e);
+        showToast('Nao foi possivel copiar');
+      }
+    }
+
+    async function callAiJson(messages) {
+      const response = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API retornou ${response.status}: ${errText.slice(0, 160)}`);
+      }
+
+      const apiData = await response.json();
+      const rawText = apiData?.choices?.[0]?.message?.content || '';
+      if (!rawText) throw new Error('IA retornou resposta vazia.');
+      return rawText;
+    }
+
+    function getBestJsonCandidate(rawText) {
+      const cleanText = String(rawText || '')
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
+      const fencedObject = cleanText.match(/\{[\s\S]*\}/);
+      return (fencedObject ? fencedObject[0] : cleanText).trim();
+    }
+
+    function tryParseJsonVariants(text) {
+      const attempts = [];
+      const base = getBestJsonCandidate(text);
+      attempts.push(base);
+      attempts.push(base.replace(/,\s*([}\]])/g, '$1'));
+      attempts.push(base.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'"));
+      attempts.push(
+        base
+          .replace(/[\u201C\u201D]/g, '"')
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/,\s*([}\]])/g, '$1')
+      );
+
+      let lastError = null;
+      for (const candidate of attempts) {
+        try {
+          return JSON.parse(candidate);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('Falha ao interpretar JSON.');
+    }
+
+    async function repairJsonWithAi(rawText, shapeHint) {
+      const repairPrompt = `Converta o texto abaixo em JSON valido.
+Retorne APENAS JSON valido.
+Nao adicione explicacoes.
+Preserve o maximo possivel do conteudo original.
+Garanta esta estrutura minima: ${shapeHint}
+
+TEXTO:
+${rawText}`;
+
+      const repairedRaw = await callAiJson([
+        {
+          role: 'system',
+          content: 'Voce e um reparador de JSON. Retorne apenas JSON valido.'
+        },
+        {
+          role: 'user',
+          content: repairPrompt
+        }
+      ]);
+
+      return tryParseJsonVariants(repairedRaw);
+    }
+
+    async function parseAiJsonResponse(rawText, requiredKeys, shapeHint) {
+      try {
+        const parsed = tryParseJsonVariants(rawText);
+        const ok = requiredKeys.every(key =>
+          Object.prototype.hasOwnProperty.call(parsed, key)
+        );
+        if (ok) return parsed;
+      } catch (err) {
+        console.warn('[parseAiJsonResponse:first-pass]', err);
+      }
+
+      const repaired = await repairJsonWithAi(getBestJsonCandidate(rawText), shapeHint);
+      const ok = requiredKeys.every(key =>
+        Object.prototype.hasOwnProperty.call(repaired, key)
+      );
+      if (!ok) throw new Error('IA retornou estrutura invalida mesmo apos reparo.');
+      return repaired;
+    }
+
+    function getFolderNameBySheetId(sheetId) {
+      const folderId = _folderAssignments[String(sheetId)];
+      if (!folderId) return '';
+      return _folders.find(f => String(f.id) === String(folderId))?.name || '';
+    }
+
+    function getFolderPath(folderId) {
+      const names = [];
+      let current = _folders.find(f => String(f.id) === String(folderId));
+      while (current) {
+        names.unshift(current.name);
+        current = current.parentId ? _folders.find(f => String(f.id) === String(current.parentId)) : null;
+      }
+      return names.join(' / ');
+    }
+
+    function getDescendantFolderIds(folderId) {
+      const ids = new Set([String(folderId)]);
+      const walk = parentId => {
+        _folders
+          .filter(f => String(f.parentId || '') === String(parentId))
+          .forEach(f => {
+            ids.add(String(f.id));
+            walk(f.id);
+          });
+      };
+      walk(folderId);
+      return ids;
+    }
+
+    function renderSidebarFolderFilter() {
+      const select = document.getElementById('sidebar-folder-filter');
+      if (!select) return;
+      const current = select.value;
+      const options = [
+        '<option value="">Todas as pastas</option>',
+        '<option value="__no_folder__">Sem pasta</option>'
+      ];
+      const renderTree = (parentId = null, depth = 0) => {
+        _folders
+          .filter(f => String(f.parentId || '') === String(parentId || ''))
+          .forEach(f => {
+            const prefix = depth ? `${' '.repeat(depth * 2)}-> ` : '';
+            options.push(`<option value="${f.id}">${prefix}${getFolderPath(f.id)}</option>`);
+            renderTree(f.id, depth + 1);
+          });
+      };
+      renderTree();
+      select.innerHTML = options.join('');
+      select.value = current;
+    }
+
+    function renderSidebar() {
+      const list = document.getElementById('sidebar-list');
+      const q = (document.getElementById('sidebar-search')?.value || '').toLowerCase().trim();
+      const selectedFolderId = document.getElementById('sidebar-folder-filter')?.value || '';
+      let sheets = getSheets();
+
+      if (selectedFolderId === '__no_folder__') {
+        sheets = sheets.filter(s => !_folderAssignments[String(s.id)]);
+      } else if (selectedFolderId) {
+        const validIds = getDescendantFolderIds(selectedFolderId);
+        sheets = sheets.filter(s => validIds.has(String(_folderAssignments[String(s.id)] || '')));
+      }
+
+      if (q) {
+        sheets = sheets.filter(s => {
+          const nome = (s.nome || '').toLowerCase();
+          const perfil = (s.profile || '').toLowerCase();
+          const perfilPt = perfil === 'mistico' ? 'mistico' : perfil;
+          const pasta = getFolderNameBySheetId(s.id).toLowerCase();
+          return nome.includes(q) || perfil.includes(q) || perfilPt.includes(q) || pasta.includes(q);
+        });
+      }
+
+      if (!sheets.length) {
+        list.innerHTML = (q || selectedFolderId)
+          ? `<div class="sl-empty">Nenhuma ficha encontrada com os filtros atuais.</div>`
+          : '<div class="sl-empty">Nenhuma ficha salva.<br/>Crie fichas primeiro.</div>';
+        return;
+      }
+
+      list.innerHTML = sheets.map(s => {
+        const avatarHtml = s.avatar
+          ? `<img src="${s.avatar}" alt="av"/>`
+          : `<i class="bi bi-person-fill"></i>`;
+        const folderName = getFolderNameBySheetId(s.id);
+        return `
+          <div class="sl-item" onclick="addToBoard('${s.id}')">
+            <div class="sl-avatar">${avatarHtml}</div>
+            <div class="sl-info">
+              <div class="sl-name" title="${escapeHtml(s.nome)}">${escapeHtml(s.nome)}</div>
+              <div class="sl-meta">Nv ${s.nivel} - ${PROFILE_NAMES[s.profile] || s.profile}${folderName ? ` - ${escapeHtml(folderName)}` : ''}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function callAiAnalysis(sheet) {
+      const data = sheet.data || {};
+      const stats = data.stats || {};
+      const abs = data.abilities || [];
+      const attrs = data.attrs || [];
+      const profile = (typeof PROFILE_NAMES !== 'undefined' ? PROFILE_NAMES[sheet.profile] : null) || sheet.profile;
+      const raca = data.raca ? `Raca: ${data.raca}` : '';
+
+      const abList = abs.map((ab, i) =>
+        `${i + 1}. [${(ab.type || '').toUpperCase()}] ${ab.name}: ${ab.description}${ab.stats?.length ? ' | ' + ab.stats.join(', ') : ''}`
+      ).join('\n');
+
+      const attrStr = ATTR_NAMES_PANEL.map((n, i) => `${n}:${attrs[i] ?? '?'}`).join(' ');
+
+      const systemPrompt = `Voce e um analista tatico de RPG especializado em suporte de combate para mestres.
+Retorne APENAS um JSON valido, sem markdown.
+Priorize praticidade em mesa, clareza imediata e rolagens prontas para copiar.`;
+
+      const userPrompt = `Analise este personagem e gere um guia de combate compacto, rapido de consultar durante uma sessao frenética.
+
+PERSONAGEM: ${sheet.nome}
+Perfil: ${profile} | Nivel: ${sheet.nivel} | NA: ${sheet.na}
+${raca}
+Stats: PV:${stats.vida} CA:${stats.ca} Arm:${stats.arm} Ataque:+${stats.ba} Defesa:+${stats.bd} Dano:${stats.dano}${stats.danoExtra || ''} Reacoes:${stats.reac}
+Atributos: ${attrStr}
+
+HABILIDADES:
+${abList}
+
+Gere:
+1. ataques rapidos prontos para o mestre usar no calor do combate
+2. combos e sugestoes taticas, do mais simples ao mais avancado
+
+Nos ataques rapidos, detalhe explicitamente:
+- nome do ataque
+- rolagem de ataque ou teste principal no formato pronto para copiar
+- rolagem de dano no formato pronto para copiar
+- bonus automaticos, vantagem, defesa exigida, reacao, recarga ou condicao relevante
+- descricao curta e evocativa de como a acao acontece
+- texto_copiavel com tudo resumido em bloco unico e objetivo
+
+Nos combos, sempre explicite as rolagens ou numeros relevantes quando possivel.
+Se alguma habilidade implicar bonus garantido, escreva isso diretamente sem obrigar o mestre a procurar em outro lugar.
+
+Retorne SOMENTE este JSON:
+{
+  "ataques_rapidos": [
+    {
+      "nome": "Investida Voraz",
+      "rolagem": "Ataque: d20+X",
+      "dano": "Dano: XdY + dano base",
+      "gatilho": "Quando usar / condicao principal",
+      "execucao": "Descricao curta da acao em linguagem de mesa",
+      "extras": ["Bonus garantido: +2 no ataque", "Se acertar, ativa a passiva X"],
+      "texto_copiavel": "Investida Voraz | Ataque: d20+X | Dano: XdY + dano base | ..."
+    }
+  ],
+  "combos": [
+    {
+      "tier": "basico",
+      "nome": "Nome do Combo",
+      "descricao": "Como executar este combo de forma resumida.",
+      "passos": ["Habilidade A", "Habilidade B"],
+      "efeito": "Efeito esperado com dados/valores relevantes.",
+      "rolagens": ["Ataque: d20+X", "Dano: XdY + dano base"],
+      "texto_copiavel": "Nome do Combo | Ataque: ... | Dano: ... | Efeito: ...",
+      "dica": "Dica tatica de quando usar."
+    }
+  ],
+  "resumo_tatico": "Paragrafo curto sobre o estilo de jogo ideal deste personagem.",
+  "ponto_forte": "Principal forca em combate.",
+  "ponto_fraco": "Principal fraqueza ou limitacao."
+}
+
+Gere entre 3 e 5 ataques rapidos e entre 4 e 6 combos.
+Tiers possiveis: "basico", "avancado", "ultimate".`;
+
+      const response = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API retornou ${response.status}: ${errText.slice(0, 120)}`);
+      }
+
+      const apiData = await response.json();
+      const rawText = apiData?.choices?.[0]?.message?.content || '';
+      if (!rawText) throw new Error('IA retornou resposta vazia.');
+
+      const cleanText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanText);
+      } catch {
+        const match = cleanText.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+        else throw new Error('IA nao retornou JSON valido.');
+      }
+      if (!Array.isArray(parsed.combos)) throw new Error('Resposta invalida da IA.');
+      if (!Array.isArray(parsed.ataques_rapidos)) parsed.ataques_rapidos = [];
+      return parsed;
+    }
+
+    function renderAiContent(data) {
+      document.getElementById('dp-ai-loading').style.display = 'none';
+      document.getElementById('dp-ai-placeholder').style.display = 'none';
+      document.getElementById('dp-ai-error').style.display = 'none';
+
+      const tierLabel = { basico: 'Basico', avancado: 'Avancado', ultimate: 'Ultimate' };
+      const tierClass = { basico: 'basic', avancado: 'advanced', ultimate: 'ultimate' };
+
+      const quickHtml = (data.ataques_rapidos || []).map((atk, idx) => {
+        const textToCopy = atk.texto_copiavel || [atk.nome, atk.rolagem, atk.dano, atk.execucao, ...(atk.extras || [])].filter(Boolean).join('\n');
+        const extrasHtml = (atk.extras || []).map(extra => `
+          <div class="quick-metric">
+            <div class="quick-metric-label">Extra</div>
+            <div class="quick-metric-value">${escapeHtml(extra)}</div>
+          </div>`).join('');
+
+        return `
+          <div class="quick-card dp-ai-copyable">
+            <div class="quick-header">
+              <div style="min-width:0;flex:1">
+                <div class="quick-name">${escapeHtml(atk.nome || `Ataque ${idx + 1}`)}</div>
+                ${atk.rolagem ? `<div class="quick-roll"><i class="bi bi-dice-5"></i>${escapeHtml(atk.rolagem)}</div>` : ''}
+              </div>
+              <button class="quick-copy-btn" onclick='copyTextBlock(decodeURIComponent("${encodeURIComponent(textToCopy)}"), "Ataque rapido copiado!")'>
+                <i class="bi bi-clipboard"></i> Copiar
+              </button>
+            </div>
+            ${atk.execucao ? `<div class="quick-desc">${escapeHtml(atk.execucao)}</div>` : ''}
+            <div class="quick-metrics">
+              ${atk.dano ? `<div class="quick-metric"><div class="quick-metric-label">Dano</div><div class="quick-metric-value">${escapeHtml(atk.dano)}</div></div>` : ''}
+              ${atk.gatilho ? `<div class="quick-metric"><div class="quick-metric-label">Quando usar</div><div class="quick-metric-value">${escapeHtml(atk.gatilho)}</div></div>` : ''}
+              ${extrasHtml}
+            </div>
+            ${textToCopy ? `<div class="ai-copy-block">${escapeHtml(textToCopy)}</div>` : ''}
+          </div>`;
+      }).join('');
+
+      const combosHtml = (data.combos || []).map(c => {
+        const comboCopy = c.texto_copiavel || [c.nome, ...(c.rolagens || []), c.efeito, c.dica].filter(Boolean).join('\n');
+        return `
+          <div class="combo-card ${tierClass[c.tier] || 'basic'} dp-ai-copyable">
+            <div class="combo-tier ${tierClass[c.tier] || 'basic'}">${tierLabel[c.tier] || c.tier}</div>
+            <div class="combo-name">${escapeHtml(c.nome)}</div>
+            <div class="combo-desc">${escapeHtml(c.descricao)}</div>
+            ${c.passos?.length ? `<div class="combo-steps">${c.passos.map(p => `<span class="combo-step">${escapeHtml(p)}</span>`).join('')}</div>` : ''}
+            ${c.rolagens?.length ? `<div class="ai-copy-block" style="margin-bottom:.45rem">${escapeHtml(c.rolagens.join('\n'))}</div>` : ''}
+            <div class="combo-effect"><i class="bi bi-arrow-right-short"></i> ${escapeHtml(c.efeito)}</div>
+            ${c.dica ? `<div style="font-size:.76rem;color:#a69b88;margin-top:.35rem;font-style:italic;line-height:1.55"><i class="bi bi-lightbulb"></i> ${escapeHtml(c.dica)}</div>` : ''}
+            <div class="combo-copy-row">
+              <button class="combo-copy-btn" onclick='copyTextBlock(decodeURIComponent("${encodeURIComponent(comboCopy)}"), "Combo copiado!")'>
+                <i class="bi bi-clipboard"></i> Copiar
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const resumoHtml = data.resumo_tatico ? `
+        <div class="dp-section-title">Estilo de Jogo</div>
+        <div class="dp-ai-copyable" style="font-size:.84rem;color:#d0c5b4;line-height:1.7;margin-bottom:.6rem;user-select:text;-webkit-user-select:text">${escapeHtml(data.resumo_tatico)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.75rem">
+          <div style="background:rgba(110,200,120,.07);border:1px solid rgba(110,200,120,.2);border-radius:6px;padding:.4rem .5rem">
+            <div style="font-size:.56rem;color:#6dc87a;letter-spacing:.07em;text-transform:uppercase;margin-bottom:.15rem">Ponto Forte</div>
+            <div class="dp-ai-copyable" style="font-size:.8rem;color:var(--text1);line-height:1.55;user-select:text;-webkit-user-select:text">${escapeHtml(data.ponto_forte || '—')}</div>
+          </div>
+          <div style="background:rgba(224,82,82,.07);border:1px solid rgba(224,82,82,.2);border-radius:6px;padding:.4rem .5rem">
+            <div style="font-size:.56rem;color:var(--red);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.15rem">Ponto Fraco</div>
+            <div class="dp-ai-copyable" style="font-size:.8rem;color:var(--text1);line-height:1.55;user-select:text;-webkit-user-select:text">${escapeHtml(data.ponto_fraco || '—')}</div>
+          </div>
+        </div>` : '';
+
+      const contentEl = document.getElementById('dp-ai-content');
+      contentEl.innerHTML = `
+        ${resumoHtml}
+        <div class="dp-section-title">Ataques Rapidos</div>
+        ${quickHtml || '<div style="font-size:.82rem;color:var(--text2);padding:.35rem 0 .7rem">A IA nao retornou ataques rapidos desta vez.</div>'}
+        <div class="dp-section-title">Combos e Taticas</div>
+        ${combosHtml}
+        <div class="dp-ai-note"><i class="bi bi-robot"></i> Gerado por IA - Pode conter imprecisoes</div>
+        <div style="padding:.25rem 0 .5rem;text-align:center">
+          <button onclick="_aiCache[getCard(_detailCardId)?.sheetId]=null;resetAiPane();"
+            style="font-size:.65rem;color:var(--text2);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:'Rajdhani',sans-serif">
+            Regenerar analise
+          </button>
+        </div>`;
+      contentEl.style.display = 'block';
+
+      const btn = document.getElementById('dp-ai-btn');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i> Analisar com IA'; }
+    }
+
     // ════════════════════════════════════════════════════════
     // INIT
     // ════════════════════════════════════════════════════════
-    initAuth();
-    resetView();
+
+    renderDpFicha = function(sheet, cardState) {
+      const data  = sheet.data || {};
+      const stats = data.stats || {};
+      const abs   = data.abilities || [];
+      const attrs = data.attrs || [];
+      const curHp = cardState?.hpCurrent ?? stats.vida ?? '-';
+
+      const attrHtml = attrs.length
+        ? `<div class="dp-section-title">Atributos</div>
+           <div class="dp-attr-grid">
+             ${ATTR_NAMES_PANEL.map((n, i) => `
+               <div class="dp-attr">
+                 <div class="dp-attr-name">${n}</div>
+                 <div class="dp-attr-val">${attrs[i] ?? '-'}</div>
+                 <div class="dp-attr-mod">${attrs[i] != null ? attrModPanel(attrs[i]) : ''}</div>
+               </div>`).join('')}
+           </div>` : '';
+
+      const typeLabel = { passiva: 'Passiva', ativa: 'Ativa', ultimate: 'Ultimate' };
+      const abHtml = abs.map(ab => `
+        <div class="dp-ab ${ab.type || ''}">
+          <div class="dp-ab-name">
+            <span class="dp-ab-badge ${ab.type || ''}">${typeLabel[ab.type] || ab.type}</span>
+            ${escapeHtml(ab.name || 'Habilidade')}
+          </div>
+          <div class="dp-ab-desc">${escapeHtml(ab.description || '')}</div>
+          ${ab.stats && ab.stats.length
+            ? `<div class="dp-ab-stats">${ab.stats.map(s => escapeHtml(s)).join(' - ')}</div>` : ''}
+        </div>`).join('');
+
+      const raceBlock = data.raca
+        ? `<div class="dp-section-title">Raca</div>
+           <div style="font-size:.86rem;color:var(--text1);padding:.3rem .1rem .6rem;font-family:'Cinzel',serif;user-select:text;-webkit-user-select:text">${escapeHtml(data.raca)}</div>`
+        : '';
+
+      const summaryText = [
+        `${sheet.nome || 'Ficha'} | Nv ${sheet.nivel} | NA ${sheet.na}`,
+        `PV: ${curHp}/${stats.vida ?? '-'}`,
+        `CA: ${stats.ca ?? '-'} | Arm: ${stats.arm ?? '-'}`,
+        `Ataque: d20+${stats.ba ?? '-'} | Defesa: d20+${stats.bd ?? '-'}`,
+        `Dano: ${(stats.dano ?? '-')}${stats.danoExtra || ''} | Reacoes: ${stats.reac ?? '-'}`,
+        data.raca ? `Raca: ${data.raca}` : ''
+      ].filter(Boolean).join('\n');
+
+      const allAbilitiesText = abs.length
+        ? abs.map((ab, index) => {
+            const statsLine = ab.stats?.length ? ` | ${ab.stats.join(' | ')}` : '';
+            return `${index + 1}. ${ab.name} [${ab.type || 'habilidade'}]\n${ab.description || ''}${statsLine}`;
+          }).join('\n\n')
+        : 'Sem habilidades registradas.';
+
+      document.getElementById('dp-pane-ficha').innerHTML = `
+        <div style="padding:.6rem .75rem" class="dp-ai-copyable">
+          <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-bottom:.55rem;flex-wrap:wrap">
+            <button class="quick-copy-btn" onclick='copyTextBlock(decodeURIComponent("${encodeURIComponent(summaryText)}"), "Resumo da ficha copiado!")'>
+              <i class="bi bi-clipboard"></i> Copiar resumo
+            </button>
+            <button class="quick-copy-btn" onclick='copyTextBlock(decodeURIComponent("${encodeURIComponent(allAbilitiesText)}"), "Habilidades copiadas!")'>
+              <i class="bi bi-journal-text"></i> Copiar habilidades
+            </button>
+          </div>
+          ${raceBlock}
+          ${attrHtml}
+          <div class="dp-section-title">Habilidades</div>
+          ${abHtml || '<div style="font-size:.8rem;color:var(--text2);padding:.5rem 0">Sem habilidades registradas.</div>'}
+        </div>`;
+    };
+
+    callAiAnalysis = async function(sheet) {
+      const data = sheet.data || {};
+      const stats = data.stats || {};
+      const abs = data.abilities || [];
+      const attrs = data.attrs || [];
+      const profile = (typeof PROFILE_NAMES !== 'undefined' ? PROFILE_NAMES[sheet.profile] : null) || sheet.profile;
+      const raca = data.raca ? `Raca: ${data.raca}` : '';
+
+      const abList = abs.map((ab, i) =>
+        `${i + 1}. [${(ab.type || '').toUpperCase()}] ${ab.name}: ${ab.description}${ab.stats?.length ? ' | ' + ab.stats.join(', ') : ''}`
+      ).join('\n');
+
+      const attrStr = ATTR_NAMES_PANEL.map((n, i) => `${n}:${attrs[i] ?? '?'}`).join(' ');
+
+      const systemPrompt = `Voce e um analista tatico de RPG especializado em suporte de combate para mestres.
+Retorne apenas JSON valido.
+Priorize praticidade em mesa, rolagens prontas e clareza imediata.`;
+
+      const userPrompt = `Analise este personagem e gere um guia de combate rapido para uso em sessao.
+
+PERSONAGEM: ${sheet.nome}
+Perfil: ${profile} | Nivel: ${sheet.nivel} | NA: ${sheet.na}
+${raca}
+Stats: PV:${stats.vida} CA:${stats.ca} Arm:${stats.arm} Ataque:+${stats.ba} Defesa:+${stats.bd} Dano:${stats.dano}${stats.danoExtra || ''} Reacoes:${stats.reac}
+Atributos: ${attrStr}
+
+HABILIDADES:
+${abList}
+
+Retorne SOMENTE este JSON:
+{
+  "ataques_rapidos": [
+    {
+      "nome": "Investida Voraz",
+      "rolagem": "Ataque: d20+X",
+      "dano": "Dano: XdY + dano base",
+      "gatilho": "Quando usar",
+      "execucao": "Descricao curta da acao",
+      "extras": ["Bonus garantido: +2 no ataque"],
+      "texto_copiavel": "Investida Voraz | Ataque: ... | Dano: ..."
+    }
+  ],
+  "combos": [
+    {
+      "tier": "basico",
+      "nome": "Nome do Combo",
+      "descricao": "Resumo do combo.",
+      "passos": ["Habilidade A", "Habilidade B"],
+      "efeito": "Resultado esperado.",
+      "rolagens": ["Ataque: d20+X", "Dano: XdY + dano base"],
+      "texto_copiavel": "Combo | Ataque ... | Dano ...",
+      "dica": "Quando usar."
+    }
+  ],
+  "resumo_tatico": "Resumo curto.",
+  "ponto_forte": "Ponto forte.",
+  "ponto_fraco": "Ponto fraco."
+}`;
+
+      const rawText = await callAiJson([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ]);
+
+      const parsed = await parseAiJsonResponse(
+        rawText,
+        ['combos', 'resumo_tatico', 'ponto_forte', 'ponto_fraco'],
+        '{"ataques_rapidos":[],"combos":[],"resumo_tatico":"","ponto_forte":"","ponto_fraco":""}'
+      );
+
+      if (!Array.isArray(parsed.ataques_rapidos)) parsed.ataques_rapidos = [];
+      if (!Array.isArray(parsed.combos)) parsed.combos = [];
+      return parsed;
+    };
+
+    renderAiContent = function(data) {
+      document.getElementById('dp-ai-loading').style.display = 'none';
+      document.getElementById('dp-ai-placeholder').style.display = 'none';
+      document.getElementById('dp-ai-error').style.display = 'none';
+
+      const tierLabel = { basico: 'Basico', avancado: 'Avancado', ultimate: 'Ultimate' };
+      const tierClass = { basico: 'basic', avancado: 'advanced', ultimate: 'ultimate' };
+
+      const quickHtml = (data.ataques_rapidos || []).map((atk, idx) => {
+        const textToCopy = atk.texto_copiavel || [atk.nome, atk.rolagem, atk.dano, atk.execucao, ...(atk.extras || [])].filter(Boolean).join('\n');
+        const extrasHtml = (atk.extras || []).map(extra => `
+          <div class="quick-metric">
+            <div class="quick-metric-label">Extra</div>
+            <div class="quick-metric-value">${escapeHtml(extra)}</div>
+          </div>`).join('');
+
+        return `
+          <div class="quick-card dp-ai-copyable">
+            <div class="quick-header">
+              <div style="min-width:0;flex:1">
+                <div class="quick-name">${escapeHtml(atk.nome || `Ataque ${idx + 1}`)}</div>
+                ${atk.rolagem ? `<div class="quick-roll"><i class="bi bi-dice-5"></i>${escapeHtml(atk.rolagem)}</div>` : ''}
+              </div>
+              <button class="quick-copy-btn" onclick='copyTextBlock(decodeURIComponent("${encodeURIComponent(textToCopy)}"), "Ataque rapido copiado!")'>
+                <i class="bi bi-clipboard"></i> Copiar
+              </button>
+            </div>
+            ${atk.execucao ? `<div class="quick-desc">${escapeHtml(atk.execucao)}</div>` : ''}
+            <div class="quick-metrics">
+              ${atk.dano ? `<div class="quick-metric"><div class="quick-metric-label">Dano</div><div class="quick-metric-value">${escapeHtml(atk.dano)}</div></div>` : ''}
+              ${atk.gatilho ? `<div class="quick-metric"><div class="quick-metric-label">Quando usar</div><div class="quick-metric-value">${escapeHtml(atk.gatilho)}</div></div>` : ''}
+              ${extrasHtml}
+            </div>
+            ${textToCopy ? `<div class="ai-copy-block">${escapeHtml(textToCopy)}</div>` : ''}
+          </div>`;
+      }).join('');
+
+      const combosHtml = (data.combos || []).map(c => {
+        const comboCopy = c.texto_copiavel || [c.nome, ...(c.rolagens || []), c.efeito, c.dica].filter(Boolean).join('\n');
+        return `
+          <div class="combo-card ${tierClass[c.tier] || 'basic'} dp-ai-copyable">
+            <div class="combo-tier ${tierClass[c.tier] || 'basic'}">${tierLabel[c.tier] || c.tier}</div>
+            <div class="combo-name">${escapeHtml(c.nome || 'Combo')}</div>
+            <div class="combo-desc">${escapeHtml(c.descricao || '')}</div>
+            ${c.passos?.length ? `<div class="combo-steps">${c.passos.map(p => `<span class="combo-step">${escapeHtml(p)}</span>`).join('')}</div>` : ''}
+            ${c.rolagens?.length ? `<div class="ai-copy-block" style="margin-bottom:.45rem">${escapeHtml(c.rolagens.join('\n'))}</div>` : ''}
+            <div class="combo-effect"><i class="bi bi-arrow-right-short"></i> ${escapeHtml(c.efeito || '')}</div>
+            ${c.dica ? `<div style="font-size:.76rem;color:#a69b88;margin-top:.35rem;font-style:italic;line-height:1.55"><i class="bi bi-lightbulb"></i> ${escapeHtml(c.dica)}</div>` : ''}
+            <div class="combo-copy-row">
+              <button class="combo-copy-btn" onclick='copyTextBlock(decodeURIComponent("${encodeURIComponent(comboCopy)}"), "Combo copiado!")'>
+                <i class="bi bi-clipboard"></i> Copiar
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const resumoHtml = data.resumo_tatico ? `
+        <div class="dp-section-title">Estilo de Jogo</div>
+        <div class="dp-ai-copyable" style="font-size:.84rem;color:#d0c5b4;line-height:1.7;margin-bottom:.6rem;user-select:text;-webkit-user-select:text">${escapeHtml(data.resumo_tatico)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-bottom:.75rem">
+          <div style="background:rgba(110,200,120,.07);border:1px solid rgba(110,200,120,.2);border-radius:6px;padding:.4rem .5rem">
+            <div style="font-size:.56rem;color:#6dc87a;letter-spacing:.07em;text-transform:uppercase;margin-bottom:.15rem">Ponto Forte</div>
+            <div class="dp-ai-copyable" style="font-size:.8rem;color:var(--text1);line-height:1.55">${escapeHtml(data.ponto_forte || '-')}</div>
+          </div>
+          <div style="background:rgba(224,82,82,.07);border:1px solid rgba(224,82,82,.2);border-radius:6px;padding:.4rem .5rem">
+            <div style="font-size:.56rem;color:var(--red);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.15rem">Ponto Fraco</div>
+            <div class="dp-ai-copyable" style="font-size:.8rem;color:var(--text1);line-height:1.55">${escapeHtml(data.ponto_fraco || '-')}</div>
+          </div>
+        </div>` : '';
+
+      const contentEl = document.getElementById('dp-ai-content');
+      contentEl.innerHTML = `
+        ${resumoHtml}
+        <div class="dp-section-title">Ataques Rapidos</div>
+        ${quickHtml || '<div style="font-size:.82rem;color:var(--text2);padding:.35rem 0 .7rem">A IA nao retornou ataques rapidos desta vez.</div>'}
+        <div class="dp-section-title">Combos e Taticas</div>
+        ${combosHtml}
+        <div class="dp-ai-note"><i class="bi bi-robot"></i> Gerado por IA - Pode conter imprecisoes</div>
+        <div style="padding:.25rem 0 .5rem;text-align:center">
+          <button onclick="_aiCache[getCard(_detailCardId)?.sheetId]=null;resetAiPane();"
+            style="font-size:.65rem;color:var(--text2);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:'Rajdhani',sans-serif">
+            Regenerar analise
+          </button>
+        </div>`;
+      contentEl.style.display = 'block';
+
+      const btn = document.getElementById('dp-ai-btn');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i> Analisar com IA'; }
+    };
+
+    function _updateBoardModePill() {
+      const pill = document.getElementById('board-mode-pill');
+      if (!pill) return;
+      if (DB.isLocal()) {
+        pill.innerHTML = '<i class="bi bi-hdd-fill"></i> Local';
+        pill.style.borderColor = 'rgba(110,200,110,.4)';
+        pill.style.color = '#6dc87a';
+      } else {
+        pill.innerHTML = '<i class="bi bi-cloud-fill"></i> Supabase';
+        pill.style.borderColor = 'rgba(100,150,255,.35)';
+        pill.style.color = '#7baaf7';
+      }
+    }
+
+    async function toggleBoardMode() {
+      DB.setMode(DB.isLocal() ? 'supabase' : 'local');
+      _updateBoardModePill();
+      currentUser = await DB.initAuth();
+      if (!currentUser) { window.location.href = '/login.html'; return; }
+      showToast(DB.isLocal() ? '🖥️ Banco local ativado' : '☁️ Supabase ativado');
+      await loadBoard();
+    }
+
+    initAuth().then(() => { _updateBoardModePill(); resetView(); });
   </script>
 </body>
 </html>

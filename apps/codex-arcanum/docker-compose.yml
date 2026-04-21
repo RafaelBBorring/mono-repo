@@ -1,0 +1,32 @@
+# ============================================================
+# docker-compose.yml — Codex Arcanum
+#
+# USO:
+#   Primeira vez (ou após mudar código):
+#     docker-compose up --build
+#
+#   Reiniciar sem rebuild:
+#     docker-compose up
+#
+#   Parar:
+#     docker-compose down
+#
+# O volume abaixo garante que o local_db.json sobrevive a
+# qualquer rebuild. Ele mapeia a pasta ./data do seu computador
+# para dentro do container. Toda escrita do Flask vai para o
+# arquivo real no seu disco — não some quando o container para.
+# ============================================================
+
+services:
+  app:
+    build: .
+    container_name: codex_arcanum
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    volumes:
+      # Monta ./data do seu PC em /app/data dentro do container.
+      # O local_db.json fica salvo no seu disco de verdade.
+      - ./data:/app/data

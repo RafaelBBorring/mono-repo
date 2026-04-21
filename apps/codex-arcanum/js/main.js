@@ -1,4 +1,5 @@
-// main.js — Controlador principal + localStorage
+// main.js — usa DB (js/db.js) para abstração de banco
+// Requer: supabase.js + db.js carregados antes no HTML
 
 window.selectedProfile       = 'especialista';
 window.selectedDist          = 'balanceada';
@@ -11,21 +12,23 @@ let currentUser = null;
 
 // ── Auth guard ────────────────────────────────────────────
 async function initAuth() {
-  let session = await waitForSession();
-  if (!session) session = await getSession();
-  if (!session) {
+  currentUser = await DB.initAuth();
+  if (!currentUser) {
     window.location.href = '/login.html';
     return;
   }
-  currentUser = session.user;
   const el = document.getElementById('tb-username');
-  if (el) el.textContent = currentUser.user_metadata?.name || currentUser.email.split('@')[0];
+  if (el) {
+    el.textContent =
+      currentUser.user_metadata?.name      ||
+      currentUser.user_metadata?.full_name ||
+      currentUser.email?.split('@')[0]     || 'Mestre';
+  }
 }
 initAuth();
 
 async function doLogout() {
-  await window.supabaseClient.auth.signOut();
-  window.location.href = '/login.html';
+  await DB.signOut();
 }
 
 // ── Toast (index.html) ────────────────────────────────────
@@ -76,6 +79,13 @@ async function saveNewSheet() {
     const nomeEl = out.querySelector('[data-field="nome"]');
     if (nomeEl) data.nome = nomeEl.textContent.trim();
 
+    // Raça
+    const racaEl = out.querySelector('[data-field="raca"]');
+    if (racaEl) {
+      const racaTxt = racaEl.textContent.trim();
+      data.raca = (racaTxt && racaTxt !== 'Livre') ? racaTxt : '';
+    }
+
     // Stats
     ['vida','ca','reac','arm','ba','bd','dano'].forEach(f => {
       const el = out.querySelector(`[data-field="${f}"]`);
@@ -119,21 +129,31 @@ async function saveNewSheet() {
     entry.id = window._currentSheetId;
   }
 
-  const { data: insertedData, error } = await window.supabaseClient
-    .from('sheets')
-    .upsert([entry], { onConflict: 'id' })
-    .select();
-
-  if (error) {
-    console.error("Erro ao salvar ficha:", error);
-    showPageToast('Erro ao salvar ficha.');
-    if (btn) btn.disabled = false;
-    return;
+  let savedId = window._currentSheetId;
+  if (savedId) {
+    // Atualiza ficha existente
+    const { error } = await DB.updateSheet(savedId, entry);
+    if (error) {
+      console.error('[saveNewSheet] update error:', error);
+      showPageToast('Erro ao salvar ficha.');
+      if (btn) btn.disabled = false;
+      return;
+    }
+  } else {
+    // Insere nova ficha
+    const { error } = await DB.insertSheets([entry]);
+    if (error) {
+      console.error('[saveNewSheet] insert error:', error);
+      showPageToast('Erro ao salvar ficha.');
+      if (btn) btn.disabled = false;
+      return;
+    }
+    // Busca o ID gerado
+    const sheets = await DB.getSheets();
+    const newest = sheets.find(s => s.nome === entry.nome);
+    if (newest) savedId = newest.id;
   }
-
-  if (insertedData && insertedData.length > 0) {
-    window._currentSheetId = insertedData[0].id;
-  }
+  if (savedId) window._currentSheetId = savedId;
   
   _markSaved();
   showPageToast(window._currentSheetId ? 'Ficha atualizada!' : 'Ficha salva com sucesso!');
@@ -160,21 +180,11 @@ document.addEventListener('paste', function(e) {
 function loadAvatarFile(file) {
   const reader = new FileReader();
   reader.onload = function(ev) {
-    const original = ev.target.result;
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      canvas.width  = 300;
-      canvas.height = 300;
-      canvas.getContext('2d').drawImage(img, 0, 0, 300, 300);
-      const resized = canvas.toDataURL('image/png');
-      window.avatarDataUrl = window.avatarOriginalDataUrl = resized;
-      window.avatarTransform = { x: 0, y: 0, scale: 1 };
-      document.getElementById('avatarPreviewImg').src = resized;
-      document.getElementById('dzEmpty').style.display   = 'none';
-      document.getElementById('dzPreview').style.display = 'flex';
-    };
-    img.src = original;
+    window.avatarDataUrl = window.avatarOriginalDataUrl = ev.target.result;
+    window.avatarTransform = { x: 0, y: 0, scale: 1 };
+    document.getElementById('avatarPreviewImg').src = ev.target.result;
+    document.getElementById('dzEmpty').style.display   = 'none';
+    document.getElementById('dzPreview').style.display = 'flex';
   };
   reader.readAsDataURL(file);
 }
@@ -238,7 +248,8 @@ function getAttrDist(level) {
     if (level <= 7  && t['1-7'])   return t['1-7'];
     if (level <= 14 && t['8-14'])  return t['8-14'];
     if (level <= 22 && t['15-22']) return t['15-22'];
-    if (t['23-30'])                return t['23-30'];
+    if (level <= 30 && t['23-30']) return t['23-30'];
+    if (t['31-40'])                return t['31-40'];
     return null;
   };
   return pick(tbl) || pick(fb);
@@ -269,7 +280,7 @@ async function generateSheet() {
     const attrs   = [...getAttrDist(nivel)].sort((a,b)=>b-a).map(v=>v+rand(-1,1));
     const aiData  = await callAI(nivel, naStr, window.selectedProfile, stats, attrs, desc);
 
-    const sheetData = { nivel, na: naStr, nome, profile: window.selectedProfile, stats, attrs, abilities: aiData.abilities };
+    const sheetData = { nivel, na: naStr, nome, profile: window.selectedProfile, stats, attrs, abilities: aiData.abilities, raca: '' };
 
     // Guarda os dados pendentes — salvamento só ocorre quando o jogador clicar "Salvar Ficha"
     window._pendingSheetData = sheetData;

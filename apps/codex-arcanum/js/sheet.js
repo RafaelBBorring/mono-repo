@@ -31,7 +31,7 @@ function getTypePrefix(type) {
 //   stats: { vida, arm, ba, bd, ca, reac, dano, danoExtra, tag }
 
 function renderSheet(sheetData) {
-  const { nivel, na, nome, profile, stats, attrs, abilities } = sheetData;
+  const { nivel, na, nome, profile, stats, attrs, abilities, raca } = sheetData;
   const naInfo   = NA_MODS[na];
   const profInfo = PROFILES[profile];
 
@@ -103,6 +103,20 @@ function renderSheet(sheetData) {
              data-field="nome" title="Clique para editar o nome">${nome}</div>
         <div class="sh-tags" style="margin-top:0.5rem">
           <span class="sh-tag sh-tag-profile">${profInfo.name}</span>
+        </div>
+        <div style="margin-top:.35rem">
+          <span style="font-size:.7rem;color:rgba(201,168,76,.5);font-family:'Rajdhani',sans-serif;letter-spacing:.05em;">Raça: </span>
+          <span class="editable" contenteditable="true"
+                data-field="raca"
+                title="Clique para informar a raça do personagem"
+                style="font-size:.72rem;color:#c8b88a;font-family:'Rajdhani',sans-serif;
+                       letter-spacing:.04em;outline:none;
+                       border-bottom:1px dashed rgba(201,168,76,.25);
+                       min-width:60px;display:inline-block;
+                       transition:border-color .15s;"
+                onfocus="this.style.borderBottomColor='rgba(201,168,76,.6)'"
+                onblur="this.style.borderBottomColor='rgba(201,168,76,.25)'"
+          >${raca || 'Livre'}</span>
         </div>
       </div>
 

@@ -1,169 +1,300 @@
 """
-proxy.py
-========
-Servidor Flask que atua como proxy entre o frontend (browser)
-e a API do OpenRouter, resolvendo o problema de CORS.
-
-POR QUE É NECESSÁRIO?
-  Navegadores bloqueiam requisições de páginas locais (file://)
-  ou de origens diferentes para APIs externas (CORS).
-  Este proxy roda em localhost e repassa as chamadas com autenticação.
-
-COMO USAR:
-  1. Instale as dependências (apenas uma vez):
-       pip install flask flask-cors requests
-
-  2. Inicie o servidor:
-       python proxy.py
-
-  3. Abra o frontend acessando:
-       http://localhost:5000
-     (NÃO abra o index.html direto como arquivo — use a URL acima)
-
-ONDE TROCAR O MODELO:
-  Edite AI_MODEL abaixo. Use o mesmo valor que está em js/api.js.
-  Lista de modelos gratuitos: https://openrouter.ai/models?max_price=0
-
-ONDE TROCAR A CHAVE:
-  Edite API_KEY abaixo.
-
-PARA USAR ANTHROPIC AO INVÉS DO OPENROUTER:
-  1. Troque API_URL e API_KEY
-  2. Troque os headers (x-api-key ao invés de Authorization)
-  3. Ajuste o body (ver comentário no final)
+proxy.py — Backend Flask do Codex Arcanum
+  - Serve o frontend (arquivos estáticos)
+  - Proxy para a API do OpenRouter (IA)
+  - Rotas REST para o banco de dados LOCAL (data/local_db.json)
 """
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-import requests
-import os
+import requests, os, json, threading, tempfile
+from pathlib import Path
 
-# ── App Flask ────────────────────────────────────────────────
 app = Flask(__name__, static_folder='.')
 
-# CORS aberto para GitHub Pages e Railway (qualquer origem)
-CORS(app, origins="*")
+try:
+    CORS(app, origins="*")
+except Exception:
+    pass
 
-# ── Configuração da API ──────────────────────────────────────
-# ATENÇÃO: AI_MODEL deve ser igual ao AI_MODEL em js/api.js
-API_URL  = "https://openrouter.ai/api/v1/chat/completions"
-
-API_KEY = os.getenv("OPENROUTE_API_KEY")
-
-# Domínio público da aplicação (usado no HTTP-Referer enviado ao OpenRouter).
-# Configure a variável de ambiente APP_PUBLIC_URL na sua VPS/Dokploy.
-# Exemplo: APP_PUBLIC_URL=https://codex.seudominio.com
+# ── IA ────────────────────────────────────────────────────────
+API_URL        = "https://openrouter.ai/api/v1/chat/completions"
+API_KEY        = os.getenv("OPENROUTE_API_KEY")
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "http://localhost:5000")
+AI_MODEL       = "meta-llama/Llama-3.3-70B-Instruct"
 
-AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"   # ← modelo confirmado como gratuito
+# ── Local DB ──────────────────────────────────────────────────
+_SCRIPT_DIR   = Path(__file__).resolve().parent
+LOCAL_DB_PATH = _SCRIPT_DIR / "data" / "local_db.json"
+_db_lock = threading.Lock()
+# Sem cache em memória: lemos sempre do disco para garantir consistência
+# entre os múltiplos workers do Gunicorn. O arquivo é pequeno, sem problema.
 
-# ── Rota raiz: serve o index.html ────────────────────────────
+print(f"[db] Caminho do banco: {LOCAL_DB_PATH}")
+print(f"[db] Arquivo existe: {LOCAL_DB_PATH.exists()}")
+if LOCAL_DB_PATH.exists():
+    print(f"[db] Tamanho: {LOCAL_DB_PATH.stat().st_size / 1024:.1f} KB")
+
+def _load_db():
+    """Lê o banco do disco. Sempre. Sem cache — compatível com múltiplos workers."""
+    with open(LOCAL_DB_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def _save_db(db):
+    """Salva atomicamente: escreve num .tmp e substitui com os.replace()."""
+    LOCAL_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = str(LOCAL_DB_PATH) + ".tmp"
+    try:
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(db, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, str(LOCAL_DB_PATH))
+        size_kb = LOCAL_DB_PATH.stat().st_size / 1024
+        print(f"[db] Salvo: {len(db.get('sheets', []))} fichas · {size_kb:.1f} KB")
+    except Exception as e:
+        print(f"[db] ERRO ao salvar: {e}")
+        try: os.unlink(tmp_path)
+        except OSError: pass
+        raise
+
+def _atomic_db_operation(func):
+    with _db_lock:
+        db = _load_db()
+        try:
+            result = func(db)
+        except Exception:
+            raise
+        _save_db(db)
+        return result
+
+# _invalidate_cache removida: sem cache, sem necessidade
+
+# ══════════════════════════════════════════════════════════════
+# ROTAS ESTÁTICAS
+# ══════════════════════════════════════════════════════════════
+
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
-# ── Rota de arquivos estáticos (css/, js/, assets/) ──────────
 @app.route('/<path:path>')
 def static_files(path):
-    # Bloqueia a rota /generate para não conflitar
-    if path == 'generate':
-        return "Use POST /generate", 405
+    if path.startswith(('generate', 'local/')):
+        return "Use método correto", 405
     return send_from_directory('.', path)
 
-# ── Rota proxy: recebe do frontend e repassa à API ───────────
-# O api.js envia: POST /generate  com body { messages: [...] }
-# O proxy monta o body completo e adiciona os headers de autenticação.
+# ══════════════════════════════════════════════════════════════
+# PROXY DE IA
+# ══════════════════════════════════════════════════════════════
+
 @app.route('/generate', methods=['POST'])
 def generate():
-    print("API_KEY DEBUG:", API_KEY)
     data = request.json
-
-    # Valida o body recebido
     if not data or 'messages' not in data:
-        return jsonify({"error": "Body inválido: esperado { messages: [...] }"}), 400
+        return jsonify({"error": "Body inválido"}), 400
 
-    # Headers enviados para o OpenRouter
     headers = {
         "Content-Type":  "application/json",
-        "Authorization": f"Bearer {API_KEY}",   # autenticação Bearer (OpenRouter)
-        "X-Title":       "Codex-Arcanum",        # identificação no painel do OR
-        "HTTP-Referer":  APP_PUBLIC_URL          # domínio público lido da variável de ambiente
+        "Authorization": f"Bearer {API_KEY}",
+        "X-Title":       "Codex-Arcanum",
+        "HTTP-Referer":  APP_PUBLIC_URL
     }
+    body = {"model": AI_MODEL, "max_tokens": 1200, "messages": data['messages']}
 
-    # Body completo para o OpenRouter
-    # O frontend envia apenas { messages } — o proxy adiciona model e max_tokens
-    body = {
-        "model":      AI_MODEL,
-        "max_tokens": 1200,
-        "messages":   data['messages']
-    }
-
-    print(f"[proxy] Enviando para: {API_URL}")
-    print(f"[proxy] Modelo: {AI_MODEL}")
-    print(f"[proxy] Mensagens: {len(data['messages'])} mensagem(ns)")
+    print(f"[proxy] Modelo: {AI_MODEL} | Mensagens: {len(data['messages'])}")
 
     try:
-        response = requests.post(API_URL, headers=headers, json=body, timeout=60)
-
-        print(f"[proxy] Resposta da API: {response.status_code}")
-
-        if response.status_code == 200:
-            return jsonify(response.json())
-        else:
-            # Log do erro para diagnóstico no terminal
-            print(f"[proxy] ERRO: {response.text}")
-            return jsonify({
-                "error":  f"API retornou {response.status_code}",
-                "detail": response.text
-            }), response.status_code
-
+        resp = requests.post(API_URL, headers=headers, json=body, timeout=60)
+        print(f"[proxy] Resposta: {resp.status_code}")
+        if resp.status_code == 200:
+            return jsonify(resp.json())
+        print(f"[proxy] ERRO: {resp.text}")
+        return jsonify({"error": f"API retornou {resp.status_code}", "detail": resp.text}), resp.status_code
     except requests.exceptions.Timeout:
-        print("[proxy] TIMEOUT: API não respondeu em 60 segundos")
-        return jsonify({"error": "Timeout: API não respondeu. Tente novamente."}), 504
-
+        return jsonify({"error": "Timeout. Tente novamente."}), 504
     except requests.exceptions.ConnectionError as e:
-        print(f"[proxy] ERRO DE CONEXÃO: {e}")
-        return jsonify({"error": "Sem conexão com a internet ou API indisponível."}), 503
-
+        return jsonify({"error": "Sem conexão com a API."}), 503
     except Exception as e:
-        print(f"[proxy] EXCEÇÃO: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ══════════════════════════════════════════════════════════════
+# LOCAL DB — SHEETS
+# ══════════════════════════════════════════════════════════════
+
+@app.route('/local/sheets', methods=['GET'])
+def local_get_sheets():
+    """Retorna todas as fichas do banco local."""
+    db = _load_db()
+    sheets = sorted(db['sheets'], key=lambda s: s.get('updated_at', ''), reverse=True)
+    return jsonify(sheets)
+
+@app.route('/local/sheets', methods=['POST'])
+def local_insert_sheets():
+    """Insere uma ou mais fichas. Espera JSON array."""
+    body = request.json
+    if not isinstance(body, list):
+        body = [body]
+    import uuid as _uuid
+    from datetime import datetime, timezone
+
+    def _op(db):
+        inserted = []
+        for sheet in body:
+            if not sheet.get('nome'):
+                continue
+            now = datetime.now(timezone.utc).isoformat()
+            new_sheet = {
+                "id":         sheet.get('id') or str(_uuid.uuid4()),
+                "user_id":    sheet.get('user_id', db['local_user']['id']),
+                "nome":       sheet['nome'],
+                "profile":    sheet.get('profile', 'especialista'),
+                "nivel":      int(sheet.get('nivel', 1)),
+                "na":         str(sheet.get('na', '1')),
+                "avatar":     sheet.get('avatar', None),
+                "data":       sheet.get('data', {}),
+                "created_at": sheet.get('created_at', now),
+                "updated_at": sheet.get('updated_at', now)
+            }
+            db['sheets'] = [s for s in db['sheets'] if s['id'] != new_sheet['id']]
+            db['sheets'].append(new_sheet)
+            inserted.append(new_sheet)
+        return inserted
+
+    inserted = _atomic_db_operation(_op)
+    return jsonify(inserted), 201
+
+@app.route('/local/sheets/batch-delete', methods=['POST'])
+def local_batch_delete_sheets():
+    """Remove múltiplas fichas de uma vez (atomicamente)."""
+    body = request.json or {}
+    ids  = set(body.get('ids', []))
+    if not ids:
+        return jsonify({"ok": True, "deleted": 0})
+
+    def _op(db):
+        before = len(db['sheets'])
+        db['sheets'] = [s for s in db['sheets'] if s['id'] not in ids]
+        return before - len(db['sheets'])
+
+    deleted = _atomic_db_operation(_op)
+    return jsonify({"ok": True, "deleted": deleted})
+
+@app.route('/local/sheets/<sheet_id>', methods=['PUT'])
+def local_update_sheet(sheet_id):
+    """Atualiza uma ficha existente."""
+    body = request.json
+    from datetime import datetime, timezone
+
+    def _op(db):
+        idx = next((i for i, s in enumerate(db['sheets']) if s['id'] == sheet_id), None)
+        if idx is None:
+            return None, 404
+        db['sheets'][idx].update({
+            k: v for k, v in body.items()
+            if k not in ('id', 'user_id', 'created_at')
+        })
+        db['sheets'][idx]['updated_at'] = datetime.now(timezone.utc).isoformat()
+        return db['sheets'][idx], 200
+
+    result, status = _atomic_db_operation(_op)
+    if status == 404:
+        return jsonify({"error": "Ficha não encontrada"}), 404
+    return jsonify(result)
+
+@app.route('/local/sheets/<sheet_id>', methods=['DELETE'])
+def local_delete_sheet(sheet_id):
+    """Remove uma ficha."""
+    def _op(db):
+        before = len(db['sheets'])
+        db['sheets'] = [s for s in db['sheets'] if s['id'] != sheet_id]
+        return len(db['sheets']) < before
+
+    found = _atomic_db_operation(_op)
+    if not found:
+        return jsonify({"error": "Ficha não encontrada"}), 404
+    return jsonify({"ok": True})
+
+# ══════════════════════════════════════════════════════════════
+# LOCAL DB — FOLDERS
+# ══════════════════════════════════════════════════════════════
+
+@app.route('/local/folders', methods=['GET'])
+def local_get_folders():
+    db = _load_db()
+    return jsonify(db.get('folders', {"folders": [], "assignments": {}}))
+
+@app.route('/local/folders', methods=['POST'])
+def local_save_folders():
+    body = request.json
+    def _op(db):
+        db['folders'] = body
+    _atomic_db_operation(_op)
+    return jsonify({"ok": True})
+
+# ══════════════════════════════════════════════════════════════
+# LOCAL DB — BOARD STATE
+# ══════════════════════════════════════════════════════════════
+
+@app.route('/local/board', methods=['GET'])
+def local_get_board():
+    db = _load_db()
+    return jsonify(db.get('board_state', {"cards": []}))
+
+@app.route('/local/board', methods=['POST'])
+def local_save_board():
+    body = request.json
+    from datetime import datetime, timezone
+    def _op(db):
+        db['board_state'] = {
+            "user_id":    db['local_user']['id'],
+            "cards":      body.get('cards', []),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    _atomic_db_operation(_op)
+    return jsonify({"ok": True})
+
+# ══════════════════════════════════════════════════════════════
+# LOCAL DB — INFO (usuário local)
+# ══════════════════════════════════════════════════════════════
+
+@app.route('/local/user', methods=['GET'])
+def local_get_user():
+    db = _load_db()
+    return jsonify(db.get('local_user', {"id": "local-user", "name": "Local", "email": ""}))
+
+@app.route('/local/persist', methods=['POST'])
+def local_persist():
+    """Força reescrita + verificação de integridade do DB em disco."""
+    import time, hashlib
+    db = _load_db()
+    _save_db(db)
+    with open(LOCAL_DB_PATH, 'r', encoding='utf-8') as f:
+        disk_data = f.read()
+    disk_db = json.loads(disk_data)
+    disk_sheets = len(disk_db.get('sheets', []))
+    mem_sheets = len(db.get('sheets', []))
+    size_kb = LOCAL_DB_PATH.stat().st_size / 1024
+    ok = disk_sheets == mem_sheets
+    if not ok:
+        print(f"[db] INTEGRIDADE FALHOU: disco={disk_sheets} mem={mem_sheets}")
+    return jsonify({
+        "ok": ok,
+        "sheets": disk_sheets,
+        "size_kb": round(size_kb, 1),
+        "path": str(LOCAL_DB_PATH),
+        "ts": time.time()
+    })
+
+# ══════════════════════════════════════════════════════════════
+# INIT
+# ══════════════════════════════════════════════════════════════
 
 if __name__ == '__main__':
     print("=" * 52)
-    print("  Codex Arcanum — Proxy Server")
-    print(f"  Modelo: {AI_MODEL}")
-    print(f"  URL Pública: {APP_PUBLIC_URL}")
+    print("  Codex Arcanum — Servidor Flask")
+    print(f"  Modelo IA: {AI_MODEL}")
+    print(f"  DB Local:  {LOCAL_DB_PATH}")
     print("=" * 52)
-
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
-
-
-
-# ============================================================
-# PARA USAR ANTHROPIC AO INVÉS DO OPENROUTER:
-#
-# API_URL  = "https://api.anthropic.com/v1/messages"
-# API_KEY  = "sk-ant-..."
-# AI_MODEL = "claude-3-5-sonnet-20241022"
-#
-# Headers:
-#   headers = {
-#     "Content-Type":      "application/json",
-#     "x-api-key":          API_KEY,          # Anthropic usa x-api-key
-#     "anthropic-version": "2023-06-01"
-#   }
-#
-# Body:
-#   body = {
-#     "model":      AI_MODEL,
-#     "max_tokens": 1200,
-#     "messages":   data['messages']
-#   }
-#
-# Extração do texto na resposta (em api.js, troque a linha de extração):
-#   data.content[0].text   (ao invés de data.choices[0].message.content)
-# ============================================================
+    app.run(host='0.0.0.0', port=port, debug=True)
