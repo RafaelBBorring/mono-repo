@@ -1,0 +1,54 @@
+export const MODULES_PASSIVE = [
+  { id: 'identificacao_magica', name: 'Identificação Mágica', desc: 'Vantagem detectar/identificar magia. +5 Furtividade com AM.', req: 'AM 12+' },
+  { id: 'informativo', name: 'Informativo', desc: '+1d6 em Testes de Conhecimento.', req: 'INT 12+' },
+  { id: 'especialista_terreno', name: 'Especialista em Terreno', desc: 'Vantagem em Testes Físicos em um Terreno escolhido (especificar).', req: 'Nenhum' },
+  { id: 'sentidos_agucados', name: 'Sentidos Aguçados', desc: '+1d6 em Testes de Percepção.', req: 'Nenhum' },
+  { id: 'especializacao_arma', name: 'Especialização em Arma', desc: '3 Vantagens com Arma escolhida para gastar no combate.', req: 'Nível 8+' },
+  { id: 'arcanismo', name: 'Arcanismo', desc: '+50% Efeitos de 1 Habilidade (exceto Ult) a 2× Energia. Custo sobe a cada uso.', req: 'N15+, AM 20+' },
+  { id: 'recuperacao_acelerada', name: 'Recuperação Acelerada', desc: 'Recupera +50% de Energia/PE em Descansos Curtos.', req: 'Nenhum' },
+  { id: 'hacker', name: 'Hacker', desc: 'Vantagem em Conhecimento: Computação.', req: 'INT 12+' },
+  { id: 'pensamento_agil', name: 'Pensamento Ágil', desc: '+1 teste de Investigação adicional por cena.', req: 'INT 14+' },
+  { id: 'ferramentas_misticas', name: 'Ferramentas Místicas', desc: 'Ativa 1 item mágico sem gastar PE. 1×/dia por item.', req: 'AM 12+' },
+  { id: 'contatos_influentes', name: 'Contatos Influentes', desc: '1×/Missão — Chama favor de NPC com Recursos.', req: 'APA 12+ ou N6+' },
+]
+
+export const MODULES_SPECIAL = [
+  { id: 'treino_intensivo', name: 'Treino Intensivo', desc: '+2 Perícias Treinadas (permanente). Adquirível até 3×.', req: 'Nenhum', maxBuy: 3, bought: 0 },
+  { id: 'aumento_poder', name: 'Aumento de Poder', desc: 'Evolui 1 habilidade em 1 nível. Adquirível até 2×.', req: 'N12+, AM 18+', maxBuy: 2, bought: 0 },
+  { id: 'conhecimento_amplificado', name: 'Conhecimento Amplificado', desc: 'Aprende 01 Habilidade comum Extra (exceto Ult & Passiva). Até 4×.', req: 'INT 16+, AM 14+', maxBuy: 4, bought: 0 },
+]
+
+export const MODULES_ACTIVE = [
+  { id: 'corpo_resiliente', name: 'Corpo Resiliente', pe: 10, desc: '+10% Vida máxima e +2 Fortitude por 5 rodadas.', req: 'CON 14+' },
+  { id: 'inabalavel', name: 'Inabalável', pe: 6, desc: 'Vantagem em Teste de Vontade.', req: 'Nenhum' },
+  { id: 'mestre_marcial', name: 'Mestre Marcial', pe: 6, desc: 'Amplia em 1 Grau uma Arte Marcial por 1 ação.', req: '1 Arte Marcial Treinado+' },
+  { id: 'presenca_intimidadora', name: 'Presença Intimidadora', pe: 5, desc: 'Inimigos têm desvantagem em Vontade vs Intimidação.', req: 'APA 12+ ou FOR 14+' },
+  { id: 'primeira_impressao', name: 'Primeira Impressão', pe: 3, desc: '+1d6 em aparência/persuasão/enganação.', req: 'APA 12+' },
+  { id: 'vinculo_combate', name: 'Vínculo de Combate', pe: 6, desc: 'Você e 1 aliado compartilham iniciativa por 3 rodadas.', req: 'Nível 5+' },
+  { id: 'velocista', name: 'Velocista', pe: 12, desc: '+1 Ação de Movimento neste turno.', req: 'DES 12+' },
+  { id: 'postura_defensiva', name: 'Postura Defensiva', pe: 4, desc: '+2 CA por 3 rodadas, ataques com −1d6 no resultado.', req: 'Nenhum' },
+  { id: 'aura_camuflada', name: 'Aura Camuflada', pe: 6, desc: 'Oculta Aura Mágica por 1 hora. +5 Furtividade com AM.', req: 'AM 12+' },
+  { id: 'golpe_devastador', name: 'Golpe Devastador', pe: 15, desc: 'Próximo ataque: +100% FOR no dano && −1 na margem de Crítico.', req: 'FOR 14+' },
+  { id: 'critico_aprimorado', name: 'Crítico Aprimorado', pe: 10, desc: 'Reduz margem de crítico em −2 (fixo enquanto ativo).', req: 'DES 14+ ou FOR 14+' },
+  { id: 'mestre_controle', name: 'Mestre em Controle', pe: 20, desc: 'Reduz 30% do custo de Energia de 01 Habilidade durante sua Ação.', req: 'AM 14+' },
+  { id: 'sobrecarga_arcana', name: 'Sobrecarga Arcana', pe: 20, desc: 'Próxima Habilidade: +50% Dano OU +2 Rodadas de Duração.', req: 'AM 16+' },
+  { id: 'reserva_arcana', name: 'Reserva Arcana', pe: 10, desc: '+50% AM como Energia máxima.', req: 'AM 16+' },
+  { id: 'perito_explosivos', name: 'Perito em Explosivos', pe: 16, desc: 'Explosivos causam INT×2 de Dano e afetam área 2× maior.', req: 'INT 14+' },
+  { id: 'armadilha_improvisada', name: 'Armadilha Improvisada', pe: 6, desc: 'Cria armadilha: 3d10 dano, CD 18 DES para evitar.', req: 'INT 12+' },
+  { id: 'maos_rapidas', name: 'Mãos Rápidas', pe: 6, desc: '1 teste de Crime como ação livre por turno.', req: 'DES 14+' },
+  { id: 'trilha_certa', name: 'Trilha Certa', pe: 4, desc: '+5 no próximo teste de Investigação/Percepção.', req: 'INT 12+' },
+  { id: 'reflexos_apurados', name: 'Reflexos Apurados', pe: 10, desc: '+2 Reações nesta rodada.', req: 'DES 14+' },
+  { id: 'golpe_preciso', name: 'Golpe Preciso', pe: 6, desc: 'Ataque furtivo ignora 5 pontos de armadura.', req: 'DES 14+' },
+  { id: 'mestre_disfarce', name: 'Mestre do Disfarce', pe: 4, desc: 'Vantagem em Enganação/Furtividade por 1 hora.', req: 'Nenhum' },
+  { id: 'ninja_urbano', name: 'Ninja Urbano', pe: 8, desc: 'Vantagem em Furtividade urbana. Dura 2 rodadas.', req: 'DES 14+' },
+  { id: 'infiltracao_fantasma', name: 'Infiltração Fantasma', pe: 10, desc: '+5 Furtividade por 3 rodadas ou até atacar.', req: 'DES 16+' },
+  { id: 'mira_letal', name: 'Mira Letal', pe: 15, desc: '+100% INT ao próximo ataque ranged && −1 na margem de Crítico.', req: 'INT 14+' },
+  { id: 'rajada_automatica', name: 'Rajada Automática', pe: 6, desc: 'Ao acertar ranged, dispara novamente com desvantagem. Máx 2 extras.', req: 'DES 14+' },
+  { id: 'punhos_aco', name: 'Punhos de Aço', pe: 6, desc: 'Socos causam +1d8+FOR (cumulativo com Artes Marciais).', req: 'FOR 12+' },
+]
+
+export const ALL_MODULES = {
+  passivos: MODULES_PASSIVE,
+  especiais: MODULES_SPECIAL,
+  ativos: MODULES_ACTIVE,
+}
