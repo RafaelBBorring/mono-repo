@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 const styles = `
 @keyframes fadeInUp {
@@ -29,25 +30,30 @@ function RuneCircle() {
   )
 }
 
-export default function LoginPage({ onLogin }) {
-  const [name, setName] = useState('')
+export default function LoginPage() {
+  const { login } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) {
-      setError('Informe o nome do jogador.')
+    setError('')
+    if (!email.trim() || !password.trim()) {
+      setError('Preencha usuário e senha.')
       return
     }
-    localStorage.setItem('olympo_user', trimmed)
-    onLogin(trimmed)
-  }
-
-  const handleGuest = () => {
-    const guest = 'Convidado'
-    localStorage.setItem('olympo_user', guest)
-    onLogin(guest)
+    setLoading(true)
+    try {
+      const loginEmail = email.trim().includes('@') ? email.trim() : `${email.trim()}@olympo.local`
+      await login(loginEmail, password)
+    } catch (err) {
+      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -66,34 +72,46 @@ export default function LoginPage({ onLogin }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-txt-dim text-sm mb-1">Nome do Jogador</label>
+              <label className="block text-txt-dim text-sm mb-1">Usuário</label>
               <input
                 type="text"
-                value={name}
-                onChange={(e) => { setName(e.target.value); setError('') }}
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError('') }}
                 className="w-full bg-void border border-sep text-txt-main rounded px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors"
-                placeholder="Seu nome..."
+                placeholder="Seu usuário"
                 autoFocus
               />
-              {error && <p className="text-err text-xs mt-1">{error}</p>}
             </div>
+            <div>
+              <label className="block text-txt-dim text-sm mb-1">Senha</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError('') }}
+                  className="w-full bg-void border border-sep text-txt-main rounded px-3 py-2 pr-10 text-sm focus:outline-none focus:border-gold transition-colors"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-txt-dim hover:text-gold transition-colors text-sm px-1"
+                >
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
+            {error && <p className="text-err text-xs mt-1">{error}</p>}
 
             <button
               type="submit"
-              className="w-full bg-gold text-void font-semibold py-2 rounded hover:bg-gold-light transition-colors text-sm"
+              disabled={loading}
+              className="w-full bg-gold text-void font-semibold py-2 rounded hover:bg-gold-light transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Entrar
+              {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
-
-          <div className="text-center mt-4">
-            <button
-              onClick={handleGuest}
-              className="text-txt-dim text-sm hover:text-gold transition-colors underline underline-offset-2"
-            >
-              Entrar como Convidado
-            </button>
-          </div>
         </div>
       </div>
     </>

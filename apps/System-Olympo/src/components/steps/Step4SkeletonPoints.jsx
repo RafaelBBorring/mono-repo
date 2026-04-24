@@ -146,9 +146,7 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
                 </button>
               </div>
 
-              {total >= attrCap && (
-                <p className="text-warn text-xs mt-1 text-center">Limite atingido</p>
-              )}
+              <p className={`text-warn text-xs mt-1 text-center h-4 ${total >= attrCap ? '' : 'invisible'}`}>Limite atingido</p>
               <p className="text-txt-dim text-xs mt-1 text-center">
                 Base {baseVal} + Esq. {skVal}
               </p>

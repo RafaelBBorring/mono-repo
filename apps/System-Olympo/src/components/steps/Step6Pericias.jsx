@@ -75,47 +75,59 @@ export default function Step6Pericias({ char, update, updateNested }) {
           const canUpgrade = remaining > 0 && (grau === 0 || grau < maxGrau)
 
           return (
-            <button
+            <div
               key={pericia.name}
-              type="button"
-              onClick={() => cycleGrau(pericia.name, grau)}
-              disabled={!canUpgrade && grau >= maxGrau}
               className={`text-left border rounded p-3 transition-colors ${
                 grau > 0
                   ? 'bg-deep border-gold/50 hover:border-gold'
                   : canUpgrade
                     ? 'bg-deep border-sep hover:border-gold/50'
-                    : 'bg-deep/50 border-sep/30 opacity-50 cursor-not-allowed'
+                    : 'bg-deep border-sep/30'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className={`font-body text-sm ${grau > 0 ? 'text-txt-main' : 'text-txt-dim'}`}>
+                <span className={`font-body text-sm truncate mr-2 ${grau > 0 ? 'text-txt-main' : 'text-txt-dim'}`}>
                   {pericia.name}
                 </span>
-                <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+                <span className={`font-mono text-xs shrink-0 ${grau > 0 ? 'text-gold' : 'text-txt-dim'}`}>
+                  {bonus >= 0 ? '+' : ''}{bonus}
+                </span>
+              </div>
+              <div className="text-xs text-txt-dim mb-2">
+                {pericia.attrs.join('/')}
+                {pericia.attrs.length > 1 && (
+                  <span className="text-gold ml-1">({bestAttr.attr})</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => grau > 0 && updateNested('pericias', { [pericia.name]: grau - 1 })}
+                  disabled={grau <= 0}
+                  className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${grau > 0 ? 'bg-err/10 text-err/70 hover:bg-err/20 hover:text-err' : 'bg-void border border-sep/20 text-sep/30 cursor-not-allowed'}`}
+                  title={grau > 0 ? 'Diminuir grau' : 'Grau mínimo'}
+                >
+                  −
+                </button>
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded text-center flex-1 min-w-0 truncate ${
                   grau > 0 ? 'bg-gold/20 text-gold' : 'bg-void text-txt-dim'
                 }`}>
                   {GRAU_NAMES[grau]}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => canUpgrade && cycleGrau(pericia.name, grau)}
+                  disabled={!canUpgrade}
+                  className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${canUpgrade ? 'bg-ok/10 text-ok/70 hover:bg-ok/20 hover:text-ok' : 'bg-void border border-sep/20 text-sep/30 cursor-not-allowed'}`}
+                  title={!canUpgrade ? (grau >= maxGrau ? 'Grau máximo atingido' : 'Sem pontos disponíveis') : 'Aumentar grau'}
+                >
+                  +
+                </button>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-txt-dim">
-                  {pericia.attrs.join('/')}
-                  {pericia.attrs.length > 1 && (
-                    <span className="text-gold ml-1">({bestAttr.attr})</span>
-                  )}
-                </span>
-                <span className={`font-mono ${grau > 0 ? 'text-gold' : 'text-txt-dim'}`}>
-                  {bonus >= 0 ? '+' : ''}{bonus}
-                </span>
-              </div>
-              {grau > 0 && grau < maxGrau && canUpgrade && (
-                <div className="mt-1 text-xs text-gold/60">Clique p/ evoluir → {GRAU_NAMES[grau + 1]} (custa 1 ponto)</div>
+              {grau >= maxGrau && grau > 0 && (
+                <div className="mt-1 text-[10px] text-ok">Grau máx. atingido</div>
               )}
-              {grau >= maxGrau && (
-                <div className="mt-1 text-xs text-ok">Grau máximo atingido</div>
-              )}
-            </button>
+            </div>
           )
         })}
       </div>

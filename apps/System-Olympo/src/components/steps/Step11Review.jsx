@@ -1,25 +1,59 @@
-import { useState } from 'react'
-import { ATTR_LABELS, ATTR_ICONS, getModifier } from '../../data/attributes'
-import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction } from '../../utils/calculator'
+import { useState, useRef, useEffect } from 'react'
+import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes } from '../../utils/calculator'
 import { exportSheet } from '../../utils/exporter'
-import { WEAPONS, WEAPON_RANKS } from '../../data/weapons'
+import { ATTR_ICONS, getModifier } from '../../data/attributes'
 import { MARTIAL_ARTS } from '../../data/martialArts'
 import { PERICIAS, GRAU_NAMES, getGrauBonus } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
 import InventorySection from '../InventorySection'
+import EquipmentSection from '../EquipmentSection'
+import BalanceAnalysis from '../BalanceAnalysis'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
 
-export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade }) {
-  return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} />
+export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId }) {
+  return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} characterId={characterId} />
 }
 
-function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }) {
+function SectionHeader({ icon, title, color }) {
+  return (
+    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-sep/20">
+      <div className={`w-1.5 h-5 rounded-full ${color}`} />
+      <span className="text-txt-dim text-sm">{icon}</span>
+      <h3 className="font-cinzel text-txt-main text-sm uppercase tracking-[0.12em] font-semibold">{title}</h3>
+      <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
+    </div>
+  )
+}
+
+function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId }) {
   const sk = char.skeletonPoints || {}
   const totalAttr = (a) => (char.atributos[a] || 0) + (sk[a] || 0)
   const cls = char.classe
+
+  const extraTypes = calcExtraAbilitiesTypes(
+    char.triagemPrincipal, char.triagemPrincipalNivel,
+    char.subTriagem, char.subTriagemNivel,
+    char.atributos, sk, char.modulosAdquiridos
+  )
+  const neededAbilities = 5 + extraTypes.length
+  const allTipos = ['Passiva', 'Ativa', 'Ativa', 'Ativa', 'Ultimate', ...extraTypes]
+
+  useEffect(() => {
+    if (!update) return
+    const raw = char.habilidades || []
+    if (raw.length !== neededAbilities) {
+      const copy = [...raw]
+      while (copy.length < neededAbilities) {
+        const tipo = allTipos[copy.length] || 'Extra (Triagem)'
+        copy.push({ tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', camadaSCP: 2, ppEstimado: 0, status: 'Pendente' })
+      }
+      if (copy.length > neededAbilities) copy.length = neededAbilities
+      update({ habilidades: copy })
+    }
+  }, [neededAbilities])
 
   const derived = {
     vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel) : 0,
@@ -28,7 +62,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }
     ca: cls ? calcCA(char.atributos, sk, char.pericias) : 0,
     reacoes: calcReacoes(char.atributos, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel),
     percepcao: cls ? calcPercepcaoPassiva(char.atributos, sk, char.pericias) : 0,
-    danoBase: cls ? calcDanoBase(cls, char.atributos, sk) : '',
+    danoBase: cls ? calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel) : '',
   }
 
   const vidaNow = char.vidaOverride ?? derived.vida
@@ -37,8 +71,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }
 
   const costReduction = calcAbilityCostReduction(char.triagemPrincipal, char.triagemPrincipalNivel || 0, char.subTriagem, char.subTriagemNivel || 0)
 
-  const weapon = WEAPONS.find(w => w.id === char.arma)
-  const weaponRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
   const martialArt = MARTIAL_ARTS.find(a => a.id === char.arteMarcial)
 
   const allModules = [...MODULES_PASSIVE, ...MODULES_ACTIVE, ...MODULES_SPECIAL]
@@ -65,132 +97,170 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }
     update({ [field]: null })
   }
 
+  function handleBalanceApply(result) {
+    if (!update || !updateHabilidade) return
+    if (result._generatedConcepts) {
+      const habs = [...(char.habilidades || [])]
+      result._generatedConcepts.forEach((gc, i) => {
+        if (i < habs.length && habs[i]) {
+          habs[i] = { ...habs[i], nome: gc.nome || habs[i].nome, descricao: gc.descricao || habs[i].descricao }
+        }
+      })
+      update({ habilidades: habs })
+      return
+    }
+    if (result.habilidades) {
+      const habs = [...(char.habilidades || [])]
+      result.habilidades.forEach(h => {
+        if (h.index != null && habs[h.index]) {
+          habs[h.index] = {
+            ...habs[h.index],
+            ...(h.nome && { nome: h.nome }),
+            ...(h.descricao && { descricao: h.descricao }),
+            ...(h.custoEnergia != null && { custoEnergia: h.custoEnergia }),
+            ...(h.dano != null && { dano: h.dano }),
+            ...(h.duracao != null && { duracao: h.duracao }),
+            ...(h.camadaSCP != null && { camadaSCP: h.camadaSCP }),
+            ...(h.ppEstimado != null && { ppEstimado: h.ppEstimado }),
+            status: 'Aprovada',
+          }
+        }
+      })
+      update({ habilidades: habs })
+    }
+    if (result.armaHabilidades) {
+      const arHabs = [...(char.armaHabilidades || [])]
+      result.armaHabilidades.forEach(h => {
+        if (h.index != null && arHabs[h.index]) {
+          arHabs[h.index] = {
+            ...arHabs[h.index],
+            ...(h.nome && { nome: h.nome }),
+            ...(h.descricao && { descricao: h.descricao }),
+            ...(h.tipo && { tipo: h.tipo }),
+            ...(h.custo && { custo: h.custo }),
+          }
+        }
+      })
+      update({ armaHabilidades: arHabs })
+    }
+  }
+
   const canEdit = !!update
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex gap-2">
-          <button onClick={handleCopy} className="border border-sep text-txt-dim px-4 py-2 rounded text-sm hover:border-gold hover:text-txt-main transition-colors">
-            Copiar Texto
-          </button>
-          <button onClick={onSave} className="bg-gold text-void font-semibold px-5 py-2 rounded text-sm hover:bg-gold-light transition-colors">
-            Salvar Ficha ✓
-          </button>
-        </div>
+        <button onClick={handleCopy} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
+          Copiar Texto
+        </button>
+        <button onClick={onSave} className="bg-gold text-void font-semibold px-5 py-1.5 rounded text-xs hover:bg-gold-light transition-colors">
+          Salvar Ficha ✓
+        </button>
       </div>
 
-      <div className="bg-deep/90 backdrop-blur border border-gold/20 rounded-lg overflow-hidden shadow-lg shadow-gold/5">
-        {/* HEADER */}
-        <div className="bg-gradient-to-r from-void via-deep to-void border-b border-gold/20 px-6 py-5">
-          <div className="flex items-center gap-5">
+      <div className="bg-deep/95 backdrop-blur-sm border border-gold/15 rounded-xl overflow-hidden shadow-2xl shadow-black/40">
+        {/* ═══ HEADER ═══ */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-gold/3" />
+          <div className="relative px-6 py-5 flex items-center gap-5">
             <div className="shrink-0">
               {char.avatar ? (
-                <img src={char.avatar} alt="" className="w-20 h-20 rounded-full border-2 border-gold/50 shadow-md shadow-gold/10 object-cover" />
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-gold/20 blur-lg scale-110" />
+                  <img src={char.avatar} alt="" className="relative w-24 h-24 rounded-full border-2 border-gold/50 object-cover shadow-lg shadow-gold/10" />
+                </div>
               ) : (
-                <div className="w-20 h-20 rounded-full border-2 border-sep bg-void flex items-center justify-center"><span className="text-txt-dim text-2xl">👤</span></div>
+                <div className="w-24 h-24 rounded-full border-2 border-sep/60 bg-void flex items-center justify-center shadow-lg shadow-black/30">
+                  <span className="text-txt-dim text-3xl">👤</span>
+                </div>
               )}
             </div>
-            <div className="flex-1">
-              <h1 className="font-cinzel text-gold text-3xl leading-tight">{char.nome || 'Sem Nome'}</h1>
-              <p className="text-txt-dim text-sm mt-1">FICHA DE PERSONAGEM — SISTEMA OLYMPO 2.0</p>
-              <div className="flex gap-3 mt-2 text-xs text-txt-dim">
-                <span className="bg-gold/10 text-gold px-2 py-0.5 rounded">{cls || '—'}</span>
-                <span className="bg-panel px-2 py-0.5 rounded">Nível {char.nivel}</span>
-                <span className="bg-panel px-2 py-0.5 rounded">{char.raca || '—'}</span>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-cinzel text-gold text-2xl sm:text-3xl leading-tight truncate">{char.nome || 'Sem Nome'}</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className="bg-gold/10 text-gold text-[11px] px-2.5 py-0.5 rounded font-semibold border border-gold/20">{cls || '—'}</span>
+                <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">Nv {char.nivel || 1}</span>
+                <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{char.raca || '—'}</span>
+                {char.racaTipo && <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{char.racaTipo}</span>}
               </div>
             </div>
           </div>
+          <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
         </div>
 
-        <div className="p-5">
+        {/* ═══ BODY ═══ */}
+        <div className="p-4 sm:p-5">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
-            {/* LEFT COLUMN */}
+            {/* ═══ LEFT COLUMN ═══ */}
             <div className="lg:col-span-7 space-y-5">
 
-              {/* ATRIBUTOS */}
+              {/* ATTRIBUTES */}
               <section>
-                <h3 className="font-cinzel text-amber-400 text-sm uppercase tracking-wider mb-2 border-b border-amber-400/20 pb-1">📊 Atributos</h3>
-                <div className="grid grid-cols-6 gap-2">
+                <SectionHeader icon="📊" title="Atributos" color="bg-amber-400" />
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {['FOR','DES','CON','INT','APA','AM'].map(a => {
                     const v = totalAttr(a)
                     const m = getModifier(v)
                     return (
-                      <div key={a} className="bg-void rounded-lg border border-sep flex flex-col items-center justify-center aspect-square">
-                        <div className="text-[10px] text-txt-dim">{ATTR_ICONS[a]}</div>
-                        <div className="font-cinzel text-gold text-xs">{a}</div>
-                        <div className="font-mono text-txt-main text-xl leading-none mt-0.5">{v}</div>
-                        <div className="font-mono text-gold text-xs">({m >= 0 ? '+' : ''}{m})</div>
+                      <div key={a} className="bg-void/80 rounded-lg border border-sep/60 flex flex-col items-center justify-center py-3 px-1 hover:border-gold/30 transition-colors group">
+                        <span className="text-[11px] text-txt-dim group-hover:text-gold/60 transition-colors">{ATTR_ICONS[a]}</span>
+                        <span className="font-cinzel text-gold/70 text-[10px] mt-0.5">{a}</span>
+                        <span className="font-mono text-txt-main text-xl leading-none mt-1">{v}</span>
+                        <span className={`font-mono text-[11px] mt-0.5 ${m >= 0 ? 'text-emerald-400/80' : 'text-red-400/70'}`}>
+                          {m >= 0 ? '+' : ''}{m}
+                        </span>
                       </div>
                     )
                   })}
                 </div>
               </section>
 
-              {/* RECURSOS */}
+              {/* RESOURCES */}
               <section>
-                <h3 className="font-cinzel text-blue-400 text-sm uppercase tracking-wider mb-2 border-b border-blue-400/20 pb-1">💎 Recursos</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  <ResBox label="Vida" icon="❤" current={vidaNow} max={derived.vida} color="text-emerald-400" ring="border-emerald-400/30" canEdit={canEdit}
-                    hasOverride={char.vidaOverride !== null} onChange={v => setOverride('vidaOverride', v)} onReset={() => clearOverride('vidaOverride')} />
-                  <ResBox label="Energia" icon="⚡" current={energiaNow} max={derived.energia} color="text-sky-400" ring="border-sky-400/30" canEdit={canEdit}
-                    hasOverride={char.energiaOverride !== null} onChange={v => setOverride('energiaOverride', v)} onReset={() => clearOverride('energiaOverride')} />
-                  <ResBox label="PE" icon="✦" current={peNow} max={derived.pe} color="text-amber-400" ring="border-amber-400/30" canEdit={canEdit}
-                    hasOverride={char.peOverride !== null} onChange={v => setOverride('peOverride', v)} onReset={() => clearOverride('peOverride')} />
+                <SectionHeader icon="💎" title="Recursos" color="bg-emerald-400" />
+                <div className="grid grid-cols-3 gap-2.5">
+                  <ResBox label="Vida" icon="❤" current={vidaNow} max={derived.vida}
+                    gradientFrom="from-emerald-500" gradientTo="to-emerald-400"
+                    textColor="text-emerald-400" barBg="bg-emerald-500/80"
+                    canEdit={canEdit} hasOverride={char.vidaOverride !== null}
+                    onChange={v => setOverride('vidaOverride', v)} onReset={() => clearOverride('vidaOverride')} />
+                  <ResBox label="Energia" icon="⚡" current={energiaNow} max={derived.energia}
+                    gradientFrom="from-sky-500" gradientTo="to-sky-400"
+                    textColor="text-sky-400" barBg="bg-sky-500/80"
+                    canEdit={canEdit} hasOverride={char.energiaOverride !== null}
+                    onChange={v => setOverride('energiaOverride', v)} onReset={() => clearOverride('energiaOverride')} />
+                  <ResBox label="PE" icon="✦" current={peNow} max={derived.pe}
+                    gradientFrom="from-amber-500" gradientTo="to-amber-400"
+                    textColor="text-amber-400" barBg="bg-amber-500/80"
+                    canEdit={canEdit} hasOverride={char.peOverride !== null}
+                    onChange={v => setOverride('peOverride', v)} onReset={() => clearOverride('peOverride')} />
                 </div>
               </section>
 
-              {/* COMBATE */}
-              <section className="bg-void border border-red-400/20 rounded-lg p-4">
-                <h3 className="font-cinzel text-red-400 text-sm uppercase tracking-wider mb-3 flex items-center gap-2">⚔ Combate</h3>
-                <div className="grid grid-cols-4 gap-3 text-center">
-                  <div>
-                    <div className="text-txt-dim text-xs mb-1">CA</div>
-                    <div className="font-mono text-2xl text-txt-main">{derived.ca}</div>
-                  </div>
-                  <div>
-                    <div className="text-txt-dim text-xs mb-1">Reações</div>
-                    <div className="font-mono text-2xl text-txt-main">{derived.reacoes}</div>
-                  </div>
-                  <div>
-                    <div className="text-txt-dim text-xs mb-1">Percepção</div>
-                    <div className="font-mono text-2xl text-txt-main">{derived.percepcao}</div>
-                  </div>
-                  <div>
-                    <div className="text-txt-dim text-xs mb-1">Dano Base</div>
-                    <div className="font-mono text-xl text-gold">{derived.danoBase}</div>
-                  </div>
+              {/* COMBAT */}
+              <section className="bg-void/60 border border-red-400/15 rounded-lg p-4">
+                <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
+                <div className="grid grid-cols-4 gap-3">
+                  <CombatStat label="CA" value={derived.ca} />
+                  <CombatStat label="Reações" value={derived.reacoes} />
+                  <CombatStat label="Percepção" value={derived.percepcao} />
+                  <CombatStat label="Dano Base" value={derived.danoBase} isGold />
                 </div>
               </section>
-
-              {/* ARMA E ARTE MARCIAL */}
-              <section>
-                <h3 className="font-cinzel text-orange-400 text-sm uppercase tracking-wider mb-2 border-b border-orange-400/20 pb-1">🗡 Arma e Arte Marcial</h3>
-                <div className="grid grid-cols-2 gap-x-6">
-                  <F label="Arma" value={weapon ? `${weapon.name} (${weaponRank.rank})` : 'Nenhuma'} />
-                  <F label="Dano" value={weapon ? `${weapon.dano} ${weaponRank.danoBonus ? '+ ' + weaponRank.danoBonus : ''}` : '—'} />
-                  <F label="Arte Marcial" value={martialArt ? martialArt.name : 'Nenhuma'} />
-                  {martialArt && <F label="Grau" value={martialArt.graus[char.arteMarcialGrau || 0]?.nome || 'Novato'} />}
-                </div>
-              </section>
-            </div>
-
-            {/* RIGHT COLUMN */}
-            <div className="lg:col-span-5 space-y-5">
 
               {/* PERÍCIAS */}
               <section>
-                <h3 className="font-cinzel text-cyan-400 text-sm uppercase tracking-wider mb-2 border-b border-cyan-400/20 pb-1">📜 Perícias Treinadas</h3>
+                <SectionHeader icon="📜" title="Perícias Treinadas" color="bg-cyan-400" />
                 {periciasArr.length > 0 ? (
-                  <div className="overflow-hidden rounded border border-sep">
-                    <table className="w-full text-xs">
+                  <div className="overflow-hidden rounded-lg border border-sep/60">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-void text-txt-dim">
-                          <th className="text-left px-2 py-1.5 font-body">Perícia</th>
-                          <th className="text-center px-2 py-1.5 font-body w-12">Atr.</th>
-                          <th className="text-center px-2 py-1.5 font-body w-24">Grau</th>
-                          <th className="text-center px-2 py-1.5 font-body w-12">Bônus</th>
+                        <tr className="bg-void/80">
+                          <th className="text-left px-3 py-2 text-txt-dim font-body font-normal">Perícia</th>
+                          <th className="text-center px-2 py-2 text-txt-dim font-body font-normal w-16">Atr.</th>
+                          <th className="text-center px-2 py-2 text-txt-dim font-body font-normal w-28">Grau</th>
+                          <th className="text-center px-2 py-2 text-txt-dim font-body font-normal w-16">Bônus</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -199,11 +269,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }
                           const bestAttr = pDef ? pDef.attrs.map(a => ({ a, v: totalAttr(a) })).reduce((a, b) => a.v >= b.v ? a : b).a : '—'
                           const bonus = pDef ? Math.max(...pDef.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau) : grau * 5
                           return (
-                            <tr key={name} className="border-t border-sep/50 hover:bg-void/50">
-                              <td className="px-2 py-1.5 text-txt-main">{name}</td>
-                              <td className="px-2 py-1.5 text-center text-gold font-mono">{bestAttr}</td>
-                              <td className="px-2 py-1.5 text-center text-txt-dim">{GRAU_NAMES[grau] || grau}</td>
-                              <td className="px-2 py-1.5 text-center font-mono text-cyan-400">{bonus >= 0 ? '+' : ''}{bonus}</td>
+                            <tr key={name} className="border-t border-sep/30 hover:bg-void/40 transition-colors">
+                              <td className="px-3 py-2 text-txt-main">{name}</td>
+                              <td className="px-2 py-2 text-center text-gold/80 font-mono text-xs">{bestAttr}</td>
+                              <td className="px-2 py-2 text-center text-txt-dim text-xs">{GRAU_NAMES[grau] || grau}</td>
+                              <td className="px-2 py-2 text-center font-mono text-cyan-400">{bonus >= 0 ? '+' : ''}{bonus}</td>
                             </tr>
                           )
                         })}
@@ -211,65 +281,130 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }
                     </table>
                   </div>
                 ) : (
-                  <p className="text-txt-dim text-sm">Nenhuma perícia treinada</p>
+                  <p className="text-txt-dim/60 text-xs italic">Nenhuma perícia treinada</p>
                 )}
               </section>
 
               {/* TRIAGENS */}
               <section>
-                <h3 className="font-cinzel text-purple-400 text-sm uppercase tracking-wider mb-2 border-b border-purple-400/20 pb-1">★ Triagens</h3>
+                <SectionHeader icon="★" title="Triagens" color="bg-purple-400" />
                 <TriagemSection char={char} cls={cls} />
+              </section>
+
+              {/* ARMAS & EQUIPAMENTOS */}
+              <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onDrawerToggle={() => {}} />
+            </div>
+
+            {/* ═══ RIGHT COLUMN ═══ */}
+            <div className="lg:col-span-5 space-y-5">
+
+              {/* ARTE MARCIAL */}
+              <section>
+                <SectionHeader icon="👊" title="Arte Marcial" color="bg-orange-400" />
+                {martialArt ? (
+                  <div className="bg-void/50 border border-sep/40 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-txt-main text-sm font-semibold">{martialArt.name}</span>
+                      <span className="text-[10px] bg-orange-400/10 text-orange-400 px-2 py-0.5 rounded border border-orange-400/20">
+                        {martialArt.graus[char.arteMarcialGrau || 0]?.nome || 'Novato'}
+                      </span>
+                    </div>
+                    {martialArt.desc && <p className="text-txt-dim/60 text-[10px] mt-1">{martialArt.desc}</p>}
+                  </div>
+                ) : (
+                  <p className="text-txt-dim/50 text-[11px] italic">Nenhuma arte marcial</p>
+                )}
               </section>
 
               {/* MÓDULOS */}
               <section>
-                <h3 className="font-cinzel text-yellow-400 text-sm uppercase tracking-wider mb-2 border-b border-yellow-400/20 pb-1">⚙ Módulos</h3>
+                <SectionHeader icon="⚙" title="Módulos de Evolução" color="bg-yellow-400" />
                 {acquiredModules.length > 0 ? (
-                  <div className="space-y-1">
-                    {acquiredModules.map((m, i) => (
-                      <div key={i} className="bg-void border border-sep rounded px-3 py-1.5 text-xs flex items-center gap-2">
-                        <span className="text-txt-main font-semibold">{m.name}</span>
-                        {(m.boughtCount || 1) > 1 && <span className="text-gold font-mono">×{m.boughtCount}</span>}
-                        <span className="text-txt-dim ml-auto truncate">{m.desc}</span>
-                      </div>
-                    ))}
+                  <div className="space-y-1.5">
+                    {acquiredModules.map((m, i) => {
+                      const isPassive = !m.pe
+                      const isSpecial = MODULES_SPECIAL.some(s => s.id === m.id)
+                      return (
+                        <div key={i} className="bg-void/50 border border-sep/40 rounded-lg px-3 py-2.5 hover:border-gold/20 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${isSpecial ? 'bg-purple-400/10 text-purple-400 border border-purple-400/20' : isPassive ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' : 'bg-sky-400/10 text-sky-400 border border-sky-400/20'}`}>
+                              {isSpecial ? 'ESP' : isPassive ? 'PSV' : 'ATV'}
+                            </span>
+                            <span className="text-txt-main text-sm font-semibold">{m.name}</span>
+                            {(m.boughtCount || 1) > 1 && (
+                              <span className="text-gold font-mono text-xs bg-gold/10 px-1 rounded">×{m.boughtCount}</span>
+                            )}
+                          </div>
+                          <p className="text-txt-dim text-xs mt-1 leading-relaxed">{m.desc}</p>
+                        </div>
+                      )
+                    })}
                   </div>
                 ) : (
-                  <p className="text-txt-dim text-sm">Nenhum módulo</p>
+                  <p className="text-txt-dim/60 text-xs italic">Nenhum módulo adquirido</p>
                 )}
               </section>
 
+              {/* BALANCE ANALYSIS */}
+              <BalanceAnalysis char={char} onApply={handleBalanceApply} characterId={characterId} />
+
               {/* HABILIDADES */}
               <section>
-                <h3 className="font-cinzel text-indigo-400 text-sm uppercase tracking-wider mb-2 border-b border-indigo-400/20 pb-1">✦ Habilidades</h3>
+                <SectionHeader icon="✦" title="Habilidades" color="bg-indigo-400" />
                 {costReduction > 0 && (
-                  <div className="mb-2 bg-blue-500/10 border border-blue-500/30 rounded p-2 text-xs text-blue-400">
+                  <div className="mb-2 bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 text-[11px] text-blue-400/80 flex items-center gap-1.5">
+                    <span className="text-blue-400">★</span>
                     Suporte: −{Math.round(costReduction * 100)}% custo de Buffs
                   </div>
                 )}
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {(char.habilidades || []).map((h, i) => (
                     <HabilidadeCard key={i} h={h} i={i} canEdit={canEdit} updateHabilidade={updateHabilidade} />
                   ))}
                 </div>
               </section>
 
-              {/* NOTAS */}
-              <section>
-                <h3 className="font-cinzel text-txt-main text-sm uppercase tracking-wider mb-2 border-b border-txt-main/20 pb-1">📝 Notas</h3>
-                {canEdit ? (
-                  <textarea value={char.notas || ''} onChange={e => update({ notas: e.target.value })} placeholder="Notas..." rows={2}
-                    className="w-full bg-void border border-sep rounded px-3 py-2 text-sm text-txt-main resize-none" />
-                ) : (
-                  <p className="text-txt-main text-sm whitespace-pre-wrap">{char.notas || '—'}</p>
-                )}
-              </section>
-
+              {/* INVENTÁRIO */}
               <InventorySection
                 items={char.inventario || []}
                 canEdit={canEdit}
                 onUpdate={(items) => update({ inventario: items })}
+                onDrawerToggle={() => {}}
               />
+
+              {/* NOTAS */}
+              <section>
+                <SectionHeader icon="📝" title="Notas" color="bg-gray-400" />
+                {canEdit ? (
+                  <textarea value={char.notas || ''} onChange={e => update({ notas: e.target.value })} placeholder="Anotações do jogador..."
+                    rows={3}
+                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors placeholder:text-txt-dim/40" />
+                ) : (
+                  <p className="text-txt-main/80 text-xs whitespace-pre-wrap leading-relaxed">{char.notas || '—'}</p>
+                )}
+              </section>
+
+              {/* RESERVED — FUTURE SECTIONS */}
+              <section>
+                <SectionHeader icon="🔮" title="Em Desenvolvimento" color="bg-gold/60" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { icon: '✨', name: 'Feitiços', desc: 'Magias e encantamentos' },
+                    { icon: '🧪', name: 'Rituais', desc: 'Rituais de Alquimia' },
+                    { icon: '⚡', name: 'Condições', desc: 'Condições Especiais' },
+                    { icon: '🛡', name: 'Equipamentos', desc: 'Armaduras e itens' },
+                    { icon: '💎', name: 'Runas', desc: 'Runas e encantamentos' },
+                  ].map(s => (
+                    <div key={s.name} className="bg-void/30 border border-sep/20 rounded-lg p-2.5 opacity-50 hover:opacity-70 transition-opacity">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-sm">{s.icon}</span>
+                        <span className="text-txt-dim text-[11px] font-semibold">{s.name}</span>
+                      </div>
+                      <p className="text-txt-dim/50 text-[9px]">{s.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
 
           </div>
@@ -277,96 +412,171 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade }
       </div>
 
       <div className="flex justify-center gap-3 pb-4">
-        <button onClick={onNew} className="border border-gold text-gold px-5 py-2 rounded text-sm hover:bg-gold hover:text-void transition-colors">Novo Personagem</button>
-        <button onClick={onSave} className="bg-gold text-void font-semibold px-6 py-2 rounded text-sm hover:bg-gold-light transition-colors">Salvar e Ir para Biblioteca</button>
+        <button onClick={onNew} className="border border-gold/50 text-gold px-5 py-2 rounded-lg text-xs hover:bg-gold hover:text-void transition-colors font-semibold">
+          Novo Personagem
+        </button>
+        <button onClick={onSave} className="bg-gold text-void font-semibold px-6 py-2 rounded-lg text-xs hover:bg-gold-light transition-colors">
+          Salvar e Ir para Biblioteca
+        </button>
       </div>
     </div>
   )
 }
 
-function ResBox({ label, icon, current, max, color, ring, canEdit, hasOverride, onChange, onReset }) {
+function ResBox({ label, icon, current, max, textColor, barBg, canEdit, hasOverride, onChange, onReset }) {
   const pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0
-  const barColor = label === 'Vida' ? 'bg-emerald-400' : label === 'Energia' ? 'bg-sky-400' : 'bg-amber-400'
   return (
-    <div className={`bg-void border ${ring} rounded-lg p-3`}>
-      <div className="flex items-center gap-1 mb-1">
-        <span className="text-txt-dim text-xs">{icon}</span>
-        <span className="text-txt-dim text-xs font-semibold">{label}</span>
-        {hasOverride && <span className="text-[10px] text-gold bg-gold/10 px-1 rounded ml-auto">✎</span>}
+    <div className="bg-void/60 border border-sep/40 rounded-lg p-3 hover:border-sep/70 transition-colors">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="text-[11px]">{icon}</span>
+        <span className="text-txt-dim text-[11px] font-semibold uppercase tracking-wider">{label}</span>
+        {hasOverride && <span className="text-[9px] text-gold/70 ml-auto">✎ editado</span>}
       </div>
       {canEdit ? (
         <div className="flex items-baseline gap-1">
           <input type="number" value={current} onChange={e => onChange(e.target.value)}
-            className={`font-mono text-xl bg-transparent border-b border-sep w-16 text-right outline-none focus:border-gold ${color}`} />
-          <span className="text-txt-dim text-sm font-mono">/ {max}</span>
+            className={`font-mono text-lg bg-transparent border-b border-sep/50 w-14 text-right outline-none focus:border-gold/50 transition-colors ${textColor}`} />
+          <span className="text-txt-dim/50 text-[11px] font-mono">/ {max}</span>
           {hasOverride && (
-            <button onClick={onReset} className="ml-auto text-[10px] text-gold border border-gold/30 px-1 rounded hover:bg-gold/10">↺</button>
+            <button onClick={onReset} className="ml-auto text-[9px] text-gold/50 border border-gold/20 px-1 rounded hover:text-gold hover:border-gold/40 transition-colors">↺</button>
           )}
         </div>
       ) : (
         <div className="flex items-baseline gap-1">
-          <span className={`font-mono text-xl ${color}`}>{current}</span>
-          {current !== max && <span className="text-txt-dim text-sm font-mono">/ {max}</span>}
+          <span className={`font-mono text-lg ${textColor}`}>{current}</span>
+          {current !== max && <span className="text-txt-dim/50 text-[11px] font-mono">/ {max}</span>}
         </div>
       )}
-      <div className="h-1.5 bg-deep rounded-full mt-2 overflow-hidden">
-        <div className={`h-full ${barColor} rounded-full transition-all duration-300`} style={{ width: `${pct}%` }} />
+      <div className="h-1 bg-deep rounded-full mt-2 overflow-hidden">
+        <div className={`h-full ${barBg} rounded-full transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
       </div>
     </div>
+  )
+}
+
+function CombatStat({ label, value, isGold }) {
+  return (
+    <div className="text-center">
+      <div className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1">{label}</div>
+      <div className={`font-mono text-xl leading-none ${isGold ? 'text-gold' : 'text-txt-main'}`}>{value}</div>
+    </div>
+  )
+}
+
+function FieldRow({ label, value }) {
+  return (
+    <div className="flex justify-between items-center px-3 py-1.5">
+      <span className="text-txt-dim/70 text-[11px]">{label}</span>
+      <span className="text-txt-main text-[11px] font-mono">{value || '—'}</span>
+    </div>
+  )
+}
+
+function AutoResizeTextarea({ value, onChange, placeholder, className }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = 'auto'
+      ref.current.style.height = ref.current.scrollHeight + 'px'
+    }
+  }, [value])
+  return (
+    <textarea ref={ref} value={value} onChange={onChange} placeholder={placeholder}
+      className={className} />
   )
 }
 
 function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
   const [open, setOpen] = useState(false)
-  const borderClass = h.tipo === 'Ultimate' ? 'border-gold/40' : h.tipo === 'Passiva' ? 'border-emerald-400/30' : h.tipo === 'Extra (Triagem)' ? 'border-purple-400/30' : 'border-indigo-400/20'
-  const bgClass = h.tipo === 'Ultimate' ? 'bg-gold/5' : h.tipo === 'Passiva' ? 'bg-emerald-400/5' : h.tipo === 'Extra (Triagem)' ? 'bg-purple-500/5' : 'bg-indigo-400/5'
+
+  const typeStyle = h.tipo === 'Ultimate'
+    ? { border: 'border-gold/30', bg: 'bg-gold/3', badge: 'bg-gold/15 text-gold border-gold/20', icon: '★' }
+    : h.tipo === 'Passiva'
+    ? { border: 'border-emerald-400/20', bg: 'bg-emerald-400/3', badge: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20', icon: 'P' }
+    : h.tipo === 'Extra (Triagem)'
+    ? { border: 'border-purple-400/20', bg: 'bg-purple-400/3', badge: 'bg-purple-400/10 text-purple-400 border-purple-400/20', icon: 'T' }
+    : h.tipo === 'Extra (Módulo)'
+    ? { border: 'border-sky-400/20', bg: 'bg-sky-400/3', badge: 'bg-sky-400/10 text-sky-400 border-sky-400/20', icon: 'M' }
+    : { border: 'border-indigo-400/15', bg: 'bg-indigo-400/2', badge: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20', icon: `#${i}` }
 
   return (
-    <div className={`rounded border ${borderClass} ${bgClass}`}>
-      <button type="button" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-3 py-2 text-left">
+    <div className={`rounded-lg border ${typeStyle.border} ${typeStyle.bg}`}>
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-white/[0.02] transition-colors">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${h.tipo === 'Ultimate' ? 'bg-gold/20 text-gold' : h.tipo === 'Passiva' ? 'bg-emerald-400/20 text-emerald-400' : h.tipo === 'Extra (Triagem)' ? 'bg-purple-400/20 text-purple-400' : 'bg-indigo-400/20 text-indigo-400'}`}>
-            {h.tipo === 'Ultimate' ? '★' : h.tipo === 'Passiva' ? 'P' : h.tipo === 'Extra (Triagem)' ? 'E' : h.tipo === 'Ativa' ? `#${i}` : h.tipo}
+          <span className={`text-xs font-bold px-2 py-0.5 rounded border ${typeStyle.badge}`}>
+            {typeStyle.icon}
           </span>
-          <span className="text-txt-main text-xs font-semibold truncate">{h.nome || '—'}</span>
+          <span className="text-txt-main text-sm font-semibold truncate">{h.nome || '—'}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[10px] ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
-          <span className="text-txt-dim text-[10px]">{open ? '▲' : '▼'}</span>
+          <span className={`text-xs ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
+          <span className="text-txt-dim/40 text-sm">{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {open && (
-        <div className="px-3 pb-3 space-y-2 border-t border-sep/30">
+        <div className="px-4 pb-4 space-y-3 border-t border-sep/20">
           {!canEdit ? (
             <>
-              <p className="text-txt-dim text-xs pt-2">{h.descricao || 'Sem descrição'}</p>
-              <div className="flex flex-wrap gap-3 text-[10px] font-mono">
-                {h.custoEnergia > 0 && <span className="text-sky-400">⚡{h.custoEnergia}</span>}
-                {h.dano && <span className="text-red-400">⚔{h.dano}</span>}
-                {h.duracao && <span className="text-txt-dim">⏱{h.duracao}</span>}
-                <span className="text-amber-400">SCP:{h.camadaSCP}</span>
-                <span className="text-purple-400">PP:{h.ppEstimado}</span>
+              <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+              <div className="flex flex-wrap gap-3 text-sm font-mono">
+                {h.custoEnergia > 0 && (
+                  <span className="bg-sky-500/10 text-sky-400 px-2.5 py-1 rounded border border-sky-500/20">
+                    Energia: {h.custoEnergia}
+                  </span>
+                )}
+                {h.dano && (
+                  <span className="bg-red-500/10 text-red-400 px-2.5 py-1 rounded border border-red-500/20">
+                    Dano: {h.dano}
+                  </span>
+                )}
+                {h.duracao && (
+                  <span className="bg-amber-500/10 text-amber-400 px-2.5 py-1 rounded border border-amber-500/20">
+                    Duração: {h.duracao}
+                  </span>
+                )}
+                <span className="bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded border border-purple-500/20">
+                  SCP: {h.camadaSCP || 2}
+                </span>
+                <span className="bg-gold/10 text-gold px-2.5 py-1 rounded border border-gold/20">
+                  PP: {h.ppEstimado || 0}
+                </span>
               </div>
             </>
           ) : (
             <>
-              <div className="pt-2">
+              <div className="pt-3">
                 <select value={h.status} onChange={e => updateHabilidade(i, { status: e.target.value })}
-                  className={`text-[10px] bg-void border border-sep rounded px-1.5 py-0.5 mb-2 ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>
+                  className={`text-xs bg-void border border-sep/50 rounded px-2 py-1 mb-3 ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <input type="text" value={h.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })} placeholder="Nome"
-                  className="w-full bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main mb-1" />
-                <textarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })} placeholder="Descrição..." rows={2}
-                  className="w-full bg-void border border-sep rounded px-2 py-1 text-[11px] text-txt-main resize-none" />
+                  className="w-full bg-void border border-sep/50 rounded px-3 py-2 text-sm text-txt-main mb-2 focus:border-gold/40 focus:outline-none transition-colors" />
+                <AutoResizeTextarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })} placeholder="Descrição..."
+                  className="w-full bg-void border border-sep/50 rounded px-3 py-2 text-sm text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors leading-relaxed overflow-hidden" />
               </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                <div><label className="text-txt-dim text-[9px]">Energia</label><input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep rounded px-1.5 py-0.5 text-[11px] text-txt-main font-mono" /></div>
-                <div><label className="text-txt-dim text-[9px]">Dano</label><input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })} className="w-full bg-void border border-sep rounded px-1.5 py-0.5 text-[11px] text-txt-main font-mono" /></div>
-                <div><label className="text-txt-dim text-[9px]">Duração</label><input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })} className="w-full bg-void border border-sep rounded px-1.5 py-0.5 text-[11px] text-txt-main" /></div>
-                <div><label className="text-txt-dim text-[9px]">SCP</label><select value={h.camadaSCP || 2} onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })} className="w-full bg-void border border-sep rounded px-1.5 py-0.5 text-[11px] text-txt-main"><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select></div>
-                <div><label className="text-txt-dim text-[9px]">PP</label><input type="number" value={h.ppEstimado || 0} onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep rounded px-1.5 py-0.5 text-[11px] text-txt-main font-mono" /></div>
+              <div className="grid grid-cols-5 gap-2">
+                <div>
+                  <label className="text-sky-400 text-xs font-semibold block mb-1">Energia</label>
+                  <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-red-400 text-xs font-semibold block mb-1">Dano</label>
+                  <input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-amber-400 text-xs font-semibold block mb-1">Duração</label>
+                  <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-purple-400 text-xs font-semibold block mb-1">SCP</label>
+                  <select value={h.camadaSCP || 2} onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none"><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select>
+                </div>
+                <div>
+                  <label className="text-gold text-xs font-semibold block mb-1">PP</label>
+                  <input type="number" value={h.ppEstimado || 0} onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
+                </div>
               </div>
             </>
           )}
@@ -396,40 +606,50 @@ function TriagemSection({ char, cls }) {
   const subData = getTriagemData(subClass, subKey)
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {principalData && principalNv >= 0.1 ? (
         <div>
-          <div className="text-gold text-xs font-semibold mb-1">{principalData.name} <span className="text-txt-dim font-body font-normal">Nv {principalNv}</span></div>
-          <div className="space-y-0.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-gold text-[11px] font-semibold">{principalData.name}</span>
+            <span className="text-[9px] bg-gold/10 text-gold/80 px-1.5 py-0.5 rounded border border-gold/15">Nv {principalNv}</span>
+          </div>
+          <div className="space-y-1">
             {principalLevels.filter(l => l <= principalNv).map(lvl => {
               const desc = principalData.levels[lvl]
               if (!desc) return null
-              return <div key={lvl} className="bg-void border border-sep/50 rounded px-2 py-1 text-[11px] flex gap-1.5"><span className="font-mono text-gold w-6 shrink-0">{lvl}</span><span className="text-txt-main">{desc}</span></div>
+              return (
+                <div key={lvl} className="bg-void/40 border border-sep/30 rounded-lg px-2.5 py-1.5 text-[11px] flex gap-2">
+                  <span className="font-mono text-gold/60 w-5 shrink-0 text-[10px]">{lvl}</span>
+                  <span className="text-txt-dim leading-relaxed">{desc}</span>
+                </div>
+              )
             })}
           </div>
         </div>
-      ) : <p className="text-txt-dim text-xs">Nenhuma triagem principal</p>}
+      ) : (
+        <p className="text-txt-dim/50 text-[11px] italic">Nenhuma triagem principal</p>
+      )}
       {subData && subNv >= 0.1 && (
-        <div className="border-t border-sep/50 pt-2">
-          <div className="text-warn text-xs font-semibold mb-1">{subData.name} <span className="text-txt-dim font-body font-normal">Nv {subNv} ({subClass})</span></div>
-          <div className="space-y-0.5">
+        <div className="border-t border-sep/30 pt-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-warn text-[11px] font-semibold">{subData.name}</span>
+            <span className="text-[9px] bg-warn/10 text-warn/80 px-1.5 py-0.5 rounded border border-warn/15">Nv {subNv}</span>
+            <span className="text-[9px] text-txt-dim/50">({subClass})</span>
+          </div>
+          <div className="space-y-1">
             {subLevels.filter(l => l <= subNv).map(lvl => {
               const desc = subData.levels[lvl]
               if (!desc) return null
-              return <div key={lvl} className="bg-void border border-sep/50 rounded px-2 py-1 text-[11px] flex gap-1.5"><span className="font-mono text-warn w-6 shrink-0">{lvl}</span><span className="text-txt-main">{desc}</span></div>
+              return (
+                <div key={lvl} className="bg-void/40 border border-sep/30 rounded-lg px-2.5 py-1.5 text-[11px] flex gap-2">
+                  <span className="font-mono text-warn/60 w-5 shrink-0 text-[10px]">{lvl}</span>
+                  <span className="text-txt-dim leading-relaxed">{desc}</span>
+                </div>
+              )
             })}
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function F({ label, value }) {
-  return (
-    <div className="flex justify-between py-0.5 text-sm">
-      <span className="text-txt-dim">{label}</span>
-      <span className="text-txt-main font-mono">{value || '—'}</span>
     </div>
   )
 }

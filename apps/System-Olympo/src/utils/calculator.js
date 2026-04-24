@@ -15,8 +15,8 @@ function getAttrValue(attrs, attr, skeletonPoints) {
 
 function getProgressionRewards(classe, nivel, choices) {
   const prog = PROGRESSION[classe]
-  if (!prog) return { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0 }
-  let total = { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0 }
+  if (!prog) return { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0, peh: 0 }
+  let total = { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0, peh: 0 }
   for (let n = 1; n <= nivel; n++) {
     const entry = prog[n]
     if (!entry) continue
@@ -49,6 +49,7 @@ function applyReward(total, r) {
     case 'pericias_treinadas': total.pericias += r.value; break
     case 'triagem_principal': total.triagemPrincipal = Math.max(total.triagemPrincipal, r.value); break
     case 'sub_triagem': total.subTriagem = Math.max(total.subTriagem, r.value); break
+    case 'peh': total.peh += r.value; break
   }
 }
 
@@ -59,18 +60,37 @@ function getTankBonus(triagemPrincipal, triagemPrincipalNivel, nivel) {
   return 0
 }
 
-function getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
-  let extra = 0
+function buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
+  const types = []
   const modInt = getModifier(getAttrValue(attrs, 'INT', skeletonPoints))
-  if (triagemPrincipal === 'INTUITIVO' && triagemPrincipalNivel >= 0.6) extra += 1
-  if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.2) extra += Math.floor(modInt / 3)
-  if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.5) extra += Math.floor(modInt / 3)
-  if (subTriagem === 'INTUITIVO' && subTriagemNivel >= 0.6) extra += 1
-  if (subTriagem === 'GRADUADO' && subTriagemNivel >= 0.2) extra += Math.floor(modInt / 3)
-  if (subTriagem === 'GRADUADO' && subTriagemNivel >= 0.5) extra += Math.floor(modInt / 3)
+  if (triagemPrincipal === 'INTUITIVO' && triagemPrincipalNivel >= 0.6) types.push('Passiva')
+  if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.2) {
+    const n = Math.floor(modInt / 3)
+    for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
+  }
+  if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.5) {
+    const n = Math.floor(modInt / 3)
+    for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
+  }
+  if (subTriagem === 'INTUITIVO' && subTriagemNivel >= 0.6) types.push('Passiva')
+  if (subTriagem === 'GRADUADO' && subTriagemNivel >= 0.2) {
+    const n = Math.floor(modInt / 3)
+    for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
+  }
+  if (subTriagem === 'GRADUADO' && subTriagemNivel >= 0.5) {
+    const n = Math.floor(modInt / 3)
+    for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
+  }
   const ca = (modulosAdquiridos || []).find(m => m.id === 'conhecimento_amplificado')
-  if (ca) extra += (ca.boughtCount || 1)
-  return extra
+  if (ca) {
+    const n = ca.boughtCount || 1
+    for (let i = 0; i < n; i++) types.push('Extra (Módulo)')
+  }
+  return types
+}
+
+function getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
+  return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos).length
 }
 
 export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel) {
@@ -145,12 +165,20 @@ export function calcPercepcaoPassiva(attrs, skeletonPoints, pericias) {
   return 10 + treino + modINT
 }
 
-export function calcDanoBase(classe, attrs, skeletonPoints) {
+export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, subTriagemNivel, triagemPrincipal, triagemPrincipalNivel) {
   const def = getClassDef(classe)
   if (!def) return ''
   const modAttr = getAttrValue(attrs, def.danoBaseMod, skeletonPoints)
   const mod = getModifier(modAttr)
-  return `${def.danoBase} ${mod >= 0 ? '+' : ''}${mod}`
+  let base = `${def.danoBase} ${mod >= 0 ? '+' : ''}${mod}`
+  const n = nivel || 1
+  const tp = triagemPrincipal || ''; const tn = triagemPrincipalNivel || 0
+  const st = subTriagem || '';       const sn = subTriagemNivel || 0
+  if ((tp === 'COMBATE' && tn >= 0.2) || (st === 'COMBATE' && sn >= 0.2)) {
+    const bonus = Math.floor(n / 10)
+    if (bonus > 0) base += ` +${bonus}d6+${bonus * 5}`
+  }
+  return base
 }
 
 export function calcSkeletonPointsAvailable(classe, nivel, choices) {
@@ -189,11 +217,24 @@ export function calcExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subT
   return getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos)
 }
 
+export function calcExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
+  return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos)
+}
+
 export function calcAbilityCostReduction(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel) {
   let reduction = 0
   if (triagemPrincipal === 'SUPORTE' && triagemPrincipalNivel >= 0.1) reduction = Math.max(reduction, 0.30)
   if (subTriagem === 'SUPORTE' && subTriagemNivel >= 0.1) reduction = Math.max(reduction, 0.30)
   return reduction
+}
+
+export function calcPEHTotal(classe, nivel, choices, modulosAdquiridos) {
+  const prog = getProgressionRewards(classe, nivel, choices)
+  let total = prog.peh || 0
+  // Aumento de Poder: cada compra concede 1 PEH adicional (representa o slot de evolução grant)
+  const aumentoPoder = (modulosAdquiridos || []).find(m => m.id === 'aumento_poder')
+  if (aumentoPoder) total += (aumentoPoder.boughtCount || 1)
+  return total
 }
 
 export { getProgressionRewards, getClassDef, getAttrValue }

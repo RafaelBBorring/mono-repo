@@ -29,7 +29,7 @@ export default function Step3Class({ char, update }) {
       vida: calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices),
       energia: calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices),
       pe: calcPeTotal(cls, char.nivel, char.choices),
-      dano: calcDanoBase(cls, char.atributos, sk),
+      dano: calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel),
     }
   }
 

@@ -11,7 +11,7 @@ import { useState } from 'react'
 const sections = [
   'Atributos', 'Classes', 'Progressão', 'Perícias',
   'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
-  'Armas', 'Ranks de Arma', 'Artes Marciais', 'Criação de Personagem',
+  'Armas', 'Ranks de Arma', 'Artes Marciais', 'Criação de Personagem', 'Balanceamento',
 ]
 
 export default function ReferencePage() {
@@ -41,6 +41,7 @@ export default function ReferencePage() {
         {section === 'Ranks de Arma' && <RanksSection />}
         {section === 'Artes Marciais' && <MartialArtsSection />}
         {section === 'Criação de Personagem' && <CreationGuideSection />}
+        {section === 'Balanceamento' && <BalanceProtocolSection />}
       </div>
     </div>
   )
@@ -108,43 +109,140 @@ function AttributesSection() {
   )
 }
 
+const CLASS_META = {
+  GUERREIRO: { border: 'border-red-500/40', bg: 'bg-red-500/5', title: 'text-red-400', stat: 'text-red-300', vida: '100+(CON×5)', vidaN: '8+Mod.CON', energia: '25+(AM×2)', energiaN: '2+Mod.AM', icon: '⚔️' },
+  OPERATIVO:  { border: 'border-sky-500/40', bg: 'bg-sky-500/5', title: 'text-sky-400', stat: 'text-sky-300', vida: '70+(CON×5)', vidaN: '6+Mod.CON', energia: '35+(AM×2)', energiaN: '4+Mod.AM', icon: '🎯' },
+  MISTICO:    { border: 'border-purple-500/40', bg: 'bg-purple-500/5', title: 'text-purple-400', stat: 'text-purple-300', vida: '50+(CON×5)', vidaN: '4+Mod.CON', energia: '50+(AM×2)', energiaN: '6+Mod.AM', icon: '✨' },
+}
+
+function StatRow({ label, value, color = 'text-txt-main' }) {
+  return (
+    <div className="flex justify-between items-center py-1 border-b border-sep/20 last:border-0">
+      <span className="text-txt-dim text-xs">{label}</span>
+      <span className={`font-mono text-xs font-medium ${color}`}>{value}</span>
+    </div>
+  )
+}
+
 function ClassesSection() {
   return (
-    <div>
+    <div className="space-y-6">
       <SectionTitle>Classes</SectionTitle>
       <div className="grid gap-4 md:grid-cols-3">
-        {Object.entries(CLASSES).map(([key, cls]) => (
-          <div key={key} className="bg-void rounded-lg p-4 border border-sep">
-            <h3 className="text-gold font-cinzel text-xl mb-1">{cls.name}</h3>
-            <p className="text-txt-dim text-sm mb-3">{cls.desc}</p>
-            <div className="space-y-1 text-sm">
-              <div><span className="text-txt-dim">Vida Base:</span> <span className="text-txt-main font-mono">{key === 'GUERREIRO' ? '100+(CON×5)' : key === 'OPERATIVO' ? '70+(CON×5)' : '50+(CON×5)'}</span></div>
-              <div><span className="text-txt-dim">Vida/Nível:</span> <span className="text-txt-main font-mono">{key === 'GUERREIRO' ? '8+Mod.CON' : key === 'OPERATIVO' ? '6+Mod.CON' : '4+Mod.CON'}</span></div>
-              <div><span className="text-txt-dim">Energia Base:</span> <span className="text-txt-main font-mono">{key === 'GUERREIRO' ? '25+(AM×2)' : key === 'OPERATIVO' ? '35+(AM×2)' : '50+(AM×2)'}</span></div>
-              <div><span className="text-txt-dim">Energia/Nível:</span> <span className="text-txt-main font-mono">{key === 'GUERREIRO' ? '2+Mod.AM' : key === 'OPERATIVO' ? '4+Mod.AM' : '6+Mod.AM'}</span></div>
-              <div><span className="text-txt-dim">PE Base:</span> <span className="text-txt-main font-mono">{cls.peBase}</span> | <span className="text-txt-dim">PE/Nível:</span> <span className="text-txt-main font-mono">{cls.pePorNivel}</span></div>
-              <div><span className="text-txt-dim">Dano Base:</span> <span className="text-txt-main font-mono">{cls.danoBase} + Mod.FOR</span></div>
-              <div><span className="text-txt-dim">Perícias Iniciais:</span> <span className="text-txt-main font-mono">{cls.periciasIniciais}</span></div>
-              <div><span className="text-txt-dim">Triagens:</span> <span className="text-gold font-mono">{cls.triages.join(', ')}</span></div>
+        {Object.entries(CLASSES).map(([key, cls]) => {
+          const meta = CLASS_META[key] || CLASS_META.GUERREIRO
+          return (
+            <div key={key} className={`rounded-xl border ${meta.border} ${meta.bg} overflow-hidden`}>
+              <div className={`px-4 py-3 border-b ${meta.border}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">{meta.icon}</span>
+                  <h3 className={`font-cinzel text-xl ${meta.title}`}>{cls.name}</h3>
+                </div>
+                <p className="text-txt-dim text-xs">{cls.desc}</p>
+              </div>
+              <div className="px-4 py-3 space-y-0.5">
+                <StatRow label="Vida Base" value={meta.vida} color="text-emerald-400" />
+                <StatRow label="Vida / Nível" value={meta.vidaN} color="text-emerald-300" />
+                <StatRow label="Energia Base" value={meta.energia} color="text-sky-400" />
+                <StatRow label="Energia / Nível" value={meta.energiaN} color="text-sky-300" />
+                <StatRow label="PE Base" value={String(cls.peBase)} color="text-blue-400" />
+                <StatRow label="PE / Nível" value={String(cls.pePorNivel)} color="text-blue-300" />
+                <StatRow label="Dano Base" value={`${cls.danoBase} + Mod.FOR`} color="text-red-400" />
+                <StatRow label="Perícias Iniciais" value={String(cls.periciasIniciais)} color="text-teal-400" />
+              </div>
+              <div className={`px-4 pb-3`}>
+                <p className="text-txt-dim text-[10px] mb-1">Triagens disponíveis:</p>
+                <div className="flex flex-wrap gap-1">
+                  {cls.triages.map(t => (
+                    <span key={t} className={`text-[10px] px-2 py-0.5 rounded font-mono border ${meta.border} ${meta.title}`}>{t}</span>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
-      <div className="mt-6 bg-void rounded-lg p-4 border border-sep">
-        <h3 className="text-gold-light text-lg mb-2">Combate Derivado</h3>
-        <div className="space-y-1 text-sm">
-          <div><span className="text-txt-dim">CA:</span> <span className="text-txt-main">10 + treinamento(Reflexo ou Bloqueio) + MAX(Mod.CON, Mod.DES)</span></div>
-          <div><span className="text-txt-dim">Reações:</span> <span className="text-txt-main">Math.floor(DES / 5) [mínimo 1]</span></div>
-          <div><span className="text-txt-dim">Percepção Passiva:</span> <span className="text-txt-main">d10 + treinamento_Percepção + Mod.INT</span></div>
+      <div className="bg-void rounded-xl border border-gold/20 p-4">
+        <h3 className="text-gold-light font-cinzel text-base mb-3">Combate Derivado</h3>
+        <div className="grid sm:grid-cols-3 gap-3 text-sm">
+          <div className="bg-deep rounded-lg p-3 border border-sep/40">
+            <div className="text-txt-dim text-xs mb-1">CA</div>
+            <div className="text-txt-main font-mono text-xs">10 + treino(Reflexo/Bloqueio) + MAX(Mod.CON, Mod.DES)</div>
+          </div>
+          <div className="bg-deep rounded-lg p-3 border border-sep/40">
+            <div className="text-txt-dim text-xs mb-1">Reações</div>
+            <div className="text-txt-main font-mono text-xs">⌊DES ÷ 5⌋ (mínimo 1)</div>
+          </div>
+          <div className="bg-deep rounded-lg p-3 border border-sep/40">
+            <div className="text-txt-dim text-xs mb-1">Percepção Passiva</div>
+            <div className="text-txt-main font-mono text-xs">d10 + treino(Percepção) + Mod.INT</div>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
+function colorizeLabel(label) {
+  // Tokenizes a label string and wraps keywords in colored spans
+  const parts = []
+  let remaining = label
+  const rules = [
+    { re: /\+\d+ PEH/g,                 cls: 'text-amber-300 font-semibold' },
+    { re: /Triagem Principal[^&|,]*/g,     cls: 'text-purple-400' },
+    { re: /Sub-Triagem[^&|,]*/g,           cls: 'text-pink-400' },
+    { re: /\+\d+ Módulo[^&|,]*/g,         cls: 'text-orange-400' },
+    { re: /ESCOLHA:[^$]*/g,               cls: 'text-yellow-300' },
+    { re: /\+[\d]+ Vida[^&|,]*/g,         cls: 'text-emerald-400' },
+    { re: /\+[\d]+ Energia[^&|,]*/g,      cls: 'text-sky-400' },
+    { re: /\+[\d]+ PE[^&|,]*/g,           cls: 'text-blue-400' },
+    { re: /\+[\d]+ Pontos de Esqueleto[^&|,]*/g, cls: 'text-txt-main' },
+    { re: /\+[\d]+ Perícias[^&|,]*/g,     cls: 'text-teal-400' },
+  ]
+  // Simple approach: split on && and OU, color each chunk
+  const tokens = label.split(/(&&|\bOU\b)/)
+  return tokens.map((tok, i) => {
+    tok = tok.trim()
+    if (tok === '&&') return <span key={i} className="text-sep mx-1">&&</span>
+    if (tok === 'OU')  return <span key={i} className="text-yellow-300 font-bold mx-1">OU</span>
+    // Match one of the rules
+    if (/PEH/.test(tok))                               return <span key={i} className="text-amber-300 font-semibold">{tok}</span>
+    if (/Triagem Principal/.test(tok))                 return <span key={i} className="text-purple-400">{tok}</span>
+    if (/Sub-Triagem/.test(tok))                       return <span key={i} className="text-pink-400">{tok}</span>
+    if (/Módulo de Evolução/.test(tok))                return <span key={i} className="text-orange-400">{tok}</span>
+    if (/ESCOLHA/.test(tok))                           return <span key={i} className="text-yellow-300">{tok}</span>
+    if (/Vida/.test(tok))                              return <span key={i} className="text-emerald-400">{tok}</span>
+    if (/Energia/.test(tok))                           return <span key={i} className="text-sky-400">{tok}</span>
+    if (/\bPE\b/.test(tok))                           return <span key={i} className="text-blue-400">{tok}</span>
+    if (/Perícias/.test(tok))                          return <span key={i} className="text-teal-400">{tok}</span>
+    if (/Pontos de Esqueleto/.test(tok))               return <span key={i} className="text-txt-main">{tok}</span>
+    return <span key={i} className="text-txt-main">{tok}</span>
+  })
+}
+
+function rowBg(label) {
+  if (/PEH/.test(label))               return 'bg-amber-300/5 border-b border-amber-300/10'
+  if (/Sub-Triagem/.test(label))       return 'bg-pink-400/5 border-b border-sep/50'
+  if (/Triagem Principal/.test(label)) return 'bg-purple-400/5 border-b border-sep/50'
+  if (/Módulo de Evolução/.test(label))return 'bg-orange-400/5 border-b border-sep/50'
+  return 'border-b border-sep/50'
+}
+
 function ProgressionSection() {
   const [cls, setCls] = useState('GUERREIRO')
   const prog = PROGRESSION[cls]
+
+  const legend = [
+    { color: 'bg-amber-300', label: 'PEH — Pontos de Evolução de Habilidade' },
+    { color: 'bg-purple-400', label: 'Triagem Principal' },
+    { color: 'bg-pink-400',   label: 'Sub-Triagem' },
+    { color: 'bg-orange-400', label: 'Módulo de Evolução' },
+    { color: 'bg-emerald-400',label: 'Vida' },
+    { color: 'bg-sky-400',    label: 'Energia' },
+    { color: 'bg-blue-400',   label: 'PE (Pontos de Esqueleto de classe)' },
+    { color: 'bg-teal-400',   label: 'Perícias Treinadas' },
+    { color: 'bg-yellow-300', label: 'Escolha do jogador' },
+  ]
 
   return (
     <div>
@@ -157,19 +255,27 @@ function ProgressionSection() {
           </button>
         ))}
       </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-5 p-3 bg-void rounded-lg border border-sep">
+        {legend.map(l => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${l.color}`} />
+            <span className="text-xs text-txt-dim">{l.label}</span>
+          </div>
+        ))}
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-sep text-txt-dim">
               <th className="py-2 px-3 text-left w-16">Nível</th>
-              <th className="py-2 px-3 text-left">Recompensa</th>
+              <th className="py-2 px-3 text-left">Habilidades</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(prog).map(([lvl, entry]) => (
-              <tr key={lvl} className="border-b border-sep/50 hover:bg-void/50">
-                <td className="py-2 px-3 font-mono text-gold">{lvl}</td>
-                <td className="py-2 px-3 text-txt-main">{entry.label}</td>
+              <tr key={lvl} className={`hover:brightness-125 transition-all ${rowBg(entry.label)}`}>
+                <td className="py-2 px-3 font-mono text-gold font-bold">{lvl}</td>
+                <td className="py-2 px-3">{colorizeLabel(entry.label)}</td>
               </tr>
             ))}
           </tbody>
@@ -229,63 +335,66 @@ function TriagesSection() {
           <strong className="text-txt-main">Sub-Triagem:</strong> qualquer Classe (inclui a própria). Máx 3 níveis (0.1→0.3). Disponível a partir de N16.
         </p>
         <div className="flex gap-2">
-          {Object.keys(TRIAGES).map(c => (
-            <button key={c} onClick={() => setCls(c)}
-              className={`px-4 py-2 rounded font-cinzel text-sm transition-colors ${cls === c ? 'bg-gold text-void' : 'border border-gold text-gold hover:bg-gold hover:text-void'}`}>
-              {CLASSES[c].name}
-            </button>
-          ))}
+          {Object.keys(TRIAGES).map(cc => {
+            const meta = CLASS_META[cc] || CLASS_META.GUERREIRO
+            return (
+              <button key={cc} onClick={() => setCls(cc)}
+                className={`px-4 py-2 rounded font-cinzel text-sm transition-colors ${cls === cc ? `${meta.bg} border ${meta.border} ${meta.title}` : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+                {CLASSES[cc].name}
+              </button>
+            )
+          })}
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {Object.entries(triages).map(([key, t]) => (
-          <div key={key} className="bg-void rounded-lg p-4 border border-sep">
-            <h3 className="text-gold font-cinzel text-lg mb-1">{t.name}</h3>
-            <p className="text-txt-dim text-sm mb-3">{t.desc}</p>
-            <div className="space-y-2">
-              {Object.entries(t.levels).map(([lvl, desc]) => (
-                <div key={lvl} className="flex gap-2 items-start">
-                  <span className="shrink-0 w-12 h-8 rounded-full border-2 border-gold bg-deep flex items-center justify-center text-gold font-mono text-xs">{lvl}</span>
-                  <span className="text-txt-main text-sm">{desc}</span>
+      {(() => {
+        const meta = CLASS_META[cls] || CLASS_META.GUERREIRO
+        return (
+          <div className="grid gap-4 md:grid-cols-2">
+            {Object.entries(triages).map(([key, t]) => (
+              <div key={key} className={`rounded-xl border ${meta.border} ${meta.bg} overflow-hidden`}>
+                <div className={`px-4 py-3 border-b ${meta.border}`}>
+                  <h3 className={`font-cinzel text-lg ${meta.title}`}>{t.name}</h3>
+                  <p className="text-txt-dim text-xs mt-0.5">{t.desc}</p>
                 </div>
-              ))}
-            </div>
+                <div className="px-4 py-3 space-y-2">
+                  {Object.entries(t.levels).map(([lvl, desc]) => (
+                    <div key={lvl} className="flex gap-3 items-start">
+                      <span className={`shrink-0 w-10 h-7 rounded border ${meta.border} ${meta.bg} flex items-center justify-center ${meta.title} font-mono text-xs font-bold`}>{lvl}</span>
+                      <span className="text-txt-main text-xs leading-relaxed">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        )
+      })()}
     </div>
   )
 }
 
 function ModulesSection({ items, title, active, special }) {
+  const accentColor = active ? 'text-blue-400 border-blue-400/30 bg-blue-400/5' : special ? 'text-orange-400 border-orange-400/30 bg-orange-400/5' : 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5'
+  const nameColor   = active ? 'text-blue-300' : special ? 'text-orange-300' : 'text-emerald-300'
   return (
     <div>
       <SectionTitle>{title}</SectionTitle>
-      {active && <p className="text-txt-dim text-sm mb-3">Módulos Ativos custam PE para ativar.</p>}
-      {special && <p className="text-txt-dim text-sm mb-3">Módulos Especiais podem ser adquiridos múltiplas vezes até o limite indicado.</p>}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-sep text-txt-dim">
-              <th className="py-2 px-3 text-left">Nome</th>
-              {active && <th className="py-2 px-3 text-left">PE</th>}
-              <th className="py-2 px-3 text-left">Efeito</th>
-              <th className="py-2 px-3 text-left">Requisito</th>
-              {special && <th className="py-2 px-3 text-left">Máx</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map(m => (
-              <tr key={m.id} className="border-b border-sep/50 hover:bg-void/50">
-                <td className="py-2 px-3 text-gold font-medium">{m.name}</td>
-                {active && <td className="py-2 px-3 font-mono text-txt-main">{m.pe}</td>}
-                <td className="py-2 px-3 text-txt-main">{m.desc}</td>
-                <td className="py-2 px-3 text-txt-dim text-xs">{m.req}</td>
-                {special && <td className="py-2 px-3 font-mono text-txt-main">{m.maxBuy}×</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {active  && <p className="text-blue-400/80 text-sm mb-3 bg-blue-400/5 border border-blue-400/20 rounded px-3 py-2">⚡ Módulos Ativos custam PE para ativar. São acionados como uma ação no combate.</p>}
+      {special && <p className="text-orange-400/80 text-sm mb-3 bg-orange-400/5 border border-orange-400/20 rounded px-3 py-2">★ Módulos Especiais podem ser adquiridos múltiplas vezes até o limite indicado.</p>}
+      <div className="space-y-2">
+        {items.map(m => (
+          <div key={m.id} className={`rounded-lg border p-3 ${accentColor} bg-void/40`}>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="flex items-center gap-2">
+                <span className={`font-cinzel text-sm font-bold ${nameColor}`}>{m.name}</span>
+                {active  && <span className="text-[10px] font-mono bg-blue-400/20 text-blue-300 px-1.5 py-0.5 rounded">{m.pe} PE</span>}
+                {special && m.maxBuy && <span className="text-[10px] font-mono bg-orange-400/20 text-orange-300 px-1.5 py-0.5 rounded">até {m.maxBuy}×</span>}
+              </div>
+              {m.req && <span className="text-[10px] text-txt-dim shrink-0 text-right">{m.req}</span>}
+            </div>
+            <p className="text-txt-main text-xs leading-relaxed">{m.desc}</p>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -309,8 +418,8 @@ function WeaponsSection() {
             {WEAPONS.map(w => (
               <tr key={w.id} className="border-b border-sep/50 hover:bg-void/50">
                 <td className="py-2 px-3 text-gold font-medium">{w.name}</td>
-                <td className="py-2 px-3 font-mono text-txt-main">{w.dano}</td>
-                <td className="py-2 px-3 text-txt-main">{w.attr}</td>
+                <td className="py-2 px-3 font-mono text-red-400 font-medium">{w.dano}</td>
+                <td className="py-2 px-3 text-sky-400 font-mono text-xs">{w.attr}</td>
                 <td className="py-2 px-3 text-txt-main text-xs">{w.mec}</td>
               </tr>
             ))}
@@ -336,14 +445,18 @@ function RanksSection() {
             </tr>
           </thead>
           <tbody>
-            {WEAPON_RANKS.map(r => (
-              <tr key={r.rank} className="border-b border-sep/50">
-                <td className="py-2 px-3 text-gold font-medium">{r.rank}</td>
-                <td className="py-2 px-3 font-mono text-txt-main">{r.danoBonus || '—'}</td>
-                <td className="py-2 px-3 font-mono text-txt-main">+{r.caBonus}</td>
-                <td className="py-2 px-3 font-mono text-txt-main">{r.slots}</td>
-              </tr>
-            ))}
+            {WEAPON_RANKS.map((r, i) => {
+              const rankColors = ['text-txt-dim','text-txt-main','text-green-400','text-sky-400','text-purple-400','text-amber-300','text-red-400']
+              const col = rankColors[i] || 'text-gold'
+              return (
+                <tr key={r.rank} className="border-b border-sep/50 hover:bg-void/60">
+                  <td className={`py-2 px-3 font-cinzel font-bold ${col}`}>{r.rank}</td>
+                  <td className="py-2 px-3 font-mono text-red-400">{r.danoBonus || '—'}</td>
+                  <td className="py-2 px-3 font-mono text-sky-400">+{r.caBonus}</td>
+                  <td className="py-2 px-3 font-mono text-orange-400">{r.slots}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -401,17 +514,44 @@ function CreationGuideSection() {
       <SectionTitle>Guia de Criação de Personagem</SectionTitle>
       <p className="text-txt-dim text-sm mb-6">Passo a passo para criar um personagem do Sistema Olympo 2.0. Este guia também serve para criação manual.</p>
       <div className="space-y-4">
-        {steps.map(s => (
-          <div key={s.n} className="bg-void rounded-lg p-4 border border-sep">
+        {steps.map((s, idx) => {
+          const stepColors = [
+            'border-txt-dim/30 bg-txt-dim/5',         // 1 identity
+            'border-blue-400/30 bg-blue-400/5',        // 2 skeleton
+            'border-red-400/30 bg-red-400/5',          // 3 class - guerreiro
+            'border-orange-400/30 bg-orange-400/5',    // 4 progression
+            'border-teal-400/30 bg-teal-400/5',        // 5 skeleton pts
+            'border-teal-400/30 bg-teal-400/5',        // 6 pericias
+            'border-purple-400/30 bg-purple-400/5',    // 7 triagens
+            'border-orange-400/30 bg-orange-400/5',    // 8 modules
+            'border-sky-400/30 bg-sky-400/5',          // 9 weapon
+            'border-amber-300/30 bg-amber-300/5',      // 10 habilidades
+            'border-gold/30 bg-gold/5',                // 11 review
+          ]
+          const numColors = [
+            'border-txt-dim text-txt-dim bg-txt-dim/10',
+            'border-blue-400 text-blue-400 bg-blue-400/10',
+            'border-red-400 text-red-400 bg-red-400/10',
+            'border-orange-400 text-orange-400 bg-orange-400/10',
+            'border-teal-400 text-teal-400 bg-teal-400/10',
+            'border-teal-400 text-teal-400 bg-teal-400/10',
+            'border-purple-400 text-purple-400 bg-purple-400/10',
+            'border-orange-400 text-orange-400 bg-orange-400/10',
+            'border-sky-400 text-sky-400 bg-sky-400/10',
+            'border-amber-300 text-amber-300 bg-amber-300/10',
+            'border-gold text-gold bg-gold/10',
+          ]
+          return (
+          <div key={s.n} className={`rounded-xl p-4 border ${stepColors[idx] || 'border-sep bg-void'}`}>
             <div className="flex items-start gap-3">
-              <span className="shrink-0 w-10 h-10 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center text-gold font-cinzel font-bold text-lg">{s.n}</span>
+              <span className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center font-cinzel font-bold text-base ${numColors[idx] || 'border-gold text-gold'}`}>{s.n}</span>
               <div>
-                <h3 className="text-gold font-cinzel text-base mb-1">{s.title}</h3>
-                <p className="text-txt-main text-sm">{s.desc}</p>
+                <h3 className="text-txt-main font-cinzel text-base mb-1">{s.title}</h3>
+                <p className="text-txt-dim text-sm">{s.desc}</p>
               </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
       <div className="mt-6 bg-void rounded-lg p-4 border border-gold/30">
         <h3 className="text-gold font-cinzel text-base mb-2">Regras Importantes</h3>
@@ -423,6 +563,287 @@ function CreationGuideSection() {
           <li><strong className="text-gold-light">Triagens:</strong> Principal = mesma classe, 6 níveis. Sub-Triagem = qualquer classe, máx 3 níveis (N16+).</li>
           <li><strong className="text-gold-light">Módulos Especiais:</strong> Treino Intensivo (até 3×), Aumento de Poder (até 2×), Conhecimento Amplificado (até 4×).</li>
         </ul>
+      </div>
+    </div>
+  )
+}
+
+// ─── SEÇÃO: PROTOCOLO DE BALANCEAMENTO ───────────────────────────────────────
+
+function TableCard({ title, color = 'gold', children }) {
+  const borderMap = { gold: 'border-gold/30', purple: 'border-purple-400/30', sky: 'border-sky-400/30', emerald: 'border-emerald-400/30', amber: 'border-amber-300/30' }
+  const titleMap  = { gold: 'text-gold', purple: 'text-purple-400', sky: 'text-sky-400', emerald: 'text-emerald-400', amber: 'text-amber-300' }
+  return (
+    <div className={`bg-void rounded-xl border ${borderMap[color] || 'border-gold/30'} overflow-hidden`}>
+      <div className={`px-4 py-2.5 border-b ${borderMap[color] || 'border-gold/30'} bg-void/80`}>
+        <h3 className={`font-cinzel text-sm font-bold tracking-wider ${titleMap[color] || 'text-gold'}`}>{title}</h3>
+      </div>
+      <div className="overflow-x-auto">{children}</div>
+    </div>
+  )
+}
+
+function ProtoTable({ headers, rows, highlight }) {
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="border-b border-sep/60">
+          {headers.map((h, i) => <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium whitespace-nowrap">{h}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => (
+          <tr key={i} className={`border-b border-sep/30 ${highlight && highlight(row) ? 'bg-gold/5' : 'hover:bg-void/60'}`}>
+            {row.map((cell, j) => (
+              <td key={j} className={`py-2 px-3 font-mono whitespace-nowrap ${j === 0 ? 'text-gold font-bold' : 'text-txt-main'}`}>{cell}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+function BalanceProtocolSection() {
+  const scpRows = [
+    ['Camada 1 — Base', 'Treino de Perícia + Mod. Atributo', 'Sem limite', 'Sempre ativa, não consome slot'],
+    ['Camada 2 — Tático', 'Habilidades, Triagens, Módulos', 'N1-7: +8 | N8-15: +12 | N16-22: +16 | N23-30: +20', 'Slot de habilidade / triagem'],
+    ['Camada 3 — Épico',  'Armas, Runas, Artefatos',          'N1-7: +5 | N8-15: +8  | N16-22: +12 | N23-30: +16', 'Rank de arma / item mágico'],
+  ]
+
+  const tdhRows = [
+    ['N1-7',   '3d8+12',  '4d10+18', '6d10+24',  '8d12+30'],
+    ['N8-15',  '4d10+18', '6d10+25', '9d12+32',  '13d12+45'],
+    ['N16-22', '6d12+25', '8d12+38', '12d12+50', '17d12+65'],
+    ['N23-30', '8d12+32', '10d12+45','14d12+60', '20d12+80'],
+  ]
+
+  const iplRows = [
+    ['Passiva (slot)',   '5', '6', '7',  '8'],
+    ['Ativa Fraca',      '4', '5', '6',  '7'],
+    ['Ativa Média',      '6', '7', '8',  '10'],
+    ['Ativa Forte',      '8', '10','12', '14'],
+    ['Ultimate',         '10','13','16', '20'],
+  ]
+
+  const ppPesoRows = [
+    ['+5 Ataque/Defesa (temp)',       '3 PP'],
+    ['+10 Ataque/Defesa (temp)',      '5 PP'],
+    ['+15 Ataque/Defesa (temp, N16+)','7 PP'],
+    ['Vantagem no dado',              '4 PP'],
+    ['+1 Ataque Extra',               '5 PP'],
+    ['Dano ≤ 4d12 (ativa)',           '2 PP'],
+    ['Dano 4d12–12d12 (ativa)',       '4 PP'],
+    ['Dano 13d12+ (ultimate)',        '6 PP'],
+    ['+50% HP temp (≤3 rod.)',        '3 PP'],
+    ['+100% HP temp (≤2 rod.)',       '5 PP'],
+    ['Ignorar armadura total',        '5 PP'],
+    ['Efeito em área',                '+3 PP ao custo base'],
+    ['Imunidade a dano (≤1 rod.)',    '6 PP'],
+  ]
+
+  const calibRows = [
+    ['N5',  '140–210',   'd20 +8 a +12',   'd20 +21'],
+    ['N10', '250–380',   'd20 +12 a +16',  'd20 +28'],
+    ['N15', '380–560',   'd20 +15 a +20',  'd20 +36'],
+    ['N20', '520–760',   'd20 +18 a +23',  'd20 +43'],
+    ['N25', '700–980',   'd20 +22 a +26',  'd20 +50'],
+    ['N30', '950–1350',  'd20 +26 a +30',  'd20 +58'],
+  ]
+
+  const pehRows = [
+    ['Guerreiro',  'N6, N10, N13, N17, N20, N24, N27*', '8 PEH (+1 no N27)'],
+    ['Operativo',  'N5, N9, N13, N16, N19, N22, N25, N27, N30', '9 PEH'],
+    ['Místico',    'N4, N8, N12, N16, N19, N22, N24, N27**, N30', '10 PEH (+2 no N27)'],
+  ]
+
+  const evoRules = [
+    { tipo: 'Passiva',   max: 3,  custo: 'Automática', restricao: 'Evolui sozinha nos N10, N20 e N30. Sem custo de PEH.' },
+    { tipo: 'Ativa',     max: 5,  custo: '1 PEH / nível', restricao: 'Custo de Energia sobe proporcionalmente com a evolução.' },
+    { tipo: 'Ultimate',  max: 3,  custo: '1 PEH / nível', restricao: '1º ponto: N15+ | 2º ponto: N25+ | 3º ponto: N30' },
+    { tipo: 'Aum. Poder', max: 2, custo: 'Módulo (até 2×)', restricao: 'Cada compra concede 1 PEH bônus, marcado separadamente.' },
+  ]
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <SectionTitle>Protocolo de Expansão Épica Olympo</SectionTitle>
+        <p className="text-txt-dim text-sm mb-6">
+          Este protocolo define os limites matemáticos de todas as habilidades do sistema. A IA de análise usa estas tabelas para calibrar automaticamente valores de dano, PP e camadas SCP ao revisar uma ficha.
+        </p>
+      </div>
+
+      {/* SCP */}
+      <TableCard title="SCP — Sistema de Camadas de Poder (Seção 14.1)" color="purple">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-sep/60">
+              {['Camada', 'Fontes', 'Bônus Máximo por Faixa', 'Observação'].map((h, i) => (
+                <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {scpRows.map((row, i) => (
+              <tr key={i} className="border-b border-sep/30 hover:bg-void/60">
+                <td className="py-2 px-3 font-mono text-purple-400 font-bold whitespace-nowrap">{row[0]}</td>
+                <td className="py-2 px-3 text-txt-main">{row[1]}</td>
+                <td className="py-2 px-3 font-mono text-gold text-[10px] whitespace-nowrap">{row[2]}</td>
+                <td className="py-2 px-3 text-txt-dim text-[10px]">{row[3]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="px-4 py-2 bg-purple-400/5 text-xs text-purple-300">
+          Bônus Total Máximo = Camada 1 (ilimitada) + Camada 2 + Camada 3
+        </div>
+      </TableCard>
+
+      {/* TDH */}
+      <TableCard title="TDH — Teto de Dano por Habilidade (Seção 14.4)" color="sky">
+        <div className="px-4 py-2 bg-sky-400/5 text-xs text-sky-300 border-b border-sep/30">
+          ⚠ Estes valores são para o dano <strong>gerado pela habilidade isoladamente</strong>. O total do ataque ainda inclui: Dano Base de Classe + Bônus de Arma + Modificadores de Atributo.
+        </div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-sep/60">
+              {['Faixa', 'Ativa Fraca (<20E)', 'Ativa Média (20–50E)', 'Ativa Forte (>50E)', 'Ultimate'].map((h, i) => (
+                <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium whitespace-nowrap">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tdhRows.map((row, i) => (
+              <tr key={i} className="border-b border-sep/30 hover:bg-void/60">
+                <td className="py-2 px-3 font-mono text-gold font-bold">{row[0]}</td>
+                {row.slice(1).map((cell, j) => (
+                  <td key={j} className={`py-2 px-3 font-mono ${j === 3 ? 'text-amber-300' : 'text-sky-300'}`}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableCard>
+
+      {/* IPL PP */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TableCard title="IPL — Limite de PP por Tipo e Faixa (Seção 14.5)" color="emerald">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-sep/60">
+                {['Tipo', 'N1-7', 'N8-15', 'N16-22', 'N23-30'].map((h, i) => (
+                  <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {iplRows.map((row, i) => (
+                <tr key={i} className={`border-b border-sep/30 hover:bg-void/60 ${row[0] === 'Ultimate' ? 'bg-amber-300/5' : ''}`}>
+                  <td className={`py-2 px-3 font-mono ${row[0] === 'Ultimate' ? 'text-amber-300 font-bold' : 'text-emerald-400'}`}>{row[0]}</td>
+                  {row.slice(1).map((cell, j) => (
+                    <td key={j} className="py-2 px-3 font-mono text-txt-main text-center">{cell}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableCard>
+
+        <TableCard title="Peso de Efeitos em PP" color="emerald">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-sep/60">
+                {['Efeito', 'Custo PP'].map((h, i) => (
+                  <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ppPesoRows.map((row, i) => (
+                <tr key={i} className="border-b border-sep/30 hover:bg-void/60">
+                  <td className="py-1.5 px-3 text-txt-main">{row[0]}</td>
+                  <td className="py-1.5 px-3 font-mono text-emerald-400 font-bold whitespace-nowrap">{row[1]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableCard>
+      </div>
+
+      {/* Calibração */}
+      <TableCard title="Calibração de Poder por Nível (Seção 14.7)" color="gold">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-sep/60">
+              {['Nível', 'HP Esperado', 'Ataque Base (C1)', 'Máx com SCP (C1+C2+C3)'].map((h, i) => (
+                <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {calibRows.map((row, i) => (
+              <tr key={i} className="border-b border-sep/30 hover:bg-void/60">
+                <td className="py-2 px-3 font-mono text-gold font-bold">{row[0]}</td>
+                <td className="py-2 px-3 font-mono text-emerald-400">{row[1]}</td>
+                <td className="py-2 px-3 font-mono text-txt-main">{row[2]}</td>
+                <td className="py-2 px-3 font-mono text-amber-300">{row[3]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </TableCard>
+
+      {/* PEH */}
+      <TableCard title="PEH — Pontos de Evolução de Habilidade" color="amber">
+        <div className="px-4 py-3 space-y-3">
+          <p className="text-xs text-txt-dim">
+            PEH são distribuídos pela progressão de classe e pelo módulo <strong className="text-amber-300">Aumento de Poder</strong>. Investir pontos em uma habilidade escala todos os seus efeitos (dano, duração, bônus, CDs) proporcionalmente ao bracket de custo de Energia.
+          </p>
+          <table className="w-full text-xs mt-2">
+            <thead>
+              <tr className="border-b border-sep/60">
+                {['Classe', 'Níveis com PEH', 'Total N30'].map((h, i) => (
+                  <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pehRows.map((row, i) => (
+                <tr key={i} className="border-b border-sep/30">
+                  <td className="py-2 px-3 font-mono text-gold font-bold">{row[0]}</td>
+                  <td className="py-2 px-3 text-txt-dim text-[10px]">{row[1]}</td>
+                  <td className="py-2 px-3 font-mono text-amber-300 font-bold">{row[2]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="border-t border-sep/30 p-4 space-y-3">
+          <p className="text-xs text-amber-300 font-semibold mb-2">Regras de Evolução por Tipo</p>
+          {evoRules.map((r, i) => (
+            <div key={i} className="flex items-start gap-3 bg-void/60 rounded-lg p-3 border border-sep/20">
+              <span className={`shrink-0 font-cinzel text-xs font-bold px-2 py-1 rounded ${r.tipo === 'Ultimate' ? 'bg-amber-300/20 text-amber-300' : r.tipo === 'Passiva' ? 'bg-ok/20 text-ok' : r.tipo === 'Aum. Poder' ? 'bg-orange-400/20 text-orange-400' : 'bg-sep text-txt-main'}`}>
+                {r.tipo}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-0.5">
+                  <span className="text-xs text-txt-dim">Máx: <span className="text-gold font-mono">{r.max} nível{r.max > 1 ? 'is' : ''}</span></span>
+                  <span className="text-xs text-txt-dim">Custo: <span className="text-amber-300 font-mono">{r.custo}</span></span>
+                </div>
+                <p className="text-xs text-txt-dim">{r.restricao}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </TableCard>
+
+      <div className="bg-void rounded-xl border border-sep p-4 text-xs text-txt-dim space-y-1.5">
+        <p className="text-gold font-cinzel font-bold text-sm mb-2">Notas de Design</p>
+        <p>• CDs de resistência recomendados: <span className="text-txt-main">N1-10 → 14-16 | N11-20 → 18-22 | N21-30 → 22-28</span></p>
+        <p>• Cura via habilidade: <span className="text-txt-main">máx 30% da vida máxima por uso individual; máx 20% em área</span></p>
+        <p>• Habilidades de controle sem dano: calculadas puramente em PP — evite ultrapassar o teto de PP da faixa</p>
+        <p>• Amplificadores de Triagem e Módulo contam para o poder real do personagem, não para o dano da habilidade isolada</p>
+        <p>• Um personagem N30 com dano base alto <em>pode</em> ter uma habilidade com 14d12+60 de dano extra — os valores são cumulativos, não substitutos</p>
       </div>
     </div>
   )

@@ -1,16 +1,76 @@
+import { useState } from 'react'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
+import { generateWeaponAbilities } from '../../services/aiService'
 
 const SLOT_OPTIONS = Object.entries(WEAPON_ABILITY_COST)
 
 export default function Step9WeaponMartial({ char, update, updateNested }) {
+  const [showAIPanel, setShowAIPanel] = useState(false)
+  const [aiDesc, setAiDesc] = useState('')
+  const [genLoading, setGenLoading] = useState(false)
+  const [genError, setGenError] = useState('')
   const selectedWeapon = WEAPONS.find(w => w.id === char.arma)
   const selectedRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
-  const usedSlots = (char.armaHabilidades || []).reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const availableSlots = selectedRank.slots
+  const usedSlots = (char.armaHabilidades || []).reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
 
   const selectedArt = MARTIAL_ARTS.find(a => a.id === char.arteMarcial)
   const selectedGrau = char.arteMarcialGrau || 0
+
+  function handleRankChange(rank) {
+    update({ armaRank: rank, armaHabilidades: [] })
+    setShowAIPanel(false)
+    setAiDesc('')
+    setGenError('')
+  }
+
+  function handleWeaponChange(armaId) {
+    update({ arma: armaId || null, armaRank: 'Comum', armaHabilidades: [] })
+    setShowAIPanel(false)
+    setAiDesc('')
+    setGenError('')
+  }
+
+  function addHabilidade(potencia) {
+    const cost = WEAPON_ABILITY_COST[potencia] || 0
+    if (usedSlots + cost > availableSlots) return
+    const arr = [...(char.armaHabilidades || []), { nome: '', potencia, descricao: '', tipo: 'Ativa', custo: '' }]
+    update({ armaHabilidades: arr })
+  }
+
+  function removeHabilidade(i) {
+    const arr = (char.armaHabilidades || []).filter((_, j) => j !== i)
+    update({ armaHabilidades: arr })
+  }
+
+  async function handleAIGenerate() {
+    if (!char.arma) return
+    setGenLoading(true)
+    setGenError('')
+    try {
+      const count = char.armaHabilidades?.length || 1
+      const data = await generateWeaponAbilities(char, char.arma, char.armaRank || 'Comum', availableSlots, aiDesc, count)
+      if (data.habilidades?.length) {
+        let totalSlots = 0
+        const fitting = []
+        for (const h of data.habilidades) {
+          const cost = WEAPON_ABILITY_COST[h.potencia] || 1
+          if (totalSlots + cost <= availableSlots) {
+            fitting.push({ ...h, potencia: h.potencia || 'Fraca', tipo: h.tipo || 'Ativa', custo: h.custo || '' })
+            totalSlots += cost
+          }
+        }
+        update({ armaHabilidades: fitting })
+        setShowAIPanel(false)
+        setAiDesc('')
+      }
+    } catch (err) {
+      setGenError(err.message)
+    } finally {
+      setGenLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -26,11 +86,7 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
           <label className="block text-txt-dim text-sm mb-1">Tipo de Arma</label>
           <select
             value={char.arma || ''}
-            onChange={e => update({
-              arma: e.target.value || null,
-              armaRank: 'Comum',
-              armaHabilidades: [],
-            })}
+            onChange={e => handleWeaponChange(e.target.value)}
             className="w-full bg-void border border-sep rounded px-3 py-2 text-txt-main"
           >
             <option value="">— Nenhuma —</option>
@@ -66,7 +122,7 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
               {WEAPON_RANKS.map(r => (
                 <button
                   key={r.rank}
-                  onClick={() => update({ armaRank: r.rank, armaHabilidades: [] })}
+                  onClick={() => handleRankChange(r.rank)}
                   className={`rounded px-3 py-2 text-sm border transition-colors ${
                     char.armaRank === r.rank
                       ? 'bg-gold text-void border-gold font-bold'
@@ -86,66 +142,151 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
         )}
 
         {selectedWeapon && availableSlots > 0 && (
-          <div>
-            <div className="flex justify-between items-center mb-2">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
               <label className="text-txt-dim text-sm">Habilidades da Arma</label>
-              <span className={`text-xs font-mono ${usedSlots > availableSlots ? 'text-err' : 'text-ok'}`}>
+              <span className={`text-xs font-mono ${usedSlots > availableSlots ? 'text-err' : usedSlots === availableSlots ? 'text-ok' : 'text-txt-main'}`}>
                 Slots: {usedSlots}/{availableSlots}
               </span>
             </div>
 
             {(char.armaHabilidades || []).map((hab, i) => (
-              <div key={i} className="flex gap-2 mb-2">
+              <div key={i} className="bg-void border border-sep/60 rounded-lg p-3 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={hab.nome || ''}
+                    onChange={e => {
+                      const arr = [...char.armaHabilidades]
+                      arr[i] = { ...arr[i], nome: e.target.value }
+                      update({ armaHabilidades: arr })
+                    }}
+                    placeholder="Nome da habilidade"
+                    className="flex-1 bg-deep border border-sep rounded px-3 py-1.5 text-sm text-txt-main"
+                  />
+                  <select
+                    value={hab.potencia || 'Fraca'}
+                    onChange={e => {
+                      const newPotencia = e.target.value
+                      const newCost = WEAPON_ABILITY_COST[newPotencia] || 0
+                      const otherSlots = (char.armaHabilidades || []).reduce((sum, h, j) => j === i ? sum : sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+                      if (otherSlots + newCost > availableSlots) return
+                      const arr = [...char.armaHabilidades]
+                      arr[i] = { ...arr[i], potencia: newPotencia }
+                      update({ armaHabilidades: arr })
+                    }}
+                    className="bg-deep border border-sep rounded px-3 py-1.5 text-sm text-txt-main"
+                  >
+                    {SLOT_OPTIONS.map(([label, cost]) => {
+                      const otherSlots = (char.armaHabilidades || []).reduce((sum, h, j) => j === i ? sum : sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+                      const disabled = otherSlots + cost > availableSlots
+                      return (
+                        <option key={label} value={label} disabled={disabled}>
+                          {label} ({cost} slot{cost > 1 ? 's' : ''}){disabled ? ' — sem espaço' : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
+                  <select
+                    value={hab.tipo || 'Ativa'}
+                    onChange={e => {
+                      const arr = [...char.armaHabilidades]
+                      arr[i] = { ...arr[i], tipo: e.target.value }
+                      update({ armaHabilidades: arr })
+                    }}
+                    className="bg-deep border border-sep rounded px-3 py-1.5 text-sm text-txt-main"
+                  >
+                    <option value="Ativa">Ativa</option>
+                    <option value="Passiva">Passiva</option>
+                  </select>
+                  <button onClick={() => removeHabilidade(i)} className="px-3 py-1.5 bg-err/20 text-err rounded text-sm hover:bg-err/30">
+                    ✕
+                  </button>
+                </div>
+                <textarea
+                  value={hab.descricao || ''}
+                  onChange={e => {
+                    const arr = [...char.armaHabilidades]
+                    arr[i] = { ...arr[i], descricao: e.target.value }
+                    update({ armaHabilidades: arr })
+                  }}
+                  placeholder="Descrição da habilidade..."
+                  rows={2}
+                  className="w-full bg-deep border border-sep rounded px-3 py-1.5 text-xs text-txt-main resize-none"
+                />
                 <input
                   type="text"
-                  value={hab.nome || ''}
+                  value={hab.custo || ''}
                   onChange={e => {
                     const arr = [...char.armaHabilidades]
-                    arr[i] = { ...arr[i], nome: e.target.value }
+                    arr[i] = { ...arr[i], custo: e.target.value }
                     update({ armaHabilidades: arr })
                   }}
-                  placeholder="Nome da habilidade"
-                  className="flex-1 bg-void border border-sep rounded px-3 py-2 text-sm text-txt-main"
+                  placeholder="Custo (ex: 2 PA, 1 Ação...)"
+                  className="w-full bg-deep border border-sep rounded px-3 py-1.5 text-xs text-txt-main"
                 />
-                <select
-                  value={hab.potencia || 'Fraca'}
-                  onChange={e => {
-                    const arr = [...char.armaHabilidades]
-                    arr[i] = { ...arr[i], potencia: e.target.value }
-                    update({ armaHabilidades: arr })
-                  }}
-                  className="bg-void border border-sep rounded px-3 py-2 text-sm text-txt-main"
-                >
-                  {SLOT_OPTIONS.map(([label, cost]) => (
-                    <option key={label} value={label}>{label} ({cost} slot)</option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => {
-                    const arr = char.armaHabilidades.filter((_, j) => j !== i)
-                    update({ armaHabilidades: arr })
-                  }}
-                  className="px-3 py-2 bg-err/20 text-err rounded text-sm hover:bg-err/30"
-                >
-                  ✕
-                </button>
               </div>
             ))}
 
             {usedSlots < availableSlots && (
-              <button
-                onClick={() => {
-                  const arr = [...(char.armaHabilidades || []), { nome: '', potencia: 'Fraca' }]
-                  update({ armaHabilidades: arr })
-                }}
-                className="text-gold text-sm hover:text-gold-light transition-colors"
-              >
-                + Adicionar Habilidade
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-txt-dim text-xs">Adicionar:</span>
+                {SLOT_OPTIONS.map(([label, cost]) => {
+                  const canAdd = usedSlots + cost <= availableSlots
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => canAdd && addHabilidade(label)}
+                      disabled={!canAdd}
+                      className={`text-xs px-3 py-1 rounded border transition-colors ${
+                        canAdd
+                          ? 'bg-void border-gold/30 text-gold hover:bg-gold/10'
+                          : 'bg-void/30 border-sep/20 text-txt-dim/30 cursor-not-allowed'
+                      }`}
+                    >
+                      + {label} ({cost})
+                    </button>
+                  )
+                })}
+              </div>
             )}
 
-            {usedSlots > availableSlots && (
-              <p className="text-err text-xs mt-2">Custo total de slots excede o disponível!</p>
+            {usedSlots > 0 && (
+              <div className="pt-2 border-t border-sep/20">
+                {!showAIPanel ? (
+                  <button
+                    onClick={() => setShowAIPanel(true)}
+                    className="bg-purple-500/10 border border-purple-400/30 text-purple-400 text-xs px-4 py-2 rounded hover:bg-purple-500/20 transition-colors"
+                  >
+                    ✦ Gerar com IA
+                  </button>
+                ) : (
+                  <div className="bg-void/50 border border-purple-400/20 rounded-lg p-3 space-y-2">
+                    <p className="text-txt-dim text-[10px]">Descreva o estilo de combate para a IA criar as habilidades:</p>
+                    <textarea
+                      value={aiDesc}
+                      onChange={e => setAiDesc(e.target.value)}
+                      placeholder="Ex: Uma espada que canaliza chamas. Golpes rápidos com explosões de fogo..."
+                      rows={3}
+                      className="w-full bg-void/60 border border-sep/40 rounded px-3 py-2 text-xs text-txt-main resize-none focus:border-purple-400/40 focus:outline-none"
+                    />
+                    {genError && <p className="text-err text-[10px]">{genError}</p>}
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setShowAIPanel(false)} className="text-txt-dim text-xs px-3 py-1.5 hover:text-txt-main transition-colors">
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleAIGenerate}
+                        disabled={genLoading}
+                        className="bg-purple-500 text-white text-xs px-4 py-1.5 rounded font-semibold hover:bg-purple-400 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {genLoading && <span className="animate-spin inline-block w-3 h-3 border border-white/40 border-t-white rounded-full" />}
+                        {genLoading ? 'Gerando...' : 'Gerar Habilidades'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

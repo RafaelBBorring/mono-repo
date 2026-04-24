@@ -11,6 +11,7 @@ const initialHabilidade = (tipo) => ({
   camadaSCP: 2,
   ppEstimado: 0,
   status: 'Pendente',
+  evolucaoNivel: 0,
 })
 
 const initialState = {
@@ -50,6 +51,7 @@ const initialState = {
   ],
   notas: '',
   inventario: [],
+  equipamentos: [],
 }
 
 export function useCharacter() {

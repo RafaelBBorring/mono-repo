@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAuth, AuthProvider } from './contexts/AuthContext'
+import { supabase, getSupabaseAdmin } from './lib/supabase'
 import { useCharacter } from './hooks/useCharacter'
 import Sidebar from './components/Sidebar'
 import Step1Identity from './components/steps/Step1Identity'
@@ -14,10 +16,13 @@ import Step10Abilities from './components/steps/Step10Abilities'
 import Step11Review from './components/steps/Step11Review'
 import ReferencePage from './components/ReferencePage'
 import LoginPage from './components/LoginPage'
+import HomeMenu from './components/HomeMenu'
 import ParticleBackground from './components/ParticleBackground'
 import LevelUpModal from './components/LevelUpModal'
+import AdminDashboard from './components/AdminDashboard'
 import { ATTRIBUTES } from './data/attributes'
 import { PROGRESSION } from './data/progression'
+import { calcExtraAbilities, calcExtraAbilitiesTypes } from './utils/calculator'
 
 const STEPS = [
   { id: 1, label: 'Identidade', comp: Step1Identity },
@@ -36,7 +41,6 @@ const STEPS = [
 const TOTAL_STEPS = STEPS.length
 
 function validateStep(stepIdx, char) {
-  const sk = char.skeletonPoints || {}
   const attrs = char.atributos || {}
   const choices = char.choices || {}
   switch (stepIdx) {
@@ -80,42 +84,80 @@ function validateStep(stepIdx, char) {
   }
 }
 
-function CharacterLibrary({ sheets, onLoad, onDelete, onNew }) {
+function exportToJson(sheet) {
+  const blob = new Blob([JSON.stringify(sheet, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${(sheet.nome || 'personagem').replace(/[^a-zA-Z0-9À-ÿ]/g, '_')}_olympo.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function importFromJson(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result)
+        resolve(data)
+      } catch {
+        reject(new Error('Arquivo JSON inválido.'))
+      }
+    }
+    reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'))
+    reader.readAsText(file)
+  })
+}
+
+function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
+  const importRef = useRef(null)
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-cinzel text-gold text-2xl">Biblioteca de Personagens</h2>
-        <button onClick={onNew} className="bg-gold text-void font-semibold px-4 py-2 rounded hover:bg-gold-light transition-colors text-sm">
-          + Novo Personagem
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => importRef.current?.click()} className="border border-sep text-txt-dim px-3 py-2 rounded hover:border-gold hover:text-gold transition-colors text-sm">
+            Importar JSON
+          </button>
+          <input ref={importRef} type="file" accept=".json" onChange={e => {
+            const file = e.target.files?.[0]
+            if (file) onImport(file)
+            e.target.value = ''
+          }} className="hidden" />
+        </div>
       </div>
       {sheets.length === 0 ? (
         <div className="bg-deep border border-sep rounded-lg p-8 text-center">
           <p className="text-txt-dim mb-4">Nenhum personagem criado ainda.</p>
-          <button onClick={onNew} className="border border-gold text-gold px-4 py-2 rounded hover:bg-gold hover:text-void transition-colors text-sm">
-            Criar Primeiro Personagem
-          </button>
+          <p className="text-txt-dim/50 text-xs">Crie um personagem no wizard ou importe um arquivo JSON.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {sheets.map((sheet, idx) => (
-            <div key={idx} className="bg-deep border border-sep rounded-lg p-4 hover:border-gold transition-colors">
-              <div className="flex items-start gap-3 mb-2">
-                {sheet.avatar ? (
-                  <img src={sheet.avatar} alt="" className="w-10 h-10 rounded-full border border-gold/40 object-cover shrink-0" />
+          {sheets.map((sheet) => (
+            <div key={sheet.id} className="bg-deep border border-sep rounded-lg p-4 hover:border-gold transition-colors">
+              <div className="flex items-start gap-4 mb-3">
+                {sheet.data?.avatar ? (
+                  <img src={sheet.data.avatar} alt="" className="w-16 h-16 rounded-full border-2 border-gold/40 object-cover shrink-0" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full border border-sep bg-void flex items-center justify-center text-txt-dim text-xs shrink-0">?</div>
+                  <div className="w-16 h-16 rounded-full border-2 border-sep bg-void flex items-center justify-center text-txt-dim text-lg shrink-0">?</div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-txt-main font-semibold truncate">{sheet.nome || 'Sem Nome'}</h3>
-                  <p className="text-txt-dim text-xs">{sheet.classe || '?'} — Nível {sheet.nivel || 1}</p>
+                  <h3 className="text-txt-main font-semibold text-base truncate">{sheet.name || 'Sem Nome'}</h3>
+                  <p className="text-txt-dim text-sm">{sheet.data?.classe || '?'} — Nível {sheet.data?.nivel || 1}</p>
+                  <p className="text-txt-dim/50 text-xs mt-0.5">{sheet.data?.raca || ''}</p>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => onLoad(idx)} className="text-xs border border-gold text-gold px-3 py-1 rounded hover:bg-gold hover:text-void transition-colors">
+                <button onClick={() => onLoad(sheet.id)} className="text-xs border border-gold text-gold px-3 py-1 rounded hover:bg-gold hover:text-void transition-colors">
                   Visualizar
                 </button>
-                <button onClick={() => onDelete(idx)} className="text-xs border border-err/40 text-err px-3 py-1 rounded hover:bg-err hover:text-white transition-colors">
+                {canExport && (
+                  <button onClick={() => exportToJson({ ...sheet.data, nome: sheet.name })} className="text-xs border border-sep text-txt-dim px-3 py-1 rounded hover:border-gold hover:text-gold transition-colors">
+                    Exportar
+                  </button>
+                )}
+                <button onClick={() => onDelete(sheet.id)} className="text-xs border border-err/40 text-err px-3 py-1 rounded hover:bg-err hover:text-white transition-colors">
                   Excluir
                 </button>
               </div>
@@ -127,104 +169,116 @@ function CharacterLibrary({ sheets, onLoad, onDelete, onNew }) {
   )
 }
 
-function FullSheetViewer({ sheet, onBack, onUpdate }) {
-  const [local, setLocal] = useState(sheet)
+function FullSheetViewer({ sheetId, onBack }) {
+  const { user } = useAuth()
+  const [sheet, setSheet] = useState(null)
   const [showLevelUp, setShowLevelUp] = useState(false)
 
+  useEffect(() => {
+    if (sheetId) loadSheet()
+  }, [sheetId])
+
+  async function loadSheet() {
+    const { data, error } = await supabase.from('characters').select('*').eq('id', sheetId).single()
+    if (error || !data) {
+      setSheet(null)
+    } else {
+      setSheet(data)
+    }
+  }
+
   const update = useCallback((patch) => {
-    setLocal(prev => {
-      const next = { ...prev, ...patch }
-      onUpdate(next)
+    setSheet(prev => {
+      const next = { ...prev, data: { ...prev.data, ...patch } }
+      saveSheet(next)
       return next
     })
-  }, [onUpdate])
+  }, [])
 
   const updateHabilidade = useCallback((index, patch) => {
-    setLocal(prev => {
-      const habs = [...(prev.habilidades || [])]
+    setSheet(prev => {
+      const habs = [...(prev.data.habilidades || [])]
       habs[index] = { ...(habs[index] || {}), ...patch }
-      const next = { ...prev, habilidades: habs }
-      onUpdate(next)
+      const next = { ...prev, data: { ...prev.data, habilidades: habs } }
+      saveSheet(next)
       return next
     })
-  }, [onUpdate])
+  }, [])
+
+  async function saveSheet(s) {
+    const { error } = await supabase.from('characters').update({
+      name: s.data?.nome || s.name || 'Sem Nome',
+      data: s.data,
+    }).eq('id', s.id)
+    if (error) console.error('Erro ao salvar ficha:', error.message)
+  }
 
   function handleLevelUp(newData) {
-    setLocal(newData)
-    onUpdate(newData)
+    setSheet(prev => {
+      const next = { ...prev, data: newData }
+      saveSheet(next)
+      return next
+    })
     setShowLevelUp(false)
   }
+
+  if (!sheet) return <p className="text-txt-dim p-8">Carregando...</p>
+
+  const char = sheet.data
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="text-gold text-sm hover:text-gold-light transition-colors">← Voltar à Biblioteca</button>
-        {(local.nivel || 1) < 30 && (
-          <button onClick={() => setShowLevelUp(true)}
-            className="bg-gold/10 border border-gold/40 text-gold px-4 py-1.5 rounded text-sm hover:bg-gold hover:text-void transition-colors font-semibold">
-            ▲ Subir de Nível ({local.nivel || 1} → {(local.nivel || 1) + 1})
+        <div className="flex gap-2">
+          <button onClick={() => exportToJson(char)} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
+            Exportar JSON
           </button>
-        )}
+          {(char.nivel || 1) < 30 && (
+            <button onClick={() => setShowLevelUp(true)}
+              className="bg-gold/10 border border-gold/40 text-gold px-4 py-1.5 rounded text-sm hover:bg-gold hover:text-void transition-colors font-semibold">
+              ▲ Subir de Nível ({char.nivel || 1} → {(char.nivel || 1) + 1})
+            </button>
+          )}
+        </div>
       </div>
       <Step11Review
-        char={local}
+        char={char}
         update={update}
         updateHabilidade={updateHabilidade}
         onSave={() => {}}
         onEdit={onBack}
         onNew={() => {}}
+        characterId={sheet.id}
       />
       {showLevelUp && (
-        <LevelUpModal char={local} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
+        <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
       )}
     </div>
   )
 }
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
+  )
+}
+
+function AppInner() {
+  const { user, profile, loading, logout, isAdmin } = useAuth()
   const { char, update, updateNested, updateHabilidade, reset } = useCharacter()
   const [currentStep, setCurrentStep] = useState(0)
-  const [view, setView] = useState('wizard')
+  const [view, setView] = useState('home')
   const [validationError, setValidationError] = useState(null)
-  const [sheets, setSheets] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('olympo_sheets') || '[]') } catch { return [] }
-  })
-  const [viewingSheetIdx, setViewingSheetIdx] = useState(null)
-  const [user, setUser] = useState(() => {
-    try { return localStorage.getItem('olympo_user') || null } catch { return null }
-  })
+  const [sheets, setSheets] = useState([])
+  const [viewingSheetId, setViewingSheetId] = useState(null)
   const prevStepRef = useRef(0)
 
-  if (!user) {
-    return (
-      <>
-        <ParticleBackground />
-        <LoginPage onLogin={(name) => setUser(name)} />
-      </>
-    )
-  }
-
   useEffect(() => {
-    try { localStorage.setItem('olympo_sheets', JSON.stringify(sheets)) } catch {}
-  }, [sheets])
-
-  const stepProps = { char, update, updateNested, updateHabilidade }
-  const StepComponent = STEPS[currentStep].comp
-
-  const canGoNext = currentStep < TOTAL_STEPS - 1
-  const canGoPrev = currentStep > 0
-
-  const goNext = () => {
-    const err = validateStep(currentStep, char)
-    if (err) { setValidationError(err); return }
-    setValidationError(null)
-    if (canGoNext) setCurrentStep(s => s + 1)
-  }
-  const goPrev = () => {
-    setValidationError(null)
-    if (!canGoPrev) return
-    setCurrentStep(s => s - 1)
-  }
+    if (user && profile) loadSheets()
+  }, [user, profile])
 
   useEffect(() => {
     const wentBack = currentStep < prevStepRef.current
@@ -258,16 +312,138 @@ export default function App() {
     }
   }, [currentStep])
 
-  function handleSave() {
+  async function loadSheets() {
+    const client = profile.role === 'admin' ? getSupabaseAdmin() : supabase
+    const query = client.from('characters').select('*').order('updated_at', { ascending: false })
+    if (profile.role !== 'admin') query.eq('user_id', user.id)
+    const { data, error } = await query
+    if (error) console.error('Erro ao carregar fichas:', error.message)
+    setSheets(data || [])
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-void flex items-center justify-center">
+        <ParticleBackground />
+        <div className="text-gold font-cinzel text-xl animate-pulse">Carregando...</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <>
+        <ParticleBackground />
+        <LoginPage />
+      </>
+    )
+  }
+
+  const stepProps = { char, update, updateNested, updateHabilidade }
+  const StepComponent = STEPS[currentStep].comp
+
+  const canGoNext = currentStep < TOTAL_STEPS - 1
+  const canGoPrev = currentStep > 0
+
+  const goNext = () => {
+    const err = validateStep(currentStep, char)
+    if (err) { setValidationError(err); return }
+    setValidationError(null)
+    if (canGoNext) setCurrentStep(s => s + 1)
+  }
+  const goPrev = () => {
+    setValidationError(null)
+    if (!canGoPrev) return
+    setCurrentStep(s => s - 1)
+  }
+
+  async function handleSave() {
     const toSave = JSON.parse(JSON.stringify(char))
-    setSheets(prev => [...prev, toSave])
+    const extraTypes = calcExtraAbilitiesTypes(
+      toSave.triagemPrincipal, toSave.triagemPrincipalNivel,
+      toSave.subTriagem, toSave.subTriagemNivel,
+      toSave.atributos, toSave.skeletonPoints || {}, toSave.modulosAdquiridos
+    )
+    const needed = 5 + extraTypes.length
+    const allTipos = ['Passiva', 'Ativa', 'Ativa', 'Ativa', 'Ultimate', ...extraTypes]
+    while ((toSave.habilidades || []).length < needed) {
+      if (!toSave.habilidades) toSave.habilidades = []
+      const idx = toSave.habilidades.length
+      const tipo = allTipos[idx] || 'Extra (Triagem)'
+      toSave.habilidades.push({ tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', camadaSCP: 2, ppEstimado: 0, status: 'Pendente', evolucaoNivel: 0 })
+    }
+    if (toSave.habilidades.length > needed) toSave.habilidades.length = needed
+    const { data, error } = await supabase.from('characters').insert({
+      user_id: user.id,
+      name: toSave.nome || 'Sem Nome',
+      data: toSave,
+    }).select().single()
+
+    if (error) {
+      alert('Erro ao salvar ficha: ' + (error.message || 'Erro desconhecido'))
+      return
+    }
+    if (data) {
+      setSheets(prev => [data, ...prev])
+      const reviews = []
+      ;(toSave.habilidades || []).forEach((h, i) => {
+        reviews.push({
+          character_id: data.id,
+          ability_key: `habilidade_${i}`,
+          ability_name: h.nome || 'Sem nome',
+          ability_type: 'character',
+          status: 'pendente',
+          original_data: h,
+          balanced_data: {},
+          ai_feedback: '',
+        })
+      })
+      ;(toSave.armaHabilidades || []).forEach((h, i) => {
+        reviews.push({
+          character_id: data.id,
+          ability_key: `arma_${i}`,
+          ability_name: h.nome || 'Sem nome',
+          ability_type: 'weapon',
+          status: 'pendente',
+          original_data: h,
+          balanced_data: {},
+          ai_feedback: '',
+        })
+      })
+      if (reviews.length > 0) {
+        await supabase.from('ability_reviews').insert(reviews)
+      }
+    }
     reset()
     setCurrentStep(0)
     setView('library')
   }
 
-  function handleEdit() {
-    setView('wizard')
+  async function handleDeleteSheet(id) {
+    const { error } = await supabase.from('characters').delete().eq('id', id)
+    if (error) {
+      alert('Erro ao excluir: ' + error.message)
+      return
+    }
+    setSheets(prev => prev.filter(s => s.id !== id))
+    if (viewingSheetId === id) setViewingSheetId(null)
+  }
+
+  async function handleImport(file) {
+    try {
+      const data = await importFromJson(file)
+      const { data: inserted, error } = await supabase.from('characters').insert({
+        user_id: user.id,
+        name: data.nome || 'Personagem Importado',
+        data,
+      }).select().single()
+      if (error) throw new Error(error.message)
+      if (inserted) {
+        setSheets(prev => [inserted, ...prev])
+      }
+    } catch (err) {
+      alert(err.message || 'Erro ao importar.')
+    }
   }
 
   function handleNew() {
@@ -277,20 +453,16 @@ export default function App() {
     setValidationError(null)
   }
 
-  function handleLoadSheet(idx) { setViewingSheetIdx(idx) }
-  function handleDeleteSheet(idx) {
-    setSheets(prev => prev.filter((_, i) => i !== idx))
-    if (viewingSheetIdx === idx) setViewingSheetIdx(null)
-  }
-  function handleUpdateSheet(updated) {
-    setSheets(prev => prev.map((s, i) => i === viewingSheetIdx ? updated : s))
-  }
-
   const reviewProps = currentStep === TOTAL_STEPS - 1
-    ? { char, update, updateHabilidade, onSave: handleSave, onEdit: handleEdit, onNew: handleNew }
+    ? { char, update, updateHabilidade, onSave: handleSave, onEdit: () => setView('wizard'), onNew: handleNew, characterId: null }
     : stepProps
 
-  const viewingSheet = viewingSheetIdx !== null ? sheets[viewingSheetIdx] : null
+  const navItems = [
+    { key: 'wizard', label: 'Criar' },
+    { key: 'library', label: 'Personagens' },
+    { key: 'reference', label: 'Referência' },
+  ]
+  if (isAdmin) navItems.push({ key: 'admin', label: 'Admin' })
 
   return (
     <div className="min-h-screen bg-void text-txt-main font-body flex flex-col">
@@ -298,30 +470,46 @@ export default function App() {
       <nav className="bg-deep/95 backdrop-blur border-b border-sep px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <h1 className="font-cinzel text-gold text-lg sm:text-xl tracking-wide">SISTEMA OLYMPO 2.0</h1>
-          <span className="text-txt-dim text-xs hidden sm:inline">Olá, {user}</span>
+          <span className="text-txt-dim text-xs hidden sm:inline">Olá, {profile?.display_name || user.email?.split('@')[0]}</span>
+          {isAdmin && <span className="text-[9px] bg-gold/20 text-gold px-1.5 py-0.5 rounded border border-gold/30 hidden sm:inline">ADMIN</span>}
         </div>
         <div className="flex gap-1 items-center">
-          {[
-            { key: 'wizard', label: 'Criar' },
-            { key: 'library', label: 'Personagens' },
-            { key: 'reference', label: 'Referência' },
-          ].map(v => (
-            <button key={v.key} onClick={() => { setView(v.key); setViewingSheetIdx(null) }}
+          {/* Home always visible as logo/title click */}
+          <button
+            onClick={() => { setView('home'); setViewingSheetId(null) }}
+            className={`hidden sm:flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors mr-1 ${view === 'home' ? 'text-gold' : 'text-txt-dim/60 hover:text-txt-dim'}`}
+            title="Ir para o Menu Principal"
+          >
+            ⌂
+          </button>
+          {navItems.map(v => (
+            <button key={v.key} onClick={() => { setView(v.key); setViewingSheetId(null) }}
               className={`px-3 py-1.5 rounded text-sm transition-colors ${view === v.key ? 'bg-gold text-void font-semibold' : 'text-txt-dim hover:text-txt-main'}`}>
               {v.label}
             </button>
           ))}
-          <button onClick={() => { localStorage.removeItem('olympo_user'); setUser(null) }}
-            className="ml-2 text-txt-dim text-xs hover:text-err transition-colors" title="Sair">
+          <button onClick={logout} className="ml-2 text-txt-dim text-xs hover:text-err transition-colors" title="Sair">
             Sair
           </button>
         </div>
       </nav>
 
-      {view === 'wizard' ? (
+      {view === 'home' ? (
+        <main className="flex-1 overflow-y-auto flex items-center justify-center">
+          <HomeMenu
+            userName={profile?.display_name || user.email?.split('@')[0]}
+            sheetsCount={sheets.length}
+            onNew={() => { handleNew(); setView('wizard') }}
+            onContinue={() => setView('wizard')}
+            onLibrary={() => setView('library')}
+            onReference={() => setView('reference')}
+            hasDraft={!!char.nome || !!char.classe}
+          />
+        </main>
+      ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">
-            <div className="max-w-3xl mx-auto px-4 py-6">
+            <div className={`mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-txt-dim text-sm">Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
@@ -362,12 +550,24 @@ export default function App() {
         </div>
       ) : view === 'library' ? (
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto px-4 py-6">
-            {viewingSheet ? (
-              <FullSheetViewer sheet={viewingSheet} onBack={() => setViewingSheetIdx(null)} onUpdate={handleUpdateSheet} />
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            {viewingSheetId ? (
+              <FullSheetViewer sheetId={viewingSheetId} onBack={() => setViewingSheetId(null)} />
             ) : (
-              <CharacterLibrary sheets={sheets} onLoad={handleLoadSheet} onDelete={handleDeleteSheet} onNew={handleNew} />
+              <CharacterLibrary
+                sheets={sheets}
+                onLoad={(id) => setViewingSheetId(id)}
+                onDelete={handleDeleteSheet}
+                onImport={handleImport}
+                canExport={true}
+              />
             )}
+          </div>
+        </main>
+      ) : view === 'admin' && isAdmin ? (
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <AdminDashboard />
           </div>
         </main>
       ) : (
