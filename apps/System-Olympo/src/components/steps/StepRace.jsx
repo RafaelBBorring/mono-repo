@@ -3,7 +3,6 @@ import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../../data/races'
 
 export default function StepRace({ char, update }) {
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const [expandedRace, setExpandedRace] = useState(null)
 
   const selectedRaceData = char.raca ? RACES[char.raca] : null
 
@@ -30,219 +29,246 @@ export default function StepRace({ char, update }) {
     <div className="space-y-6">
       <h2 className="font-cinzel text-gold text-xl">Etapa — Raça</h2>
       <p className="text-txt-dim text-sm">
-        Escolha a raça do personagem. Cada raça oferece bônus, traços inatos, vantagens e desvantagens únicos que afetam diretamente a gameplay.
+        Escolha a raça do personagem. Cada raça oferece bônus de Camada 0, passivas raciais com valores mecânicos, vantagens e desvantagens que impactam diretamente a gameplay.
       </p>
 
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setSelectedCategory('all')}
           className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedCategory === 'all' ? 'bg-gold text-void' : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
-          Todas
+          Todas ({Object.keys(RACES).length})
         </button>
-        {RACE_CATEGORIES.map(cat => (
-          <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedCategory === cat.id ? 'bg-gold text-void' : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
-            {cat.label}
-          </button>
-        ))}
+        {RACE_CATEGORIES.map(c => {
+          const count = Object.values(RACES).filter(r => r.category === c.id).length
+          return (
+            <button key={c.id} onClick={() => setSelectedCategory(c.id)}
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedCategory === c.id ? `${c.title} ${c.color} border ${c.color.split(' ')[0]}` : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+              {c.label} ({count})
+            </button>
+          )
+        })}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="space-y-3">
         {filteredRaces.map(race => {
           const isSelected = char.raca === race.id
-          const isExpanded = expandedRace === race.id
           const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
 
           return (
             <div key={race.id}
-              className={`bg-deep border rounded-lg overflow-hidden transition-all ${
-                isSelected ? 'border-gold shadow-[0_0_15px_rgba(201,168,76,0.3)]' : 'border-sep hover:border-gold'
-              }`}>
-              <button type="button" onClick={() => handleSelectRace(race.id)}
-                className="w-full text-left px-4 py-3 flex items-center gap-3">
-                <span className="text-xl shrink-0">{race.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-cinzel text-base ${isSelected ? 'text-gold' : 'text-txt-main'}`}>{race.name}</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${catMeta.badge}`}>{catMeta.label}</span>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-txt-dim text-[11px] font-mono">
-                      HP: <span className={race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        {race.layer0.hpMod >= 0 ? '+' : ''}{race.layer0.hpLabel || race.layer0.hpMod}
-                      </span>
-                    </span>
-                    <span className="text-txt-dim text-[11px]">Atr: <span className="text-sky-400">{getAttrBonusText(race)}</span></span>
-                    <span className="text-txt-dim text-[11px] ml-auto">{getDiffStars(race.dificuldade)}</span>
-                  </div>
-                </div>
-              </button>
+              className={`rounded-xl border transition-all ${isSelected ? `${catMeta.color} ${catMeta.color.split(' ')[0]}` : 'bg-deep border-sep hover:border-gold/50'}`}>
 
-              {isSelected && (
-                <div className="border-t border-gold/30 px-4 py-3 space-y-3">
-                  <p className="text-txt-dim text-xs italic">{race.quote}</p>
-                  <p className="text-txt-dim text-xs">{race.desc}</p>
+              {!isSelected ? (
+                <button type="button" onClick={() => handleSelectRace(race.id)}
+                  className="w-full text-left px-5 py-4 flex items-center gap-4">
+                  <span className="text-2xl shrink-0">{race.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-cinzel text-lg text-txt-main">{race.name}</span>
+                      <span className={`text-[9px] px-2 py-0.5 rounded border ${catMeta.badge}`}>{catMeta.label}</span>
+                      <span className="text-txt-dim text-[11px] ml-1">{'⭐'.repeat(race.dificuldade || 1)}</span>
+                    </div>
+                    <p className="text-txt-dim text-xs mt-1 line-clamp-2">{race.desc}</p>
+                  </div>
+                  <span className="text-gold/50 text-sm shrink-0">Selecionar →</span>
+                </button>
+              ) : (
+                <div className="px-5 py-4 space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-2xl">{race.icon}</span>
+                      <span className={`font-cinzel text-xl ${catMeta.title}`}>{race.name}</span>
+                      <span className={`text-[9px] px-2 py-0.5 rounded border ${catMeta.badge}`}>{catMeta.label}</span>
+                      <span className="text-txt-dim text-[11px] ml-1">{'⭐'.repeat(race.dificuldade || 1)}</span>
+                      <button onClick={() => update({ raca: '', racaTipo: '', racaDeus: null })}
+                        className="ml-auto text-txt-dim text-xs hover:text-err transition-colors">✕ Remover</button>
+                    </div>
+                    <p className="text-txt-dim text-xs italic">{race.quote}</p>
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-void/60 rounded-lg p-2.5 border border-sep/30">
-                      <div className="text-[10px] text-gold font-semibold mb-1.5 uppercase tracking-wider">Camada 0</div>
-                      <div className="space-y-1 text-xs">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-void/60 rounded-lg p-3 border border-sep/30">
+                      <div className="text-gold text-[11px] font-semibold mb-2 uppercase tracking-wider">Camada 0 — Bônus Inato</div>
+                      <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between">
                           <span className="text-txt-dim">Atributos</span>
-                          <span className="text-sky-400 font-mono text-[11px]">{getAttrBonusText(race)}</span>
+                          <span className="text-sky-400 font-mono">{getAttrBonusText(race)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-txt-dim">Vida</span>
-                          <span className={`font-mono text-[11px] ${race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {race.layer0.hpLabel || `${race.layer0.hpMod >= 0 ? '+' : ''}${race.layer0.hpMod}`}
+                          <span className={`font-mono ${race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {race.layer0.hpLabel || `${race.layer0.hpMod >= 0 ? '+' : ''}${race.layer0.hpMod} HP`}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-void/60 rounded-lg p-2.5 border border-sep/30">
-                      <div className="text-[10px] text-gold font-semibold mb-1.5 uppercase tracking-wider">Traços Inatos</div>
-                      <div className="space-y-1 text-xs">
-                        {race.layer0.tracoAtivo && (
-                          <div>
-                            <span className="text-amber-300 font-semibold text-[11px]">ATV: </span>
-                            <span className="text-txt-dim text-[11px]">{race.layer0.tracoAtivo.nome}</span>
-                          </div>
-                        )}
-                        {race.layer0.tracoPassivo && (
-                          <div>
-                            <span className="text-emerald-400 font-semibold text-[11px]">PSV: </span>
-                            <span className="text-txt-dim text-[11px]">{race.layer0.tracoPassivo.nome}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
 
-                  {race.layer0.requiresDeus && (
-                    <div className="bg-void/60 rounded-lg p-3 border border-amber-300/20">
-                      <div className="text-[10px] text-amber-300 font-semibold mb-2 uppercase tracking-wider">Deus Pai (Linhagem)</div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {race.deuses.map(deus => (
-                          <button key={deus.id} type="button"
-                            onClick={() => update({ racaDeus: deus.id })}
-                            className={`text-left px-2 py-1.5 rounded border text-[11px] transition-colors ${
-                              char.racaDeus === deus.id
-                                ? 'border-amber-300/50 bg-amber-300/10 text-amber-300'
-                                : 'border-sep/40 text-txt-dim hover:border-amber-300/30'
-                            }`}>
-                            <span className="font-semibold">{deus.name}</span>
-                            <div className="text-[10px] text-txt-dim/60 mt-0.5">
-                              {Object.entries(deus.attr).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}
+                    {race.passivasRaciais.length > 0 && (
+                      <div className="bg-void/60 rounded-lg p-3 border border-sep/30">
+                        <div className="text-amber-300 text-[11px] font-semibold mb-2 uppercase tracking-wider">Passivas Raciais ({race.passivasRaciais.length})</div>
+                        <div className="space-y-1.5">
+                          {race.passivasRaciais.map((pr, i) => (
+                            <div key={i}>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${pr.tipo === 'Ativa' ? 'bg-amber-300/15 text-amber-300' : 'bg-emerald-400/15 text-emerald-400'}`}>
+                                  {pr.tipo === 'Ativa' ? 'ATV' : 'PSV'}
+                                </span>
+                                <span className="text-txt-main text-xs font-semibold">{pr.nome}</span>
+                              </div>
+                              <p className="text-txt-dim text-[11px] mt-0.5 leading-relaxed">{pr.efeito}</p>
+                              <div className="flex gap-3 text-[10px] text-txt-dim/60 mt-0.5">
+                                {pr.custo && pr.custo !== '—' && <span>Custo: <span className="text-amber-300/80">{pr.custo}</span></span>}
+                                {pr.duracao && pr.duracao !== 'Contínuo' && <span>Duração: <span className="text-sky-400/80">{pr.duracao}</span></span>}
+                              </div>
                             </div>
-                          </button>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                      {char.racaDeus && (() => {
-                        const deus = race.deuses.find(d => d.id === char.racaDeus)
-                        return deus ? (
-                          <div className="mt-2 bg-amber-300/5 rounded p-2 border border-amber-300/15 text-[11px]">
-                            <span className="text-amber-300 font-semibold">{deus.name}:</span>
-                            <span className="text-txt-dim"> {deus.traco} — {deus.especial}</span>
-                          </div>
-                        ) : null
-                      })()}
-                    </div>
-                  )}
+                    )}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-[10px] text-emerald-400 font-semibold mb-1 uppercase tracking-wider">Vantagens</div>
-                      <ul className="space-y-0.5">
+                    <div className="bg-void/60 rounded-lg p-3 border border-sep/30">
+                      <div className="text-emerald-400 text-[11px] font-semibold mb-2 uppercase tracking-wider">Vantagens ({race.vantagens.length})</div>
+                      <ul className="space-y-1">
                         {race.vantagens.map((v, i) => (
-                          <li key={i} className="text-[11px] text-txt-dim flex gap-1">
+                          <li key={i} className="text-[11px] text-txt-dim flex gap-1.5">
                             <span className="text-emerald-400/60 shrink-0">+</span>
                             <span>{v}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div>
-                      <div className="text-[10px] text-red-400 font-semibold mb-1 uppercase tracking-wider">Desvantagens</div>
-                      <ul className="space-y-0.5">
-                        {race.desvantagens.map((d, i) => (
-                          <li key={i} className="text-[11px] text-txt-dim flex gap-1">
-                            <span className="text-red-400/60 shrink-0">-</span>
-                            <span>{d}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  </div>
+
+                  <div className="bg-void/60 rounded-lg p-3 border border-red-400/15">
+                    <div className="text-red-400 text-[11px] font-semibold mb-2 uppercase tracking-wider">Desvantagens ({race.desvantagens.length})</div>
+                    <div className="flex flex-wrap gap-x-6 gap-y-1">
+                      {race.desvantagens.map((d, i) => (
+                        <span key={i} className="text-[11px] text-txt-dim flex gap-1.5">
+                          <span className="text-red-400/60 shrink-0">-</span>
+                          <span>{d}</span>
+                        </span>
+                      ))}
                     </div>
                   </div>
 
-                  <button type="button"
-                    onClick={() => setExpandedRace(isExpanded ? null : race.id)}
-                    className="w-full text-center text-[11px] text-gold/70 hover:text-gold transition-colors py-1">
-                    {isExpanded ? '▲ Menos' : '▼ Progressão Completa'}
-                  </button>
+                  {race.layer0.requiresDeus && race.deuses && (
+                    <div className="bg-void/60 rounded-lg p-3 border border-amber-300/20">
+                      <div className="text-amber-300 text-[11px] font-semibold mb-2 uppercase tracking-wider">Deus Pai — Linhagem</div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {race.deuses.map(deus => {
+                          const selected = char.racaDeus === deus.id
+                          return (
+                            <button key={deus.id} type="button"
+                              onClick={() => update({ racaDeus: deus.id })}
+                              className={`text-left px-3 py-2 rounded-lg border text-xs transition-colors ${
+                                selected ? 'border-amber-300/50 bg-amber-300/10' : 'border-sep/40 hover:border-amber-300/30'
+                              }`}>
+                              <span className={`font-semibold ${selected ? 'text-amber-300' : 'text-txt-main'}`}>{deus.name}</span>
+                              <div className="text-[10px] text-sky-400 font-mono mt-0.5">
+                                {Object.entries(deus.attr).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {char.racaDeus && (() => {
+                        const deus = race.deuses.find(d => d.id === char.racaDeus)
+                        return deus ? (
+                          <div className="mt-2 bg-amber-300/5 rounded-lg p-3 border border-amber-300/15">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-amber-300 font-cinzel font-bold">{deus.name}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                              <div>
+                                <span className="text-txt-dim">Traço: </span>
+                                <span className="text-txt-main">{deus.traco}</span>
+                              </div>
+                              <div>
+                                <span className="text-txt-dim">Especial: </span>
+                                <span className="text-txt-main">{deus.especial}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null
+                      })()}
+                    </div>
+                  )}
 
-                  {isExpanded && (
-                    <div className="space-y-2 border-t border-sep/30 pt-3">
-                      <div className="text-[10px] text-gold font-semibold uppercase tracking-wider">Progressão por Nível</div>
-                      {race.progressao.map((p, i) => {
+                  {race.formas && (
+                    <div className="bg-void/60 rounded-lg p-3 border border-amber-300/20">
+                      <div className="text-amber-300 text-[11px] font-semibold mb-2 uppercase tracking-wider">Formas Disponíveis</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {race.formas.map((f, i) => (
+                          <div key={i} className="bg-deep rounded-lg p-3 border border-sep/40">
+                            <span className="font-semibold text-amber-300 text-sm">{f.nome}</span>
+                            {Object.keys(f.attrBonus).length > 0 && (
+                              <div className="text-sky-400 font-mono text-[11px] mt-1">
+                                {Object.entries(f.attrBonus).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}
+                              </div>
+                            )}
+                            {f.hpExtra > 0 && <span className="text-emerald-400 font-mono text-[11px] ml-2">+{f.hpExtra} HP</span>}
+                            {f.garras && <span className="text-red-400 font-mono text-[11px] ml-2">Garras {f.garras}</span>}
+                            <p className="text-txt-dim text-[11px] mt-1">{f.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="text-gold text-[11px] font-semibold mb-2 uppercase tracking-wider">Evolução de Poder (por Nível)</div>
+                    <div className="space-y-1.5">
+                      {race.progressaoPoder.map((p, i) => {
                         const active = char.nivel >= p.nivel
                         return (
-                          <div key={i} className={`flex gap-3 items-start text-[11px] ${active ? 'text-txt-main' : 'text-txt-dim/50'}`}>
-                            <span className={`shrink-0 w-8 text-center font-mono font-bold rounded px-1 py-0.5 text-[10px] ${active ? 'bg-gold/15 text-gold border border-gold/20' : 'bg-sep/20 text-txt-dim/50'}`}>
+                          <div key={i} className={`flex gap-4 items-start text-xs py-1.5 ${active ? 'text-txt-main' : 'text-txt-dim/40'}`}>
+                            <span className={`shrink-0 w-12 text-center font-mono font-bold rounded px-1.5 py-0.5 text-[10px] ${active ? 'bg-gold/15 text-gold border border-gold/20' : 'bg-sep/20 text-txt-dim/40'}`}>
                               N{p.nivel}
                             </span>
-                            <div>
+                            <div className="flex-1">
                               <span className="font-semibold">{p.ganho}</span>
-                              <span className="text-txt-dim"> — {p.desc}</span>
+                              <span className="text-txt-dim ml-1">{p.desc}</span>
+                              {p.custo && <span className="text-amber-300/80 ml-1 font-mono text-[10px]">[{p.custo}]</span>}
+                              {p.duracao && p.duracao !== 'Contínuo' && <span className="text-sky-400/80 ml-1 font-mono text-[10px]">[{p.duracao}]</span>}
                             </div>
                           </div>
                         )
                       })}
-                      {race.progressaoIdade && (
-                        <>
-                          <div className="text-[10px] text-purple-400 font-semibold uppercase tracking-wider mt-3">Progressão por Idade (Vampiro)</div>
-                          {race.progressaoIdade.map((p, i) => (
-                            <div key={i} className="flex gap-3 items-start text-[11px]">
-                              <span className="shrink-0 w-20 text-center font-mono font-bold rounded px-1 py-0.5 text-[10px] bg-purple-400/10 text-purple-400 border border-purple-400/20">
-                                {p.idade}
-                              </span>
-                              <div>
-                                <span className="font-semibold">{p.ganho}</span>
-                                <span className="text-txt-dim"> — {p.efeito}</span>
+                    </div>
+                  </div>
+
+                  {race.marcosExperiencia && race.marcosExperiencia.length > 0 && (
+                    <div>
+                      <div className="text-purple-400 text-[11px] font-semibold mb-2 uppercase tracking-wider">Marcos de Experiência (conquistas narrativas)</div>
+                      <div className="space-y-1.5">
+                        {race.marcosExperiencia.map((item, i) =>
+                          item.marcos ? (
+                            <div key={i} className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-xs py-1">
+                                <span className="shrink-0 w-6 text-center text-purple-400 text-base">◆</span>
+                                <span className="text-purple-300 font-cinzel font-bold">{item.titulo}</span>
+                                <span className="text-txt-dim text-[10px]">— {item.desc}</span>
+                              </div>
+                              {item.marcos.map((m, j) => (
+                                <div key={j} className="flex gap-4 items-start text-xs py-1 pl-6">
+                                  <span className="shrink-0 w-6 text-center text-purple-400/60 text-sm">◇</span>
+                                  <div className="flex-1">
+                                    <span className="text-txt-main font-semibold">{m.marco}</span>
+                                    <span className="text-emerald-400 ml-1">{m.ganho}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div key={i} className="flex gap-4 items-start text-xs py-1.5">
+                              <span className="shrink-0 w-6 text-center text-purple-400 text-base">◆</span>
+                              <div className="flex-1">
+                                <span className="text-txt-main font-semibold">{item.marco}</span>
+                                <span className="text-emerald-400 ml-1">{item.ganho}</span>
                               </div>
                             </div>
-                          ))}
-                        </>
-                      )}
-                      {race.formas && (
-                        <>
-                          <div className="text-[10px] text-amber-300 font-semibold uppercase tracking-wider mt-3">Formas (Dasariano)</div>
-                          {race.formas.map((f, i) => (
-                            <div key={i} className="bg-void/40 border border-sep/30 rounded p-2 text-[11px]">
-                              <span className="font-semibold text-amber-300">{f.nome}</span>
-                              {Object.keys(f.attrBonus).length > 0 && (
-                                <span className="text-sky-400 font-mono ml-2">
-                                  {Object.entries(f.attrBonus).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}
-                                </span>
-                              )}
-                              {f.hpExtra > 0 && <span className="text-emerald-400 font-mono ml-2">+{f.hpExtra} HP</span>}
-                              {f.garras && <span className="text-red-400 font-mono ml-2">Garras {f.garras}</span>}
-                              <p className="text-txt-dim mt-0.5">{f.desc}</p>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                      {race.bonusMorte && (
-                        <>
-                          <div className="text-[10px] text-red-400 font-semibold uppercase tracking-wider mt-3">Bônus por Morte (Demônio)</div>
-                          {race.bonusMorte.map((b, i) => (
-                            <div key={i} className="flex gap-3 items-start text-[11px]">
-                              <span className="shrink-0 w-16 text-center font-mono font-bold rounded px-1 py-0.5 text-[10px] bg-red-400/10 text-red-400 border border-red-400/20">
-                                {b.mortes} mortes
-                              </span>
-                              <span className="text-txt-dim">{b.ganho}</span>
-                            </div>
-                          ))}
-                        </>
-                      )}
+                          )
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -253,8 +279,4 @@ export default function StepRace({ char, update }) {
       </div>
     </div>
   )
-}
-
-function getDiffStars(n) {
-  return '⭐'.repeat(n || 1)
 }
