@@ -18,29 +18,17 @@ import {
 } from '../utils/calculator'
 import { getModifier } from '../data/attributes'
 import { buildEvolucaoContext } from '../utils/skillEvolution'
+import { supabase } from '../lib/supabase'
 
-// ─── Infra ─────────────────────────────────────────────────────────────────
-
-const OPENROUTER_API_KEY = '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'
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const MODEL   = 'google/gemini-2.0-flash-001'
+// ─── Infra (via Supabase Edge Function) ────────────────────────────────────
 
 async function callAI(messages) {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': window.location.origin,
-      'X-Title': 'Sistema Olympo 2.0',
-    },
-    body: JSON.stringify({ model: MODEL, messages, temperature: 0.35, max_tokens: 4096 }),
+  const { data, error } = await supabase.functions.invoke('openrouter-proxy', {
+    body: { messages, temperature: 0.35, max_tokens: 4096 },
   })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`API Error ${res.status}: ${err}`)
+  if (error) {
+    throw new Error(`API Error: ${error.message || JSON.stringify(error)}`)
   }
-  const data = await res.json()
   return data.choices?.[0]?.message?.content || ''
 }
 
