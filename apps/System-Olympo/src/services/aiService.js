@@ -23,7 +23,7 @@ import { supabase } from '../lib/supabase'
 // ─── Infra (via Supabase Edge Function) ────────────────────────────────────
 
 async function callAI(messages) {
-  const { data, error } = await supabase.functions.invoke('openrouter-proxy', {
+  const { data, error } = await supabase.functions.invoke('openrouter-chat', {
     body: { messages, temperature: 0.35, max_tokens: 4096 },
   })
   if (error) {

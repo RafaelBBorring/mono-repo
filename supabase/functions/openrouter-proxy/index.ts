@@ -4,22 +4,27 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'google/gemini-2.0-flash-001'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  })
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      },
-    })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
-    }
+    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -28,20 +33,15 @@ serve(async (req) => {
     )
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'User not found.' }), { status: 401 })
-    }
+    if (!user) return jsonResponse({ error: 'User not found.' }, 401)
 
     const { messages, temperature, max_tokens } = await req.json()
-
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response(JSON.stringify({ error: 'Messages array is required.' }), { status: 400 })
+      return jsonResponse({ error: 'Messages array is required.' }, 400)
     }
 
     const apiKey = Deno.env.get('OPENROUTER_API_KEY')
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key not configured.' }), { status: 500 })
-    }
+    if (!apiKey) return jsonResponse({ error: 'API key not configured.' }, 500)
 
     const response = await fetch(OPENROUTER_URL, {
       method: 'POST',
@@ -60,18 +60,10 @@ serve(async (req) => {
     })
 
     const data = await response.json()
+    if (!response.ok) return jsonResponse({ error: data }, response.status)
 
-    if (!response.ok) {
-      return new Response(JSON.stringify({ error: data }), { status: response.status })
-    }
-
-    return new Response(JSON.stringify(data), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    })
+    return jsonResponse(data)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+    return jsonResponse({ error: err.message }, 500)
   }
 })
