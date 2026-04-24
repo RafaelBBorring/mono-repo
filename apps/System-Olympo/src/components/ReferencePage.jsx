@@ -6,10 +6,11 @@ import { PERICIAS, GRAU_NAMES, GRAUS_BY_TIER } from '../data/pericias'
 import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '../data/modules'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS as MA_GRAU_LABELS } from '../data/martialArts'
+import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../data/races'
 import { useState } from 'react'
 
 const sections = [
-  'Atributos', 'Classes', 'Progressão', 'Perícias',
+  'Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias',
   'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
   'Armas', 'Ranks de Arma', 'Artes Marciais', 'Criação de Personagem', 'Balanceamento',
 ]
@@ -29,6 +30,7 @@ export default function ReferencePage() {
         ))}
       </div>
       <div className="bg-deep border border-sep rounded-lg p-6">
+        {section === 'Raças' && <RacasSection />}
         {section === 'Atributos' && <AttributesSection />}
         {section === 'Classes' && <ClassesSection />}
         {section === 'Progressão' && <ProgressionSection />}
@@ -45,6 +47,259 @@ export default function ReferencePage() {
       </div>
     </div>
   )
+}
+
+function RacasSection() {
+  const [cat, setCat] = useState('all')
+  const [expanded, setExpanded] = useState(null)
+
+  const filtered = cat === 'all'
+    ? Object.values(RACES)
+    : Object.values(RACES).filter(r => r.category === cat)
+
+  return (
+    <div>
+      <SectionTitle>Raças</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Cada raça oferece bônus únicos (Camada 0), traços inatos, vantagens e desvantagens que afetam diretamente a gameplay.
+        A progressão pode ser por nível ou por eventos especiais (idade, mortes).
+      </p>
+
+      <div className="mb-4 bg-void rounded-lg border border-sep p-3">
+        <p className="text-gold text-xs font-semibold mb-2">Camada 0 — Bônus Raciais Inatos</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+          <div className="bg-deep rounded border border-sep/50 p-2">
+            <span className="text-txt-dim">Bônus de Atributos</span>
+            <div className="text-sky-400 font-mono mt-0.5">+/- direto em atributos</div>
+          </div>
+          <div className="bg-deep rounded border border-sep/50 p-2">
+            <span className="text-txt-dim">Modificador de Vida</span>
+            <div className="text-emerald-400 font-mono mt-0.5">+/- HP fixo</div>
+          </div>
+          <div className="bg-deep rounded border border-sep/50 p-2">
+            <span className="text-txt-dim">Traços Inatos</span>
+            <div className="text-amber-300 font-mono mt-0.5">Ativo + Passivo</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button onClick={() => setCat('all')}
+          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${cat === 'all' ? 'bg-gold text-void' : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+          Todas ({Object.keys(RACES).length})
+        </button>
+        {RACE_CATEGORIES.map(c => {
+          const count = Object.values(RACES).filter(r => r.category === c.id).length
+          return (
+            <button key={c.id} onClick={() => setCat(c.id)}
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${cat === c.id ? `${c.title} ${c.color} border ${c.color.split(' ')[0]}` : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+              {c.label} ({count})
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="space-y-3">
+        {filtered.map(race => {
+          const isExpanded = expanded === race.id
+          const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
+          return (
+            <div key={race.id} className={`rounded-xl border ${catMeta.color} overflow-hidden`}>
+              <button type="button" onClick={() => setExpanded(isExpanded ? null : race.id)}
+                className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors">
+                <span className="text-xl shrink-0">{race.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-cinzel text-base ${catMeta.title}`}>{race.name}</span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${catMeta.badge}`}>{catMeta.label}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5 text-[11px]">
+                    <span className="text-txt-dim">HP: <span className={race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}>{race.layer0.hpLabel || `${race.layer0.hpMod >= 0 ? '+' : ''}${race.layer0.hpMod}`}</span></span>
+                    <span className="text-txt-dim">Atr: <span className="text-sky-400">{getAttrBonusText(race)}</span></span>
+                    <span className="text-txt-dim ml-auto">{getDiffStars(race.dificuldade)}</span>
+                  </div>
+                </div>
+                <span className="text-txt-dim/40 text-sm shrink-0">{isExpanded ? '▲' : '▼'}</span>
+              </button>
+
+              {isExpanded && (
+                <div className="px-4 pb-4 border-t border-sep/30 space-y-3">
+                  <p className="text-txt-dim text-xs italic pt-2">{race.quote}</p>
+                  <p className="text-txt-dim text-xs">{race.desc}</p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-void/60 rounded-lg p-2.5 border border-sep/30">
+                      <div className="text-[10px] text-gold font-semibold mb-1.5 uppercase tracking-wider">Camada 0</div>
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-txt-dim">Atributos</span>
+                          <span className="text-sky-400 font-mono text-[11px]">{getAttrBonusText(race)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-txt-dim">Vida</span>
+                          <span className={`font-mono text-[11px] ${race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{race.layer0.hpLabel || `${race.layer0.hpMod >= 0 ? '+' : ''}${race.layer0.hpMod}`}</span>
+                        </div>
+                        {race.layer0.tracoAtivo && (
+                          <div>
+                            <span className="text-amber-300 font-semibold text-[11px]">ATV: </span>
+                            <span className="text-txt-dim text-[11px]">{race.layer0.tracoAtivo.nome} — {race.layer0.tracoAtivo.desc}</span>
+                          </div>
+                        )}
+                        {race.layer0.tracoPassivo && (
+                          <div>
+                            <span className="text-emerald-400 font-semibold text-[11px]">PSV: </span>
+                            <span className="text-txt-dim text-[11px]">{race.layer0.tracoPassivo.nome} — {race.layer0.tracoPassivo.desc}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-void/60 rounded-lg p-2.5 border border-sep/30">
+                      <div className="text-[10px] text-emerald-400 font-semibold mb-1 uppercase tracking-wider">Vantagens</div>
+                      <ul className="space-y-0.5">
+                        {race.vantagens.map((v, i) => (
+                          <li key={i} className="text-[11px] text-txt-dim flex gap-1">
+                            <span className="text-emerald-400/60 shrink-0">+</span>
+                            <span>{v}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-void/60 rounded-lg p-2.5 border border-sep/30">
+                    <div className="text-[10px] text-red-400 font-semibold mb-1 uppercase tracking-wider">Desvantagens</div>
+                    <ul className="space-y-0.5 flex flex-wrap gap-x-4">
+                      {race.desvantagens.map((d, i) => (
+                        <li key={i} className="text-[11px] text-txt-dim flex gap-1">
+                          <span className="text-red-400/60 shrink-0">-</span>
+                          <span>{d}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {race.layer0.requiresDeus && race.deuses && (
+                    <div className="bg-void/60 rounded-lg p-2.5 border border-amber-300/20">
+                      <div className="text-[10px] text-amber-300 font-semibold mb-2 uppercase tracking-wider">Deuses Possíveis (Linhagem)</div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-sep/40">
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Deus</th>
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Atributos</th>
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Traço</th>
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Especial</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {race.deuses.map(d => (
+                              <tr key={d.id} className="border-b border-sep/20">
+                                <td className="py-1.5 px-2 font-cinzel text-amber-300 font-semibold">{d.name}</td>
+                                <td className="py-1.5 px-2 font-mono text-sky-400 text-[11px]">{Object.entries(d.attr).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}</td>
+                                <td className="py-1.5 px-2 text-txt-main text-[11px]">{d.traco}</td>
+                                <td className="py-1.5 px-2 text-txt-dim text-[11px]">{d.especial}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {race.formas && (
+                    <div className="bg-void/60 rounded-lg p-2.5 border border-amber-300/20">
+                      <div className="text-[10px] text-amber-300 font-semibold mb-2 uppercase tracking-wider">Formas (Dasariano)</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {race.formas.map((f, i) => (
+                          <div key={i} className="bg-deep rounded-lg p-2 border border-sep/40 text-[11px]">
+                            <span className="font-semibold text-amber-300">{f.nome}</span>
+                            {Object.keys(f.attrBonus).length > 0 && (
+                              <div className="text-sky-400 font-mono mt-0.5">{Object.entries(f.attrBonus).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}</div>
+                            )}
+                            {f.hpExtra > 0 && <div className="text-emerald-400 font-mono">+{f.hpExtra} HP</div>}
+                            {f.garras && <div className="text-red-400 font-mono">Garras {f.garras}</div>}
+                            <p className="text-txt-dim mt-0.5">{f.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-void/60 rounded-lg p-2.5 border border-sep/30">
+                    <div className="text-[10px] text-gold font-semibold mb-1.5 uppercase tracking-wider">Progressão por Nível</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-sep/40">
+                            <th className="py-1.5 px-2 text-left text-txt-dim font-medium w-14">Nível</th>
+                            <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Ganho</th>
+                            <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Descrição</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {race.progressao.map((p, i) => (
+                            <tr key={i} className="border-b border-sep/20">
+                              <td className="py-1.5 px-2 font-mono text-gold font-bold">N{p.nivel}</td>
+                              <td className="py-1.5 px-2 text-txt-main">{p.ganho}</td>
+                              <td className="py-1.5 px-2 text-txt-dim">{p.desc}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {race.progressaoIdade && (
+                    <div className="bg-void/60 rounded-lg p-2.5 border border-purple-400/20">
+                      <div className="text-[10px] text-purple-400 font-semibold mb-1.5 uppercase tracking-wider">Progressão por Idade</div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-sep/40">
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium w-24">Idade</th>
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Título</th>
+                              <th className="py-1.5 px-2 text-left text-txt-dim font-medium">Efeito Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {race.progressaoIdade.map((p, i) => (
+                              <tr key={i} className="border-b border-sep/20">
+                                <td className="py-1.5 px-2 font-mono text-purple-400 font-bold">{p.idade}</td>
+                                <td className="py-1.5 px-2 text-txt-main">{p.ganho}</td>
+                                <td className="py-1.5 px-2 text-txt-dim">{p.efeito}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {race.bonusMorte && (
+                    <div className="bg-void/60 rounded-lg p-2.5 border border-red-400/20">
+                      <div className="text-[10px] text-red-400 font-semibold mb-1.5 uppercase tracking-wider">Bônus por Morte em Combate</div>
+                      <div className="space-y-1">
+                        {race.bonusMorte.map((b, i) => (
+                          <div key={i} className="flex gap-3 text-xs">
+                            <span className="shrink-0 w-20 font-mono text-red-400 font-bold">{b.mortes} mortes</span>
+                            <span className="text-txt-main">{b.ganho}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function getDiffStars(n) {
+  return '⭐'.repeat(n || 1)
 }
 
 function SectionTitle({ children }) {
@@ -496,17 +751,18 @@ function MartialArtsSection() {
 
 function CreationGuideSection() {
   const steps = [
-    { n: 1, title: 'Identidade', desc: 'Defina o nome, raça e nível do personagem. O Mestre define qual tipo de Array (Balanceado, MinMax ou Extremo) está disponível para a campanha.' },
-    { n: 2, title: 'Esqueleto (Atributos)', desc: 'Distribua os 6 valores do Array escolhido entre os atributos FOR, DES, CON, INT, APA e AM. Cada valor só pode ser usado uma vez.' },
-    { n: 3, title: 'Classe', desc: 'Escolha entre Guerreiro, Operativo ou Místico. Cada classe define Vida, Energia, PE, Dano Base e quantidade de perícias iniciais.' },
-    { n: 4, title: 'Progressão', desc: 'Consulte a tabela de N1 até o nível atual da classe. Recompensas com "OU" exigem uma escolha do jogador. Anote triagens e módulos desbloqueados.' },
-    { n: 5, title: 'Pontos de Esqueleto', desc: 'Distribua os Pontos de Esqueleto ganhos na progressão entre os atributos. Cada ponto em CON afeta retroativamente a Vida por Nível. O mesmo vale para AM (Energia).' },
-    { n: 6, title: 'Perícias', desc: 'Treine perícias usando os pontos disponíveis (classe + progressão). Cada grau custa 1 ponto. O grau máximo depende do nível: N1-7 Treinado, N8-13 Veterano, N14-22 Especialista, N23-30 Mestre.' },
+    { n: 1, title: 'Identidade', desc: 'Defina o nome e nível do personagem. O Mestre define qual tipo de Array (Balanceado, MinMax ou Extremo) está disponível para a campanha.' },
+    { n: 2, title: 'Raça', desc: 'Escolha entre 13 raças divididas em 4 categorias (Humanoides, Sobrenaturais, Predatórias, Lendárias). Cada raça oferece bônus de atributos, modificadores de vida, traços inatos ativos/passivos, vantagens e desvantagens únicos.' },
+    { n: 3, title: 'Esqueleto (Atributos)', desc: 'Distribua os 6 valores do Array escolhido entre os atributos FOR, DES, CON, INT, APA e AM. Cada valor só pode ser usado uma vez.' },
+    { n: 4, title: 'Classe', desc: 'Escolha entre Guerreiro, Operativo ou Místico. Cada classe define Vida, Energia, PE, Dano Base e quantidade de perícias iniciais.' },
+    { n: 5, title: 'Progressão', desc: 'Consulte a tabela de N1 até o nível atual da classe. Recompensas com "OU" exigem uma escolha do jogador. Anote triagens e módulos desbloqueados.' },
+    { n: 6, title: 'Pontos de Esqueleto', desc: 'Distribua os Pontos de Esqueleto ganhos na progressão entre os atributos. Cada ponto em CON afeta retroativamente a Vida por Nível. O mesmo vale para AM (Energia).' },
     { n: 7, title: 'Triagens', desc: 'Escolha UMA Triagem Principal (da mesma classe). A partir de N16, pode escolher UMA Sub-Triagem de qualquer classe (máx nível 0.3). Não pode repetir a mesma triagem.' },
     { n: 8, title: 'Módulos de Evolução', desc: 'Gaste os Módulos de Evolução ganhos na progressão. Existem Passivos (sempre ativos), Especiais (aquisição múltipla) e Ativos (custam PE). Verifique os requisitos.' },
-    { n: 9, title: 'Arma e Arte Marcial', desc: 'Escolha uma arma (17 disponíveis, cada uma com mecânica única) e seu Rank (Comum a Mítico). Opcionalmente escolha uma Arte Marcial (Boxe, Karatê, Muay Thai, Judô, Taekwondo, Aikido).' },
-    { n: 10, title: 'Habilidades', desc: 'Crie 5 habilidades: 1 Passiva, 3 Ativas e 1 Ultimate. Defina nome, descrição, custo de energia, dano, duração, camada SCP e PP estimado. Algumas triagens concedem habilidades extras.' },
-    { n: 11, title: 'Revisão e Ficha Final', desc: 'Revise todos os dados, verifique os cálculos automáticos (Vida, Energia, PE, CA, Reações, Percepção Passiva) e finalize a ficha.' },
+    { n: 9, title: 'Perícias', desc: 'Treine perícias usando os pontos disponíveis (classe + progressão). Cada grau custa 1 ponto. O grau máximo depende do nível: N1-7 Treinado, N8-13 Veterano, N14-22 Especialista, N23-30 Mestre.' },
+    { n: 10, title: 'Arma e Arte Marcial', desc: 'Escolha uma arma (17 disponíveis, cada uma com mecânica única) e seu Rank (Comum a Mítico). Opcionalmente escolha uma Arte Marcial (Boxe, Karatê, Muay Thai, Judô, Taekwondo, Aikido).' },
+    { n: 11, title: 'Habilidades', desc: 'Crie 5 habilidades: 1 Passiva, 3 Ativas e 1 Ultimate. Defina nome, descrição, custo de energia, dano, duração, camada SCP e PP estimado. Algumas triagens concedem habilidades extras.' },
+    { n: 12, title: 'Revisão e Ficha Final', desc: 'Revise todos os dados, verifique os cálculos automáticos (Vida, Energia, PE, CA, Reações, Percepção Passiva) e finalize a ficha.' },
   ]
 
   return (
@@ -516,20 +772,22 @@ function CreationGuideSection() {
       <div className="space-y-4">
         {steps.map((s, idx) => {
           const stepColors = [
-            'border-txt-dim/30 bg-txt-dim/5',         // 1 identity
-            'border-blue-400/30 bg-blue-400/5',        // 2 skeleton
-            'border-red-400/30 bg-red-400/5',          // 3 class - guerreiro
-            'border-orange-400/30 bg-orange-400/5',    // 4 progression
-            'border-teal-400/30 bg-teal-400/5',        // 5 skeleton pts
-            'border-teal-400/30 bg-teal-400/5',        // 6 pericias
-            'border-purple-400/30 bg-purple-400/5',    // 7 triagens
-            'border-orange-400/30 bg-orange-400/5',    // 8 modules
-            'border-sky-400/30 bg-sky-400/5',          // 9 weapon
-            'border-amber-300/30 bg-amber-300/5',      // 10 habilidades
-            'border-gold/30 bg-gold/5',                // 11 review
+            'border-txt-dim/30 bg-txt-dim/5',
+            'border-teal-400/30 bg-teal-400/5',
+            'border-blue-400/30 bg-blue-400/5',
+            'border-red-400/30 bg-red-400/5',
+            'border-orange-400/30 bg-orange-400/5',
+            'border-teal-400/30 bg-teal-400/5',
+            'border-teal-400/30 bg-teal-400/5',
+            'border-purple-400/30 bg-purple-400/5',
+            'border-orange-400/30 bg-orange-400/5',
+            'border-sky-400/30 bg-sky-400/5',
+            'border-amber-300/30 bg-amber-300/5',
+            'border-gold/30 bg-gold/5',
           ]
           const numColors = [
             'border-txt-dim text-txt-dim bg-txt-dim/10',
+            'border-teal-400 text-teal-400 bg-teal-400/10',
             'border-blue-400 text-blue-400 bg-blue-400/10',
             'border-red-400 text-red-400 bg-red-400/10',
             'border-orange-400 text-orange-400 bg-orange-400/10',

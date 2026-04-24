@@ -4,6 +4,7 @@ import { supabase, getSupabaseAdmin } from './lib/supabase'
 import { useCharacter } from './hooks/useCharacter'
 import Sidebar from './components/Sidebar'
 import Step1Identity from './components/steps/Step1Identity'
+import StepRace from './components/steps/StepRace'
 import Step2Skeleton from './components/steps/Step2Skeleton'
 import Step3Class from './components/steps/Step3Class'
 import Step5Progression from './components/steps/Step5Progression'
@@ -26,16 +27,17 @@ import { calcExtraAbilities, calcExtraAbilitiesTypes } from './utils/calculator'
 
 const STEPS = [
   { id: 1, label: 'Identidade', comp: Step1Identity },
-  { id: 2, label: 'Esqueleto', comp: Step2Skeleton },
-  { id: 3, label: 'Classe', comp: Step3Class },
-  { id: 4, label: 'Progressão', comp: Step5Progression },
-  { id: 5, label: 'Pontos Esqueleto', comp: Step4SkeletonPoints },
-  { id: 6, label: 'Triagens', comp: Step8Triages },
-  { id: 7, label: 'Módulos', comp: Step7Modules },
-  { id: 8, label: 'Perícias', comp: Step6Pericias },
-  { id: 9, label: 'Arma e Arte Marcial', comp: Step9WeaponMartial },
-  { id: 10, label: 'Habilidades', comp: Step10Abilities },
-  { id: 11, label: 'Revisão', comp: Step11Review },
+  { id: 2, label: 'Raça', comp: StepRace },
+  { id: 3, label: 'Esqueleto', comp: Step2Skeleton },
+  { id: 4, label: 'Classe', comp: Step3Class },
+  { id: 5, label: 'Progressão', comp: Step5Progression },
+  { id: 6, label: 'Pontos Esqueleto', comp: Step4SkeletonPoints },
+  { id: 7, label: 'Triagens', comp: Step8Triages },
+  { id: 8, label: 'Módulos', comp: Step7Modules },
+  { id: 9, label: 'Perícias', comp: Step6Pericias },
+  { id: 10, label: 'Arma e Arte Marcial', comp: Step9WeaponMartial },
+  { id: 11, label: 'Habilidades', comp: Step10Abilities },
+  { id: 12, label: 'Revisão', comp: Step11Review },
 ]
 
 const TOTAL_STEPS = STEPS.length
@@ -46,17 +48,19 @@ function validateStep(stepIdx, char) {
   switch (stepIdx) {
     case 0:
       if (!char.nome || char.nome.trim() === '') return 'Informe o nome do personagem.'
-      if (!char.raca || char.raca.trim() === '') return 'Informe a raça do personagem.'
       return null
-    case 1: {
+    case 1:
+      if (!char.raca) return 'Selecione a raça do personagem.'
+      return null
+    case 2: {
       const unassigned = ATTRIBUTES.filter(a => !attrs[a] || attrs[a] === 0)
       if (unassigned.length > 0) return `Distribua todos os atributos. Faltam: ${unassigned.join(', ')}.`
       return null
     }
-    case 2:
+    case 3:
       if (!char.classe) return 'Selecione uma classe.'
       return null
-    case 3: {
+    case 4: {
       if (!char.classe) return null
       const prog = PROGRESSION[char.classe]
       if (!prog) return null
@@ -75,8 +79,6 @@ function validateStep(stepIdx, char) {
       if (missing.length > 0) return `Selecione todas as escolhas de progressão. Faltam: ${missing.join(', ')}.`
       return null
     }
-    case 4:
-      return null
     case 5:
       return null
     default:
@@ -285,22 +287,22 @@ function AppInner() {
     prevStepRef.current = currentStep
     if (!wentBack) return
     const resetPatch = {}
-    if (currentStep < 2) resetPatch.classe = null
-    if (currentStep < 3) resetPatch.choices = {}
-    if (currentStep < 4) {
+    if (currentStep < 3) resetPatch.classe = null
+    if (currentStep < 4) resetPatch.choices = {}
+    if (currentStep < 5) {
       resetPatch.skeletonPoints = { FOR: 0, DES: 0, CON: 0, INT: 0, APA: 0, AM: 0 }
       resetPatch.skeletonHistory = []
     }
-    if (currentStep < 5) {
+    if (currentStep < 6) {
       resetPatch.triagemPrincipal = null
       resetPatch.triagemPrincipalNivel = 0
       resetPatch.subTriagem = null
       resetPatch.subTriagemNivel = 0
       resetPatch.subTriagemClass = null
     }
-    if (currentStep < 6) resetPatch.modulosAdquiridos = []
-    if (currentStep < 7) resetPatch.pericias = {}
-    if (currentStep < 8) {
+    if (currentStep < 7) resetPatch.modulosAdquiridos = []
+    if (currentStep < 8) resetPatch.pericias = {}
+    if (currentStep < 9) {
       resetPatch.arma = null
       resetPatch.armaRank = 'Comum'
       resetPatch.armaHabilidades = []

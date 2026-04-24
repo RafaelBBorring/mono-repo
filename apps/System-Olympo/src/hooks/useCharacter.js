@@ -18,6 +18,7 @@ const initialState = {
   nome: '',
   raca: '',
   racaTipo: '',
+  racaDeus: null,
   nivel: 1,
   arrayTipo: 'Balanceado',
   atributos: { FOR: 0, DES: 0, CON: 0, INT: 0, APA: 0, AM: 0 },

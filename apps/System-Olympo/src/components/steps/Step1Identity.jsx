@@ -1,4 +1,4 @@
-import { ARRAYS, RACE_TYPES } from '../../data/attributes'
+import { ARRAYS } from '../../data/attributes'
 import AvatarCropper from '../AvatarCropper'
 
 export default function Step1Identity({ char, update }) {
@@ -21,19 +21,14 @@ export default function Step1Identity({ char, update }) {
             <input type="text" value={char.nome} onChange={(e) => update({ nome: e.target.value })}
               placeholder="Insira o nome..." className="w-full bg-void border border-sep text-txt-main focus:border-gold rounded px-3 py-2 outline-none transition-colors" />
           </div>
-          <div>
-            <label className="block text-txt-dim text-sm mb-1">Raça *</label>
-            <input type="text" value={char.raca} onChange={(e) => update({ raca: e.target.value })}
-              placeholder="Ex: Elfo, Anão, Dragão..." className="w-full bg-void border border-sep text-txt-main focus:border-gold rounded px-3 py-2 outline-none transition-colors" />
-          </div>
-          <div>
-            <label className="block text-txt-dim text-sm mb-1">Tipo de Raça <span className="text-txt-dim/50">(informativo)</span></label>
-            <select value={char.racaTipo} onChange={(e) => update({ racaTipo: e.target.value })}
-              className="w-full bg-void border border-sep text-txt-main focus:border-gold rounded px-3 py-2 outline-none transition-colors">
-              <option value="">Selecione...</option>
-              {RACE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
+          {char.raca && (
+            <div>
+              <label className="block text-txt-dim text-sm mb-1">Raça</label>
+              <div className="bg-void border border-gold/30 text-gold rounded px-3 py-2 text-sm">
+                {char.raca} {char.racaTipo ? `(${char.racaTipo})` : ''}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
