@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rafael Borring — Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <div class="grain"></div>
+
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="nav-symbol">&#9670;</span>
+      <span class="nav-name">RAFAEL BORRING</span>
+    </div>
+    <div class="nav-links">
+      <a href="#projects">Projetos</a>
+      <a href="#about">Sobre</a>
+      <a href="https://github.com/RafaelBBorring" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="hero">
+    <div class="hero-content">
+      <div class="hero-tag">// portfolio</div>
+      <h1 class="hero-title">
+        <span class="hero-line" data-delay="0">Criando mundos</span>
+        <span class="hero-line hero-accent" data-delay="1">digitais.</span>
+      </h1>
+      <p class="hero-desc">
+        RPG, efeitos visuais, jogos e inteligencia artificial.<br />
+        Cada projeto e um universo interativo construido do zero.
+      </p>
+      <a href="#projects" class="hero-cta">
+        <span>Ver projetos</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+      </a>
+    </div>
+    <div class="hero-glow"></div>
+  </header>
+
+  <section class="projects" id="projects">
+    <div class="section-header">
+      <span class="section-tag">// projetos</span>
+      <h2 class="section-title">Workshop</h2>
+      <p class="section-desc">Cada projeto e um experimento em interatividade, narrativa ou tecnologia.</p>
+    </div>
+
+    <div class="projects-grid">
+      <a href="https://rafaelbborring.github.io/mono-repo/" target="_blank" rel="noopener" class="project-card" data-color="gold">
+        <div class="card-glow"></div>
+        <div class="card-icon">&#9876;</div>
+        <div class="card-tags">
+          <span class="tag">React</span>
+          <span class="tag">Supabase</span>
+          <span class="tag">Tailwind</span>
+        </div>
+        <h3 class="card-title">Sistema Olympo</h3>
+        <p class="card-desc">Sistema completo de fichas de personagem RPG com criacao em 12 passos, balanceamento por IA, 4 sistemas misticos e painel administrativo.</p>
+        <div class="card-footer">
+          <span class="card-status"><span class="status-dot"></span> Ativo</span>
+          <span class="card-arrow">&rarr;</span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-color="emerald">
+        <div class="card-glow"></div>
+        <div class="card-icon">&#128214;</div>
+        <div class="card-tags">
+          <span class="tag">Python</span>
+          <span class="tag">Flask</span>
+          <span class="tag">AI</span>
+        </div>
+        <h3 class="card-title">Codex Arcanum</h3>
+        <p class="card-desc">Gerador de fichas RPG com inteligencia artificial, sistema de pastas, board Kanban, guia de NPCs e exportacao para PDF.</p>
+        <div class="card-footer">
+          <span class="card-status"><span class="status-dot"></span> Ativo</span>
+          <span class="card-arrow">&rarr;</span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-color="cyan">
+        <div class="card-glow"></div>
+        <div class="card-icon">&#9670;</div>
+        <div class="card-tags">
+          <span class="tag">Three.js</span>
+          <span class="tag">WebGL</span>
+          <span class="tag">3D</span>
+        </div>
+        <h3 class="card-title">Athena Project</h3>
+        <p class="card-desc">Plataforma de ensino imersiva onde cursos sao cristais flutuantes em cena 3D com bloom, aberracao cromatica e paneis holograficos.</p>
+        <div class="card-footer">
+          <span class="card-status"><span class="status-dot"></span> Ativo</span>
+          <span class="card-arrow">&rarr;</span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-color="orange">
+        <div class="card-glow"></div>
+        <div class="card-icon">&#9889;</div>
+        <div class="card-tags">
+          <span class="tag">Three.js</span>
+          <span class="tag">GLSL</span>
+          <span class="tag">Vite</span>
+        </div>
+        <h3 class="card-title">Hades VFX</h3>
+        <p class="card-desc">Editor de efeitos de particulas no navegador, inspirado no Niagara System da Unreal Engine 5. Shaders customizados e serializacao JSON.</p>
+        <div class="card-footer">
+          <span class="card-status"><span class="status-dot status-alpha"></span> Alpha</span>
+          <span class="card-arrow">&rarr;</span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-color="red">
+        <div class="card-glow"></div>
+        <div class="card-icon">&#9883;</div>
+        <div class="card-tags">
+          <span class="tag">HTML</span>
+          <span class="tag">Canvas</span>
+          <span class="tag">Games</span>
+        </div>
+        <h3 class="card-title">Cypher Project</h3>
+        <p class="card-desc">Hub de mini-games cyberpunk: um jogo de digitacao com chuva Matrix e um puzzle de conexao de cabos rotativos. Estetica hacker total.</p>
+        <div class="card-footer">
+          <span class="card-status"><span class="status-dot"></span> Ativo</span>
+          <span class="card-arrow">&rarr;</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="section-header">
+      <span class="section-tag">// sobre</span>
+      <h2 class="section-title">O criador</h2>
+    </div>
+    <div class="about-content">
+      <div class="about-text">
+        <p>
+          Sou <strong>Rafael Borring</strong>, desenvolvedor e criador de conteudo interativo.
+          Meu foco e construir experiencias que misturam tecnologia, narrativa e design — de sistemas RPG completos
+          a editores de particulas 3D passando por jogos e plataformas educacionais.
+        </p>
+        <p>
+          Cada projeto deste portfolio foi construido do zero — frontend, backend, banco de dados, deploy e CI/CD.
+          A stack varia de React+Supabase a Python+Flask, Three.js ou HTML puro, dependendo do que cada ideia pede.
+        </p>
+        <div class="about-links">
+          <a href="https://github.com/RafaelBBorring" target="_blank" rel="noopener" class="about-link">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span>GitHub</span>
+          </a>
+        </div>
+      </div>
+      <div class="about-stack">
+        <div class="stack-title">Stack principal</div>
+        <div class="stack-items">
+          <span class="stack-item">React</span>
+          <span class="stack-item">Three.js</span>
+          <span class="stack-item">Python / Flask</span>
+          <span class="stack-item">Supabase</span>
+          <span class="stack-item">Tailwind CSS</span>
+          <span class="stack-item">Vite</span>
+          <span class="stack-item">GLSL Shaders</span>
+          <span class="stack-item">Docker</span>
+          <span class="stack-item">Node.js</span>
+          <span class="stack-item">PostgreSQL</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-line"></div>
+    <div class="footer-content">
+      <span class="footer-brand">&#9670; Rafael Borring</span>
+      <span class="footer-note">Construido do zero. Todo codigo neste portfolio e open source.</span>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
