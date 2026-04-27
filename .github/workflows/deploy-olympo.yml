@@ -6,6 +6,9 @@ on:
     paths:
       - 'apps/portfolio/**'
       - 'apps/System-Olympo/**'
+      - 'apps/Athena-Project/**'
+      - 'apps/Cypher-Project/**'
+      - 'apps/Hades-VFX/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -32,25 +35,65 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/System-Olympo/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-        working-directory: apps/System-Olympo
+      # ── System-Olympo (React + Vite) ──
+      - name: Cache System-Olympo deps
+        uses: actions/cache@v4
+        with:
+          path: apps/System-Olympo/node_modules
+          key: olympo-${{ hashFiles('apps/System-Olympo/package-lock.json') }}
 
       - name: Build System-Olympo
-        run: npm run build
+        run: |
+          npm ci
+          npm run build
         working-directory: apps/System-Olympo
         env:
           VITE_BASE: /mono-repo/system-olympo/
 
+      # ── Hades-VFX (Vite) ──
+      - name: Cache Hades-VFX deps
+        uses: actions/cache@v4
+        with:
+          path: apps/Hades-VFX/node_modules
+          key: hades-${{ hashFiles('apps/Hades-VFX/package-lock.json') }}
+
+      - name: Build Hades-VFX
+        run: |
+          npm ci
+          npm run build
+        working-directory: apps/Hades-VFX
+        env:
+          VITE_BASE: /mono-repo/hades-vfx/
+
+      # ── Assemble site ──
       - name: Assemble site
         run: |
+          mkdir -p _site
+
+          # Portfolio → root
+          cp -r apps/portfolio/* _site/
+
+          # System-Olympo → /system-olympo/
           mkdir -p _site/system-olympo
           cp -r apps/System-Olympo/dist/* _site/system-olympo/
           cp apps/System-Olympo/dist/index.html _site/system-olympo/404.html
-          cp -r apps/portfolio/* _site/
+
+          # Athena-Project → /athena/
+          mkdir -p _site/athena
+          cp -r apps/Athena-Project/index.html _site/athena/
+          cp -r apps/Athena-Project/src _site/athena/
+          cp -r apps/Athena-Project/models _site/athena/
+
+          # Cypher-Project → /cypher/
+          mkdir -p _site/cypher
+          cp -r apps/Cypher-Project/index.html _site/cypher/
+          cp -r apps/Cypher-Project/games _site/cypher/
+
+          # Hades-VFX → /hades-vfx/
+          mkdir -p _site/hades-vfx
+          cp -r apps/Hades-VFX/dist/* _site/hades-vfx/
+
           touch _site/.nojekyll
 
       - name: Setup Pages
