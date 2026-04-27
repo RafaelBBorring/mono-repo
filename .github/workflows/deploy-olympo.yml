@@ -1,11 +1,12 @@
-name: Deploy System-Olympo to GitHub Pages
+name: Deploy Portfolio + Projects to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
+      - 'apps/portfolio/**'
       - 'apps/System-Olympo/**'
-      - '.github/workflows/deploy-olympo.yml'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,7 +31,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: apps/System-Olympo/package-lock.json
 
@@ -38,15 +39,19 @@ jobs:
         run: npm ci
         working-directory: apps/System-Olympo
 
-      - name: Build
+      - name: Build System-Olympo
         run: npm run build
         working-directory: apps/System-Olympo
+        env:
+          VITE_BASE: /mono-repo/system-olympo/
 
-      - name: Add 404.html for SPA routing
-        run: cp apps/System-Olympo/dist/index.html apps/System-Olympo/dist/404.html
-
-      - name: Add .nojekyll
-        run: touch apps/System-Olympo/dist/.nojekyll
+      - name: Assemble site
+        run: |
+          mkdir -p _site/system-olympo
+          cp -r apps/System-Olympo/dist/* _site/system-olympo/
+          cp apps/System-Olympo/dist/index.html _site/system-olympo/404.html
+          cp -r apps/portfolio/* _site/
+          touch _site/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -54,7 +59,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/System-Olympo/dist
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
