@@ -6,9 +6,18 @@ import { MARTIAL_ARTS } from '../../data/martialArts'
 import { PERICIAS, GRAU_NAMES, getGrauBonus } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
+import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus, getSelectedSubrace, ATTR_KEYS } from '../../utils/raceCalculator'
+import { RACES, RACE_CATEGORIES } from '../../data/races'
 import InventorySection from '../InventorySection'
 import EquipmentSection from '../EquipmentSection'
 import BalanceAnalysis from '../BalanceAnalysis'
+import AlchemyLibrarySection from '../AlchemyLibrarySection'
+import SpellLibrarySection from '../SpellLibrarySection'
+import RuneLibrarySection from '../RuneLibrarySection'
+import MagicLibrarySection from '../MagicLibrarySection'
+import { getSpellProfile } from '../../utils/spellRules'
+import { getRuneProfile } from '../../utils/runeRules'
+import { getMagicProfile } from '../../utils/magicRules'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -30,13 +39,14 @@ function SectionHeader({ icon, title, color }) {
 
 function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId }) {
   const sk = char.skeletonPoints || {}
-  const totalAttr = (a) => (char.atributos[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
   const cls = char.classe
 
   const extraTypes = calcExtraAbilitiesTypes(
     char.triagemPrincipal, char.triagemPrincipalNivel,
     char.subTriagem, char.subTriagemNivel,
-    char.atributos, sk, char.modulosAdquiridos
+    char.atributos, sk, char.modulosAdquiridos, char
   )
   const neededAbilities = 5 + extraTypes.length
   const allTipos = ['Passiva', 'Ativa', 'Ativa', 'Ativa', 'Ultimate', ...extraTypes]
@@ -56,13 +66,13 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   }, [neededAbilities])
 
   const derived = {
-    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel) : 0,
-    energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel) : 0,
-    pe: cls ? calcPeTotal(cls, char.nivel, char.choices) : 0,
-    ca: cls ? calcCA(char.atributos, sk, char.pericias) : 0,
-    reacoes: calcReacoes(char.atributos, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel),
-    percepcao: cls ? calcPercepcaoPassiva(char.atributos, sk, char.pericias) : 0,
-    danoBase: cls ? calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel) : '',
+    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
+    energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char) : 0,
+    pe: cls ? calcPeTotal(cls, char.nivel, char.choices, char) : 0,
+    ca: cls ? calcCA(char.atributos, sk, char.pericias, char) : 0,
+    reacoes: calcReacoes(char.atributos, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char),
+    percepcao: cls ? calcPercepcaoPassiva(char.atributos, sk, char.pericias, char) : 0,
+    danoBase: cls ? calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel, char) : '',
   }
 
   const vidaNow = char.vidaOverride ?? derived.vida
@@ -80,6 +90,14 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   }).filter(Boolean)
 
   const periciasArr = Object.entries(char.pericias || {}).filter(([, v]) => v > 0)
+  const systemOptIn = char.systemsOptIn || {}
+  const spellProfile = getSpellProfile(char)
+  const runeProfile = getRuneProfile(char)
+  const alchemyEnabled = systemOptIn.alchemy || (char.alchemyRituals || []).length > 0
+  const spellsEnabled = systemOptIn.spells || (char.spells || []).length > 0
+  const runesEnabled = systemOptIn.runes || (char.runes || []).length > 0
+  const magicEnabled = systemOptIn.magic || (char.magics || []).length > 0
+  const magicProfile = getMagicProfile(char)
 
   function handleCopy() {
     navigator.clipboard.writeText(exportSheet(char, derived)).catch(() => {})
@@ -180,7 +198,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="bg-gold/10 text-gold text-[11px] px-2.5 py-0.5 rounded font-semibold border border-gold/20">{cls || '—'}</span>
                 <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">Nv {char.nivel || 1}</span>
-                <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{char.raca || '—'}</span>
+                <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{getRaceLabel(char) || '—'}</span>
                 {char.racaTipo && <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{char.racaTipo}</span>}
               </div>
             </div>
@@ -291,6 +309,9 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <TriagemSection char={char} cls={cls} />
               </section>
 
+              {/* HERANÇA RACIAL */}
+              <RaceHeritageSection char={char} />
+
               {/* ARMAS & EQUIPAMENTOS */}
               <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onDrawerToggle={() => {}} />
             </div>
@@ -389,11 +410,9 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="🔮" title="Em Desenvolvimento" color="bg-gold/60" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { icon: '✨', name: 'Feitiços', desc: 'Magias e encantamentos' },
-                    { icon: '🧪', name: 'Rituais', desc: 'Rituais de Alquimia' },
                     { icon: '⚡', name: 'Condições', desc: 'Condições Especiais' },
-                    { icon: '🛡', name: 'Equipamentos', desc: 'Armaduras e itens' },
-                    { icon: '💎', name: 'Runas', desc: 'Runas e encantamentos' },
+                    { icon: '🗺', name: 'Mapas Táticos', desc: 'Terreno e zonas dinâmicas' },
+                    { icon: '👥', name: 'Companheiros', desc: 'Invocações, aliados e lacaios' },
                   ].map(s => (
                     <div key={s.name} className="bg-void/30 border border-sep/20 rounded-lg p-2.5 opacity-50 hover:opacity-70 transition-opacity">
                       <div className="flex items-center gap-1.5 mb-0.5">
@@ -408,6 +427,27 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
             </div>
 
           </div>
+
+          <div className="mt-5 border-t border-sep/30 pt-5">
+            <OptionalSystemsSection
+              char={char}
+              update={update}
+              alchemyEnabled={alchemyEnabled}
+              spellsEnabled={spellsEnabled}
+              runesEnabled={runesEnabled}
+              magicEnabled={magicEnabled}
+              spellProfile={spellProfile}
+              runeProfile={runeProfile}
+              magicProfile={magicProfile}
+            />
+
+            <div className="space-y-5 mt-5">
+              {alchemyEnabled && <AlchemyLibrarySection char={char} update={update} wide />}
+              {spellsEnabled && <SpellLibrarySection char={char} update={update} wide />}
+              {runesEnabled && <RuneLibrarySection char={char} update={update} wide />}
+              {magicEnabled && <MagicLibrarySection char={char} update={update} wide />}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -420,6 +460,120 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         </button>
       </div>
     </div>
+  )
+}
+
+function OptionalSystemsSection({ char, update, alchemyEnabled, spellsEnabled, runesEnabled, magicEnabled, spellProfile, runeProfile, magicProfile }) {
+  const systemOptIn = char.systemsOptIn || {}
+  const cards = [
+    {
+      key: 'alchemy',
+      icon: '⚗',
+      title: 'Alquimia',
+      active: alchemyEnabled,
+      accent: 'border-teal-400/20 bg-teal-400/5',
+      access: 'Livre',
+      summary: 'Qualquer personagem pode estudar, mas o repertorio cresce com nivel, treino em Alquimia, classe e raca.',
+    },
+    {
+      key: 'spells',
+      icon: '✨',
+      title: 'Feitiços',
+      active: spellsEnabled,
+      accent: 'border-emerald-400/20 bg-emerald-400/5',
+      access: spellProfile.hasAccess ? 'Permitido' : 'Bloqueado',
+      summary: spellProfile.hasAccess
+        ? `Tradicoes liberadas: ${spellProfile.traditions.map((item) => item === 'arcana' ? 'Arcana' : 'Bruxaria').join(' / ')}. Ideal para personagens realmente voltados ao arcano.`
+        : 'Seu conjunto atual de raca/classe nao pede feiticops. A ficha pode seguir leve sem essa camada.',
+    },
+    {
+      key: 'runes',
+      icon: '💎',
+      title: 'Runas',
+      active: runesEnabled,
+      accent: 'border-sky-400/20 bg-sky-400/5',
+      access: 'Livre',
+      summary: `Runas sao opcionais para qualquer personagem. Seu vinculo atual sustenta ate ${runeProfile.activeSlots} runa(s) ativa(s) ao mesmo tempo.`,
+    },
+    {
+      key: 'magic',
+      icon: '🔥',
+      title: 'Magias',
+      active: magicEnabled,
+      accent: 'border-orange-400/20 bg-orange-400/5',
+      access: magicProfile.hasAccess ? 'Permitido' : 'Bloqueado',
+      summary: magicProfile.hasAccess
+        ? 'Seu sangue arcano permite canalizar Magias diretamente. Escolha entre escolas de fogo, gelo, eletricidade, arcano, gravidade e mais.'
+        : 'Apenas Magos possuem acesso a Magias. Outras racas usam Feiticops, Rituais ou Runas.',
+    },
+  ]
+
+  function getStoredState(key) {
+    return systemOptIn[key] || false
+  }
+
+  function getCurrentEntries(key) {
+    if (key === 'alchemy') return char.alchemyRituals || []
+    if (key === 'spells') return char.spells || []
+    if (key === 'magic') return char.magics || []
+    return char.runes || []
+  }
+
+  function toggleSystem(key) {
+    if (!update) return
+    const currentEntries = getCurrentEntries(key)
+    const implicitActive = currentEntries.length > 0
+    const nextEnabled = !(getStoredState(key) || implicitActive)
+    const nextOptIn = {
+      ...systemOptIn,
+      [key]: nextEnabled,
+    }
+    const patch = { systemsOptIn: nextOptIn }
+    if (!nextEnabled) {
+      if (key === 'alchemy') patch.alchemyRituals = []
+      if (key === 'spells') patch.spells = []
+      if (key === 'runes') patch.runes = []
+      if (key === 'magic') patch.magics = []
+    }
+    update({
+      ...patch,
+    })
+  }
+
+  return (
+    <section className="space-y-4">
+      <SectionHeader icon="🔮" title="Disciplinas Opcionais" color="bg-gold/60" />
+      <div className="bg-void/60 border border-sep/30 rounded-xl p-4">
+        <p className="text-txt-dim text-sm leading-relaxed">
+          Para reduzir sobrecarga, Alquimia, Feiticops, Runas e Magias ficam nas maos do jogador. Quem quer uma ficha direta pode ignorar essas camadas; quem quer explorar o lado mistico ativa so os sistemas que realmente pretende usar.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
+        {cards.map((card) => (
+          <article key={card.key} className={`rounded-xl border p-4 ${card.accent}`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{card.icon}</span>
+                <div>
+                  <div className="text-txt-main font-semibold">{card.title}</div>
+                  <div className="text-[11px] text-txt-dim">Acesso: {card.access}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleSystem(card.key)}
+                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
+                  card.active ? 'bg-gold text-void' : 'border border-sep/40 text-txt-dim hover:border-gold hover:text-gold'
+                }`}
+              >
+                {card.active ? 'Ativo' : 'Ativar'}
+              </button>
+            </div>
+            <p className="text-txt-dim text-xs mt-3 leading-relaxed">{card.summary}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -583,6 +737,176 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
         </div>
       )}
     </div>
+  )
+}
+
+function RaceHeritageSection({ char }) {
+  const race = RACES[char.raca]
+  if (!race) return null
+
+  const bonus = calculateRaceBonus(char)
+  const subrace = getSelectedSubrace(char)
+  const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
+  const nivel = char.nivel || 1
+
+  const progressaoAplicavel = (race.progressaoPoder || []).filter(p => p.nivel <= nivel)
+
+  return (
+    <section>
+      <SectionHeader icon={race.icon} title="Herança Racial" color={catMeta.title.replace('text-', 'bg-').replace(/-\d+$/, '-400')} />
+
+      <div className="space-y-3">
+        <div className={`rounded-lg border ${catMeta.color} px-4 py-3`}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`font-cinzel text-sm font-bold ${catMeta.title}`}>{race.name}</span>
+            {subrace && <span className="text-purple-300 text-sm">— {subrace.name}</span>}
+            <span className="text-txt-dim text-sm ml-auto">Nv {nivel}</span>
+          </div>
+
+          {race.desc && <p className="text-txt-dim text-sm leading-relaxed mb-3">{race.desc}</p>}
+
+          <div className="flex flex-wrap gap-2">
+            {ATTR_KEYS.map(a => {
+              const v = bonus.attrs[a] || 0
+              if (v === 0) return null
+              return (
+                <span key={a} className={`text-sm font-mono px-2 py-0.5 rounded border ${v > 0 ? 'bg-sky-400/10 text-sky-400 border-sky-400/20' : 'bg-red-400/10 text-red-400 border-red-400/20'}`}>
+                  {v >= 0 ? '+' : ''}{v} {a}
+                </span>
+              )
+            })}
+            {bonus.hp !== 0 && (
+              <span className={`text-sm font-mono px-2 py-0.5 rounded border ${bonus.hp > 0 ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20' : 'bg-red-400/10 text-red-400 border-red-400/20'}`}>
+                {bonus.hp >= 0 ? '+' : ''}{bonus.hp} HP
+              </span>
+            )}
+            {bonus.pe > 0 && (
+              <span className="text-sm font-mono px-2 py-0.5 rounded border bg-amber-400/10 text-amber-400 border-amber-400/20">
+                +{bonus.pe} PE
+              </span>
+            )}
+            {bonus.pericias > 0 && (
+              <span className="text-sm font-mono px-2 py-0.5 rounded border bg-cyan-400/10 text-cyan-400 border-cyan-400/20">
+                +{bonus.pericias} Perícias
+              </span>
+            )}
+            {bonus.modules > 0 && (
+              <span className="text-sm font-mono px-2 py-0.5 rounded border bg-yellow-400/10 text-yellow-400 border-yellow-400/20">
+                +{bonus.modules} Módulos
+              </span>
+            )}
+          </div>
+
+          {subrace?.note && (
+            <div className="mt-2 text-sm text-gold/80 bg-gold/5 border border-gold/15 rounded px-3 py-1.5">
+              {subrace.note}
+            </div>
+          )}
+        </div>
+
+        {race.passivasRaciais?.length > 0 && (
+          <div>
+            <div className="text-txt-dim text-sm font-semibold mb-2">Passivas Raciais</div>
+            <div className="space-y-1.5">
+              {race.passivasRaciais.map((p, i) => (
+                <div key={i} className="bg-void/50 border border-sep/40 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-txt-main text-sm font-semibold">{p.nome}</span>
+                    <span className={`text-sm px-1.5 py-0.5 rounded border ${p.tipo === 'Passiva' ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20' : 'bg-sky-400/10 text-sky-400 border-sky-400/20'}`}>
+                      {p.tipo}
+                    </span>
+                    {p.custo && p.custo !== '—' && (
+                      <span className="text-sm text-amber-400/80">{p.custo}</span>
+                    )}
+                    {p.duracao && p.duracao !== 'Contínuo' && (
+                      <span className="text-sm text-txt-dim">{p.duracao}</span>
+                    )}
+                  </div>
+                  <p className="text-txt-dim text-sm leading-relaxed">{p.efeito}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(race.vantagens?.length > 0 || race.desvantagens?.length > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {race.vantagens?.length > 0 && (
+              <div className="bg-emerald-400/5 border border-emerald-400/15 rounded-lg px-3 py-2">
+                <div className="text-emerald-400 text-sm font-semibold mb-1.5">Vantagens</div>
+                <ul className="space-y-1">
+                  {race.vantagens.map((v, i) => (
+                    <li key={i} className="text-txt-dim text-sm leading-relaxed flex gap-1.5">
+                      <span className="text-emerald-400/60 shrink-0">+</span>
+                      <span>{v}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {race.desvantagens?.length > 0 && (
+              <div className="bg-red-400/5 border border-red-400/15 rounded-lg px-3 py-2">
+                <div className="text-red-400 text-sm font-semibold mb-1.5">Desvantagens</div>
+                <ul className="space-y-1">
+                  {race.desvantagens.map((d, i) => (
+                    <li key={i} className="text-txt-dim text-sm leading-relaxed flex gap-1.5">
+                      <span className="text-red-400/60 shrink-0">-</span>
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {progressaoAplicavel.length > 0 && (
+          <div>
+            <div className="text-txt-dim text-sm font-semibold mb-2">Progressão de Poder</div>
+            <div className="space-y-1">
+              {progressaoAplicavel.map(p => (
+                <div key={p.nivel} className="bg-void/40 border border-sep/30 rounded-lg px-3 py-1.5 flex gap-3">
+                  <span className="text-gold/70 font-mono text-sm shrink-0 w-8">N{p.nivel}</span>
+                  <div>
+                    <span className="text-txt-main text-sm font-semibold">{p.ganho}</span>
+                    <span className="text-txt-dim text-sm ml-1">— {p.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {subrace?.marcos?.length > 0 && (
+          <div>
+            <div className="text-purple-300 text-sm font-semibold mb-2">Marcos da Sub-Raça</div>
+            <div className="space-y-1">
+              {subrace.marcos.map(([marco, condicao, ganho]) => (
+                <div key={marco} className="bg-purple-400/5 border border-purple-400/15 rounded-lg px-3 py-1.5">
+                  <div className="text-txt-main text-sm font-semibold">{marco}</div>
+                  <div className="text-txt-dim text-sm">{condicao}</div>
+                  <div className="text-emerald-400 text-sm">{ganho}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {race.marcosExperiencia?.length > 0 && (
+          <div>
+            <div className="text-amber-300 text-sm font-semibold mb-2">Marcos de Experiência</div>
+            <div className="space-y-1">
+              {race.marcosExperiencia.map((m, i) => (
+                <div key={i} className="bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-1.5">
+                  <div className="text-txt-dim text-sm">{m.marco}</div>
+                  <div className="text-gold text-sm">{m.ganho}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 

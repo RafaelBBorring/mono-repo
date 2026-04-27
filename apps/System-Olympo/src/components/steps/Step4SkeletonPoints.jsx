@@ -1,9 +1,11 @@
 import { ATTRIBUTES, ATTR_ICONS, ATTR_LABELS, getModifier, getAttrCap } from '../../data/attributes'
 import { calcSkeletonPointsAvailable, calcVidaTotal, calcEnergiaTotal } from '../../utils/calculator'
+import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
 
 export default function Step4SkeletonPoints({ char, update, updateNested }) {
   const sk = char.skeletonPoints || {}
-  const totalAttr = (a) => (char.atributos[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
   const attrCap = getAttrCap(char.nivel)
 
   const totalAvailable = char.classe
@@ -14,17 +16,17 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
   const remaining = totalAvailable - totalSpent
 
   const vidaNow = char.classe
-    ? calcVidaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel)
+    ? calcVidaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char)
     : 0
   const energiaNow = char.classe
-    ? calcEnergiaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel)
+    ? calcEnergiaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)
     : 0
 
   const vidaNoSk = char.classe
-    ? calcVidaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel)
+    ? calcVidaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char)
     : 0
   const energiaNoSk = char.classe
-    ? calcEnergiaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel)
+    ? calcEnergiaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)
     : 0
 
   function handleAdd(attr) {
@@ -95,7 +97,7 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {ATTRIBUTES.map((attr) => {
-          const baseVal = char.atributos[attr] || 0
+          const baseVal = (char.atributos[attr] || 0) + ((adjustedAttrs[attr] || 0) - (char.atributos[attr] || 0) - (sk[attr] || 0))
           const skVal = sk[attr] || 0
           const total = baseVal + skVal
           const mod = getModifier(total)

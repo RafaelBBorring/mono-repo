@@ -25,6 +25,371 @@ input, select, textarea {
   outline: none;
 }
 
+@layer components {
+  .admin-input {
+    width: 100%;
+    border: 1px solid rgba(42, 42, 74, 0.92);
+    border-radius: 0.65rem;
+    background: rgba(15, 15, 26, 0.88);
+    padding: 0.65rem 0.8rem;
+    color: #e8e8f0;
+    font-size: 0.9rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .admin-input:focus {
+    border-color: rgba(201, 168, 76, 0.46);
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.12);
+    background: rgba(26, 26, 46, 0.95);
+  }
+
+  .admin-input::placeholder {
+    color: rgba(136, 136, 170, 0.78);
+  }
+
+  .race-stage {
+    position: relative;
+  }
+
+  .race-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    border: 1px solid rgba(201, 168, 76, 0.22);
+    border-radius: 18px;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background:
+      radial-gradient(circle at top left, rgba(201, 168, 76, 0.16), transparent 34rem),
+      linear-gradient(135deg, rgba(22, 33, 62, 0.96), rgba(15, 15, 26, 0.92));
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  }
+
+  @media (min-width: 768px) {
+    .race-hero {
+      grid-template-columns: minmax(0, 1fr) 260px;
+      align-items: end;
+    }
+  }
+
+  .race-hero-summary {
+    min-width: 0;
+    border: 1px solid rgba(232, 201, 126, 0.22);
+    border-radius: 14px;
+    padding: 1rem;
+    background: rgba(15, 15, 26, 0.62);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .race-category-bar {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    border: 1px solid rgba(42, 42, 74, 0.95);
+    border-radius: 14px;
+    padding: 0.5rem;
+    background: rgba(26, 26, 46, 0.78);
+  }
+
+  .race-category-tab {
+    white-space: nowrap;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+    color: #8888aa;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+  }
+
+  .race-category-tab span {
+    margin-left: 0.35rem;
+    color: rgba(232, 232, 240, 0.52);
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.75rem;
+  }
+
+  .race-category-tab:hover,
+  .race-category-tab.is-active {
+    border-color: rgba(201, 168, 76, 0.42);
+    background: rgba(201, 168, 76, 0.13);
+    color: #e8c97e;
+  }
+
+  .race-list-panel,
+  .race-detail-panel {
+    border: 1px solid rgba(42, 42, 74, 0.92);
+    border-radius: 18px;
+    background: rgba(26, 26, 46, 0.82);
+    padding: 1rem;
+  }
+
+  .race-detail-panel {
+    background:
+      linear-gradient(180deg, rgba(26, 26, 46, 0.88), rgba(15, 15, 26, 0.72));
+  }
+
+  .race-option-card {
+    width: 100%;
+    min-height: 126px;
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+    text-align: left;
+    border: 1px solid rgba(42, 42, 74, 0.92);
+    border-radius: 14px;
+    padding: 1rem;
+    background: rgba(15, 15, 26, 0.58);
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  }
+
+  .race-option-card:hover,
+  .race-option-card.is-selected {
+    transform: translateY(-1px);
+    border-color: rgba(201, 168, 76, 0.48);
+    background: rgba(201, 168, 76, 0.075);
+  }
+
+  .race-option-icon,
+  .race-selected-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: rgba(201, 168, 76, 0.1);
+    border: 1px solid rgba(201, 168, 76, 0.2);
+    font-size: 1.35rem;
+  }
+
+  .race-selected-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 1.55rem;
+  }
+
+  .race-select-mark {
+    flex: 0 0 auto;
+    border: 1px solid rgba(201, 168, 76, 0.26);
+    border-radius: 999px;
+    padding: 0.25rem 0.55rem;
+    color: #c9a84c;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .race-mini-bonus {
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 999px;
+    padding: 0.18rem 0.45rem;
+    color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.08);
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.68rem;
+  }
+
+  .race-empty-state {
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .race-selected-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid rgba(201, 168, 76, 0.22);
+    border-radius: 16px;
+    padding: 1rem;
+    background: rgba(15, 15, 26, 0.58);
+  }
+
+  .race-soft-button {
+    border: 1px solid rgba(224, 82, 82, 0.28);
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    color: rgba(224, 82, 82, 0.88);
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: background 160ms ease, color 160ms ease;
+  }
+
+  .race-soft-button:hover {
+    background: rgba(224, 82, 82, 0.12);
+    color: #fff;
+  }
+
+  .race-info-panel {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 16px;
+  }
+
+  .race-section-title {
+    margin-bottom: 0.85rem;
+    font-family: Cinzel, serif;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .race-stat-pill {
+    min-height: 64px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  .race-choice-chip {
+    min-width: 54px;
+    border: 1px solid rgba(42, 42, 74, 1);
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    color: #8888aa;
+    background: rgba(15, 15, 26, 0.52);
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.82rem;
+    font-weight: 800;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+  }
+
+  .race-choice-chip:hover,
+  .race-choice-chip.is-selected {
+    border-color: rgba(56, 189, 248, 0.45);
+    color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.12);
+  }
+
+  .race-choice-chip.is-disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
+  .race-path-card,
+  .race-god-card,
+  .race-form-card {
+    min-height: 116px;
+    border: 1px solid rgba(42, 42, 74, 0.9);
+    border-radius: 14px;
+    padding: 0.9rem;
+    background: rgba(15, 15, 26, 0.54);
+    text-align: left;
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+
+  .race-path-card:hover,
+  .race-path-card.is-selected,
+  .race-god-card:hover,
+  .race-god-card.is-selected {
+    border-color: rgba(192, 132, 252, 0.48);
+    background: rgba(192, 132, 252, 0.1);
+  }
+
+  .race-god-card {
+    min-height: 94px;
+  }
+
+  .race-god-detail {
+    margin-top: 1rem;
+    border: 1px solid rgba(251, 191, 36, 0.18);
+    border-radius: 14px;
+    padding: 1rem;
+    background: rgba(251, 191, 36, 0.055);
+  }
+
+  .race-ability-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(42, 42, 74, 0.6);
+    padding-bottom: 0.75rem;
+  }
+
+  .race-ability-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .race-ability-tag {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+  }
+
+  .race-ability-tag.is-active {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.16);
+  }
+
+  .race-ability-tag.is-passive {
+    color: #6ee7b7;
+    background: rgba(52, 211, 153, 0.14);
+  }
+
+  .race-list-line {
+    display: flex;
+    gap: 0.55rem;
+    color: #8888aa;
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .race-progression-row {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 0.8rem;
+    align-items: flex-start;
+    border: 1px solid rgba(42, 42, 74, 0.58);
+    border-radius: 12px;
+    padding: 0.75rem;
+    opacity: 0.52;
+  }
+
+  .race-progression-row.is-active {
+    border-color: rgba(201, 168, 76, 0.24);
+    background: rgba(201, 168, 76, 0.06);
+    opacity: 1;
+  }
+
+  .race-level-pill {
+    border: 1px solid rgba(201, 168, 76, 0.28);
+    border-radius: 999px;
+    padding: 0.25rem 0.4rem;
+    color: #c9a84c;
+    background: rgba(201, 168, 76, 0.11);
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .race-milestone,
+  .race-milestone-group {
+    border: 1px solid rgba(42, 42, 74, 0.7);
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: rgba(15, 15, 26, 0.48);
+    color: #8888aa;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+}
+
 @keyframes drawerSlideIn {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

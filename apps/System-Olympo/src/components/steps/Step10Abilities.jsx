@@ -37,7 +37,7 @@ function makeEmpty(tipo) {
 export default function Step10Abilities({ char, update, updateHabilidade }) {
   const sk          = char.skeletonPoints || {}
   const nivel       = char.nivel || 1
-  const extraTypes  = calcExtraAbilitiesTypes(char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char.atributos, sk, char.modulosAdquiridos)
+  const extraTypes  = calcExtraAbilitiesTypes(char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char.atributos, sk, char.modulosAdquiridos, char)
   const extraCount  = extraTypes.length
   const triagemCount = extraTypes.filter(t => t === 'Extra (Triagem)' || t === 'Passiva').length
   const moduloCount  = extraTypes.filter(t => t === 'Extra (Módulo)').length

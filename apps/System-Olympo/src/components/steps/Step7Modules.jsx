@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '../../data/modules'
 import { calcModulesAvailable } from '../../utils/calculator'
+import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
 
 export default function Step7Modules({ char, update, updateNested }) {
   const classe = char.classe
@@ -11,9 +12,10 @@ export default function Step7Modules({ char, update, updateNested }) {
   const modulosAdquiridos = char.modulosAdquiridos || []
   const [activeTab, setActiveTab] = useState('passivos')
 
-  const totalAttr = (a) => (attrs[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(attrs, sk, char)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
 
-  const totalAvailable = classe ? calcModulesAvailable(classe, nivel, choices) : 0
+  const totalAvailable = classe ? calcModulesAvailable(classe, nivel, choices, char) : 0
   const totalBought = modulosAdquiridos.reduce((sum, m) => sum + (m.boughtCount || 1), 0)
   const remaining = totalAvailable - totalBought
 

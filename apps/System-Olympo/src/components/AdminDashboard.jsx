@@ -5,6 +5,10 @@ import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../data/martialArts'
 import { PERICIAS, GRAU_NAMES } from '../data/pericias'
 import { TRIAGES } from '../data/triages'
+import AlchemyAdminPanel from './AlchemyAdminPanel'
+import SpellAdminPanel from './SpellAdminPanel'
+import RuneAdminPanel from './RuneAdminPanel'
+import MagicAdminPanel from './MagicAdminPanel'
 
 const STATUS_COLORS_ADMIN = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -97,6 +101,10 @@ export default function AdminDashboard() {
           {[
             { key: 'sheets', label: 'Fichas' },
             { key: 'abilities', label: 'Habilidades' },
+            { key: 'alchemy', label: 'Alquimia' },
+            { key: 'spells', label: 'Feitiços' },
+            { key: 'runes', label: 'Runas' },
+            { key: 'magic', label: 'Magias' },
             { key: 'users', label: 'Usuários' },
           ].map(t => (
             <button key={t.key} onClick={() => { setTab(t.key); setExpandedSheet(null); setEditingSheet(null) }}
@@ -254,6 +262,11 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {tab === 'alchemy' && <AlchemyAdminPanel />}
+      {tab === 'spells' && <SpellAdminPanel />}
+      {tab === 'runes' && <RuneAdminPanel />}
+      {tab === 'magic' && <MagicAdminPanel />}
     </div>
   )
 }
@@ -364,6 +377,117 @@ function AdminSheetView({ sheet }) {
                   <span className="text-purple-400/60 font-mono">SCP:{h.camadaSCP || 2}</span>
                   <span className="text-gold/60 font-mono">PP:{h.ppEstimado || 0}</span>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(char.alchemyRituals || []).length > 0 && (
+        <div>
+          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Rituais de Alquimia</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(char.alchemyRituals || []).map((ritual, i) => (
+              <div key={`${ritual.id || ritual.name}-${i}`} className="rounded-lg border border-teal-400/20 bg-teal-400/5 p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main text-sm font-semibold">{ritual.name || '—'}</span>
+                  <span className="text-[10px] bg-teal-400/10 text-teal-300 px-1.5 py-0.5 rounded border border-teal-400/20">
+                    {ritual.circle || 1}o circulo
+                  </span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">
+                    {ritual.category || 'Sem categoria'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 text-[11px] font-mono">
+                  <span className="text-amber-300">{ritual.pe_cost || 0} PE</span>
+                  {ritual.action_cost && <span className="text-sky-300">{ritual.action_cost}</span>}
+                  {ritual.duration && <span className="text-txt-dim">{ritual.duration}</span>}
+                </div>
+                <p className="text-txt-dim text-xs mt-2 leading-relaxed">{ritual.effect || ritual.short_description || 'Sem efeito descrito.'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(char.spells || []).length > 0 && (
+        <div>
+          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Feitiços</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(char.spells || []).map((spell, i) => (
+              <div key={`${spell.id || spell.name}-${i}`} className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main text-sm font-semibold">{spell.name || 'â€”'}</span>
+                  <span className="text-[10px] bg-emerald-400/10 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-400/20">
+                    {spell.circle || 1}o circulo
+                  </span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">
+                    {spell.category || 'Sem categoria'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 text-[11px] font-mono">
+                  <span className="text-amber-300">{spell.pe_cost || 0} PE</span>
+                  {spell.action_cost && <span className="text-sky-300">{spell.action_cost}</span>}
+                  {spell.duration && <span className="text-txt-dim">{spell.duration}</span>}
+                </div>
+                <p className="text-txt-dim text-xs mt-2 leading-relaxed">{spell.effect || spell.short_description || 'Sem efeito descrito.'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(char.runes || []).length > 0 && (
+        <div>
+          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Runas</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(char.runes || []).map((rune, i) => (
+              <div key={`${rune.id || rune.name}-${i}`} className="rounded-lg border border-sky-400/20 bg-sky-400/5 p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main text-sm font-semibold">{rune.name || '—'}</span>
+                  <span className="text-[10px] bg-sky-400/10 text-sky-300 px-1.5 py-0.5 rounded border border-sky-400/20">
+                    {rune.circle || 1}o circulo
+                  </span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">
+                    {rune.category || 'Sem categoria'}
+                  </span>
+                  {rune.active && (
+                    <span className="text-[10px] bg-gold/10 text-gold px-1.5 py-0.5 rounded border border-gold/20">Ativa</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 text-[11px] font-mono">
+                  <span className="text-amber-300">{rune.pe_cost || 0} PE</span>
+                  {rune.action_cost && <span className="text-sky-300">{rune.action_cost}</span>}
+                  {rune.duration && <span className="text-txt-dim">{rune.duration}</span>}
+                </div>
+                <p className="text-txt-dim text-xs mt-2 leading-relaxed">{rune.effect || rune.short_description || 'Sem efeito descrito.'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(char.magics || []).length > 0 && (
+        <div>
+          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Magias</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(char.magics || []).map((magic, i) => (
+              <div key={`${magic.id || magic.name}-${i}`} className="rounded-lg border border-orange-400/20 bg-orange-400/5 p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main text-sm font-semibold">{magic.name || '—'}</span>
+                  <span className="text-[10px] bg-orange-400/10 text-orange-300 px-1.5 py-0.5 rounded border border-orange-400/20">
+                    {magic.circle || 1}o circulo
+                  </span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">
+                    {magic.category || 'Sem categoria'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 text-[11px] font-mono">
+                  <span className="text-amber-300">{magic.pe_cost || 0} PE</span>
+                  {magic.action_cost && <span className="text-sky-300">{magic.action_cost}</span>}
+                  {magic.duration && <span className="text-txt-dim">{magic.duration}</span>}
+                </div>
+                <p className="text-txt-dim text-xs mt-2 leading-relaxed">{magic.effect || magic.short_description || 'Sem efeito descrito.'}</p>
               </div>
             ))}
           </div>

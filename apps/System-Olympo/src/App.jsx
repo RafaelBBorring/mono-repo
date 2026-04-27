@@ -20,9 +20,11 @@ import LoginPage from './components/LoginPage'
 import HomeMenu from './components/HomeMenu'
 import ParticleBackground from './components/ParticleBackground'
 import LevelUpModal from './components/LevelUpModal'
+import RaceEvolveModal from './components/RaceEvolveModal'
 import AdminDashboard from './components/AdminDashboard'
 import { ATTRIBUTES } from './data/attributes'
 import { PROGRESSION } from './data/progression'
+import { RACES } from './data/races'
 import { calcExtraAbilities, calcExtraAbilitiesTypes } from './utils/calculator'
 
 const STEPS = [
@@ -51,6 +53,17 @@ function validateStep(stepIdx, char) {
       return null
     case 1:
       if (!char.raca) return 'Selecione a raça do personagem.'
+      {
+        const race = RACES[char.raca]
+        const needed = race?.layer0?.attrBonus?.escolherQtd || 0
+        const allowed = race?.layer0?.attrBonus?.escolherOpcoes || ATTRIBUTES
+        const chosen = Object.entries(char.racaAttrChoices || {})
+          .filter(([attr, selected]) => selected && allowed.includes(attr)).length
+        if (race?.layer0?.attrBonus?.escolher && chosen < needed) {
+          return `Selecione ${needed} bonus raciais de atributo.`
+        }
+        if (race?.layer0?.requiresDeus && !char.racaDeus) return 'Selecione a linhagem divina do semideus.'
+      }
       return null
     case 2: {
       const unassigned = ATTRIBUTES.filter(a => !attrs[a] || attrs[a] === 0)
@@ -175,6 +188,7 @@ function FullSheetViewer({ sheetId, onBack }) {
   const { user } = useAuth()
   const [sheet, setSheet] = useState(null)
   const [showLevelUp, setShowLevelUp] = useState(false)
+  const [showRaceEvolve, setShowRaceEvolve] = useState(false)
 
   useEffect(() => {
     if (sheetId) loadSheet()
@@ -236,10 +250,14 @@ function FullSheetViewer({ sheetId, onBack }) {
           <button onClick={() => exportToJson(char)} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
             Exportar JSON
           </button>
+          <button onClick={() => setShowRaceEvolve(true)}
+            className="bg-purple-400/10 border border-purple-400/40 text-purple-300 px-4 py-1.5 rounded text-sm hover:bg-purple-400 hover:text-void transition-colors font-semibold">
+            ⬆ Evoluir Raca
+          </button>
           {(char.nivel || 1) < 30 && (
             <button onClick={() => setShowLevelUp(true)}
               className="bg-gold/10 border border-gold/40 text-gold px-4 py-1.5 rounded text-sm hover:bg-gold hover:text-void transition-colors font-semibold">
-              ▲ Subir de Nível ({char.nivel || 1} → {(char.nivel || 1) + 1})
+              ▲ Subir de Nivel ({char.nivel || 1} → {(char.nivel || 1) + 1})
             </button>
           )}
         </div>
@@ -255,6 +273,11 @@ function FullSheetViewer({ sheetId, onBack }) {
       />
       {showLevelUp && (
         <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
+      )}
+      {showRaceEvolve && (
+        <RaceEvolveModal char={char} update={update}
+          onApply={(patch) => { update(patch); setShowRaceEvolve(false) }}
+          onClose={() => setShowRaceEvolve(false)} />
       )}
     </div>
   )
@@ -364,7 +387,7 @@ function AppInner() {
     const extraTypes = calcExtraAbilitiesTypes(
       toSave.triagemPrincipal, toSave.triagemPrincipalNivel,
       toSave.subTriagem, toSave.subTriagemNivel,
-      toSave.atributos, toSave.skeletonPoints || {}, toSave.modulosAdquiridos
+      toSave.atributos, toSave.skeletonPoints || {}, toSave.modulosAdquiridos, toSave
     )
     const needed = 5 + extraTypes.length
     const allTipos = ['Passiva', 'Ativa', 'Ativa', 'Ativa', 'Ultimate', ...extraTypes]
@@ -511,7 +534,7 @@ function AppInner() {
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">
-            <div className={`mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
+            <div className={`mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 || currentStep === 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-txt-dim text-sm">Etapa {currentStep + 1} de {TOTAL_STEPS}</span>

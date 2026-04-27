@@ -10,7 +10,7 @@ export const CLASSES = {
     pePorNivel: 4,
     danoBase: '2d10',
     danoBaseMod: 'FOR',
-    periciasIniciais: 6,
+    periciasIniciais: 4,
     triages: ['TÁTICO', 'LUTADOR', 'TANK', 'SOLDADO'],
   },
   OPERATIVO: {
@@ -24,7 +24,7 @@ export const CLASSES = {
     pePorNivel: 2,
     danoBase: '2d8',
     danoBaseMod: 'FOR',
-    periciasIniciais: 8,
+    periciasIniciais: 5,
     triages: ['ASSASSINO', 'INFILTRADO', 'ATIRADOR', 'TÉCNICO'],
   },
   MISTICO: {
@@ -38,7 +38,7 @@ export const CLASSES = {
     pePorNivel: 4,
     danoBase: '2d6',
     danoBaseMod: 'FOR',
-    periciasIniciais: 10,
+    periciasIniciais: 6,
     triages: ['COMBATE', 'SUPORTE', 'INTUITIVO', 'GRADUADO'],
   },
 }

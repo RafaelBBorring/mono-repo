@@ -1,3 +1,5 @@
+import { getRaceAdjustedAttrs } from './raceCalculator'
+
 export function exportSheet(char, derived) {
   const line = '═'.repeat(45)
   const sep = '─'.repeat(45)
@@ -20,7 +22,8 @@ export function exportSheet(char, derived) {
   t += `ATRIBUTOS\n`
   const attrs = char.atributos || {}
   const sk = char.skeletonPoints || {}
-  const total = (a) => (attrs[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(attrs, sk, char)
+  const total = (a) => adjustedAttrs[a] || 0
   t += `  FOR ${total('FOR')} (${mod(total('FOR'))})   DES ${total('DES')} (${mod(total('DES'))})\n`
   t += `  CON ${total('CON')} (${mod(total('CON'))})   INT ${total('INT')} (${mod(total('INT'))})\n`
   t += `  APA ${total('APA')} (${mod(total('APA'))})   AM  ${total('AM')} (${mod(total('AM'))})\n`
@@ -56,6 +59,30 @@ export function exportSheet(char, derived) {
   for (const h of (char.habilidades || [])) {
     t += `  [${h.tipo}] ${h.nome || '---'}: ${h.descricao || ''} | PP: ${h.ppEstimado || 0} | Status: ${h.status || 'Pendente'}\n`
     if (h.custoEnergia) t += `    Custo: ${h.custoEnergia} Energia | Duração: ${h.duracao || '-'}\n`
+  }
+  if ((char.alchemyRituals || []).length > 0) {
+    t += `${sep}\n`
+    t += `RITUAIS DE ALQUIMIA\n`
+    for (const ritual of (char.alchemyRituals || [])) {
+      t += `  [${ritual.circle}o C] ${ritual.name} (${ritual.category}) - ${ritual.pe_cost} PE\n`
+      t += `    ${ritual.effect || ritual.short_description || ''}\n`
+    }
+  }
+  if ((char.spells || []).length > 0) {
+    t += `${sep}\n`
+    t += `FEITIÇOS\n`
+    for (const spell of (char.spells || [])) {
+      t += `  [${spell.circle}o C] ${spell.name} (${spell.category}) - ${spell.pe_cost} PE\n`
+      t += `    ${spell.effect || spell.short_description || ''}\n`
+    }
+  }
+  if ((char.runes || []).length > 0) {
+    t += `${sep}\n`
+    t += `RUNAS\n`
+    for (const rune of (char.runes || [])) {
+      t += `  [${rune.circle}o C] ${rune.name} (${rune.category}) - ${rune.pe_cost} PE${rune.active ? ' [ATIVA]' : ''}\n`
+      t += `    ${rune.effect || rune.short_description || ''}\n`
+    }
   }
   t += `${sep}\n`
   t += `NOTAS: ${char.notas || ''}\n`

@@ -1,5 +1,6 @@
 import { PROGRESSION } from '../../data/progression'
 import { CLASSES } from '../../data/classes'
+import { normalizeProgressionLabel, scaleTrainedSkillsReward } from '../../utils/progressionUtils'
 
 export default function Step5Progression({ char, update, updateNested }) {
   const classe = char.classe
@@ -67,7 +68,7 @@ export default function Step5Progression({ char, update, updateNested }) {
                 <tr key={n} className="border-b border-sep/50 hover:bg-panel/30">
                   <td className="py-2 pr-3 font-mono text-txt-main">{n}</td>
                   <td className="py-2 pr-3 text-txt-main">
-                    <span>{entry.label}</span>
+                    <span>{normalizeProgressionLabel(entry.label)}</span>
                     {hasTriagem && (
                       <span className="ml-2 text-gold text-xs">
                         (Triagem Principal desbloqueada)
@@ -136,7 +137,7 @@ function accumulate(totals, r) {
     case 'pe_fixo': totals.pe += r.value; break
     case 'pontos_esqueleto': totals.esqueleto += r.value; break
     case 'modulo': totals.modulo += r.value; break
-    case 'pericias_treinadas': totals.pericias += r.value; break
+    case 'pericias_treinadas': totals.pericias += scaleTrainedSkillsReward(r.value); break
   }
 }
 

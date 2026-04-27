@@ -1,17 +1,20 @@
 import { ATTR_ICONS, ATTR_LABELS, getModifier } from '../data/attributes'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva } from '../utils/calculator'
+import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus } from '../utils/raceCalculator'
+import { RACES } from '../data/races'
 
 export default function Sidebar({ char, step }) {
   const sk = char.skeletonPoints || {}
-  const totalAttr = (a) => (char.atributos[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
   const cls = char.classe
 
   const derived = {
-    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel) : 0,
-    energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel) : 0,
-    pe: cls ? calcPeTotal(cls, char.nivel, char.choices) : 0,
-    ca: cls ? calcCA(char.atributos, sk, char.pericias) : 0,
-    reacoes: calcReacoes(char.atributos, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel),
+    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
+    energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char) : 0,
+    pe: cls ? calcPeTotal(cls, char.nivel, char.choices, char) : 0,
+    ca: cls ? calcCA(char.atributos, sk, char.pericias, char) : 0,
+    reacoes: calcReacoes(char.atributos, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char),
   }
 
   return (
@@ -19,7 +22,35 @@ export default function Sidebar({ char, step }) {
       <h2 className="font-cinzel text-gold text-lg mb-3">Resumo da Ficha</h2>
 
       {char.nome && <p className="text-txt-main text-sm mb-1"><span className="text-txt-dim">Nome:</span> {char.nome}</p>}
-      {char.raca && <p className="text-txt-main text-sm mb-1"><span className="text-txt-dim">Raça:</span> {char.raca}</p>}
+      {char.raca && (
+        <div className="text-txt-main text-sm mb-1">
+          <span className="text-txt-dim">Raça:</span> {getRaceLabel(char)}
+        </div>
+      )}
+      {(() => {
+        const bonus = calculateRaceBonus(char)
+        const hasAny = Object.values(bonus.attrs).some(v => v !== 0) || bonus.hp !== 0 || bonus.pe > 0
+        if (!hasAny) return null
+        return (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {Object.entries(bonus.attrs).filter(([, v]) => v !== 0).map(([a, v]) => (
+              <span key={a} className={`text-xs font-mono px-1 rounded ${v > 0 ? 'text-sky-400 bg-sky-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                {v >= 0 ? '+' : ''}{v}{a}
+              </span>
+            ))}
+            {bonus.hp !== 0 && (
+              <span className={`text-xs font-mono px-1 rounded ${bonus.hp > 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                {bonus.hp >= 0 ? '+' : ''}{bonus.hp}HP
+              </span>
+            )}
+            {bonus.pe > 0 && (
+              <span className="text-xs font-mono px-1 rounded text-amber-400 bg-amber-400/10">
+                +{bonus.pe}PE
+              </span>
+            )}
+          </div>
+        )
+      })()}
       <p className="text-txt-main text-sm mb-1"><span className="text-txt-dim">Nível:</span> {char.nivel}</p>
       {cls && <p className="text-txt-main text-sm mb-3"><span className="text-txt-dim">Classe:</span> {cls}</p>}
 

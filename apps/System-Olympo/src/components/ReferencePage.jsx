@@ -7,12 +7,20 @@ import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '.
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS as MA_GRAU_LABELS } from '../data/martialArts'
 import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../data/races'
+import { ALCHEMY_FALLBACK_RITUALS } from '../data/alchemyFallbackRituals'
+import { SPELL_FALLBACK_RITUALS, SPELL_TRADITIONS } from '../data/spellFallbackRituals'
+import { RUNE_FALLBACK_RITUALS, RUNE_GRADES } from '../data/runeFallbackRituals'
+import { ALCHEMY_TRAINING_RULES, BASE_RULES_BY_LEVEL, CLASS_AFFINITY, RACE_AFFINITY, SPACE_COST_BY_CIRCLE } from '../utils/alchemyRules'
+import { SPELL_TRAINING_RULES } from '../utils/spellRules'
+import { RUNE_TRAINING_RULES } from '../utils/runeRules'
+import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
+import { normalizeProgressionLabel } from '../utils/progressionUtils'
 import { useState } from 'react'
 
 const sections = [
   'Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias',
   'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
-  'Armas', 'Ranks de Arma', 'Artes Marciais', 'Criação de Personagem', 'Balanceamento',
+  'Armas', 'Ranks de Arma', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Criação de Personagem', 'Balanceamento',
 ]
 
 export default function ReferencePage() {
@@ -42,6 +50,9 @@ export default function ReferencePage() {
         {section === 'Armas' && <WeaponsSection />}
         {section === 'Ranks de Arma' && <RanksSection />}
         {section === 'Artes Marciais' && <MartialArtsSection />}
+        {section === 'Alquimia' && <AlchemySection />}
+        {section === 'Feitiços' && <SpellsSection />}
+        {section === 'Runas' && <RunesSection />}
         {section === 'Criação de Personagem' && <CreationGuideSection />}
         {section === 'Balanceamento' && <BalanceProtocolSection />}
       </div>
@@ -533,7 +544,7 @@ function ProgressionSection() {
             {Object.entries(prog).map(([lvl, entry]) => (
               <tr key={lvl} className={`hover:brightness-125 transition-all ${rowBg(entry.label)}`}>
                 <td className="py-2 px-3 font-mono text-gold font-bold">{lvl}</td>
-                <td className="py-2 px-3">{colorizeLabel(entry.label)}</td>
+                <td className="py-2 px-3">{colorizeLabel(normalizeProgressionLabel(entry.label))}</td>
               </tr>
             ))}
           </tbody>
@@ -747,6 +758,401 @@ function MartialArtsSection() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function AlchemySection() {
+  const [expanded, setExpanded] = useState(null)
+  const circleGuides = [
+    { circle: 1, label: '1o Circulo', focus: 'Uso frequente, baixo risco, efeitos curtos.', examples: 'Mobilidade, pequenos debuffs, empurroes, buffs basicos.' },
+    { circle: 2, label: '2o Circulo', focus: 'Ferramentas de combate consistentes.', examples: 'Defesas reativas, zonas pequenas, dano medio, mutacoes pontuais.' },
+    { circle: 3, label: '3o Circulo', focus: 'Rituais de pressao alta e custo real.', examples: 'Cura forte, colapsos localizados, perda parcial de acao, controle reativo.' },
+    { circle: 4, label: '4o Circulo', focus: 'Fenomenos catastroficos e risco severo ao Veu.', examples: 'Areas devastadoras, estase ampla, colapso energetico, picos corporais.' },
+  ]
+
+  const classRows = Object.entries(CLASS_AFFINITY).map(([key, value]) => ({
+    name: key,
+    budget: value.budget,
+    circle: value.circle,
+    notes: value.notes.join(' '),
+  }))
+
+  const raceRows = Object.entries(RACE_AFFINITY)
+    .filter(([, value]) => value.budget !== 0 || value.circle !== 0 || value.notes.length > 0)
+    .map(([key, value]) => ({
+      name: key,
+      budget: value.budget,
+      circle: value.circle,
+      notes: value.notes.join(' '),
+    }))
+    .sort((a, b) => (b.budget + b.circle) - (a.budget + a.circle) || a.name.localeCompare(b.name))
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <SectionTitle>Alquimia</SectionTitle>
+        <p className="text-txt-dim text-sm">
+          Alquimia e o estudo ritual do Abismo, dos Regentes e das Entidades do Limiar. Qualquer personagem pode aprender, mas nivel, grau de treinamento em Alquimia, classe e raca definem quantos espacos ritualisticos consegue sustentar sem quebrar o Veu cedo demais.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="bg-void/60 rounded-xl border border-teal-400/20 p-4">
+          <div className="text-teal-300 text-xs font-semibold uppercase tracking-wider mb-2">Como funciona</div>
+          <p className="text-txt-dim text-sm leading-relaxed">
+            Cada ritual consome PE, pertence a um circulo e nasce de uma origem. O personagem escolhe rituais na finalizacao da ficha, respeitando espacos disponiveis, limite por circulo e nivel minimo.
+          </p>
+        </div>
+        <div className="bg-void/60 rounded-xl border border-purple-400/20 p-4">
+          <div className="text-purple-300 text-xs font-semibold uppercase tracking-wider mb-2">Origem do ritual</div>
+          <p className="text-txt-dim text-sm leading-relaxed">
+            Alem da categoria, cada ritual mostra seu <span className="text-purple-300">Regente Original</span> ou entidade-fonte. Isso ajuda a identificar a escola metafisica da formula e o tipo de risco narrativo envolvido.
+          </p>
+        </div>
+        <div className="bg-void/60 rounded-xl border border-amber-300/20 p-4">
+          <div className="text-amber-300 text-xs font-semibold uppercase tracking-wider mb-2">Risco ao Veu</div>
+          <p className="text-txt-dim text-sm leading-relaxed">
+            Quanto maior o circulo, maior a tensao no Veu. Rituais de 4o circulo costumam tocar a Camada 3 do protocolo e exigem custos, contrapesos e rupturas mais severas.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Base por nivel</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Faixa</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Espacos base</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Circulo maximo</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Limites</th>
+              </tr>
+            </thead>
+            <tbody>
+              {BASE_RULES_BY_LEVEL.map((rule) => (
+                <tr key={rule.maxLevel} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 text-txt-main">Nivel 1-{rule.maxLevel}</td>
+                  <td className="py-2 px-3 font-mono text-teal-300">{rule.spaceBudget}</td>
+                  <td className="py-2 px-3 font-mono text-gold">{rule.maxCircle}o circulo</td>
+                  <td className="py-2 px-3 text-txt-dim text-xs">1o:{rule.maxByCircle[1]} | 2o:{rule.maxByCircle[2]} | 3o:{rule.maxByCircle[3]} | 4o:{rule.maxByCircle[4]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Treinamento em Alquimia</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+          {Object.entries(ALCHEMY_TRAINING_RULES).map(([level, info]) => (
+            <div key={level} className="bg-deep rounded-lg border border-sep/30 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-cinzel text-teal-300">{info.label}</span>
+                <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">Grau {level}</span>
+              </div>
+              <div className="mt-2 space-y-1 text-xs">
+                <div className="text-txt-dim">Espacos: <span className="text-gold font-mono">{info.budget >= 0 ? '+' : ''}{info.budget}</span></div>
+                <div className="text-txt-dim">Teto de circulo: <span className="text-sky-300 font-mono">{info.maxCircle}o</span></div>
+                <p className="text-txt-dim leading-relaxed">{info.notes.join(' ')}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-void rounded-xl border border-sep p-4">
+          <div className="text-gold text-sm font-semibold mb-3">O que a classe te concede</div>
+          <div className="space-y-2">
+            {classRows.map((row) => (
+              <div key={row.name} className="bg-deep rounded-lg border border-sep/30 p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main font-semibold">{row.name}</span>
+                  <span className="text-[10px] bg-teal-400/10 text-teal-300 px-1.5 py-0.5 rounded border border-teal-400/20">
+                    {row.budget >= 0 ? '+' : ''}{row.budget} espacos
+                  </span>
+                  <span className="text-[10px] bg-gold/10 text-gold px-1.5 py-0.5 rounded border border-gold/20">
+                    {row.circle >= 0 ? '+' : ''}{row.circle} circulo
+                  </span>
+                </div>
+                <p className="text-txt-dim text-xs mt-2">{row.notes}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-void rounded-xl border border-sep p-4">
+          <div className="text-gold text-sm font-semibold mb-3">O que a raça te concede ou limita</div>
+          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+            {raceRows.map((row) => (
+              <div key={row.name} className="bg-deep rounded-lg border border-sep/30 p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main font-semibold">{row.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border ${row.budget >= 0 ? 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20' : 'bg-red-400/10 text-red-400 border-red-400/20'}`}>
+                    {row.budget >= 0 ? '+' : ''}{row.budget} espacos
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border ${row.circle >= 0 ? 'bg-gold/10 text-gold border-gold/20' : 'bg-red-400/10 text-red-400 border-red-400/20'}`}>
+                    {row.circle >= 0 ? '+' : ''}{row.circle} circulo
+                  </span>
+                </div>
+                <p className="text-txt-dim text-xs mt-2">{row.notes}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Leitura dos circulos</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {circleGuides.map((guide) => (
+            <div key={guide.circle} className="bg-deep rounded-lg border border-sep/30 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="font-cinzel text-teal-300">{guide.label}</span>
+                <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{SPACE_COST_BY_CIRCLE[guide.circle]} espacos</span>
+              </div>
+              <p className="text-txt-main text-xs leading-relaxed">{guide.focus}</p>
+              <p className="text-txt-dim text-xs leading-relaxed mt-2">{guide.examples}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Exemplos da biblioteca</div>
+        <div className="space-y-3">
+          {ALCHEMY_FALLBACK_RITUALS.slice(0, 6).map((ritual) => {
+            const isExpanded = expanded === ritual.id
+            return (
+              <div key={ritual.id} className="rounded-lg border border-sep/30 bg-deep/80 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isExpanded ? null : ritual.id)}
+                  className="w-full px-4 py-3 text-left hover:bg-void/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-txt-main font-semibold">{ritual.name}</span>
+                    <span className="text-[10px] bg-teal-400/10 text-teal-300 px-1.5 py-0.5 rounded border border-teal-400/20">{ritual.circle}o circulo</span>
+                    <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{ritual.category}</span>
+                    <span className="text-[10px] bg-purple-400/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-400/20">{ritual.source_name}</span>
+                  </div>
+                  <p className="text-txt-dim text-xs mt-1">{ritual.short_description}</p>
+                </button>
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-sep/20 space-y-2">
+                    <div className="pt-3 flex flex-wrap gap-2 text-[11px] font-mono">
+                      <span className="text-amber-300">{ritual.pe_cost} PE</span>
+                      <span className="text-gold">{SPACE_COST_BY_CIRCLE[ritual.circle]} espacos</span>
+                      <span className="text-sky-300">{ritual.action_cost}</span>
+                      <span className="text-txt-dim">{ritual.range}</span>
+                      <span className="text-red-300">Ruptura {ritual.rupture_risk}/4</span>
+                    </div>
+                    <p className="text-txt-main text-xs leading-relaxed">{ritual.effect}</p>
+                    <p className="text-txt-dim text-xs"><span className="text-purple-300">Lei:</span> {ritual.law_name}</p>
+                    <p className="text-txt-dim text-xs"><span className="text-amber-300">Contrapeso:</span> {ritual.price}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SpellsSection() {
+  const [expanded, setExpanded] = useState(null)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <SectionTitle>Feitiços</SectionTitle>
+        <p className="text-txt-dim text-sm">
+          Feitiços são repertórios opcionais de conjuração. Na prática, o sistema diferencia <span className="text-emerald-300">Bruxaria</span> e <span className="text-sky-300">Arcana</span>, mantendo a mesma economia de espaços por círculo usada na Alquimia para evitar explosão de complexidade.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-void rounded-xl border border-sep p-4">
+          <div className="text-gold text-sm font-semibold mb-3">Quem realmente acessa Feitiços</div>
+          <ul className="space-y-2 text-xs text-txt-dim">
+            <li><span className="text-emerald-300 font-semibold">Bruxas</span>, <span className="text-emerald-300 font-semibold">Elfos</span>, <span className="text-sky-300 font-semibold">Magos</span> e <span className="text-gold font-semibold">Humanos Místicos</span> sustentam repertórios melhores.</li>
+            <li><span className="text-purple-300 font-semibold">Místicos</span> de outras raças também podem estudar, mas com orçamento menor.</li>
+            <li>Se a ficha não gira em torno do arcano, o ideal é deixar o sistema desligado e manter só habilidades base, arma e módulos.</li>
+          </ul>
+        </div>
+
+        <div className="bg-void rounded-xl border border-sep p-4">
+          <div className="text-gold text-sm font-semibold mb-3">Treino usado no cálculo</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+            {Object.entries(SPELL_TRAINING_RULES).map(([level, info]) => (
+              <div key={level} className="bg-deep rounded-lg border border-sep/30 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-cinzel text-emerald-300">{info.label}</span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">Poder {level}</span>
+                </div>
+                <div className="mt-2 space-y-1 text-xs">
+                  <div className="text-txt-dim">Espaços: <span className="text-gold font-mono">{info.budget >= 0 ? '+' : ''}{info.budget}</span></div>
+                  <div className="text-txt-dim">Teto: <span className="text-sky-300 font-mono">{info.maxCircle}o</span></div>
+                  <p className="text-txt-dim leading-relaxed">{info.notes.join(' ')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Tradições de Feitiço</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {SPELL_TRADITIONS.map((tradition) => (
+            <div key={tradition} className="bg-deep rounded-lg border border-sep/30 p-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${tradition === 'arcana' ? 'bg-sky-400/12 text-sky-300 border-sky-400/25' : 'bg-emerald-400/12 text-emerald-300 border-emerald-400/25'}`}>
+                  {tradition === 'arcana' ? 'Arcana' : 'Bruxaria'}
+                </span>
+                <span className="text-txt-main font-semibold">{tradition === 'arcana' ? 'Magia Instantânea' : 'Conjuração de Bruxaria'}</span>
+              </div>
+              <p className="text-txt-dim text-xs mt-2 leading-relaxed">
+                {tradition === 'arcana'
+                  ? 'Foco em resposta rápida, rajadas, teleporte, barreiras e leitura estrutural. Magos e Humanos Místicos costumam liderar essa linha.'
+                  : 'Foco em vínculo, maldição, cura, sacrifício, palavra proibida e interferência narrativa. Bruxas e linhagens mais ritualistas brilham aqui.'}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <MysticExamples
+        title="Exemplos de Feitiços"
+        items={SPELL_FALLBACK_RITUALS.slice(0, 6)}
+        expanded={expanded}
+        setExpanded={setExpanded}
+        badgeGetter={getTraditionBadge}
+      />
+    </div>
+  )
+}
+
+function RunesSection() {
+  const [expanded, setExpanded] = useState(null)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <SectionTitle>Runas</SectionTitle>
+        <p className="text-txt-dim text-sm">
+          Runas são fragmentos jogáveis derivados das Runas Primordiais. O sistema formaliza três graus de uso prático: <span className="text-emerald-300">Menores</span>, <span className="text-sky-300">Comuns</span> e <span className="text-amber-300">Maiores</span>.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-void rounded-xl border border-sep p-4">
+          <div className="text-gold text-sm font-semibold mb-3">Leitura rápida</div>
+          <ul className="space-y-2 text-xs text-txt-dim">
+            <li>Qualquer personagem pode optar por usar runas.</li>
+            <li>O treino em <span className="text-sky-300 font-semibold">Poder</span> define quantas runas, quais círculos e quantas ficam <span className="text-gold font-semibold">ativas ao mesmo tempo</span>.</li>
+            <li><span className="text-purple-300 font-semibold">Humano Aprimorado Rúnico</span> recebe uma folga extra de ativação e espaço.</li>
+          </ul>
+        </div>
+
+        <div className="bg-void rounded-xl border border-sep p-4">
+          <div className="text-gold text-sm font-semibold mb-3">Treino de vínculo rúnico</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+            {Object.entries(RUNE_TRAINING_RULES).map(([level, info]) => (
+              <div key={level} className="bg-deep rounded-lg border border-sep/30 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-cinzel text-sky-300">{info.label}</span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">Poder {level}</span>
+                </div>
+                <div className="mt-2 space-y-1 text-xs">
+                  <div className="text-txt-dim">Espaços: <span className="text-gold font-mono">{info.budget >= 0 ? '+' : ''}{info.budget}</span></div>
+                  <div className="text-txt-dim">Ativas: <span className="text-purple-300 font-mono">{info.active}</span></div>
+                  <div className="text-txt-dim">Teto: <span className="text-sky-300 font-mono">{info.maxCircle}o</span></div>
+                  <p className="text-txt-dim leading-relaxed">{info.notes.join(' ')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Graus de Runas</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {RUNE_GRADES.map((grade) => {
+            const badge = getRuneGradeBadge({ tags: [`grade:${grade}`] })
+            return (
+              <div key={grade} className="bg-deep rounded-lg border border-sep/30 p-3">
+                <div className={`inline-flex text-[10px] px-1.5 py-0.5 rounded border ${badge.className}`}>{badge.label}</div>
+                <p className="text-txt-dim text-xs mt-2 leading-relaxed">
+                  {grade === 'menor' && 'Ferramentas rápidas e legíveis para defesa curta, leitura e impacto simples.'}
+                  {grade === 'comum' && 'Selos táticos robustos para zona, suporte, vínculo e mobilidade real.'}
+                  {grade === 'maior' && 'Fragmentos muito mais próximos da origem, com custo alto e presença épica.'}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <MysticExamples
+        title="Exemplos de Runas"
+        items={RUNE_FALLBACK_RITUALS.slice(0, 9)}
+        expanded={expanded}
+        setExpanded={setExpanded}
+        badgeGetter={getRuneGradeBadge}
+      />
+    </div>
+  )
+}
+
+function MysticExamples({ title, items, expanded, setExpanded, badgeGetter }) {
+  return (
+    <div className="bg-void rounded-xl border border-sep p-4">
+      <div className="text-gold text-sm font-semibold mb-3">{title}</div>
+      <div className="space-y-3">
+        {items.map((item) => {
+          const isExpanded = expanded === item.id
+          const badge = badgeGetter(item)
+          return (
+            <div key={item.id} className="rounded-lg border border-sep/30 bg-deep/80 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setExpanded(isExpanded ? null : item.id)}
+                className="w-full px-4 py-3 text-left hover:bg-void/30 transition-colors"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-txt-main font-semibold">{item.name}</span>
+                  <span className="text-[10px] bg-teal-400/10 text-teal-300 px-1.5 py-0.5 rounded border border-teal-400/20">{item.circle}o circulo</span>
+                  <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{item.category}</span>
+                  {badge && <span className={`text-[10px] px-1.5 py-0.5 rounded border ${badge.className}`}>{badge.label}</span>}
+                  <span className="text-[10px] bg-purple-400/10 text-purple-300 px-1.5 py-0.5 rounded border border-purple-400/20">{item.source_name}</span>
+                </div>
+                <p className="text-txt-dim text-xs mt-1">{item.short_description}</p>
+              </button>
+              {isExpanded && (
+                <div className="px-4 pb-4 border-t border-sep/20 space-y-2">
+                  <div className="pt-3 flex flex-wrap gap-2 text-[11px] font-mono">
+                    <span className="text-amber-300">{item.pe_cost} PE</span>
+                    <span className="text-gold">{SPACE_COST_BY_CIRCLE[item.circle]} espacos</span>
+                    <span className="text-sky-300">{item.action_cost}</span>
+                    <span className="text-txt-dim">{item.range}</span>
+                    <span className="text-red-300">Risco {item.rupture_risk}/4</span>
+                  </div>
+                  <p className="text-txt-main text-xs leading-relaxed">{item.effect}</p>
+                  <p className="text-txt-dim text-xs"><span className="text-purple-300">Lei:</span> {item.law_name}</p>
+                  <p className="text-txt-dim text-xs"><span className="text-amber-300">Contrapeso:</span> {item.price}</p>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

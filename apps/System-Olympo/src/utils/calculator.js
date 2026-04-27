@@ -4,13 +4,16 @@ import { PROGRESSION } from '../data/progression'
 import { TRIAGES } from '../data/triages'
 import { getMaxGrauForLevel, getGrauBonus } from '../data/pericias'
 import { WEAPON_RANKS } from '../data/weapons'
+import { calculateRaceBonus } from './raceCalculator'
+import { scaleTrainedSkillsReward } from './progressionUtils'
 
 function getClassDef(classe) {
   return CLASSES[classe]
 }
 
-function getAttrValue(attrs, attr, skeletonPoints) {
-  return (attrs[attr] || 0) + (skeletonPoints[attr] || 0)
+function getAttrValue(attrs, attr, skeletonPoints, raceContext) {
+  const raceBonus = raceContext ? calculateRaceBonus(raceContext).attrs[attr] || 0 : 0
+  return (attrs[attr] || 0) + (skeletonPoints[attr] || 0) + raceBonus
 }
 
 function getProgressionRewards(classe, nivel, choices) {
@@ -46,7 +49,7 @@ function applyReward(total, r) {
     case 'pe_fixo': total.pe += r.value; break
     case 'pontos_esqueleto': total.esqueleto += r.value; break
     case 'modulo': total.modulo += r.value; break
-    case 'pericias_treinadas': total.pericias += r.value; break
+    case 'pericias_treinadas': total.pericias += scaleTrainedSkillsReward(r.value); break
     case 'triagem_principal': total.triagemPrincipal = Math.max(total.triagemPrincipal, r.value); break
     case 'sub_triagem': total.subTriagem = Math.max(total.subTriagem, r.value); break
     case 'peh': total.peh += r.value; break
@@ -60,9 +63,9 @@ function getTankBonus(triagemPrincipal, triagemPrincipalNivel, nivel) {
   return 0
 }
 
-function buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
+function buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext) {
   const types = []
-  const modInt = getModifier(getAttrValue(attrs, 'INT', skeletonPoints))
+  const modInt = getModifier(getAttrValue(attrs, 'INT', skeletonPoints, raceContext))
   if (triagemPrincipal === 'INTUITIVO' && triagemPrincipalNivel >= 0.6) types.push('Passiva')
   if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.2) {
     const n = Math.floor(modInt / 3)
@@ -89,14 +92,14 @@ function buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTr
   return types
 }
 
-function getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
-  return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos).length
+function getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext) {
+  return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext).length
 }
 
-export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel) {
+export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, raceContext) {
   const def = getClassDef(classe)
   if (!def) return 0
-  const con = getAttrValue(attrs, 'CON', skeletonPoints)
+  const con = getAttrValue(attrs, 'CON', skeletonPoints, raceContext)
   const base = def.vidaBase(con)
   const prog = getProgressionRewards(classe, nivel, choices)
   let vidaPorNivelTotal = 0
@@ -104,13 +107,13 @@ export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, tri
     vidaPorNivelTotal += def.vidaPorNivel(getModifier(con))
   }
   const tankBonus = getTankBonus(triagemPrincipal, triagemPrincipalNivel || 0, nivel)
-  return base + vidaPorNivelTotal + prog.vida + tankBonus
+  return base + vidaPorNivelTotal + prog.vida + tankBonus + (raceContext ? calculateRaceBonus(raceContext).hp : 0)
 }
 
-export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel) {
+export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
   const def = getClassDef(classe)
   if (!def) return 0
-  const am = getAttrValue(attrs, 'AM', skeletonPoints)
+  const am = getAttrValue(attrs, 'AM', skeletonPoints, raceContext)
   const base = def.energiaBase(am)
   const prog = getProgressionRewards(classe, nivel, choices)
   let energiaPorNivelTotal = 0
@@ -127,16 +130,16 @@ export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, 
   return base + energiaPorNivelTotal + prog.energia + intuitivoBonus
 }
 
-export function calcPeTotal(classe, nivel, choices) {
+export function calcPeTotal(classe, nivel, choices, raceContext) {
   const def = getClassDef(classe)
   if (!def) return 0
   const prog = getProgressionRewards(classe, nivel, choices)
-  return def.peBase + (def.pePorNivel * nivel) + prog.pe
+  return def.peBase + (def.pePorNivel * nivel) + prog.pe + (raceContext ? calculateRaceBonus(raceContext).pe : 0)
 }
 
-export function calcCA(attrs, skeletonPoints, pericias) {
-  const des = getAttrValue(attrs, 'DES', skeletonPoints)
-  const con = getAttrValue(attrs, 'CON', skeletonPoints)
+export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
+  const des = getAttrValue(attrs, 'DES', skeletonPoints, raceContext)
+  const con = getAttrValue(attrs, 'CON', skeletonPoints, raceContext)
   const modDES = getModifier(des)
   const modCON = getModifier(con)
   const reflexoGrau = pericias?.Reflexo || 0
@@ -145,8 +148,8 @@ export function calcCA(attrs, skeletonPoints, pericias) {
   return 10 + treino + Math.max(modCON, modDES)
 }
 
-export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel) {
-  const des = getAttrValue(attrs, 'DES', skeletonPoints)
+export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
+  const des = getAttrValue(attrs, 'DES', skeletonPoints, raceContext)
   let reacoes = Math.max(1, Math.floor(des / 5))
   if (triagemPrincipal === 'ASSASSINO' && triagemPrincipalNivel >= 0.2) {
     reacoes += Math.floor(des / 15)
@@ -157,18 +160,18 @@ export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrin
   return reacoes
 }
 
-export function calcPercepcaoPassiva(attrs, skeletonPoints, pericias) {
-  const int = getAttrValue(attrs, 'INT', skeletonPoints)
+export function calcPercepcaoPassiva(attrs, skeletonPoints, pericias, raceContext) {
+  const int = getAttrValue(attrs, 'INT', skeletonPoints, raceContext)
   const modINT = getModifier(int)
   const percGrau = pericias?.Percepção || 0
   const treino = getGrauBonus(percGrau)
   return 10 + treino + modINT
 }
 
-export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, subTriagemNivel, triagemPrincipal, triagemPrincipalNivel) {
+export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, subTriagemNivel, triagemPrincipal, triagemPrincipalNivel, raceContext) {
   const def = getClassDef(classe)
   if (!def) return ''
-  const modAttr = getAttrValue(attrs, def.danoBaseMod, skeletonPoints)
+  const modAttr = getAttrValue(attrs, def.danoBaseMod, skeletonPoints, raceContext)
   const mod = getModifier(modAttr)
   let base = `${def.danoBase} ${mod >= 0 ? '+' : ''}${mod}`
   const n = nivel || 1
@@ -186,16 +189,16 @@ export function calcSkeletonPointsAvailable(classe, nivel, choices) {
   return prog.esqueleto
 }
 
-export function calcModulesAvailable(classe, nivel, choices) {
+export function calcModulesAvailable(classe, nivel, choices, raceContext) {
   const prog = getProgressionRewards(classe, nivel, choices)
-  return prog.modulo
+  return prog.modulo + (raceContext ? calculateRaceBonus(raceContext).modules : 0)
 }
 
-export function calcPericiasAvailable(classe, nivel, choices, modulosAdquiridos) {
+export function calcPericiasAvailable(classe, nivel, choices, modulosAdquiridos, raceContext) {
   const def = getClassDef(classe)
   if (!def) return 0
   const prog = getProgressionRewards(classe, nivel, choices)
-  let total = def.periciasIniciais + prog.pericias
+  let total = def.periciasIniciais + prog.pericias + (raceContext ? calculateRaceBonus(raceContext).pericias : 0)
   const treinoIntensivo = (modulosAdquiridos || []).find(m => m.id === 'treino_intensivo')
   if (treinoIntensivo) {
     total += (treinoIntensivo.boughtCount || 1) * 2
@@ -213,12 +216,12 @@ export function calcSubTriagemLevel(classe, nivel, choices) {
   return prog.subTriagem
 }
 
-export function calcExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
-  return getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos)
+export function calcExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext) {
+  return getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext)
 }
 
-export function calcExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos) {
-  return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos)
+export function calcExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext) {
+  return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext)
 }
 
 export function calcAbilityCostReduction(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel) {

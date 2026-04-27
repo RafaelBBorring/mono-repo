@@ -1,10 +1,12 @@
 import { CLASSES } from '../../data/classes'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcDanoBase } from '../../utils/calculator'
 import { getModifier } from '../../data/attributes'
+import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
 
 export default function Step3Class({ char, update }) {
   const sk = char.skeletonPoints || {}
-  const totalAttr = (a) => (char.atributos[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
 
   function getBaseStats(cls) {
     const def = CLASSES[cls]
@@ -26,10 +28,10 @@ export default function Step3Class({ char, update }) {
 
   function getProjectedTotals(cls) {
     return {
-      vida: calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices),
-      energia: calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices),
-      pe: calcPeTotal(cls, char.nivel, char.choices),
-      dano: calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel),
+      vida: calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char),
+      energia: calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char),
+      pe: calcPeTotal(cls, char.nivel, char.choices, char),
+      dano: calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel, char),
     }
   }
 

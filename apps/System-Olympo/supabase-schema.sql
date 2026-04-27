@@ -41,6 +41,34 @@ create table if not exists public.ability_reviews (
   created_at timestamptz default now()
 );
 
+-- Alchemy Rituals: biblioteca administrativa de rituais, base para Feiticos e Runas
+create table if not exists public.alchemy_rituals (
+  id text primary key,
+  ritual_type text not null default 'alchemy' check (ritual_type in ('alchemy', 'spell', 'rune', 'magic')),
+  name text not null,
+  circle integer not null check (circle between 1 and 4),
+  category text not null,
+  pe_cost integer not null default 0,
+  min_level integer not null default 1,
+  action_cost text not null default 'Acao Padrao',
+  duration text not null default 'Instantaneo',
+  range text not null default 'Pessoal',
+  short_description text not null default '',
+  effect text not null default '',
+  source_kind text not null default 'neutro' check (source_kind in ('regente', 'limiar', 'neutro')),
+  source_name text not null default '',
+  law_name text not null default '',
+  price text not null default '',
+  rupture_risk integer not null default 1 check (rupture_risk between 1 and 4),
+  protocol_layer integer not null default 2 check (protocol_layer between 1 and 3),
+  pp_estimate integer not null default 0,
+  tags jsonb not null default '[]'::jsonb,
+  ai_feedback text not null default '',
+  created_by uuid references auth.users on delete set null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- ══════════════════════════════════════════════════
 -- 2. ÍNDICES
 -- ══════════════════════════════════════════════════
@@ -48,6 +76,9 @@ create table if not exists public.ability_reviews (
 create index if not exists idx_characters_user_id on public.characters(user_id);
 create index if not exists idx_reviews_character_id on public.ability_reviews(character_id);
 create index if not exists idx_reviews_status on public.ability_reviews(status);
+create index if not exists idx_alchemy_rituals_type on public.alchemy_rituals(ritual_type);
+create index if not exists idx_alchemy_rituals_circle on public.alchemy_rituals(circle);
+create index if not exists idx_alchemy_rituals_category on public.alchemy_rituals(category);
 
 -- ══════════════════════════════════════════════════
 -- 3. ROW LEVEL SECURITY
@@ -56,6 +87,7 @@ create index if not exists idx_reviews_status on public.ability_reviews(status);
 alter table public.profiles enable row level security;
 alter table public.characters enable row level security;
 alter table public.ability_reviews enable row level security;
+alter table public.alchemy_rituals enable row level security;
 
 -- ══════════════════════════════════════════════════
 -- 4. POLÍTICAS RLS
@@ -106,6 +138,41 @@ create policy "update_own_reviews"
     auth.uid() = (select user_id from public.characters where id = character_id)
   );
 
+-- Alchemy rituals: qualquer usuario autenticado pode ler; admin pode gerir
+create policy "read_alchemy_rituals"
+  on public.alchemy_rituals for select
+  using (auth.role() = 'authenticated');
+
+create policy "admin_insert_alchemy_rituals"
+  on public.alchemy_rituals for insert
+  with check (
+    exists (
+      select 1
+      from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+create policy "admin_update_alchemy_rituals"
+  on public.alchemy_rituals for update
+  using (
+    exists (
+      select 1
+      from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+create policy "admin_delete_alchemy_rituals"
+  on public.alchemy_rituals for delete
+  using (
+    exists (
+      select 1
+      from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
 -- ══════════════════════════════════════════════════
 -- 5. TRIGGER: AUTO-CRIAR PERFIL NO SIGNUP
 -- ══════════════════════════════════════════════════
@@ -148,4 +215,9 @@ $$;
 drop trigger if exists characters_updated_at on public.characters;
 create trigger characters_updated_at
   before update on public.characters
+  for each row execute procedure public.update_updated_at();
+
+drop trigger if exists alchemy_rituals_updated_at on public.alchemy_rituals;
+create trigger alchemy_rituals_updated_at
+  before update on public.alchemy_rituals
   for each row execute procedure public.update_updated_at();

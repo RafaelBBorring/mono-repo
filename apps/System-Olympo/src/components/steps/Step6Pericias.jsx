@@ -1,6 +1,7 @@
 import { PERICIAS, getMaxGrauForLevel, GRAU_NAMES, getPericiaBonus } from '../../data/pericias'
 import { calcPericiasAvailable } from '../../utils/calculator'
 import { getModifier } from '../../data/attributes'
+import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
 
 export default function Step6Pericias({ char, update, updateNested }) {
   const classe = char.classe
@@ -11,9 +12,10 @@ export default function Step6Pericias({ char, update, updateNested }) {
   const choices = char.choices || {}
   const modulosAdquiridos = char.modulosAdquiridos || []
 
-  const totalAttr = (a) => (attrs[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(attrs, sk, char)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
 
-  const available = classe ? calcPericiasAvailable(classe, nivel, choices, modulosAdquiridos) : 0
+  const available = classe ? calcPericiasAvailable(classe, nivel, choices, modulosAdquiridos, char) : 0
   const maxGrau = getMaxGrauForLevel(nivel)
 
   const used = Object.values(pericias).reduce((sum, g) => sum + (g > 0 ? g : 0), 0)
@@ -60,6 +62,7 @@ export default function Step6Pericias({ char, update, updateNested }) {
         <span>Grau máximo: <span className="text-gold font-mono">{maxGrau}</span> ({GRAU_NAMES[maxGrau]})</span>
         <span>Disponíveis: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-txt-dim' : 'text-err'}`}>{remaining}</span></span>
         <span className="text-gold-light">Cada grau custa 1 ponto</span>
+        <span className="text-teal-300">Alquimia aumenta espacos e circulos dos rituais.</span>
         {(modulosAdquiridos || []).filter(m => m.id === 'treino_intensivo').length > 0 && (() => {
           const ti = modulosAdquiridos.find(m => m.id === 'treino_intensivo')
           return <span className="text-blue-400">Treino Intensivo: +{(ti.boughtCount || 1) * 2} pontos</span>
@@ -99,6 +102,16 @@ export default function Step6Pericias({ char, update, updateNested }) {
                   <span className="text-gold ml-1">({bestAttr.attr})</span>
                 )}
               </div>
+              {pericia.name === 'Alquimia' && (
+                <div className="mb-2 text-[10px] text-teal-300 bg-teal-400/10 border border-teal-400/15 rounded px-2 py-1">
+                  Cada grau em Alquimia expande seu orcamento ritualistico e o teto de circulos acessiveis.
+                </div>
+              )}
+              {pericia.name === 'Poder' && (
+                <div className="mb-2 text-[10px] text-sky-300 bg-sky-400/10 border border-sky-400/15 rounded px-2 py-1">
+                  Cada grau em Poder fortalece Feitiços e Runas, aumentando espacos, circulos e a capacidade de manter runas ativas.
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <button
                   type="button"

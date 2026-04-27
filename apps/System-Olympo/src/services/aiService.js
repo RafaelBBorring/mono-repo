@@ -19,6 +19,7 @@ import {
 import { getModifier } from '../data/attributes'
 import { buildEvolucaoContext } from '../utils/skillEvolution'
 import { supabase } from '../lib/supabase'
+import { getRaceLabel } from '../utils/raceCalculator'
 
 // ─── Infra (via Supabase Edge Function) ────────────────────────────────────
 
@@ -49,7 +50,7 @@ function getTriagemAmplifiers(char) {
   const nivel = char.nivel || 1
   const sk   = char.skeletonPoints || {}
   const attrs = char.atributos || {}
-  const valINT = getAttrValue(attrs, 'INT', sk)
+  const valINT = getAttrValue(attrs, 'INT', sk, char)
   const amps = []
 
   if ((tp === 'ATIRADOR' && tn >= 0.2) || (st === 'ATIRADOR' && sn >= 0.2))
@@ -98,15 +99,15 @@ function computeCharStats(char) {
   const nivel  = char.nivel || 1
   const choices = char.choices || {}
 
-  const totalAttr = (a) => getAttrValue(attrs, a, sk)
+  const totalAttr = (a) => getAttrValue(attrs, a, sk, char)
   const mod       = (a) => getModifier(totalAttr(a))
 
-  const vidaTotal    = calcVidaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel)
-  const energiaTotal = calcEnergiaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel)
-  const peTotal      = calcPeTotal(char.classe, nivel, choices)
-  const caBase       = calcCA(attrs, sk, char.pericias)
-  const danoBase     = calcDanoBase(char.classe, attrs, sk, nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel)
-  const reacoes      = calcReacoes(attrs, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel)
+  const vidaTotal    = calcVidaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel, char)
+  const energiaTotal = calcEnergiaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)
+  const peTotal      = calcPeTotal(char.classe, nivel, choices, char)
+  const caBase       = calcCA(attrs, sk, char.pericias, char)
+  const danoBase     = calcDanoBase(char.classe, attrs, sk, nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel, char)
+  const reacoes      = calcReacoes(attrs, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)
 
   const pericias     = char.pericias || {}
   const maxTreino    = Math.max(pericias.Lutar || 0, pericias.Pontaria || 0)
@@ -284,7 +285,7 @@ Responda EXCLUSIVAMENTE com JSON:
 export async function generateWeaponAbilities(char, weaponId, weaponRank, slots, userDesc, count) {
   const sk     = char.skeletonPoints || {}
   const attrs  = char.atributos || {}
-  const totalAttr = (a) => getAttrValue(attrs, a, sk)
+  const totalAttr = (a) => getAttrValue(attrs, a, sk, char)
   const weaponDef = ALL_WEAPONS.find(w => w.id === weaponId)
   const weaponName = weaponDef?.name || weaponId
   const weaponDano = weaponDef?.dano || '?'
@@ -325,14 +326,14 @@ Responda EXCLUSIVAMENTE com JSON:
 export async function generateAbilitiesFromDescription(char, description) {
   const sk     = char.skeletonPoints || {}
   const attrs  = char.atributos || {}
-  const totalAttr = (a) => getAttrValue(attrs, a, sk)
+  const totalAttr = (a) => getAttrValue(attrs, a, sk, char)
 
   // Calculate extra ability slots so IA knows what to generate
   const { calcExtraAbilitiesTypes } = await import('../utils/calculator')
   const extraTypes = calcExtraAbilitiesTypes(
     char.triagemPrincipal, char.triagemPrincipalNivel,
     char.subTriagem, char.subTriagemNivel,
-    attrs, sk, char.modulosAdquiridos
+    attrs, sk, char.modulosAdquiridos, char
   )
   const allTipos = ['Passiva', 'Ativa', 'Ativa', 'Ativa', 'Ultimate', ...extraTypes]
   const tiposList = allTipos.map((t, i) => `${i+1}. ${t}`).join('\n')
@@ -371,4 +372,163 @@ Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habi
   } catch {
     throw new Error('A IA retornou um formato inválido. Tente novamente.')
   }
+}
+
+function buildMysticDraftPrompt(systemType, draft, context = {}) {
+  const analysisNote = typeof context.analysis_note === 'string' ? context.analysis_note.trim() : ''
+  const blocks = {
+    alchemy: {
+      title: 'SISTEMA: ALQUIMIA DO OLYMPO',
+      lore: [
+        '- A Alquimia canaliza leis corrompidas do Abismo atraves de Regentes, ou Pactos com Entidades do Limiar.',
+        '- Todo ritual enfraquece o Veu e pode gerar Ruptura. Quanto maior o circulo, maior o risco.',
+        '- Regentes funcionam como um painel: a lei corrompida e absorvida e descarregada em sigilos.',
+        '- Limiar funciona como pacto: poder maior, mas preco narrativo mais severo.',
+        '- Rituais de circulos diferentes podem repetir a mesma familia de efeito, mas com numeros, area e custo escalados.',
+      ],
+      balance: [
+        '- 1o circulo: utilitario ou tatico leve. PE 4-10. DT 13-15. Custo estrutural: 4 espacos.',
+        '- 2o circulo: impacto consistente. PE 10-20. DT 15-17. Custo estrutural: 6 espacos.',
+        '- 3o circulo: poder alto e identidade forte. PE 20-30. DT 18-20. Custo estrutural: 10 espacos.',
+        '- 4o circulo: catastrofico e raro. PE 30-45. DT 21-25. Custo estrutural: 15 espacos.',
+      ],
+      protocol: [
+        '- SCP 2 para rituais taticos e corporais.',
+        '- SCP 3 apenas quando o ritual age como fenomeno epico, catastrofico ou quase artefato.',
+        '- Cura imediata nao passa de 30% da vida maxima esperada da faixa.',
+        '- Controle duro total deve durar no maximo 1 rodada em circulos 3-4; prefira penalidade parcial.',
+        '- Como o sistema usa espacos por circulo, rituais mais caros podem sustentar efeitos mais densos, mas ainda precisam ter contrapeso, custo energetico e risco coerentes.',
+      ],
+      extras: [
+        '- Se houver uma instrucao direta do admin, trate essa instrucao como prioridade editorial: ela pode apontar um problema do ritual atual ou descrever a ideia-base de um ritual novo.',
+        '- Se o rascunho vier incompleto, use a instrucao do admin e o lore para completar nome, fonte, efeito, preco e numeros de modo coerente.',
+      ],
+    },
+    spell: {
+      title: 'SISTEMA: FEITICOS E MAGIA INSTANTANEA DO OLYMPO',
+      lore: [
+        '- Feiticos sao formulas de conjuracao ativas. Alguns nascem da Bruxaria ritual, outros da Arcana instantanea de magos e guardioes.',
+        '- Bruxaria tende a trabalhar vinculos, maldicoes, cura, sacrificio, selos e interferencia narrativa.',
+        '- Arcana instantanea tende a trabalhar rajadas, barreiras, teleporte, leitura estrutural e manipulacao limpa de mana.',
+        '- A tradicao do feitico deve ficar clara no resultado final, inclusive em nome, custo, preco e linguagem visual.',
+      ],
+      balance: [
+        '- 1o circulo: resposta curta, suporte basico ou ataque simples. PE 8-15. Custo estrutural: 4 espacos.',
+        '- 2o circulo: consistencia de combate e utilidade forte. PE 10-22. Custo estrutural: 6 espacos.',
+        '- 3o circulo: assinatura de escola, impacto alto e mais risco. PE 20-32. Custo estrutural: 10 espacos.',
+        '- 4o circulo: raro, epico e exigente. PE 32-45. Custo estrutural: 15 espacos.',
+      ],
+      protocol: [
+        '- Nao trate feiticos como habilidades raciais permanentes; sao conjuracoes escolhidas e opcionais.',
+        '- Feiticos de Bruxaria podem cobrar componentes, custo narrativo ou exposição. Feiticos de Arcana podem cobrar janela de vulnerabilidade, foco ou concentração.',
+        '- Cura segue o limite de 30% da vida esperada da faixa por uso imediato, salvo efeitos prolongados claramente pagos.',
+        '- Controle total deve ser curto; prefira lentidao, queda de resultado, selos parciais e supressao temporaria.',
+      ],
+      extras: [
+        '- Quando houver tag ou contexto de tradicao, respeite esse estilo: bruxaria nao deve soar como canhao de mana puro; arcana nao deve soar como maldicao de sangue ritual.',
+        '- Se o admin pedir criacao de novo feitico, complete nome, escola, numeros e contrapeso de forma coerente com a tradicao escolhida.',
+      ],
+    },
+    rune: {
+      title: 'SISTEMA: RUNAS DO OLYMPO',
+      lore: [
+        '- Runas sao fragmentos derivados das 24 Runas Primordiais, mas a biblioteca jogavel trabalha apenas suas expressoes menores, comuns e maiores.',
+        '- Toda runa precisa deixar clara sua matriz primordial de origem sem revelar segredos de trama como portadores atuais.',
+        '- Runas funcionam como selos de vinculo: algumas ficam latentes, outras podem ser ativadas simultaneamente dentro de um limite.',
+      ],
+      balance: [
+        '- Runas Menores: entrada versatil, leitura rapida e impacto simples. Normalmente 1o circulo. Custo estrutural: 4 espacos.',
+        '- Runas Comuns: efeito tatico robusto, zona, vinculo ou mobilidade real. Normalmente 2o ou 3o circulo. Custo estrutural: 6 ou 10 espacos.',
+        '- Runas Maiores: proxima da origem primordial, rara e pesada. Normalmente 3o ou 4o circulo. Custo estrutural: 10 ou 15 espacos.',
+      ],
+      protocol: [
+        '- Toda runa precisa indicar seu grau (menor, comum ou maior) e seu primordial-base.',
+        '- Runas maiores devem ser potentes, mas precisam de custo real e jamais podem parecer passivas gratuitas sem trade-off.',
+        '- Sempre pense em uso opcional pelo jogador: runas devem ser fortes, legiveis e enxutas o bastante para nao sobrecarregar a ficha.',
+      ],
+      extras: [
+        '- Se o admin descrever apenas a fantasia da runa, complete efeito, custo, contrapeso e grau de forma sensata.',
+        '- Se houver conflito entre numero e fantasia, prefira preservar a fantasia e ajustar custo, duracao, dt e contrapeso.',
+      ],
+    },
+  }
+  const block = blocks[systemType] || blocks.alchemy
+  const prompt = `
+${block.title}
+
+LORE E LIMITES:
+${block.lore.join('\n')}
+
+BALANCEAMENTO POR CIRCULO:
+${block.balance.join('\n')}
+
+PROTOCOLO:
+${block.protocol.join('\n')}
+${block.extras.join('\n')}
+
+RASCUNHO:
+${JSON.stringify(draft, null, 2)}
+
+CONTEXTO OPCIONAL:
+${JSON.stringify(context, null, 2)}
+
+INSTRUCAO DIRETA DO ADMIN:
+${analysisNote || 'Nenhuma. Apenas revisar, completar e balancear o ritual atual.'}
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "name": "nome refinado",
+  "circle": 1,
+  "category": "Ataque",
+  "pe_cost": 0,
+  "min_level": 1,
+  "action_cost": "Acao Padrao",
+  "duration": "Instantaneo",
+  "range": "18m",
+  "short_description": "resumo curto",
+  "effect": "efeito final com numeros concretos",
+  "source_kind": "regente|limiar|neutro",
+  "source_name": "nome da entidade ou fonte",
+  "law_name": "lei ou eixo metafisico",
+  "price": "preco ou custo narrativo",
+  "rupture_risk": 1,
+  "protocol_layer": 2,
+  "pp_estimate": 0,
+  "tags": ["tag1", "tag2"],
+  "ai_feedback": "explicacao curta de balanceamento"
+}`
+
+  return prompt
+}
+
+async function analyzeMysticDraft(systemType, draft, context = {}) {
+  const prompt = buildMysticDraftPrompt(systemType, draft, context)
+
+  const response = await callAI([
+    { role: 'system', content: buildSystemContext() },
+    { role: 'user', content: prompt },
+  ])
+
+  try {
+    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    return JSON.parse(cleaned)
+  } catch {
+    throw new Error('A IA retornou um formato invalido para o cadastro mistico.')
+  }
+}
+
+export async function analyzeAlchemyRitualDraft(draft, context = {}) {
+  return analyzeMysticDraft('alchemy', draft, context)
+}
+
+export async function analyzeSpellDraft(draft, context = {}) {
+  return analyzeMysticDraft('spell', draft, context)
+}
+
+export async function analyzeRuneDraft(draft, context = {}) {
+  return analyzeMysticDraft('rune', draft, context)
+}
+
+export async function analyzeMagicDraft(draft, context = {}) {
+  return analyzeMysticDraft('magic', draft, context)
 }

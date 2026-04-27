@@ -6,6 +6,8 @@ import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '.
 import {
   calcSkeletonPointsAvailable, calcModulesAvailable, calcPericiasAvailable,
 } from '../utils/calculator'
+import { getRaceAdjustedAttrs } from '../utils/raceCalculator'
+import { normalizeProgressionLabel } from '../utils/progressionUtils'
 
 export default function LevelUpModal({ char, onApply, onClose }) {
   const oldNivel = char.nivel || 1
@@ -25,11 +27,11 @@ export default function LevelUpModal({ char, onApply, onClose }) {
   const choiceReward = newLevelEntry?.rewards?.find(r => r.type === 'escolha')
 
   const oldSk = calcSkeletonPointsAvailable(classe, oldNivel, char.choices)
-  const oldMods = calcModulesAvailable(classe, oldNivel, char.choices)
-  const oldPer = calcPericiasAvailable(classe, oldNivel, char.choices, char.modulosAdquiridos)
+  const oldMods = calcModulesAvailable(classe, oldNivel, char.choices, char)
+  const oldPer = calcPericiasAvailable(classe, oldNivel, char.choices, char.modulosAdquiridos, char)
   const newSk = calcSkeletonPointsAvailable(classe, newNivel, working.choices)
-  const newMods = calcModulesAvailable(classe, newNivel, working.choices)
-  const newPer = calcPericiasAvailable(classe, newNivel, working.choices, working.modulosAdquiridos)
+  const newMods = calcModulesAvailable(classe, newNivel, working.choices, working)
+  const newPer = calcPericiasAvailable(classe, newNivel, working.choices, working.modulosAdquiridos, working)
 
   const deltaSk = newSk - oldSk
   const deltaMods = newMods - oldMods
@@ -154,7 +156,7 @@ function ChoicesPhase({ entry, choiceReward, choices, onChoice }) {
   return (
     <div className="space-y-4">
       <h3 className="font-cinzel text-gold text-lg">Recompensas do Nível</h3>
-      <p className="text-txt-main text-sm">{entry?.label}</p>
+      <p className="text-txt-main text-sm">{normalizeProgressionLabel(entry?.label)}</p>
       {choiceReward && (
         <div className="space-y-2 mt-3">
           <p className="text-warn text-sm font-semibold">Escolha obrigatória:</p>
@@ -181,7 +183,8 @@ function ChoicesPhase({ entry, choiceReward, choices, onChoice }) {
 function SkeletonPhase({ working, deltaSk, onUpdate }) {
   const sk = working.skeletonPoints || {}
   const attrs = working.atributos || {}
-  const totalAttr = (a) => (attrs[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(attrs, sk, working)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
   const attrCap = getAttrCap(working.nivel)
 
   const totalAvailable = calcSkeletonPointsAvailable(working.classe, working.nivel, working.choices)
@@ -248,9 +251,10 @@ function ModulesPhase({ working, deltaMods, onUpdate }) {
   const nivel = working.nivel
   const sk = working.skeletonPoints || {}
   const attrs = working.atributos || {}
-  const totalAttr = (a) => (attrs[a] || 0) + (sk[a] || 0)
+  const adjustedAttrs = getRaceAdjustedAttrs(attrs, sk, working)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
 
-  const totalAvailable = calcModulesAvailable(working.classe, nivel, choices)
+  const totalAvailable = calcModulesAvailable(working.classe, nivel, choices, working)
   const totalBought = modulosAdquiridos.reduce((sum, m) => sum + (m.boughtCount || 1), 0)
   const remaining = totalAvailable - totalBought
 
@@ -344,13 +348,14 @@ function ModulesPhase({ working, deltaMods, onUpdate }) {
 function PericiasPhase({ working, deltaPer, onUpdate, onUpdateNested }) {
   const sk = working.skeletonPoints || {}
   const attrs = working.atributos || {}
+  const adjustedAttrs = getRaceAdjustedAttrs(attrs, sk, working)
   const pericias = working.pericias || {}
   const nivel = working.nivel
   const choices = working.choices || {}
   const modulosAdquiridos = working.modulosAdquiridos || []
-  const totalAttr = (a) => (attrs[a] || 0) + (sk[a] || 0)
+  const totalAttr = (a) => adjustedAttrs[a] || 0
 
-  const available = calcPericiasAvailable(working.classe, nivel, choices, modulosAdquiridos)
+  const available = calcPericiasAvailable(working.classe, nivel, choices, modulosAdquiridos, working)
   const maxGrau = getMaxGrauForLevel(nivel)
   const used = Object.values(pericias).reduce((sum, g) => sum + (g > 0 ? g : 0), 0)
   const remaining = available - used
@@ -414,7 +419,7 @@ function SummaryPhase({ entry, working, oldNivel, deltaSk, deltaMods, deltaPer }
       <h3 className="font-cinzel text-gold text-lg">Resumo — Nível {oldNivel} → {working.nivel}</h3>
       {entry && (
         <div className="bg-void border border-sep rounded p-3">
-          <p className="text-txt-main text-sm">{entry.label}</p>
+          <p className="text-txt-main text-sm">{normalizeProgressionLabel(entry.label)}</p>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3">
