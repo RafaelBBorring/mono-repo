@@ -9,6 +9,7 @@ on:
       - 'apps/Athena-Project/**'
       - 'apps/Cypher-Project/**'
       - 'apps/Hades-VFX/**'
+      - 'apps/codex-arcanum/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -93,6 +94,29 @@ jobs:
           # Hades-VFX → /hades-vfx/
           mkdir -p _site/hades-vfx
           cp -r apps/Hades-VFX/dist/* _site/hades-vfx/
+
+          # Codex Arcanum → /codex-arcanum/ (static version)
+          mkdir -p _site/codex-arcanum
+          cp apps/codex-arcanum/static-patch.js _site/codex-arcanum/
+          cp -r apps/codex-arcanum/js _site/codex-arcanum/
+          cp -r apps/codex-arcanum/css _site/codex-arcanum/
+          cp apps/codex-arcanum/index.html _site/codex-arcanum/
+          cp apps/codex-arcanum/login.html _site/codex-arcanum/
+          cp apps/codex-arcanum/hub.html _site/codex-arcanum/
+          cp apps/codex-arcanum/fichas.html _site/codex-arcanum/
+          cp apps/codex-arcanum/board.html _site/codex-arcanum/
+          cp apps/codex-arcanum/npc-guide.html _site/codex-arcanum/
+
+          # Inject static-patch.js into all Codex HTML files
+          cd _site/codex-arcanum
+          for f in *.html; do
+            sed -i 's|</head>|<script src="static-patch.js"></script></head>|' "$f"
+            sed -i "s|window.location.href = '/login.html'|window.location.href = 'login.html'|g" "$f"
+            sed -i "s|window.location.href = '/hub.html'|window.location.href = 'hub.html'|g" "$f"
+          done
+          # Also patch the JS files for navigation
+          sed -i "s|window.location.href = '/login.html'|window.location.href = 'login.html'|g" js/db.js js/main.js js/supabase.js
+          cd ../..
 
           touch _site/.nojekyll
 
