@@ -1,7 +1,22 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, getSupabaseAdmin } from '../lib/supabase'
 
 const AuthContext = createContext(null)
+
+async function fetchProfile(userId) {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+  if (error) {
+    console.warn('[Auth] profile fetch via anon key failed, retrying with admin:', error.message)
+    const admin = getSupabaseAdmin()
+    const { data: data2, error: error2 } = await admin.from('profiles').select('*').eq('id', userId).single()
+    if (error2) {
+      console.error('[Auth] profile fetch via admin key also failed:', error2.message)
+      return null
+    }
+    return data2
+  }
+  return data
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -18,10 +33,11 @@ export function AuthProvider({ children }) {
         if (!mountedRef.current) return
         if (session?.user) {
           setUser(session.user)
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+          const data = await fetchProfile(session.user.id)
           if (mountedRef.current && data) setProfile(data)
         }
-      } catch {
+      } catch (err) {
+        console.error('[Auth] init error:', err)
       } finally {
         if (mountedRef.current) setLoading(false)
       }
@@ -33,8 +49,8 @@ export function AuthProvider({ children }) {
       if (!mountedRef.current) return
       if (session?.user) {
         setUser(session.user)
-        supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          .then(({ data }) => { if (mountedRef.current) setProfile(data) })
+        fetchProfile(session.user.id)
+          .then((data) => { if (mountedRef.current && data) setProfile(data) })
       } else {
         setUser(null)
         setProfile(null)
