@@ -192,7 +192,7 @@ function ItemCreateModal({ onSave, onClose }) {
                 const bgMap = { gray: 'bg-gray-400', red: 'bg-red-500', orange: 'bg-orange-500', amber: 'bg-amber-400', emerald: 'bg-emerald-500', sky: 'bg-sky-500', purple: 'bg-purple-500', pink: 'bg-pink-500' }
                 return (
                   <button key={c.id} onClick={() => setCor(c.id)} title={c.label}
-                    className={`w-6 h-6 rounded-full border-2 transition-all ${cor === c.id ? 'scale-125 border-white/80 ring-2 ring-white/30' : 'border-black/30 hover:scale-110'} ${bgMap[c.id]}`} />
+                    className={`w-6 h-6 rounded-full border-2 transition-all ${cor === c.id ? 'scale-125 border-gold/80 ring-2 ring-gold/25' : 'border-black/30 hover:scale-110'} ${bgMap[c.id]}`} />
                 )
               })}
             </div>
@@ -255,7 +255,7 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
                     const bgMap = { gray: 'bg-gray-400', red: 'bg-red-500', orange: 'bg-orange-500', amber: 'bg-amber-400', emerald: 'bg-emerald-500', sky: 'bg-sky-500', purple: 'bg-purple-500', pink: 'bg-pink-500' }
                     return (
                       <button key={c.id} onClick={() => setEditCor(c.id)} title={c.label}
-                        className={`w-5 h-5 rounded-full border-2 transition-all ${editCor === c.id ? 'scale-110 border-white/60' : 'border-black/30 hover:scale-105'} ${bgMap[c.id]}`} />
+                        className={`w-5 h-5 rounded-full border-2 transition-all ${editCor === c.id ? 'scale-110 border-gold/70' : 'border-black/30 hover:scale-105'} ${bgMap[c.id]}`} />
                     )
                   })}
                 </div>

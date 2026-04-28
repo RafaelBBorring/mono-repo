@@ -243,7 +243,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
               disabled={generating || !genDesc.trim()}
               className="bg-purple-500 text-white text-xs px-4 py-1.5 rounded font-semibold hover:bg-purple-400 transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              {generating && <span className="animate-spin inline-block w-3 h-3 border border-white/40 border-t-white rounded-full" />}
+              {generating && <span className="animate-spin inline-block w-3 h-3 border border-gold/30 border-t-gold rounded-full" />}
               {generating ? 'Gerando...' : 'Gerar Habilidades'}
             </button>
           </div>

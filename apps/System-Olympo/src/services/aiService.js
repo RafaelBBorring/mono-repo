@@ -26,44 +26,85 @@ import { getRaceLabel } from '../utils/raceCalculator'
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
+const MAX_RETRIES = 3
+const BASE_DELAY_MS = 1500
+
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function getRetryDelay(attempt) {
+  return BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500
+}
+
+function isRetryable(status) {
+  return status === 429 || status === 502 || status === 503 || status === 504
+}
+
 async function callAI(messages) {
-  try {
-    const { data, error } = await supabase.functions.invoke('openrouter-chat', {
-      body: { messages, temperature: 0.35, max_tokens: 4096 },
-    })
-    if (error) throw error
-    if (!data) throw new Error('Resposta vazia da Edge Function.')
-    const content = data.choices?.[0]?.message?.content
-    if (!content) throw new Error('IA retornou conteúdo vazio.')
-    return content
-  } catch (edgeError) {
-    if (!OPENROUTER_API_KEY) throw edgeError
-    const response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'System Olympo 2.0',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
-        messages,
-        temperature: 0.35,
-        max_tokens: 4096,
-      }),
-    })
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      throw new Error(`OpenRouter ${response.status}: ${err.error?.message || 'Erro desconhecido'}`)
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { data, error } = await supabase.functions.invoke('openrouter-chat', {
+        body: { messages, temperature: 0.35, max_tokens: 4096 },
+      })
+      if (error) {
+        const status = error?.context?.status || error?.status || 0
+        if (isRetryable(status) && attempt < MAX_RETRIES) {
+          await sleep(getRetryDelay(attempt))
+          continue
+        }
+        if (status === 429) throw new Error('Limite de requisições atingido. Aguarde alguns segundos e tente novamente.')
+        throw error
+      }
+      if (!data) throw new Error('Resposta vazia da Edge Function.')
+      const content = data.choices?.[0]?.message?.content
+      if (!content) throw new Error('IA retornou conteúdo vazio.')
+      return content
+    } catch (edgeError) {
+      const status = edgeError?.context?.status || edgeError?.status || 0
+      if (isRetryable(status) && attempt < MAX_RETRIES) {
+        await sleep(getRetryDelay(attempt))
+        continue
+      }
+      if (!OPENROUTER_API_KEY) throw edgeError
+      try {
+        for (let fbAttempt = 0; fbAttempt <= MAX_RETRIES; fbAttempt++) {
+          const response = await fetch(OPENROUTER_URL, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': window.location.origin,
+              'X-Title': 'System Olympo 2.0',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.0-flash-001',
+              messages,
+              temperature: 0.35,
+              max_tokens: 4096,
+            }),
+          })
+          if (!response.ok) {
+            if (isRetryable(response.status) && fbAttempt < MAX_RETRIES) {
+              await sleep(getRetryDelay(fbAttempt))
+              continue
+            }
+            const err = await response.json().catch(() => ({}))
+            if (response.status === 429) throw new Error('Limite de requisições atingido (OpenRouter). Aguarde alguns segundos e tente novamente.')
+            throw new Error(`OpenRouter ${response.status}: ${err.error?.message || 'Erro desconhecido'}`)
+          }
+          const data = await response.json()
+          const content = data.choices?.[0]?.message?.content
+          if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
+          return content
+        }
+      } catch (fbError) {
+        throw fbError
+      }
+      throw edgeError
     }
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content
-    if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
-    return content
   }
-  if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
-  return content
+  throw new Error('Falha após múltiplas tentativas. Tente novamente em alguns segundos.')
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

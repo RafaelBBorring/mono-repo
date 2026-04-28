@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 *.zip
+*.log
+supabase/.temp/

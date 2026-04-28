@@ -22,6 +22,7 @@ import ParticleBackground from './components/ParticleBackground'
 import LevelUpModal from './components/LevelUpModal'
 import RaceEvolveModal from './components/RaceEvolveModal'
 import AdminDashboard from './components/AdminDashboard'
+import CharacterWorkspace from './components/CharacterWorkspace'
 import { ATTRIBUTES } from './data/attributes'
 import { PROGRESSION } from './data/progression'
 import { RACES } from './data/races'
@@ -189,6 +190,7 @@ function FullSheetViewer({ sheetId, onBack }) {
   const [sheet, setSheet] = useState(null)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [showRaceEvolve, setShowRaceEvolve] = useState(false)
+  const [mode, setMode] = useState('sheet')
 
   useEffect(() => {
     if (sheetId) loadSheet()
@@ -203,23 +205,36 @@ function FullSheetViewer({ sheetId, onBack }) {
     }
   }
 
+  const saveTimerRef = useRef(null)
+
+  const debouncedSave = useCallback((s) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      const { error } = await supabase.from('characters').update({
+        name: s.data?.nome || s.name || 'Sem Nome',
+        data: s.data,
+      }).eq('id', s.id)
+      if (error) console.error('Erro ao salvar ficha:', error.message)
+    }, 600)
+  }, [])
+
   const update = useCallback((patch) => {
     setSheet(prev => {
       const next = { ...prev, data: { ...prev.data, ...patch } }
-      saveSheet(next)
+      debouncedSave(next)
       return next
     })
-  }, [])
+  }, [debouncedSave])
 
   const updateHabilidade = useCallback((index, patch) => {
     setSheet(prev => {
       const habs = [...(prev.data.habilidades || [])]
       habs[index] = { ...(habs[index] || {}), ...patch }
       const next = { ...prev, data: { ...prev.data, habilidades: habs } }
-      saveSheet(next)
+      debouncedSave(next)
       return next
     })
-  }, [])
+  }, [debouncedSave])
 
   async function saveSheet(s) {
     const { error } = await supabase.from('characters').update({
@@ -232,7 +247,7 @@ function FullSheetViewer({ sheetId, onBack }) {
   function handleLevelUp(newData) {
     setSheet(prev => {
       const next = { ...prev, data: newData }
-      saveSheet(next)
+      debouncedSave(next)
       return next
     })
     setShowLevelUp(false)
@@ -247,6 +262,12 @@ function FullSheetViewer({ sheetId, onBack }) {
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="text-gold text-sm hover:text-gold-light transition-colors">← Voltar à Biblioteca</button>
         <div className="flex gap-2">
+          <button onClick={() => setMode('sheet')} className={`border px-3 py-1.5 rounded text-xs transition-colors ${mode === 'sheet' ? 'border-gold bg-gold text-void font-semibold' : 'border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+            Ficha
+          </button>
+          <button onClick={() => setMode('board')} className={`border px-3 py-1.5 rounded text-xs transition-colors ${mode === 'board' ? 'border-gold bg-gold text-void font-semibold' : 'border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+            Quadro
+          </button>
           <button onClick={() => exportToJson(char)} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
             Exportar JSON
           </button>
@@ -262,15 +283,19 @@ function FullSheetViewer({ sheetId, onBack }) {
           )}
         </div>
       </div>
-      <Step11Review
-        char={char}
-        update={update}
-        updateHabilidade={updateHabilidade}
-        onSave={() => {}}
-        onEdit={onBack}
-        onNew={() => {}}
-        characterId={sheet.id}
-      />
+      {mode === 'board' ? (
+        <CharacterWorkspace char={char} update={update} />
+      ) : (
+        <Step11Review
+          char={char}
+          update={update}
+          updateHabilidade={updateHabilidade}
+          onSave={() => {}}
+          onEdit={onBack}
+          onNew={() => {}}
+          characterId={sheet.id}
+        />
+      )}
       {showLevelUp && (
         <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
       )}
@@ -490,9 +515,9 @@ function AppInner() {
   if (isAdmin) navItems.push({ key: 'admin', label: 'Admin' })
 
   return (
-    <div className="min-h-screen bg-void text-txt-main font-body flex flex-col">
+    <div className="system-shell min-h-screen bg-void text-txt-main font-body flex flex-col">
       <ParticleBackground />
-      <nav className="bg-deep/95 backdrop-blur border-b border-sep px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+      <nav className="olympo-nav bg-deep/95 backdrop-blur border-b border-sep px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
           <h1 className="font-cinzel text-gold text-lg sm:text-xl tracking-wide">SISTEMA OLYMPO 2.0</h1>
           <span className="text-txt-dim text-xs hidden sm:inline">Olá, {profile?.display_name || user.email?.split('@')[0]}</span>
@@ -534,7 +559,7 @@ function AppInner() {
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">
-            <div className={`mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 || currentStep === 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
+            <div className={`wizard-forge mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 || currentStep === 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-txt-dim text-sm">Etapa {currentStep + 1} de {TOTAL_STEPS}</span>

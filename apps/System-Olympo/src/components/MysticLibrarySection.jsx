@@ -162,12 +162,12 @@ export default function MysticLibrarySection({ char, update, config, compact = f
   const badges = ruleBadges({ char, profile, selectedItems, spaceUsed }) || []
 
   return (
-    <section className={`bg-void/50 border ${sectionBorder} rounded-xl ${compact ? 'p-4' : 'p-5'} space-y-4`}>
+    <section className={`mystic-grimoire bg-void/50 border ${sectionBorder} rounded-xl ${compact ? 'p-4' : 'p-5'} space-y-4`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-sm ${accentClass}`}>{icon}</span>
-            <h3 className={`font-cinzel text-sm uppercase tracking-[0.12em] font-semibold ${accentClass}`}>{title}</h3>
+            <h3 className={`font-cinzel text-sm uppercase tracking-[0.12em] font-semibold ${accentClass}`}>Grimorio de {title}</h3>
           </div>
           <p className="text-txt-dim text-xs max-w-3xl">{introText}</p>
         </div>
@@ -342,7 +342,7 @@ export default function MysticLibrarySection({ char, update, config, compact = f
                       active
                         ? `${theme.border} ${theme.glow}`
                         : selected
-                        ? `${sectionBorder} bg-white/[0.04]`
+                        ? `${sectionBorder} bg-gold/[0.035]`
                         : disabled
                         ? 'border-sep/30 bg-void/50 opacity-60'
                         : 'border-sep/40 bg-deep/60 hover:border-gold/20'

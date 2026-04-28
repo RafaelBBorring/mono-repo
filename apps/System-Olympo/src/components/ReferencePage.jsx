@@ -116,7 +116,7 @@ function RacasSection() {
           return (
             <div key={race.id} className={`rounded-xl border ${catMeta.color} overflow-hidden`}>
               <button type="button" onClick={() => setExpanded(isExpanded ? null : race.id)}
-                className="w-full px-5 py-3 flex items-center gap-4 text-left hover:bg-white/[0.02] transition-colors">
+                className="w-full px-5 py-3 flex items-center gap-4 text-left hover:bg-gold/[0.035] transition-colors">
                 <span className="text-2xl shrink-0">{race.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">

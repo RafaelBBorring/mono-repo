@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import OlympoWebGLBackdrop from "./OlympoWebGLBackdrop";
 
 const PARTICLE_COUNT = 40;
 const GOLD = { r: 201, g: 168, b: 76 };
@@ -98,29 +99,34 @@ export default function ParticleBackground() {
     initParticles();
     animationId = requestAnimationFrame(animate);
 
-    window.addEventListener("resize", () => {
+    function handleResize() {
       resize();
       initParticles();
-    });
+    }
+
+    window.addEventListener("resize", handleResize);
 
     return () => {
       cancelAnimationFrame(animationId);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        zIndex: -1,
-        pointerEvents: "none",
-      }}
-    />
+    <>
+      <OlympoWebGLBackdrop />
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: -1,
+          pointerEvents: "none",
+        }}
+      />
+    </>
   );
 }

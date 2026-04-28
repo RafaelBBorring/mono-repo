@@ -280,7 +280,7 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
                         disabled={genLoading}
                         className="bg-purple-500 text-white text-xs px-4 py-1.5 rounded font-semibold hover:bg-purple-400 transition-colors disabled:opacity-50 flex items-center gap-1.5"
                       >
-                        {genLoading && <span className="animate-spin inline-block w-3 h-3 border border-white/40 border-t-white rounded-full" />}
+                        {genLoading && <span className="animate-spin inline-block w-3 h-3 border border-gold/30 border-t-gold rounded-full" />}
                         {genLoading ? 'Gerando...' : 'Gerar Habilidades'}
                       </button>
                     </div>

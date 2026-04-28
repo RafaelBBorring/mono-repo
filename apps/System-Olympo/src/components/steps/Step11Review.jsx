@@ -24,6 +24,38 @@ import { getMagicProfile } from '../../utils/magicRules'
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
 
+function parseActiveBonuses(source) {
+  const text = `${source?.name || source?.nome || ''} ${source?.desc || ''} ${source?.descricao || ''} ${source?.efeito || ''}`
+  const bonuses = { ataque: 0, ca: 0, vida: 0, energia: 0, dano: 0 }
+  const signedNumbers = [...text.matchAll(/([+-]\s*\d+)(?:\s*(?:em|no|na|de|para|ao|a))?\s*([a-zA-ZÀ-ÿ ]{0,28})/g)]
+
+  signedNumbers.forEach((match) => {
+    const value = Number(match[1].replace(/\s+/g, ''))
+    const target = (match[2] || '').toLowerCase()
+    if (!Number.isFinite(value)) return
+    if (/ataque|acerto|pontaria|golpe/.test(target)) bonuses.ataque += value
+    else if (/ca|defesa|armadura|bloqueio|esquiva/.test(target)) bonuses.ca += value
+    else if (/vida|hp/.test(target)) bonuses.vida += value
+    else if (/energia/.test(target)) bonuses.energia += value
+    else if (/dano/.test(target)) bonuses.dano += value
+  })
+
+  return bonuses
+}
+
+function mergeBonuses(items) {
+  return items.reduce((sum, item) => {
+    const next = parseActiveBonuses(item)
+    return {
+      ataque: sum.ataque + next.ataque,
+      ca: sum.ca + next.ca,
+      vida: sum.vida + next.vida,
+      energia: sum.energia + next.energia,
+      dano: sum.dano + next.dano,
+    }
+  }, { ataque: 0, ca: 0, vida: 0, energia: 0, dano: 0 })
+}
+
 export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId }) {
   return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} characterId={characterId} />
 }
@@ -67,18 +99,35 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
     }
   }, [neededAbilities])
 
+  const allModules = [...MODULES_PASSIVE, ...MODULES_ACTIVE, ...MODULES_SPECIAL]
+  const acquiredModules = (char.modulosAdquiridos || []).map(am => {
+    const found = allModules.find(m => m.id === am.id)
+    return found ? { ...found, boughtCount: am.boughtCount || 1 } : null
+  }).filter(Boolean)
+  const activeEffects = char.activeEffects || {}
+  const activeAbilityItems = (char.habilidades || [])
+    .map((h, index) => ({ ...h, effectKey: `habilidade_${index}`, sourceLabel: 'Habilidade' }))
+    .filter((item) => activeEffects[item.effectKey])
+  const activeModuleItems = acquiredModules
+    .map((m) => ({ ...m, effectKey: `module_${m.id}`, sourceLabel: 'Modulo' }))
+    .filter((item) => activeEffects[item.effectKey])
+  const activeItems = [...activeAbilityItems, ...activeModuleItems]
+  const activeBonuses = mergeBonuses(activeItems)
+
   const derived = {
     vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
     energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char) : 0,
     pe: cls ? calcPeTotal(cls, char.nivel, char.choices, char) : 0,
-    ca: cls ? calcCA(char.atributos, sk, char.pericias, char) : 0,
+    ca: (cls ? calcCA(char.atributos, sk, char.pericias, char) : 0) + activeBonuses.ca,
     reacoes: calcReacoes(char.atributos, sk, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char),
     percepcao: cls ? calcPercepcaoPassiva(char.atributos, sk, char.pericias, char) : 0,
     danoBase: cls ? calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel, char) : '',
   }
 
-  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0))
-  const energiaNow = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0))
+  if (activeBonuses.dano && derived.danoBase) derived.danoBase = `${derived.danoBase} + ${activeBonuses.dano}`
+
+  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0) + activeBonuses.vida)
+  const energiaNow = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0) + activeBonuses.energia)
   const peNow = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
   const costReduction = calcAbilityCostReduction(char.triagemPrincipal, char.triagemPrincipalNivel || 0, char.subTriagem, char.subTriagemNivel || 0)
@@ -88,12 +137,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const pehRemaining = pehTotal - pehSpent
 
   const martialArt = MARTIAL_ARTS.find(a => a.id === char.arteMarcial)
-
-  const allModules = [...MODULES_PASSIVE, ...MODULES_ACTIVE, ...MODULES_SPECIAL]
-  const acquiredModules = (char.modulosAdquiridos || []).map(am => {
-    const found = allModules.find(m => m.id === am.id)
-    return found ? { ...found, boughtCount: am.boughtCount || 1 } : null
-  }).filter(Boolean)
 
   const periciasArr = Object.entries(char.pericias || {}).filter(([, v]) => v > 0)
   const systemOptIn = char.systemsOptIn || {}
@@ -119,6 +162,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   function clearOverride(field) {
     if (!update) return
     update({ [field]: null })
+  }
+
+  function toggleActiveEffect(key) {
+    if (!update) return
+    update({ activeEffects: { ...activeEffects, [key]: !activeEffects[key] } })
   }
 
   function handleBalanceApply(result) {
@@ -180,6 +228,32 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         <button onClick={onSave} className="bg-gold text-void font-semibold px-5 py-1.5 rounded text-xs hover:bg-gold-light transition-colors">
           Salvar Ficha ✓
         </button>
+      </div>
+
+      <div className={`active-effects-panel ${activeItems.length > 0 ? 'is-live' : ''}`}>
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-gold font-semibold">Supervisao de efeitos ativos</div>
+          <p className="text-txt-dim text-xs mt-1">Habilidades e modulos ligados alteram a leitura da ficha ate serem desativados.</p>
+        </div>
+        <div className="active-effects-summary">
+          {activeItems.length > 0 ? activeItems.map((item) => (
+            <button key={item.effectKey} type="button" onClick={() => toggleActiveEffect(item.effectKey)} className="active-effect-chip">
+              <span>{item.sourceLabel}</span>
+              <strong>{item.nome || item.name || 'Efeito ativo'}</strong>
+            </button>
+          )) : (
+            <span className="text-txt-dim text-xs">Nenhum efeito ativo no momento.</span>
+          )}
+          {(activeBonuses.ataque || activeBonuses.ca || activeBonuses.vida || activeBonuses.energia || activeBonuses.dano) ? (
+            <span className="active-effect-total">
+              {activeBonuses.ataque ? `Ataque ${activeBonuses.ataque > 0 ? '+' : ''}${activeBonuses.ataque} ` : ''}
+              {activeBonuses.ca ? `CA ${activeBonuses.ca > 0 ? '+' : ''}${activeBonuses.ca} ` : ''}
+              {activeBonuses.vida ? `Vida ${activeBonuses.vida > 0 ? '+' : ''}${activeBonuses.vida} ` : ''}
+              {activeBonuses.energia ? `Energia ${activeBonuses.energia > 0 ? '+' : ''}${activeBonuses.energia} ` : ''}
+              {activeBonuses.dano ? `Dano ${activeBonuses.dano > 0 ? '+' : ''}${activeBonuses.dano}` : ''}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="bg-deep/95 backdrop-blur-sm border border-gold/15 rounded-xl overflow-hidden shadow-2xl shadow-black/40">
@@ -267,6 +341,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
+                  {activeBonuses.ataque ? <CombatStat label="Ataque Ativo" value={`${activeBonuses.ataque > 0 ? '+' : ''}${activeBonuses.ataque}`} isGold /> : null}
                   <div className="text-center">
                     <span className="text-txt-dim/50 text-[10px] uppercase block">Reações</span>
                     <span className="text-txt-main text-xl font-mono block">{derived.reacoes}</span>
@@ -332,7 +407,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
               {/* HERANÇA RACIAL */}
               <details className="group">
-                <summary className="flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] rounded-lg px-1 py-1 -mx-1 transition-colors list-none">
+                <summary className="flex items-center gap-2 cursor-pointer hover:bg-gold/[0.035] rounded-lg px-1 py-1 -mx-1 transition-colors list-none">
                   <div className="flex items-center gap-2 flex-1">
                     <div className="w-1 h-4 rounded-full bg-emerald-400" />
                     <span className="text-txt-dim text-[11px]">🧬</span>
@@ -412,6 +487,15 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                               <span className="text-gold font-mono text-xs bg-gold/10 px-1 rounded">×{m.boughtCount}</span>
                             )}
                           </div>
+                          {canEdit && !isPassive && (
+                            <button
+                              type="button"
+                              onClick={() => toggleActiveEffect(`module_${m.id}`)}
+                              className={`active-toggle mt-2 ${activeEffects[`module_${m.id}`] ? 'is-active' : ''}`}
+                            >
+                              {activeEffects[`module_${m.id}`] ? 'Ativo na ficha' : 'Ligar efeito'}
+                            </button>
+                          )}
                           <p className="text-txt-dim text-xs mt-1 leading-relaxed">{m.desc}</p>
                         </div>
                       )
@@ -453,7 +537,18 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 )}
                 <div className="space-y-1.5">
                   {(char.habilidades || []).map((h, i) => (
-                    <HabilidadeCard key={i} h={h} i={i} canEdit={canEdit} updateHabilidade={updateHabilidade} charNivel={char.nivel || 1} pehRemaining={pehRemaining} />
+                    <HabilidadeCard
+                      key={i}
+                      h={h}
+                      i={i}
+                      canEdit={canEdit}
+                      updateHabilidade={updateHabilidade}
+                      charNivel={char.nivel || 1}
+                      pehRemaining={pehRemaining}
+                      active={!!activeEffects[`habilidade_${i}`]}
+                      activePreview={parseActiveBonuses(h)}
+                      onToggleActive={() => toggleActiveEffect(`habilidade_${i}`)}
+                    />
                   ))}
                 </div>
               </section>
@@ -713,7 +808,7 @@ function AutoResizeTextarea({ value, onChange, placeholder, className }) {
   )
 }
 
-function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining }) {
+function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining, active, activePreview, onToggleActive }) {
   const [open, setOpen] = useState(false)
 
   const evoNivel = h.evolucaoNivel || 0
@@ -746,7 +841,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   return (
     <div className={`rounded-xl border ${typeStyle.border} ${typeStyle.bg} overflow-hidden transition-all`}>
       <button type="button" onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-white/[0.03] transition-colors">
+        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gold/[0.035] transition-colors">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <span className={`text-xs font-bold w-8 h-8 rounded-lg flex items-center justify-center border ${typeStyle.badge} shrink-0`}>
             {typeStyle.icon}
@@ -760,6 +855,13 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
+          {canEdit && (
+            <button type="button" onClick={e => { e.stopPropagation(); onToggleActive?.() }}
+              title="Ativar ou desativar efeito temporario na ficha"
+              className={`active-toggle ${active ? 'is-active' : ''}`}>
+              {active ? 'Ativo' : 'Ligar'}
+            </button>
+          )}
           {canEdit && h.tipo !== 'Passiva' && (
             <div className="flex items-center gap-1 mr-1">
               <button type="button" onClick={e => { e.stopPropagation(); handleEvoDown() }}
@@ -791,6 +893,15 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               {evoDelta.duracaoExtra && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-mono">{evoDelta.duracaoExtra}</span>}
             </div>
           )}
+          {(activePreview?.ataque || activePreview?.ca || activePreview?.vida || activePreview?.energia || activePreview?.dano) ? (
+            <div className="flex flex-wrap gap-1.5 pt-3">
+              {activePreview.ataque ? <span className="effect-bonus-pill">Ataque {activePreview.ataque > 0 ? '+' : ''}{activePreview.ataque}</span> : null}
+              {activePreview.ca ? <span className="effect-bonus-pill">CA {activePreview.ca > 0 ? '+' : ''}{activePreview.ca}</span> : null}
+              {activePreview.vida ? <span className="effect-bonus-pill">Vida {activePreview.vida > 0 ? '+' : ''}{activePreview.vida}</span> : null}
+              {activePreview.energia ? <span className="effect-bonus-pill">Energia {activePreview.energia > 0 ? '+' : ''}{activePreview.energia}</span> : null}
+              {activePreview.dano ? <span className="effect-bonus-pill">Dano {activePreview.dano > 0 ? '+' : ''}{activePreview.dano}</span> : null}
+            </div>
+          ) : null}
           {!canEdit ? (
             <>
               <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
