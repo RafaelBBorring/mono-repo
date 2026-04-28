@@ -8,9 +8,9 @@ export function exportSheet(char, derived) {
     return m >= 0 ? `+${m}` : `${m}`
   }
 
-  const vidaVal = char.vidaOverride ?? derived.vida
-  const energiaVal = char.energiaOverride ?? derived.energia
-  const peVal = char.peOverride ?? derived.pe
+  const vidaVal = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0))
+  const energiaVal = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0))
+  const peVal = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
   let t = ''
   t += `${line}\n`
@@ -29,7 +29,7 @@ export function exportSheet(char, derived) {
   t += `  APA ${total('APA')} (${mod(total('APA'))})   AM  ${total('AM')} (${mod(total('AM'))})\n`
   t += `${sep}\n`
   t += `RECURSOS\n`
-  t += `  VIDA: ${vidaVal}${char.vidaOverride !== null ? ' (ajustado)' : ''}   ENERGIA: ${energiaVal}${char.energiaOverride !== null ? ' (ajustado)' : ''}   PE: ${peVal}${char.peOverride !== null ? ' (ajustado)' : ''}\n`
+  t += `  VIDA: ${vidaVal}${char.vidaOverride !== null ? ' (ajustado)' : (char.vidaBonus ? ` (+${char.vidaBonus} mestre)` : '')}   ENERGIA: ${energiaVal}${char.energiaOverride !== null ? ' (ajustado)' : (char.energiaBonus ? ` (+${char.energiaBonus} mestre)` : '')}   PE: ${peVal}${char.peOverride !== null ? ' (ajustado)' : (char.peBonus ? ` (+${char.peBonus} mestre)` : '')}\n`
   t += `${sep}\n`
   t += `COMBATE\n`
   t += `  CA: ${derived.ca}   REAÇÕES: ${derived.reacoes}   PERCEPÇÃO PASSIVA: ${derived.percepcao}\n`

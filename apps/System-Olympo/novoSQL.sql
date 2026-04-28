@@ -114,7 +114,25 @@ alter table public.ability_reviews enable row level security;
 alter table public.alchemy_rituals enable row level security;
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- 4. POLITICAS RLS
+-- 4. FUNÇÃO AUXILIAR RLS (SECURITY DEFINER)
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- SECURITY DEFINER bypassa RLS — evita recursão infinita quando policies
+-- precisam consultar a própria tabela profiles para verificar role.
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 5. POLITICAS RLS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Limpa politicas existentes para evitar duplicatas
@@ -149,12 +167,7 @@ create policy "update_own_profile"
 
 create policy "admin_read_all_profiles"
   on public.profiles for select
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 -- ── Characters ────────────────────────────────────────────────────────────────
 
@@ -176,30 +189,15 @@ create policy "delete_own_characters"
 
 create policy "admin_read_all_characters"
   on public.characters for select
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 create policy "admin_update_all_characters"
   on public.characters for update
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 create policy "admin_delete_all_characters"
   on public.characters for delete
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 -- ── Ability Reviews ──────────────────────────────────────────────────────────
 
@@ -223,12 +221,7 @@ create policy "update_own_reviews"
 
 create policy "admin_read_all_reviews"
   on public.ability_reviews for select
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 -- ── Alchemy Rituals ──────────────────────────────────────────────────────────
 
@@ -238,33 +231,18 @@ create policy "read_alchemy_rituals"
 
 create policy "admin_insert_alchemy_rituals"
   on public.alchemy_rituals for insert
-  with check (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  with check (public.is_admin());
 
 create policy "admin_update_alchemy_rituals"
   on public.alchemy_rituals for update
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 create policy "admin_delete_alchemy_rituals"
   on public.alchemy_rituals for delete
-  using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin'
-    )
-  );
+  using (public.is_admin());
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- 5. TRIGGERS
+-- 6. TRIGGERS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Auto-criar perfil no signup

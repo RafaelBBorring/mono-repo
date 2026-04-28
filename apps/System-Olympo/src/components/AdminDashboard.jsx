@@ -585,6 +585,31 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
     })
   }
 
+  function addHabilidade(tipo = 'Ativa') {
+    setData(prev => ({
+      ...prev,
+      habilidades: [...(prev.habilidades || []), {
+        tipo,
+        nome: '',
+        descricao: '',
+        custoEnergia: 0,
+        dano: '',
+        duracao: '',
+        camadaSCP: 2,
+        ppEstimado: 0,
+        status: 'Aprovada',
+        evolucaoNivel: 0,
+      }],
+    }))
+  }
+
+  function removeHabilidade(index) {
+    setData(prev => ({
+      ...prev,
+      habilidades: (prev.habilidades || []).filter((_, i) => i !== index),
+    }))
+  }
+
   function updateArmaHab(index, patch) {
     setData(prev => {
       const habs = [...(prev.armaHabilidades || [])]
@@ -702,6 +727,32 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
                 className="w-full bg-void border border-gold/20 rounded px-1 py-0.5 text-[10px] text-gold/80 font-mono text-center" placeholder="SK" />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* RECURSOS (Vida / Energia / PE) */}
+      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
+        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Recursos — Bônus Manual (Mestre)</h5>
+        <p className="text-txt-dim/50 text-[10px]">Valores somados ao total calculado. Use para conceder +vida, +energia ou +PE extras ao personagem.</p>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center">
+            <label className="text-red-400 text-[10px] uppercase block mb-1">+ Vida</label>
+            <input type="number" value={data.vidaBonus || 0}
+              onChange={e => up('vidaBonus', Number(e.target.value) || 0)}
+              className="w-full bg-void border border-red-400/30 rounded px-2 py-1.5 text-lg text-red-400 font-mono text-center" />
+          </div>
+          <div className="text-center">
+            <label className="text-sky-400 text-[10px] uppercase block mb-1">+ Energia</label>
+            <input type="number" value={data.energiaBonus || 0}
+              onChange={e => up('energiaBonus', Number(e.target.value) || 0)}
+              className="w-full bg-void border border-sky-400/30 rounded px-2 py-1.5 text-lg text-sky-400 font-mono text-center" />
+          </div>
+          <div className="text-center">
+            <label className="text-amber-400 text-[10px] uppercase block mb-1">+ PE</label>
+            <input type="number" value={data.peBonus || 0}
+              onChange={e => up('peBonus', Number(e.target.value) || 0)}
+              className="w-full bg-void border border-amber-400/30 rounded px-2 py-1.5 text-lg text-amber-400 font-mono text-center" />
+          </div>
         </div>
       </div>
 
@@ -844,63 +895,79 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
       </div>
 
       {/* HABILIDADES */}
-      {(data.habilidades || []).length > 0 && (
-        <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
+      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
           <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Habilidades ({(data.habilidades || []).length})</h5>
-          <div className="space-y-2">
-            {(data.habilidades || []).map((h, i) => (
-              <div key={i} className="bg-void/50 border border-sep/30 rounded-lg p-3 space-y-2">
-                <div className="flex gap-2">
-                  <input type="text" value={h.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })}
-                    className="flex-1 bg-deep border border-sep rounded px-2 py-1 text-sm text-txt-main" placeholder="Nome" />
-                  <select value={h.tipo || ''} onChange={e => updateHabilidade(i, { tipo: e.target.value })}
-                    className="bg-deep border border-sep rounded px-2 py-1 text-xs text-txt-main">
-                    <option value="Passiva">Passiva</option>
-                    <option value="Ativa">Ativa</option>
-                    <option value="Ultimate">Ultimate</option>
-                    <option value="Extra (Triagem)">Extra</option>
-                  </select>
-                  <select value={h.status || 'Pendente'} onChange={e => updateHabilidade(i, { status: e.target.value })}
-                    className={`bg-deep border border-sep rounded px-2 py-1 text-xs ${STATUS_COLORS_ADMIN[h.status] || 'text-txt-dim'}`}>
-                    {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <textarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })}
-                  rows={2} className="w-full bg-deep border border-sep rounded px-2 py-1 text-xs text-txt-main resize-none" placeholder="Descrição" />
-                <div className="grid grid-cols-5 gap-2">
-                  <div>
-                    <label className="text-txt-dim/50 text-[9px]">Energia</label>
-                    <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) })}
-                      className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
-                  </div>
-                  <div>
-                    <label className="text-txt-dim/50 text-[9px]">Dano</label>
-                    <input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })}
-                      className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
-                  </div>
-                  <div>
-                    <label className="text-txt-dim/50 text-[9px]">Duração</label>
-                    <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })}
-                      className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main" />
-                  </div>
-                  <div>
-                    <label className="text-txt-dim/50 text-[9px]">SCP</label>
-                    <select value={h.camadaSCP || 2} onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })}
-                      className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main">
-                      <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-txt-dim/50 text-[9px]">PP</label>
-                    <input type="number" value={h.ppEstimado || 0} onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) })}
-                      className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="flex gap-1">
+            <button onClick={() => addHabilidade('Passiva')} className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded hover:bg-emerald-500/20 transition-colors">+ Passiva</button>
+            <button onClick={() => addHabilidade('Ativa')} className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded hover:bg-sky-500/20 transition-colors">+ Ativa</button>
+            <button onClick={() => addHabilidade('Ultimate')} className="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded hover:bg-purple-500/20 transition-colors">+ Ultimate</button>
+            <button onClick={() => addHabilidade('Extra (Triagem)')} className="text-[10px] bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded hover:bg-gold/20 transition-colors">+ Extra</button>
           </div>
         </div>
-      )}
+        {(data.habilidades || []).length === 0 && (
+          <p className="text-txt-dim/40 text-xs italic">Nenhuma habilidade. Use os botões acima para adicionar.</p>
+        )}
+        <div className="space-y-2">
+          {(data.habilidades || []).map((h, i) => (
+            <div key={i} className={`bg-void/50 rounded-lg p-3 space-y-2 border ${
+              h.tipo === 'Passiva' ? 'border-emerald-500/20' :
+              h.tipo === 'Ultimate' ? 'border-purple-500/20' :
+              h.tipo === 'Extra (Triagem)' || h.tipo === 'Extra (Módulo)' ? 'border-gold/20' :
+              'border-sep/30'
+            }`}>
+              <div className="flex gap-2">
+                <select value={h.tipo || ''} onChange={e => updateHabilidade(i, { tipo: e.target.value })}
+                  className="bg-deep border border-sep rounded px-1 py-1 text-[10px] text-txt-main w-24">
+                  <option value="Passiva">Passiva</option>
+                  <option value="Ativa">Ativa</option>
+                  <option value="Ultimate">Ultimate</option>
+                  <option value="Extra (Triagem)">Extra (Triagem)</option>
+                  <option value="Extra (Módulo)">Extra (Módulo)</option>
+                </select>
+                <input type="text" value={h.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })}
+                  className="flex-1 bg-deep border border-sep rounded px-2 py-1 text-sm text-txt-main" placeholder="Nome da habilidade" />
+                <select value={h.status || 'Pendente'} onChange={e => updateHabilidade(i, { status: e.target.value })}
+                  className={`bg-deep border border-sep rounded px-2 py-1 text-xs ${STATUS_COLORS_ADMIN[h.status] || 'text-txt-dim'}`}>
+                  {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                </select>
+                <button onClick={() => removeHabilidade(i)} className="text-err/50 hover:text-err text-sm px-1 transition-colors" title="Remover habilidade">✕</button>
+              </div>
+              <textarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })}
+                rows={2} className="w-full bg-deep border border-sep rounded px-2 py-1 text-xs text-txt-main resize-none" placeholder="Descrição da habilidade..." />
+              <div className="grid grid-cols-5 gap-2">
+                <div>
+                  <label className="text-txt-dim/50 text-[9px]">Energia</label>
+                  <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) })}
+                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
+                </div>
+                <div>
+                  <label className="text-txt-dim/50 text-[9px]">Dano</label>
+                  <input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })}
+                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
+                </div>
+                <div>
+                  <label className="text-txt-dim/50 text-[9px]">Duração</label>
+                  <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })}
+                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main" />
+                </div>
+                <div>
+                  <label className="text-txt-dim/50 text-[9px]">SCP</label>
+                  <select value={h.camadaSCP || 2} onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })}
+                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main">
+                    <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-txt-dim/50 text-[9px]">PP</label>
+                  <input type="number" value={h.ppEstimado || 0} onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) })}
+                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* INVENTÁRIO */}
       <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">

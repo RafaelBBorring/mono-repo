@@ -75,9 +75,9 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
     danoBase: cls ? calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel, char) : '',
   }
 
-  const vidaNow = char.vidaOverride ?? derived.vida
-  const energiaNow = char.energiaOverride ?? derived.energia
-  const peNow = char.peOverride ?? derived.pe
+  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0))
+  const energiaNow = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0))
+  const peNow = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
   const costReduction = calcAbilityCostReduction(char.triagemPrincipal, char.triagemPrincipalNivel || 0, char.subTriagem, char.subTriagemNivel || 0)
 
