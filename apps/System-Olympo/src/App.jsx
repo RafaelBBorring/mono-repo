@@ -257,15 +257,31 @@ function FullSheetViewer({ sheetId, onBack }) {
 
   const char = sheet.data
 
+  if (mode === 'board') {
+    return (
+      <>
+        <CharacterWorkspace char={char} update={update} onBack={() => setMode('sheet')} />
+        {showLevelUp && (
+          <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
+        )}
+        {showRaceEvolve && (
+          <RaceEvolveModal char={char} update={update}
+            onApply={(patch) => { update(patch); setShowRaceEvolve(false) }}
+            onClose={() => setShowRaceEvolve(false)} />
+        )}
+      </>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="text-gold text-sm hover:text-gold-light transition-colors">← Voltar à Biblioteca</button>
         <div className="flex gap-2">
-          <button onClick={() => setMode('sheet')} className={`border px-3 py-1.5 rounded text-xs transition-colors ${mode === 'sheet' ? 'border-gold bg-gold text-void font-semibold' : 'border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+          <button onClick={() => setMode('sheet')} className="border px-3 py-1.5 rounded text-xs transition-colors border-gold bg-gold text-void font-semibold">
             Ficha
           </button>
-          <button onClick={() => setMode('board')} className={`border px-3 py-1.5 rounded text-xs transition-colors ${mode === 'board' ? 'border-gold bg-gold text-void font-semibold' : 'border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+          <button onClick={() => setMode('board')} className="border px-3 py-1.5 rounded text-xs transition-colors border-sep text-txt-dim hover:border-gold hover:text-gold">
             Quadro
           </button>
           <button onClick={() => exportToJson(char)} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
@@ -283,19 +299,15 @@ function FullSheetViewer({ sheetId, onBack }) {
           )}
         </div>
       </div>
-      {mode === 'board' ? (
-        <CharacterWorkspace char={char} update={update} />
-      ) : (
-        <Step11Review
-          char={char}
-          update={update}
-          updateHabilidade={updateHabilidade}
-          onSave={() => {}}
-          onEdit={onBack}
-          onNew={() => {}}
-          characterId={sheet.id}
-        />
-      )}
+      <Step11Review
+        char={char}
+        update={update}
+        updateHabilidade={updateHabilidade}
+        onSave={() => {}}
+        onEdit={onBack}
+        onNew={() => {}}
+        characterId={sheet.id}
+      />
       {showLevelUp && (
         <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
       )}
