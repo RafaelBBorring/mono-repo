@@ -644,57 +644,60 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
   const [open, setOpen] = useState(false)
 
   const typeStyle = h.tipo === 'Ultimate'
-    ? { border: 'border-gold/30', bg: 'bg-gold/3', badge: 'bg-gold/15 text-gold border-gold/20', icon: '★' }
+    ? { border: 'border-gold/30', bg: 'bg-gold/3', badge: 'bg-gold/15 text-gold border-gold/20', icon: '★', label: 'Ultimate' }
     : h.tipo === 'Passiva'
-    ? { border: 'border-emerald-400/20', bg: 'bg-emerald-400/3', badge: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20', icon: 'P' }
+    ? { border: 'border-emerald-400/20', bg: 'bg-emerald-400/3', badge: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20', icon: 'P', label: 'Passiva' }
     : h.tipo === 'Extra (Triagem)'
-    ? { border: 'border-purple-400/20', bg: 'bg-purple-400/3', badge: 'bg-purple-400/10 text-purple-400 border-purple-400/20', icon: 'T' }
+    ? { border: 'border-purple-400/20', bg: 'bg-purple-400/3', badge: 'bg-purple-400/10 text-purple-400 border-purple-400/20', icon: 'T', label: 'Extra (Triagem)' }
     : h.tipo === 'Extra (Módulo)'
-    ? { border: 'border-sky-400/20', bg: 'bg-sky-400/3', badge: 'bg-sky-400/10 text-sky-400 border-sky-400/20', icon: 'M' }
-    : { border: 'border-indigo-400/15', bg: 'bg-indigo-400/2', badge: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20', icon: `#${i}` }
+    ? { border: 'border-sky-400/20', bg: 'bg-sky-400/3', badge: 'bg-sky-400/10 text-sky-400 border-sky-400/20', icon: 'M', label: 'Extra (Módulo)' }
+    : { border: 'border-indigo-400/15', bg: 'bg-indigo-400/2', badge: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20', icon: `#${i + 1}`, label: 'Ativa' }
 
   return (
-    <div className={`rounded-lg border ${typeStyle.border} ${typeStyle.bg}`}>
+    <div className={`rounded-xl border ${typeStyle.border} ${typeStyle.bg} overflow-hidden transition-all`}>
       <button type="button" onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-white/[0.02] transition-colors">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded border ${typeStyle.badge}`}>
+        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-white/[0.03] transition-colors">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span className={`text-xs font-bold w-8 h-8 rounded-lg flex items-center justify-center border ${typeStyle.badge} shrink-0`}>
             {typeStyle.icon}
           </span>
-          <span className="text-txt-main text-sm font-semibold truncate">{h.nome || '—'}</span>
+          <div className="min-w-0 flex-1">
+            <span className="text-txt-main text-sm font-semibold block truncate">{h.nome || '—'}</span>
+            <span className="text-txt-dim/50 text-[10px]">{typeStyle.label}{h.custoEnergia > 0 ? ` · ⚡${h.custoEnergia}` : ''}{h.dano ? ` · ⚔${h.dano}` : ''}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-xs ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
-          <span className="text-txt-dim/40 text-sm">{open ? '▲' : '▼'}</span>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-ok/20 bg-ok/5' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-warn/20 bg-warn/5' : STATUS_COLORS[h.status] === 'text-err' ? 'border-err/20 bg-err/5' : 'border-sep/20 bg-sep/5'} ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
+          <span className="text-txt-dim/30 text-sm">{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-sep/20">
+        <div className="px-5 pb-5 space-y-4 border-t border-sep/15">
           {!canEdit ? (
             <>
-              <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
-              <div className="flex flex-wrap gap-3 text-sm font-mono">
+              <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+              <div className="flex flex-wrap gap-2.5">
                 {h.custoEnergia > 0 && (
-                  <span className="bg-sky-500/10 text-sky-400 px-2.5 py-1 rounded border border-sky-500/20">
-                    Energia: {h.custoEnergia}
+                  <span className="bg-sky-500/10 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-sm font-mono">
+                    ⚡ Energia: {h.custoEnergia}
                   </span>
                 )}
                 {h.dano && (
-                  <span className="bg-red-500/10 text-red-400 px-2.5 py-1 rounded border border-red-500/20">
-                    Dano: {h.dano}
+                  <span className="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-sm font-mono">
+                    ⚔ Dano: {h.dano}
                   </span>
                 )}
                 {h.duracao && (
-                  <span className="bg-amber-500/10 text-amber-400 px-2.5 py-1 rounded border border-amber-500/20">
-                    Duração: {h.duracao}
+                  <span className="bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-sm">
+                    ⏱ Duração: {h.duracao}
                   </span>
                 )}
               </div>
             </>
           ) : (
             <>
-              <div className="pt-3">
+              <div className="pt-4">
                 <select value={h.status} onChange={e => updateHabilidade(i, { status: e.target.value })}
                   className={`text-xs bg-void border border-sep/50 rounded px-2 py-1 mb-3 ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -704,7 +707,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
                 <AutoResizeTextarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })} placeholder="Descrição..."
                   className="w-full bg-void border border-sep/50 rounded px-3 py-2 text-sm text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors leading-relaxed overflow-hidden" />
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-sky-400 text-xs font-semibold block mb-1">Energia</label>
                   <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />

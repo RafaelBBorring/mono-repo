@@ -82,12 +82,26 @@ export default function AdminDashboard() {
   }
 
   async function handleSaveSheet(sheet) {
-    const { error } = await getSupabaseAdmin().from('characters').update({
+    if (!sheet?.id) {
+      alert('Erro: ID da ficha não encontrado.')
+      return
+    }
+    const payload = {
       name: sheet.data?.nome || sheet.name || 'Sem Nome',
       data: sheet.data,
-    }).eq('id', sheet.id)
-    if (error) { alert('Erro ao salvar: ' + error.message); return }
-    setSheets(prev => prev.map(s => s.id === sheet.id ? sheet : s))
+      updated_at: new Date().toISOString(),
+    }
+    const { data: updated, error } = await getSupabaseAdmin()
+      .from('characters')
+      .update(payload)
+      .eq('id', sheet.id)
+      .select()
+      .single()
+    if (error) {
+      alert('Erro ao salvar: ' + error.message)
+      return
+    }
+    setSheets(prev => prev.map(s => s.id === sheet.id ? (updated || sheet) : s))
     setEditingSheet(null)
   }
 
