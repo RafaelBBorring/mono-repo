@@ -104,7 +104,7 @@ function resizeImageSrc(src, maxSize = 1000) {
   })
 }
 
-function SectionBody({ type, char, grimoirePages }) {
+function SectionBody({ type, char, grimoirePages, expanded }) {
   const skeleton = char.skeletonPoints || {}
   const attrs = getRaceAdjustedAttrs(char.atributos, skeleton, char)
   const allModules = [...MODULES_PASSIVE, ...MODULES_ACTIVE, ...MODULES_SPECIAL]
@@ -113,24 +113,28 @@ function SectionBody({ type, char, grimoirePages }) {
     .filter(Boolean)
   const pericias = Object.entries(char.pericias || {}).filter(([, g]) => g > 0)
   const race = RACES[char.raca]
+  const habs = char.habilidades || []
 
   if (type === 'identity') {
     return (
       <>
-        <h3 className="board-section-title">{char.nome || 'Sem Nome'}</h3>
+        <div className="board-sec-accent bg-gold/20" />
+        <h3 className="board-section-title text-gold">{char.nome || 'Sem Nome'}</h3>
         <div className="board-chip-grid">
           <span>Classe <strong>{char.classe || '-'}</strong></span>
           <span>Nível <strong>{char.nivel || 1}</strong></span>
           <span>Raça <strong>{getRaceLabel(char) || '-'}</strong></span>
           <span>Array <strong>{char.arrayTipo || '-'}</strong></span>
         </div>
+        {char.avatar && <img src={char.avatar} alt="" className="board-sec-avatar" />}
       </>
     )
   }
   if (type === 'attributes') {
     return (
       <>
-        <h3 className="board-section-title">Esqueleto</h3>
+        <div className="board-sec-accent bg-sky-500/30" />
+        <h3 className="board-section-title text-sky-300">Esqueleto</h3>
         <div className="board-attr-grid">
           {['FOR', 'DES', 'CON', 'INT', 'APA', 'AM'].map(a => (
             <span key={a}><small>{ATTR_ICONS[a]} {a}</small><strong>{attrs[a] || 0}</strong></span>
@@ -140,34 +144,113 @@ function SectionBody({ type, char, grimoirePages }) {
     )
   }
   if (type === 'race') {
+    const passivas = race?.passivasRaciais || []
+    const vantagens = race?.vantagens || []
+    const marcos = race?.marcosExperiencia || []
     return (
       <>
-        <h3 className="board-section-title">{race?.name || 'Raça'}</h3>
+        <div className="board-sec-accent bg-emerald-400/30" />
+        <h3 className="board-section-title text-emerald-300">{race?.name || 'Raça'}</h3>
+        {race?.quote && <p className="board-section-quote">«{race.quote}»</p>}
         <p className="board-section-desc">{race?.desc || 'Nenhuma raça selecionada.'}</p>
-        <div className="board-mini-list">
-          {(race?.passivasRaciais || []).slice(0, 3).map(p => <span key={p.nome}>{p.nome}</span>)}
-        </div>
+        {passivas.length > 0 && (
+          <div className="board-detail-list">
+            <label className="board-detail-label">Passivas Raciais</label>
+            {passivas.map(p => (
+              <div key={p.nome} className="board-detail-item">
+                <strong>{p.nome}</strong>
+                <span className="board-detail-tag">{p.tipo} {p.custo ? `· ${p.custo}` : ''}</span>
+                {(expanded || !p.efeito || p.efeito.length < 80) ? (
+                  <p>{p.efeito || p.duracao || '—'}</p>
+                ) : (
+                  <p>{p.efeito.slice(0, 77)}…</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {expanded && vantagens.length > 0 && (
+          <div className="board-detail-list">
+            <label className="board-detail-label">Vantagens</label>
+            {vantagens.map((v, i) => <div key={i} className="board-detail-simple board-text-emerald">✓ {v}</div>)}
+          </div>
+        )}
+        {expanded && (race?.desvantagens || []).length > 0 && (
+          <div className="board-detail-list">
+            <label className="board-detail-label">Desvantagens</label>
+            {(race.desvantagens || []).map((d, i) => <div key={i} className="board-detail-simple board-text-rose">✕ {d}</div>)}
+          </div>
+        )}
+        {expanded && marcos.length > 0 && (
+          <div className="board-detail-list">
+            <label className="board-detail-label">Marcos de Experiência</label>
+            {marcos.map((m, i) => (
+              <div key={i} className="board-detail-item">
+                <strong>Marco {i + 1}</strong>
+                <p className="board-text-dim">{m.marco}</p>
+                <p className="board-text-gold">{m.ganho}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </>
     )
   }
   if (type === 'modules') {
     return (
       <>
-        <h3 className="board-section-title">Módulos</h3>
-        <div className="board-mini-list">
-          {modules.length ? modules.map(m => <span key={m.id}>{m.name}{m.boughtCount > 1 ? ` x${m.boughtCount}` : ''}</span>) : <em>Nenhum módulo.</em>}
-        </div>
+        <div className="board-sec-accent bg-amber-400/30" />
+        <h3 className="board-section-title text-amber-300">Módulos</h3>
+        {modules.length ? (
+          <div className="board-detail-list">
+            {modules.map(m => (
+              <div key={m.id} className="board-detail-item">
+                <strong>{m.name}{m.boughtCount > 1 ? ` ×${m.boughtCount}` : ''}</strong>
+                {(expanded && m.desc) && <p>{m.desc}</p>}
+                {(expanded && m.effect) && <p className="board-text-gold">{m.effect}</p>}
+              </div>
+            ))}
+          </div>
+        ) : <em className="board-text-dim">Nenhum módulo adquirido.</em>}
       </>
     )
   }
   if (type === 'abilities') {
+    const TYPE_STYLE = {
+      'Passiva': { color: 'text-emerald-400', bg: 'bg-emerald-400/8', border: 'border-emerald-400/20', icon: 'P' },
+      'Ativa': { color: 'text-indigo-300', bg: 'bg-indigo-400/8', border: 'border-indigo-400/20', icon: '⚡' },
+      'Ultimate': { color: 'text-gold', bg: 'bg-gold/8', border: 'border-gold/20', icon: '★' },
+    }
+    const extraKey = Object.keys(TYPE_STYLE).includes ? null : null
+    const getTypeStyle = (t) => TYPE_STYLE[t] || { color: 'text-purple-400', bg: 'bg-purple-400/8', border: 'border-purple-400/20', icon: 'T' }
     return (
       <>
-        <h3 className="board-section-title">Habilidades</h3>
-        <div className="board-mini-list">
-          {(char.habilidades || []).map((h, i) => (
-            <span key={`${h.nome}-${i}`}>{h.nome || `${h.tipo || 'Hab.'} ${i + 1}`}</span>
-          ))}
+        <div className="board-sec-accent bg-purple-400/30" />
+        <h3 className="board-section-title text-purple-300">Habilidades</h3>
+        <div className="board-detail-list">
+          {habs.map((h, i) => {
+            const ts = getTypeStyle(h.tipo)
+            return (
+              <div key={`${h.nome}-${i}`} className={`board-ability-item ${ts.bg} ${ts.border}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`board-ability-badge ${ts.bg} ${ts.color} ${ts.border}`}>{ts.icon}</span>
+                  <strong className={ts.color}>{h.nome || `${h.tipo || 'Hab.'} ${i + 1}`}</strong>
+                  <span className="board-detail-tag">{h.tipo}</span>
+                </div>
+                {h.custoEnergia > 0 && <span className="board-text-dim text-xs">⚡ {h.custoEnergia} PE</span>}
+                {h.dano && <span className="board-text-dim text-xs ml-2">⚔ {h.dano}</span>}
+                {h.duracao && <span className="board-text-dim text-xs ml-2">⏱ {h.duracao}</span>}
+                {(expanded || !(h.descricao)) ? (
+                  h.descricao ? <p className="mt-1">{h.descricao}</p> : null
+                ) : (
+                  h.descricao ? <p className="mt-1">{h.descricao.length > 90 ? h.descricao.slice(0, 87) + '…' : h.descricao}</p> : null
+                )}
+                {expanded && h.status && (
+                  <span className={`board-status-tag ${h.status === 'Aprovada' ? 'is-ok' : h.status === 'Pendente' ? 'is-warn' : 'is-err'}`}>{h.status}</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       </>
     )
@@ -175,29 +258,51 @@ function SectionBody({ type, char, grimoirePages }) {
   if (type === 'mystic') {
     return (
       <>
-        <h3 className="board-section-title">Grimório</h3>
-        <div className="board-mini-list">
-          {grimoirePages.length ? grimoirePages.slice(0, 8).map(p => <span key={p.id}>{p.title}</span>) : <em>Nenhum registro.</em>}
-        </div>
+        <div className="board-sec-accent bg-rose-400/30" />
+        <h3 className="board-section-title text-rose-300">Grimório</h3>
+        {grimoirePages.length ? (
+          <div className="board-detail-list">
+            {grimoirePages.slice(0, expanded ? 50 : 8).map(p => (
+              <div key={p.id} className="board-detail-item">
+                <strong>{p.title}</strong>
+                <span className="board-detail-tag">{p.subtitle}</span>
+                {(expanded || (p.body && p.body.length < 80)) ? (
+                  p.body ? <p>{p.body}</p> : null
+                ) : (
+                  p.body ? <p>{p.body.slice(0, 77)}…</p> : null
+                )}
+              </div>
+            ))}
+          </div>
+        ) : <em className="board-text-dim">Nenhum registro místico.</em>}
       </>
     )
   }
   if (type === 'skills') {
     return (
       <>
-        <h3 className="board-section-title">Perícias</h3>
-        <div className="board-mini-list">
-          {pericias.length ? pericias.map(([n, g]) => {
-            const d = PERICIAS.find(p => p.name === n)
-            return <span key={n}>{d?.name || n} — {GRAU_NAMES[g] || g}</span>
-          }) : <em>Nenhuma perícia.</em>}
-        </div>
+        <div className="board-sec-accent bg-teal-400/30" />
+        <h3 className="board-section-title text-teal-300">Perícias</h3>
+        {pericias.length ? (
+          <div className="board-skill-grid">
+            {pericias.map(([n, g]) => {
+              const d = PERICIAS.find(p => p.name === n)
+              return (
+                <div key={n} className="board-skill-item">
+                  <strong>{d?.name || n}</strong>
+                  <span className="board-skill-grade">{GRAU_NAMES[g] || g}</span>
+                </div>
+              )
+            })}
+          </div>
+        ) : <em className="board-text-dim">Nenhuma perícia treinada.</em>}
       </>
     )
   }
   return (
     <>
-      <h3 className="board-section-title">Triagens</h3>
+      <div className="board-sec-accent bg-orange-400/30" />
+      <h3 className="board-section-title text-orange-300">Triagens</h3>
       <div className="board-chip-grid">
         <span>Principal <strong>{getTriagemName(char, char.triagemPrincipal, char.classe)}</strong></span>
         <span>Nível <strong>{char.triagemPrincipalNivel || 0}</strong></span>
@@ -221,6 +326,7 @@ export default function CharacterWorkspace({ char, update, onBack }) {
   const [editingId, setEditingId] = useState(null)
   const [shapeDraft, setShapeDraft] = useState(null)
   const [showSecMenu, setShowSecMenu] = useState(false)
+  const [expandedSections, setExpandedSections] = useState({})
 
   const canvasRef = useRef(null)
   const dragRef = useRef(null)
@@ -606,14 +712,22 @@ export default function CharacterWorkspace({ char, update, onBack }) {
 
           {sections.map(sec => {
             const sel = selectedId === sec.id
+            const isExp = !!expandedSections[sec.id]
             return (
               <div key={sec.id} data-board-item="1"
-                className={`board-section-el ${sel ? 'is-selected' : ''}`}
-                style={{ position: 'absolute', left: sec.x, top: sec.y, width: sec.width || 340 }}
+                className={`board-section-el ${sel ? 'is-selected' : ''} ${isExp ? 'is-expanded' : ''}`}
+                style={{ position: 'absolute', left: sec.x, top: sec.y, width: isExp ? 520 : (sec.width || 340) }}
                 onPointerDown={e => handleItemPointerDown(e, 'section', sec.id)}
               >
-                <div className="board-card-label">{sec.title}</div>
-                <SectionBody type={sec.type} char={char} grimoirePages={grimoirePages} />
+                <div className="board-sec-header">
+                  <div className="board-card-label">{sec.title}</div>
+                  <button className="board-expand-btn"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={() => setExpandedSections(v => ({ ...v, [sec.id]: !v[sec.id] }))}>
+                    {isExp ? 'Recolher' : 'Expandir'}
+                  </button>
+                </div>
+                <SectionBody type={sec.type} char={char} grimoirePages={grimoirePages} expanded={isExp} />
               </div>
             )
           })}
