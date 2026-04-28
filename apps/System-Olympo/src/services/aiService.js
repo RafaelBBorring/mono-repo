@@ -21,9 +21,37 @@ import { buildEvolucaoContext } from '../utils/skillEvolution'
 import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
 
-// ─── Infra (via Supabase Edge Function) ────────────────────────────────────
+// ─── Infra (OpenRouter direto com fallback para Edge Function) ─────────────
+
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 async function callAI(messages) {
+  if (OPENROUTER_API_KEY) {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'System Olympo 2.0',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages,
+        temperature: 0.35,
+        max_tokens: 4096,
+      }),
+    })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(`OpenRouter ${response.status}: ${err.error?.message || 'Erro desconhecido'}`)
+    }
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content
+    if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
+    return content
+  }
   const { data, error } = await supabase.functions.invoke('openrouter-chat', {
     body: { messages, temperature: 0.35, max_tokens: 4096 },
   })
