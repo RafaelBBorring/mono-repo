@@ -21,13 +21,23 @@ import { buildEvolucaoContext } from '../utils/skillEvolution'
 import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
 
-// ─── Infra (OpenRouter direto com fallback para Edge Function) ─────────────
+// ─── Infra (Supabase Edge Function com fallback para env key direto) ────────
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 async function callAI(messages) {
-  if (OPENROUTER_API_KEY) {
+  try {
+    const { data, error } = await supabase.functions.invoke('openrouter-chat', {
+      body: { messages, temperature: 0.35, max_tokens: 4096 },
+    })
+    if (error) throw error
+    if (!data) throw new Error('Resposta vazia da Edge Function.')
+    const content = data.choices?.[0]?.message?.content
+    if (!content) throw new Error('IA retornou conteúdo vazio.')
+    return content
+  } catch (edgeError) {
+    if (!OPENROUTER_API_KEY) throw edgeError
     const response = await fetch(OPENROUTER_URL, {
       method: 'POST',
       headers: {
@@ -52,15 +62,6 @@ async function callAI(messages) {
     if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
     return content
   }
-  const { data, error } = await supabase.functions.invoke('openrouter-chat', {
-    body: { messages, temperature: 0.35, max_tokens: 4096 },
-  })
-  if (error) {
-    const msg = error.message || error.msg || error.details || JSON.stringify(error)
-    throw new Error(`Erro na API de IA: ${msg}`)
-  }
-  if (!data) throw new Error('A API de IA não retornou dados. Verifique a Edge Function openrouter-chat.')
-  const content = data.choices?.[0]?.message?.content
   if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
   return content
 }
