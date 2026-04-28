@@ -261,10 +261,25 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
-                  <CombatStat label="Reações" value={derived.reacoes} />
+                  <div className="text-center">
+                    <span className="text-txt-dim/50 text-[10px] uppercase block">Reações</span>
+                    <span className="text-txt-main text-xl font-mono block">{derived.reacoes}</span>
+                    {((char.triagemPrincipal === 'ASSASSINO' && (char.triagemPrincipalNivel || 0) >= 0.2) || (char.subTriagem === 'ASSASSINO' && (char.subTriagemNivel || 0) >= 0.2)) && (
+                      <span className="text-[8px] text-purple-400/70 block mt-0.5">+{Math.floor(totalAttr('DES') / 15)} Assassino</span>
+                    )}
+                  </div>
                   <CombatStat label="Percepção" value={derived.percepcao} />
-                  <CombatStat label="Dano Base" value={derived.danoBase} isGold />
+                  <div className="text-center">
+                    <span className="text-txt-dim/50 text-[10px] uppercase block">Dano Base</span>
+                    <span className="text-gold text-xs font-mono block mt-1 leading-tight">{derived.danoBase}</span>
+                  </div>
                 </div>
+                {((char.triagemPrincipal === 'ATIRADOR' && (char.triagemPrincipalNivel || 0) >= 0.1) || (char.subTriagem === 'ATIRADOR' && (char.subTriagemNivel || 0) >= 0.1)) && (
+                  <div className="mt-2 bg-sky-500/5 border border-sky-500/15 rounded px-2.5 py-1.5 text-[10px] text-sky-400/80 flex items-center gap-1.5">
+                    <span className="text-sky-400">★</span>
+                    Vantagem em Pontaria
+                  </div>
+                )}
               </section>
 
               {/* PERÍCIAS */}

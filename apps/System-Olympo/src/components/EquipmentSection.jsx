@@ -3,6 +3,44 @@ import { createPortal } from 'react-dom'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { generateWeaponAbilities, analyzeBalance } from '../services/aiService'
+import { getAttrValue } from '../utils/calculator'
+import { getModifier } from '../data/attributes'
+
+function getWeaponTriagemBonus(char) {
+  const tp = char.triagemPrincipal || ''
+  const tn = char.triagemPrincipalNivel || 0
+  const st = char.subTriagem || ''
+  const sn = char.subTriagemNivel || 0
+  const sk = char.skeletonPoints || {}
+  const attrs = char.atributos || {}
+  const bonuses = []
+
+  if ((tp === 'ATIRADOR' && tn >= 0.2) || (st === 'ATIRADOR' && sn >= 0.2)) {
+    const int = getAttrValue(attrs, 'INT', sk, char)
+    bonuses.push({ label: `+${int} (INT) — Atirador`, value: int, color: 'text-sky-400' })
+  }
+  if ((tp === 'TÉCNICO' && tn >= 0.1) || (st === 'TÉCNICO' && sn >= 0.1)) {
+    const allVals = ['FOR','DES','CON','INT','APA','AM'].map(a => getAttrValue(attrs, a, sk, char))
+    const maior = Math.max(...allVals)
+    bonuses.push({ label: `+${maior} (maior attr) — Técnico`, value: maior, color: 'text-amber-400' })
+  }
+  return bonuses
+}
+
+function getAssassinReactionBonus(char) {
+  const tp = char.triagemPrincipal || ''
+  const tn = char.triagemPrincipalNivel || 0
+  const st = char.subTriagem || ''
+  const sn = char.subTriagemNivel || 0
+  const sk = char.skeletonPoints || {}
+  const attrs = char.atributos || {}
+  const des = getAttrValue(attrs, 'DES', sk, char)
+  let bonus = 0
+  if ((tp === 'ASSASSINO' && tn >= 0.2) || (st === 'ASSASSINO' && sn >= 0.2)) {
+    bonus = Math.floor(des / 15)
+  }
+  return bonus
+}
 
 export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerToggle }) {
   const weapon = WEAPONS.find(w => w.id === char.arma)
@@ -76,7 +114,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerTogg
         <div className="space-y-2">
           {weapon && (
             <button type="button" onClick={() => setShowWeaponDrawer(true)} className="w-full text-left">
-              <WeaponCard weapon={weapon} rank={weaponRank} habilidades={char.armaHabilidades || []} />
+              <WeaponCard weapon={weapon} rank={weaponRank} habilidades={char.armaHabilidades || []} triagemBonus={getWeaponTriagemBonus(char)} />
             </button>
           )}
 
@@ -129,7 +167,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerTogg
   )
 }
 
-function WeaponCard({ weapon, rank, habilidades }) {
+function WeaponCard({ weapon, rank, habilidades, triagemBonus = [] }) {
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   return (
     <div className={`rounded-lg border ${rc.border} ${rc.bg} p-3 ${rc.glow} transition-all hover:brightness-110 cursor-pointer`}>
@@ -146,6 +184,15 @@ function WeaponCard({ weapon, rank, habilidades }) {
             <span className="text-red-400/90 font-mono">Dano {weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
             <span className="text-txt-dim/60">{weapon.attr}</span>
           </div>
+          {triagemBonus.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {triagemBonus.map((b, i) => (
+                <span key={i} className={`text-[9px] ${b.color} bg-void/60 px-1.5 py-0.5 rounded border border-current/20 font-mono`}>
+                  {b.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="text-right shrink-0">
           <span className="text-txt-dim/30 text-xs">▶ detalhes</span>
@@ -163,6 +210,8 @@ function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const triagemBonus = getWeaponTriagemBonus(char)
+  const assassinBonus = getAssassinReactionBonus(char)
 
   async function handleAnalyze() {
     setAnalyzing(true)
@@ -211,6 +260,30 @@ function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
               <p className="text-gold text-sm font-mono mt-0.5">{rank.slots}</p>
             </div>
           </div>
+
+          {triagemBonus.length > 0 && (
+            <div className="bg-void/40 border border-gold/20 rounded-lg px-3 py-2.5">
+              <span className="text-gold/70 text-[9px] uppercase tracking-wider">Bônus de Triagem no Dano</span>
+              <div className="space-y-1 mt-1.5">
+                {triagemBonus.map((b, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className={`text-sm font-mono font-semibold ${b.color}`}>+{b.value}</span>
+                    <span className="text-txt-dim/70 text-[10px]">{b.label.split(' — ')[1] || ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {assassinBonus > 0 && (
+            <div className="bg-void/40 border border-purple-400/20 rounded-lg px-3 py-2.5">
+              <span className="text-purple-400/70 text-[9px] uppercase tracking-wider">Bônus de Reações (Assassino)</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-purple-400 text-sm font-mono font-semibold">+{assassinBonus}</span>
+                <span className="text-txt-dim/70 text-[10px]">reações extras (a cada 15 DES)</span>
+              </div>
+            </div>
+          )}
 
           {weapon.mec && (
             <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
