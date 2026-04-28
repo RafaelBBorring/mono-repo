@@ -325,7 +325,20 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* HERANÇA RACIAL */}
-              <RaceHeritageSection char={char} />
+              <details className="group">
+                <summary className="flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] rounded-lg px-1 py-1 -mx-1 transition-colors list-none">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="w-1 h-4 rounded-full bg-emerald-400" />
+                    <span className="text-txt-dim text-[11px]">🧬</span>
+                    <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Herança Racial</h3>
+                    <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
+                  </div>
+                  <span className="text-txt-dim/30 text-[10px] group-open:rotate-180 transition-transform">▼</span>
+                </summary>
+                <div className="mt-2">
+                  <RaceHeritageSection char={char} />
+                </div>
+              </details>
 
               {/* ARMAS & EQUIPAMENTOS */}
               <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onDrawerToggle={() => {}} />

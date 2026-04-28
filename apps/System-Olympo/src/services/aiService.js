@@ -17,7 +17,7 @@ import {
   getAttrValue, getClassDef,
 } from '../utils/calculator'
 import { getModifier } from '../data/attributes'
-import { buildEvolucaoContext } from '../utils/skillEvolution'
+import { buildEvolucaoContext, calcPEHSpent } from '../utils/skillEvolution'
 import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
 
@@ -179,6 +179,24 @@ function buildSystemContext() {
 PROTOCOLO DE EXPANSÃO ÉPICA OLYMPO (Secao 14)
 Você receberá fichas com VALORES CALCULADOS REAIS. Analise SEMPRE com base neles.
 
+PRINCÍPIO FUNDAMENTAL — RESPEITO AO JOGADOR:
+1. NUNCA altere a descrição narrativa da habilidade. O jogador escreveu com propósito.
+2. Se o jogador já atribuiu valores (dano, energia, duração), ANALISE esses valores e ajuste APENAS os números se necessário, mantendo a estrutura e o texto original.
+3. Habilidades complexas com múltiplos sub-efeitos (ex: passiva que concede 3 benefícios) são NORMAIS. Analise cada sub-efeito separadamente e some os PP.
+4. Interprete descrições narrativas: "alta velocidade" pode ser Vantagem, "ataque garantido" ignora teste de ataque, etc.
+5. Personagens de NÍVEL ALTO devem ter habilidades PODEROSAS. Nunca empobreça um N25-30. O TDH é um TETO, não uma meta a reduzir.
+6. O NÍVEL DO PERSONAGEM é a referência principal. Habilidades de um N30 devem ser proporcionalmente mais fortes que as de um N10.
+
+PEH — PONTOS DE EVOLUÇÃO DE HABILIDADE (Referência Principal de Poder):
+O PEH total do personagem indica QUANTOS pontos de evolução ele distribuiu.
+- evolucaoNivel > 0 significa que o jogador INVESTIU recursos nessa habilidade — ela deve ser proporcionalmente mais forte.
+- Cada nível de evolução deve aumentar TODOS os efeitos proporcionalmente ao bracket:
+  Fraca (<20E): +1d6 dano, +4 flat, +2 Energia por nível
+  Média (20-50E): +1d8 dano, +6 flat, +3 Energia por nível
+  Forte (>50E): +1d10 dano, +8 flat, +5 Energia por nível
+  Ultimate: +2d10 dano, +12 flat, +8 Energia por nível
+- Se evolucaoNivel = 0 e o jogador sugeriu valores altos, ANALISE se faz sentido para o nível e tipo. Ajuste para baixo APENAS se exceder o TDH bruscamente.
+
 SCP — SISTEMA DE CAMADAS DE PODER (Secao 14.1):
 Camada 1 (Base): Treino de Perícia + Modificador de Atributo — SEM LIMITE.
 Camada 2 (Tático — Habilidades, Triagens, Módulos): N1-7:+8 | N8-15:+12 | N16-22:+16 | N23-30:+20
@@ -192,6 +210,8 @@ N1-7:   Fraca=3d8+12    | Media=4d10+18  | Forte=6d10+24  | Ult=8d12+30
 N8-15:  Fraca=4d10+18   | Media=6d10+25  | Forte=9d12+32  | Ult=13d12+45
 N16-22: Fraca=6d12+25   | Media=8d12+38  | Forte=12d12+50 | Ult=17d12+65
 N23-30: Fraca=8d12+32   | Media=10d12+45 | Forte=14d12+60 | Ult=20d12+80
+
+IMPORTANTE SOBRE TDH: Esses valores são TETOS para a faixa. Personagens no topo da faixa (ex: N14-15) podem se aproximar do teto da próxima. NUNCA reduza valores de um N28-30 para o teto de N23-30 se a descrição e o PEH justificam estar próximo do teto.
 
 IPL — PP LIMITE POR TIPO E FAIXA (Secao 14.5):
 Pesos: +5atk/def(temp)=3PP | +10atk/def(temp)=5PP | +15atk/def(temp,N16+)=7PP
@@ -209,15 +229,18 @@ N5: 140-210 | N10: 250-380 | N15: 380-560 | N20: 520-760 | N25: 700-980 | N30: 9
 
 REGRAS DE BALANCEAMENTO:
 1. Use os valores calculados reais da ficha como âncora matematica.
-2. Para habilidades OFENSIVAS: o dano da habilidade e EXTRA, nao inclui Dano Base + Arma + Atributo. Um N30 com dano base alto ainda pode ter habilidade com 14d12+60 de dano extra.
+2. Para habilidades OFENSIVAS: o dano da habilidade e EXTRA, nao inclui Dano Base + Arma + Atributo.
 3. Custo de Energia proporcional: Fraca=5-19E, Média=20-50E, Forte=51-80E, Ult=80E+.
 4. Durações: Fraca 1-3rod | Média 3-5rod | Forte 4-8rod | Ult combate inteiro.
 5. Cura: maximo 30% da vida maxima por uso.
 6. Considere amplificadores de Triagem e Modulo — eles aumentam o poder REAL alem da habilidade.
-7. Evolução: habilidades com evolucaoNivel > 0 devem ter valores escalados. Escale todos os efeitos (dano, duracao, bonus, CDs) proporcionalmente, respeitando o TDH.
-8. Nunca reduza efeitos narrativos importantes — prefira aumentar o custo de Energia.
+7. Evolução: habilidades com evolucaoNivel > 0 devem ter valores escalados proporcionalmente ao bracket e PEH investido.
+8. NUNCA reduza efeitos narrativos — prefira ajustar o custo de Energia ou CDs.
 9. Toda habilidade DEVE ter pelo menos 1 efeito mecanico numerico mensuravel.
 10. CDs de resistencia: base 14-16 para N1-10, 18-22 para N11-20, 22-28 para N21-30.
+11. Habilidades com condições (ex: "se atingir 2 disparos", "se em desvantagem numérica") são mais difíceis de ativar e podem ter valores mais altos que o teto do bracket — considere a dificuldade de ativação.
+12. Para passivas complexas com múltiplos sub-efeitos: some os PP de cada sub-efeito e verifique se o total está dentro do limite da passiva para a faixa.
+13. NUNCA reescreva a descrição. Mantenha EXATAMENTE o texto original do jogador. Apenas ajuste os campos numericos (custoEnergia, dano, duracao).
 
 Responda SEMPRE em JSON válido, sem markdown, sem code blocks.`
 }
@@ -227,6 +250,8 @@ Responda SEMPRE em JSON válido, sem markdown, sem code blocks.`
 export async function analyzeBalance(char) {
   const stats  = computeCharStats(char)
   const evoCtx = buildEvolucaoContext(char.habilidades, char.nivel || 1)
+  const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [])
+  const pehSpent = calcPEHSpent(char.habilidades)
 
   const fichaCompleta = `
 FICHA CALCULADA REAL DO PERSONAGEM:
@@ -235,6 +260,7 @@ Atributos: FOR ${stats.atributos.FOR}(Mod${stats.atributos.modFOR}) | DES ${stat
 Vida Total: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase} | Reações: ${stats.reacoes}
 Dano Base de Classe: ${stats.danoBase} | Bônus Arma (${char.armaRank}): ${stats.armaDanoBonus} | Ataque Base: ${stats.ataqueBase}
 DANO TOTAL BASE (sem habilidades): ${stats.danoBase} + ${stats.armaDanoBonus}
+PEH Total disponível: ${pehTotal} | PEH gasto: ${pehSpent} | PEH restante: ${pehTotal - pehSpent}
 Triagens: ${stats.triagem}
 Amplificadores de Triagem: ${stats.triagemAmps}
 Amplificadores de Módulo: ${stats.moduleAmps}
@@ -248,10 +274,11 @@ Perícias: ${Object.entries(char.pericias || {}).filter(([,v]) => v > 0).map(([k
       index: i, tipo: h.tipo, nome: h.nome || 'Sem nome',
       descricao: h.descricao || '', custoEnergia: h.custoEnergia || 0,
       dano: h.dano || '', duracao: h.duracao || '',
-      camadaSCP: h.camadaSCP || 2, ppEstimado: h.ppEstimado || 0,
       status: h.status || 'Pendente',
       evolucaoNivel: evo.evolucaoNivel || 0,
+      bracket: evo.bracket || 'FRACA',
       instrucaoEvolucao: evo.instrucaoIA || 'Calibrar para valores base.',
+      jogadorJaDefiniuValores: !!(h.dano || h.custoEnergia || h.duracao),
     }
   })
 
@@ -269,32 +296,35 @@ ${JSON.stringify(habilidadesData, null, 2)}
 HABILIDADES DA ARMA:
 ${JSON.stringify(armaHabs, null, 2)}
 
-Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa.
-O dano da habilidade e EXTRA ao dano base+arma+atributo que o personagem ja possui.
-Para habilidades com evolucaoNivel > 0: escale efeitos proporcionalmente ao nivel de evolucao.
+INSTRUÇÕES CRÍTICAS:
+- Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
+- O dano da habilidade é EXTRA ao dano base+arma+atributo que o personagem já possui.
+- PEH Total: ${pehTotal} | Gasto: ${pehSpent}. Habilidades com evolucaoNivel > 0 receberam INVESTIMENTO do jogador e devem ser proporcionais.
+- IMPORTANTE: Se jogadorJaDefiniuValores=true, o jogador JÁ ESCREVEU valores. ANALISE se estão adequados para o nível/bracket/PEH. Ajuste APENAS se exceder o TDH bruscamente.
+- Para habilidades complexas com múltiplos sub-efeitos (ex: passivas que concedem 3 benefícios): some os PP de cada sub-efeito individualmente.
+- Habilidades com condições de ativação difíceis (ex: "precisa acertar 2 disparos primeiro") podem ter valores maiores que o teto do bracket.
+- Respeite o NÍVEL do personagem. Um N${stats.nivel} DEVE ter habilidades impactantes. Não empobreça personagens de nível alto.
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "habilidades": [
     {
       "index": 0,
-      "nome": "nome ajustado se necessário",
-      "descricao": "descrição com valores concretos (mantenha o espírito)",
-      "custoEnergia": numero,
-      "dano": "XdY+MOD ou vazio",
-      "duracao": "X rodadas ou vazio",
-      "camadaSCP": 1ou2ou3,
-      "ppEstimado": numero,
-      "feedback": "explicação referenciando TDH/IPL/evolução"
+      "nome": "mantenha o nome original",
+      "descricao": "MANTEHA EXATAMENTE a descrição original do jogador, palavra por palavra. NUNCA reescreva.",
+      "custoEnergia": numero_ajustado,
+      "dano": "XdY+MOD ajustado ou vazio",
+      "duracao": "X rodadas ajustado ou vazio",
+      "feedback": "explique: 1) o que analisou 2) se ajustou valores e por quê 3) referência ao TDH/PEH/bracket"
     }
   ],
   "armaHabilidades": [
     {
       "index": 0,
-      "nome": "nome",
-      "descricao": "descrição com valores",
+      "nome": "mantenha o nome",
+      "descricao": "MANTEHA a descrição original. Apenas ajuste valores numéricos se necessário.",
       "tipo": "Ativa ou Passiva",
-      "custo": "custo descritivo",
+      "custo": "custo ajustado",
       "feedback": "explicação"
     }
   ]
