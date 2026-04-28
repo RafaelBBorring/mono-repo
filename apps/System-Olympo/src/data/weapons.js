@@ -16,6 +16,7 @@ export const WEAPONS = [
   { id: 'escudo_pequeno', name: 'Escudo Pequeno', dano: '1d4', attr: 'FOR', mec: '+2 CA. Ao bloquear, pode atacar como reação (empurra 3m).' },
   { id: 'escudo_grande', name: 'Escudo Grande', dano: '1d6', attr: 'FOR', mec: '+3 CA. Pode plantar para cobertura total.' },
   { id: 'manopla', name: 'Manopla', dano: '1d6', attr: 'FOR', mec: 'Golpes consecutivos no mesmo alvo: +1d4 (máx Mod.FOR), reseta ao errar.' },
+  { id: 'foice', name: 'Foice', dano: '1d6', attr: 'FOR', mec: 'Gancho: acertos consecutivos causam sangramento (+1d4 por turno, máx 3). Alcance 2m.' },
 ]
 
 export const WEAPON_RANKS = [
