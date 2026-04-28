@@ -2,7 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes } from '../../utils/calculator'
 import { exportSheet } from '../../utils/exporter'
 import { ATTR_ICONS, getModifier } from '../../data/attributes'
-import { MARTIAL_ARTS } from '../../data/martialArts'
+import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
+import { calcPEHTotal } from '../../utils/calculator'
+import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket } from '../../utils/skillEvolution'
 import { PERICIAS, GRAU_NAMES, getGrauBonus } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
@@ -80,6 +82,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const peNow = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
   const costReduction = calcAbilityCostReduction(char.triagemPrincipal, char.triagemPrincipalNivel || 0, char.subTriagem, char.subTriagemNivel || 0)
+
+  const pehTotal = cls ? calcPEHTotal(cls, char.nivel, char.choices, char.modulosAdquiridos) : 0
+  const pehSpent = calcPEHSpent(char.habilidades)
+  const pehRemaining = pehTotal - pehSpent
 
   const martialArt = MARTIAL_ARTS.find(a => a.id === char.arteMarcial)
 
@@ -350,7 +356,29 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {/* ARTE MARCIAL */}
               <section>
                 <SectionHeader icon="👊" title="Arte Marcial" color="bg-orange-400" />
-                {martialArt ? (
+                {canEdit ? (
+                  <div className="space-y-2">
+                    <select value={char.arteMarcial || ''} onChange={e => update({ arteMarcial: e.target.value || null, arteMarcialGrau: 0 })}
+                      className="w-full bg-void border border-sep/40 rounded px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none">
+                      <option value="">— Nenhuma —</option>
+                      {MARTIAL_ARTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                    {martialArt && (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {GRAU_LABELS.map((label, gi) => {
+                          const sel = (char.arteMarcialGrau || 0) === gi
+                          return (
+                            <button key={gi} onClick={() => update({ arteMarcialGrau: gi })}
+                              className={`rounded px-2.5 py-1.5 text-[11px] border text-left transition-colors ${sel ? 'bg-orange-400/15 border-orange-400/40 text-orange-300' : 'bg-void/50 border-sep/30 text-txt-dim hover:border-orange-400/30'}`}>
+                              <div className="font-semibold">{label}</div>
+                              <div className="text-[10px] mt-0.5 opacity-70">{martialArt.graus[gi]?.desc}</div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : martialArt ? (
                   <div className="bg-void/50 border border-sep/40 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-txt-main text-sm font-semibold">{martialArt.name}</span>
@@ -400,6 +428,23 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {/* HABILIDADES */}
               <section>
                 <SectionHeader icon="✦" title="Habilidades" color="bg-indigo-400" />
+                {canEdit && (
+                  <div className="mb-3 bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-2.5 flex items-center gap-3 text-[11px]">
+                    <span className="text-indigo-400 font-semibold">PEH</span>
+                    <div className="flex-1 flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-void rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${pehRemaining < 0 ? 'bg-red-500' : pehRemaining === 0 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                          style={{ width: `${Math.min(100, Math.max(0, (pehSpent / Math.max(1, pehTotal)) * 100))}%` }}
+                        />
+                      </div>
+                      <span className={`font-mono ${pehRemaining < 0 ? 'text-red-400' : pehRemaining === 0 ? 'text-emerald-400' : 'text-indigo-400'}`}>
+                        {pehRemaining}/{pehTotal}
+                      </span>
+                    </div>
+                    <span className="text-txt-dim/60">gastos: {pehSpent}</span>
+                  </div>
+                )}
                 {costReduction > 0 && (
                   <div className="mb-2 bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 text-[11px] text-blue-400/80 flex items-center gap-1.5">
                     <span className="text-blue-400">★</span>
@@ -408,7 +453,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 )}
                 <div className="space-y-1.5">
                   {(char.habilidades || []).map((h, i) => (
-                    <HabilidadeCard key={i} h={h} i={i} canEdit={canEdit} updateHabilidade={updateHabilidade} />
+                    <HabilidadeCard key={i} h={h} i={i} canEdit={canEdit} updateHabilidade={updateHabilidade} charNivel={char.nivel || 1} pehRemaining={pehRemaining} />
                   ))}
                 </div>
               </section>
@@ -668,8 +713,15 @@ function AutoResizeTextarea({ value, onChange, placeholder, className }) {
   )
 }
 
-function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
+function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining }) {
   const [open, setOpen] = useState(false)
+
+  const evoNivel = h.evolucaoNivel || 0
+  const maxEvo = getMaxEvolucao(h.tipo)
+  const evoDelta = calcEvolucaoDelta(h, evoNivel)
+  const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
+  const { allowed: canUp, reason: upReason } = canEvolveSkill(h, evoNivel, charNivel)
+  const canDown = evoNivel > 0 && h.tipo !== 'Passiva'
 
   const typeStyle = h.tipo === 'Ultimate'
     ? { border: 'border-gold/30', bg: 'bg-gold/3', badge: 'bg-gold/15 text-gold border-gold/20', icon: '★', label: 'Ultimate' }
@@ -681,6 +733,16 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
     ? { border: 'border-sky-400/20', bg: 'bg-sky-400/3', badge: 'bg-sky-400/10 text-sky-400 border-sky-400/20', icon: 'M', label: 'Extra (Módulo)' }
     : { border: 'border-indigo-400/15', bg: 'bg-indigo-400/2', badge: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20', icon: `#${i + 1}`, label: 'Ativa' }
 
+  function handleEvoUp() {
+    if (!canUp || pehRemaining <= 0) return
+    updateHabilidade(i, { evolucaoNivel: evoNivel + 1 })
+  }
+
+  function handleEvoDown() {
+    if (!canDown) return
+    updateHabilidade(i, { evolucaoNivel: evoNivel - 1 })
+  }
+
   return (
     <div className={`rounded-xl border ${typeStyle.border} ${typeStyle.bg} overflow-hidden transition-all`}>
       <button type="button" onClick={() => setOpen(!open)}
@@ -691,10 +753,29 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
           </span>
           <div className="min-w-0 flex-1">
             <span className="text-txt-main text-sm font-semibold block truncate">{h.nome || '—'}</span>
-            <span className="text-txt-dim/50 text-[10px]">{typeStyle.label}{h.custoEnergia > 0 ? ` · ⚡${h.custoEnergia}` : ''}{h.dano ? ` · ⚔${h.dano}` : ''}</span>
+            <span className="text-txt-dim/50 text-[10px]">
+              {typeStyle.label}{h.custoEnergia > 0 ? ` · ⚡${h.custoEnergia}` : ''}{h.dano ? ` · ⚔${h.dano}` : ''}
+              {evoNivel > 0 && <span className="text-indigo-400 ml-1">· Evo {evoNivel}/{maxEvo} ({bracket})</span>}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
+          {canEdit && h.tipo !== 'Passiva' && (
+            <div className="flex items-center gap-1 mr-1">
+              <button type="button" onClick={e => { e.stopPropagation(); handleEvoDown() }}
+                disabled={!canDown}
+                className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canDown ? 'bg-void border border-sep/50 text-txt-dim hover:border-red-400 hover:text-red-400' : 'opacity-20 cursor-not-allowed'}`}>
+                −
+              </button>
+              <span className={`text-[10px] font-mono w-4 text-center ${evoNivel > 0 ? 'text-indigo-400' : 'text-txt-dim/40'}`}>{evoNivel}</span>
+              <button type="button" onClick={e => { e.stopPropagation(); handleEvoUp() }}
+                disabled={!canUp || pehRemaining <= 0}
+                title={upReason || (pehRemaining <= 0 ? 'Sem PEH disponível' : '')}
+                className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canUp && pehRemaining > 0 ? 'bg-void border border-sep/50 text-txt-dim hover:border-indigo-400 hover:text-indigo-400' : 'opacity-20 cursor-not-allowed'}`}>
+                +
+              </button>
+            </div>
+          )}
           <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-ok/20 bg-ok/5' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-warn/20 bg-warn/5' : STATUS_COLORS[h.status] === 'text-err' ? 'border-err/20 bg-err/5' : 'border-sep/20 bg-sep/5'} ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
           <span className="text-txt-dim/30 text-sm">{open ? '▲' : '▼'}</span>
         </div>
@@ -702,6 +783,14 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
 
       {open && (
         <div className="px-5 pb-5 space-y-4 border-t border-sep/15">
+          {evoDelta && (
+            <div className="flex flex-wrap gap-1.5 pt-3">
+              {evoDelta.dadoExtra && <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.dadoExtra} dano</span>}
+              {evoDelta.flatExtra && <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 font-mono">{evoDelta.flatExtra} flat</span>}
+              {evoDelta.energiaExtra && <span className="text-[10px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 font-mono">{evoDelta.energiaExtra} energia</span>}
+              {evoDelta.duracaoExtra && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-mono">{evoDelta.duracaoExtra}</span>}
+            </div>
+          )}
           {!canEdit ? (
             <>
               <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
