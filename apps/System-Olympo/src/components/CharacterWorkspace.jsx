@@ -525,9 +525,10 @@ export default function CharacterWorkspace({ char, update, onBack }) {
           ))}
           <div className="board-tool-divider" />
           <div className="board-sec-dropdown-wrap">
-            <button onClick={() => setShowSecMenu(v => !v)} className="board-tool-btn">
+            <button onClick={() => setShowSecMenu(v => !v)} className={`board-tool-btn ${showSecMenu ? 'is-active' : ''}`}
+              style={{ borderColor: 'rgba(196,144,62,0.4)', background: 'rgba(196,144,62,0.08)' }}>
               <span className="board-tool-icon">+</span>
-              <span className="board-tool-label">Seção</span>
+              <span className="board-tool-label">Adicionar Seção</span>
             </button>
             {showSecMenu && (
               <div className="board-sec-dropdown">
