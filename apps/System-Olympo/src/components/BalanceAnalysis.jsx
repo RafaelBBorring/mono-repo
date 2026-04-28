@@ -108,8 +108,6 @@ export default function BalanceAnalysis({ char, onApply, characterId }) {
                     {h.custoEnergia > 0 && <span className="text-sky-400">⚡{h.custoEnergia}</span>}
                     {h.dano && <span className="text-red-400">⚔{h.dano}</span>}
                     {h.duracao && <span className="text-txt-dim">⏱{h.duracao}</span>}
-                    <span className="text-amber-400/70">SCP:{h.camadaSCP}</span>
-                    <span className="text-purple-400/70">PP:{h.ppEstimado}</span>
                   </div>
                   {h.feedback && <p className="text-gold/60 text-[9px] mt-1 italic">💡 {h.feedback}</p>}
                 </div>

@@ -173,15 +173,26 @@ export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, s
   if (!def) return ''
   const modAttr = getAttrValue(attrs, def.danoBaseMod, skeletonPoints, raceContext)
   const mod = getModifier(modAttr)
-  let base = `${def.danoBase} ${mod >= 0 ? '+' : ''}${mod}`
+  const parts = [`${def.danoBase} ${mod >= 0 ? '+' : ''}${mod}`]
   const n = nivel || 1
   const tp = triagemPrincipal || ''; const tn = triagemPrincipalNivel || 0
   const st = subTriagem || '';       const sn = subTriagemNivel || 0
+
   if ((tp === 'COMBATE' && tn >= 0.2) || (st === 'COMBATE' && sn >= 0.2)) {
     const bonus = Math.floor(n / 10)
-    if (bonus > 0) base += ` +${bonus}d6+${bonus * 5}`
+    if (bonus > 0) parts.push(`+${bonus}d6+${bonus * 5}`)
   }
-  return base
+  if ((tp === 'ATIRADOR' && tn >= 0.2) || (st === 'ATIRADOR' && sn >= 0.2)) {
+    const int = getAttrValue(attrs, 'INT', skeletonPoints, raceContext)
+    parts.push(`+${int} (INT)`)
+  }
+  if ((tp === 'TÉCNICO' && tn >= 0.1) || (st === 'TÉCNICO' && sn >= 0.1)) {
+    const allAttrs = ['FOR','DES','CON','INT','APA','AM'].map(a => getAttrValue(attrs, a, skeletonPoints, raceContext))
+    const maior = Math.max(...allAttrs)
+    parts.push(`+${maior} (maior attr)`)
+  }
+
+  return parts.join(' ')
 }
 
 export function calcSkeletonPointsAvailable(classe, nivel, choices) {

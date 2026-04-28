@@ -374,8 +374,6 @@ function AdminSheetView({ sheet }) {
                   {h.custoEnergia > 0 && <span className="text-sky-400 font-mono">⚡{h.custoEnergia}</span>}
                   {h.dano && <span className="text-red-400 font-mono">⚔{h.dano}</span>}
                   {h.duracao && <span className="text-amber-400">⏱{h.duracao}</span>}
-                  <span className="text-purple-400/60 font-mono">SCP:{h.camadaSCP || 2}</span>
-                  <span className="text-gold/60 font-mono">PP:{h.ppEstimado || 0}</span>
                 </div>
               </div>
             ))}
@@ -935,7 +933,7 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
               </div>
               <textarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })}
                 rows={2} className="w-full bg-deep border border-sep rounded px-2 py-1 text-xs text-txt-main resize-none" placeholder="Descrição da habilidade..." />
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-txt-dim/50 text-[9px]">Energia</label>
                   <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) })}
@@ -950,18 +948,6 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
                   <label className="text-txt-dim/50 text-[9px]">Duração</label>
                   <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })}
                     className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main" />
-                </div>
-                <div>
-                  <label className="text-txt-dim/50 text-[9px]">SCP</label>
-                  <select value={h.camadaSCP || 2} onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })}
-                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main">
-                    <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-txt-dim/50 text-[9px]">PP</label>
-                  <input type="number" value={h.ppEstimado || 0} onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) })}
-                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
                 </div>
               </div>
             </div>

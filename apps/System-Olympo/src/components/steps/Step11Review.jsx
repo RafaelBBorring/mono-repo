@@ -690,12 +690,6 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
                     Duração: {h.duracao}
                   </span>
                 )}
-                <span className="bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded border border-purple-500/20">
-                  SCP: {h.camadaSCP || 2}
-                </span>
-                <span className="bg-gold/10 text-gold px-2.5 py-1 rounded border border-gold/20">
-                  PP: {h.ppEstimado || 0}
-                </span>
               </div>
             </>
           ) : (
@@ -710,7 +704,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
                 <AutoResizeTextarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })} placeholder="Descrição..."
                   className="w-full bg-void border border-sep/50 rounded px-3 py-2 text-sm text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors leading-relaxed overflow-hidden" />
               </div>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-sky-400 text-xs font-semibold block mb-1">Energia</label>
                   <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
@@ -722,14 +716,6 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade }) {
                 <div>
                   <label className="text-amber-400 text-xs font-semibold block mb-1">Duração</label>
                   <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-purple-400 text-xs font-semibold block mb-1">SCP</label>
-                  <select value={h.camadaSCP || 2} onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none"><option value={1}>1</option><option value={2}>2</option><option value={3}>3</option></select>
-                </div>
-                <div>
-                  <label className="text-gold text-xs font-semibold block mb-1">PP</label>
-                  <input type="number" value={h.ppEstimado || 0} onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
                 </div>
               </div>
             </>

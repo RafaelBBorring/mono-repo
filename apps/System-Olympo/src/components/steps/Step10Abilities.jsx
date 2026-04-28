@@ -361,7 +361,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
               </div>
 
               {/* Campos numéricos */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-txt-dim text-xs mb-1">Custo Energia</label>
                   <input
@@ -392,27 +392,6 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
                     onChange={e => updateHabilidade(i, { duracao: e.target.value })}
                     placeholder="ex: 3 rodadas"
                     className="w-full bg-void border border-sep rounded px-3 py-2 text-sm text-txt-main"
-                  />
-                </div>
-                <div>
-                  <label className="block text-txt-dim text-xs mb-1">Camada SCP</label>
-                  <select
-                    value={hab.camadaSCP}
-                    onChange={e => updateHabilidade(i, { camadaSCP: Number(e.target.value) })}
-                    className="w-full bg-void border border-sep rounded px-3 py-2 text-sm text-txt-main"
-                  >
-                    <option value={1}>1 — Base</option>
-                    <option value={2}>2 — Tático</option>
-                    <option value={3}>3 — Épico</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-txt-dim text-xs mb-1">PP Estimado</label>
-                  <input
-                    type="number"
-                    value={hab.ppEstimado}
-                    onChange={e => updateHabilidade(i, { ppEstimado: Number(e.target.value) || 0 })}
-                    className="w-full bg-void border border-sep rounded px-3 py-2 text-sm text-txt-main font-mono"
                   />
                 </div>
               </div>

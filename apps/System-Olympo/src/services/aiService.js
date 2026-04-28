@@ -28,9 +28,13 @@ async function callAI(messages) {
     body: { messages, temperature: 0.35, max_tokens: 4096 },
   })
   if (error) {
-    throw new Error(`API Error: ${error.message || JSON.stringify(error)}`)
+    const msg = error.message || error.msg || error.details || JSON.stringify(error)
+    throw new Error(`Erro na API de IA: ${msg}`)
   }
-  return data.choices?.[0]?.message?.content || ''
+  if (!data) throw new Error('A API de IA não retornou dados. Verifique a Edge Function openrouter-chat.')
+  const content = data.choices?.[0]?.message?.content
+  if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
+  return content
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
