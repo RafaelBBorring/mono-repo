@@ -524,24 +524,11 @@ export default function CharacterWorkspace({ char, update, onBack }) {
             </button>
           ))}
           <div className="board-tool-divider" />
-          <div className="board-sec-dropdown-wrap">
-            <button onClick={() => setShowSecMenu(v => !v)} className={`board-tool-btn ${showSecMenu ? 'is-active' : ''}`}
+            <button onClick={() => setShowSecMenu(true)} className="board-tool-btn"
               style={{ borderColor: 'rgba(196,144,62,0.4)', background: 'rgba(196,144,62,0.08)' }}>
               <span className="board-tool-icon">+</span>
               <span className="board-tool-label">Adicionar Seção</span>
             </button>
-            {showSecMenu && (
-              <div className="board-sec-dropdown">
-                {SECTIONS.map(s => (
-                  <button key={s.type} onClick={() => addSection(s.type)} className="board-sec-opt">
-                    <span>{s.icon}</span>
-                    <strong>{s.title}</strong>
-                    <small>{s.desc}</small>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
         <div className="board-top-right">
           <button onClick={() => setViewport(v => ({ ...v, zoom: Math.max(0.08, v.zoom / 1.2) }))} className="board-zoom-btn">−</button>
@@ -680,6 +667,27 @@ export default function CharacterWorkspace({ char, update, onBack }) {
           )}
         </div>
       </div>
+
+      {showSecMenu && (
+        <div className="board-sec-modal-bg" onClick={() => setShowSecMenu(false)}>
+          <div className="board-sec-modal" onClick={e => e.stopPropagation()}>
+            <div className="board-sec-modal-header">
+              <h3 className="font-cinzel text-gold text-lg">Adicionar Seção ao Quadro</h3>
+              <button onClick={() => setShowSecMenu(false)} className="board-sec-modal-close">✕</button>
+            </div>
+            <p className="board-sec-modal-desc">Selecione uma seção da ficha para fixar no quadro. O conteúdo é gerado automaticamente.</p>
+            <div className="board-sec-modal-grid">
+              {SECTIONS.map(s => (
+                <button key={s.type} onClick={() => addSection(s.type)} className="board-sec-modal-card">
+                  <span className="board-sec-modal-icon">{s.icon}</span>
+                  <strong className="board-sec-modal-title">{s.title}</strong>
+                  <small className="board-sec-modal-desc-inner">{s.desc}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedItem && (
         <div className="board-props-panel">
