@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { getSupabaseAdmin } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
@@ -553,8 +553,49 @@ function AdminSheetView({ sheet }) {
   )
 }
 
+function SectionCard({ id, icon, title, color, children, rightSlot }) {
+  return (
+    <section
+      id={`section-${id}`}
+      className="bg-gradient-to-br from-deep/95 to-deep/70 backdrop-blur-sm border border-sep/30 rounded-xl overflow-hidden shadow-lg shadow-black/20 transition-all duration-300 hover:shadow-xl hover:shadow-black/30 hover:border-sep/50"
+    >
+      <div className="flex items-center gap-2.5 px-5 py-3 border-b border-sep/15 bg-gradient-to-r from-void/50 via-void/30 to-transparent">
+        <div className={`w-1.5 h-5 rounded-full shrink-0 ${color}`} />
+        <span className="text-txt-dim text-sm shrink-0">{icon}</span>
+        <h3 className="font-cinzel text-txt-main text-[11px] uppercase tracking-[0.15em] font-semibold whitespace-nowrap">{title}</h3>
+        <div className="flex-1 h-px bg-gradient-to-r from-sep/40 to-transparent" />
+        {rightSlot}
+      </div>
+      <div className="p-5 space-y-3.5">
+        {children}
+      </div>
+    </section>
+  )
+}
+
 function FullSheetEditor({ sheet, onSave, onCancel }) {
   const [data, setData] = useState(JSON.parse(JSON.stringify(sheet.data || {})))
+  const [activeSection, setActiveSection] = useState('identidade')
+
+  const SECTIONS = [
+    { id: 'identidade', label: 'Identidade', icon: '👤', color: 'bg-gold' },
+    { id: 'atributos', label: 'Atributos', icon: '📊', color: 'bg-amber-400' },
+    { id: 'recursos', label: 'Recursos', icon: '💎', color: 'bg-emerald-400' },
+    { id: 'triagens', label: 'Triagens', icon: '★', color: 'bg-purple-400' },
+    { id: 'pericias', label: 'Perícias', icon: '📜', color: 'bg-cyan-400' },
+    { id: 'arma', label: 'Arma', icon: '⚔', color: 'bg-red-400' },
+    { id: 'arteMarcial', label: 'Arte Marcial', icon: '👊', color: 'bg-orange-400' },
+    { id: 'modulos', label: 'Módulos', icon: '⚙', color: 'bg-yellow-400' },
+    { id: 'habilidades', label: 'Habilidades', icon: '✦', color: 'bg-indigo-400' },
+    { id: 'inventario', label: 'Inventário', icon: '🎒', color: 'bg-teal-400' },
+    { id: 'notas', label: 'Notas', icon: '📝', color: 'bg-gray-400' },
+    { id: 'json', label: 'JSON', icon: '{ }', color: 'bg-sep' },
+  ]
+
+  function scrollTo(id) {
+    setActiveSection(id)
+    document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   function up(path, value) {
     setData(prev => {
@@ -685,327 +726,344 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
   const sk = data.skeletonPoints || {}
 
   return (
-    <div className="space-y-5">
-      <h4 className="font-cinzel text-gold text-sm">Editando: {sheet.name}</h4>
-
-      {/* IDENTIDADE */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Identidade</h5>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Nome</label>
-            <input type="text" value={data.nome || ''} onChange={e => up('nome', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main" />
-          </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Raça</label>
-            <select value={data.raca || ''} onChange={e => up('raca', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              <option value="">—</option>
-              {RACAS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Classe</label>
-            <select value={data.classe || ''} onChange={e => up('classe', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              <option value="">—</option>
-              {CLASSES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Nível</label>
-            <input type="number" value={data.nivel || 1} onChange={e => up('nivel', Number(e.target.value) || 1)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main" />
-          </div>
+    <div className="flex gap-5">
+      <aside className="w-[180px] shrink-0 sticky top-2 self-start max-h-[calc(100vh-4rem)] overflow-y-auto py-3 pr-2 space-y-0.5">
+        <div className="px-3 mb-4">
+          <div className="font-cinzel text-gold text-[11px] uppercase tracking-[0.2em] mb-1">Editor</div>
+          <div className="text-txt-dim/40 text-[9px] truncate">{sheet.name}</div>
         </div>
-        <div>
-          <label className="text-txt-dim/60 text-[10px] uppercase">Avatar URL</label>
-          <input type="text" value={data.avatar || ''} onChange={e => up('avatar', e.target.value)}
-            className="w-full bg-void border border-sep rounded px-2 py-1.5 text-xs text-txt-main" />
+        {SECTIONS.map(s => (
+          <button
+            key={s.id}
+            onClick={() => scrollTo(s.id)}
+            className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center gap-2.5 transition-all duration-200 group ${
+              activeSection === s.id
+                ? 'bg-gold/10 text-gold border border-gold/20 shadow-sm shadow-gold/5'
+                : 'text-txt-dim hover:text-txt-main hover:bg-void/40 border border-transparent'
+            }`}
+          >
+            <span className={`w-1 h-4 rounded-full transition-all duration-200 ${activeSection === s.id ? s.color : 'bg-sep/40 group-hover:bg-sep/60'}`} />
+            <span className="text-[11px]">{s.icon}</span>
+            <span className="truncate text-[11px]">{s.label}</span>
+          </button>
+        ))}
+        <div className="pt-4 mt-4 border-t border-sep/20 space-y-2 px-1">
+          <button
+            onClick={() => onSave({ ...sheet, data })}
+            className="w-full bg-gold text-void text-[11px] px-3 py-2 rounded-lg font-semibold hover:bg-gold-light transition-colors shadow-md shadow-gold/10"
+          >
+            Salvar Alterações
+          </button>
+          <button
+            onClick={onCancel}
+            className="w-full text-txt-dim text-[11px] px-3 py-2 rounded-lg border border-sep/30 hover:text-txt-main hover:border-sep/50 transition-colors"
+          >
+            Cancelar
+          </button>
         </div>
-      </div>
+      </aside>
 
-      {/* ATRIBUTOS */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Atributos & Pontos de Esqueleto</h5>
-        <div className="grid grid-cols-6 gap-2">
-          {['FOR','DES','CON','INT','APA','AM'].map(a => (
-            <div key={a} className="text-center space-y-1">
-              <span className="text-txt-dim text-[10px] block">{a}</span>
-              <input type="number" value={attrs[a] || 0} onChange={e => updateAttr(a, e.target.value)}
-                className="w-full bg-void border border-sep rounded px-1 py-1 text-sm text-txt-main font-mono text-center" />
-              <input type="number" value={sk[a] || 0} onChange={e => updateSk(a, e.target.value)}
-                className="w-full bg-void border border-gold/20 rounded px-1 py-0.5 text-[10px] text-gold/80 font-mono text-center" placeholder="SK" />
+      <div className="flex-1 min-w-0 space-y-4 pb-6">
+
+        <SectionCard id="identidade" icon="👤" title="Identidade" color="bg-gold">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Nome</label>
+              <input type="text" value={data.nome || ''} onChange={e => up('nome', e.target.value)} className="admin-input" />
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* RECURSOS (Vida / Energia / PE) */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Recursos — Bônus Manual (Mestre)</h5>
-        <p className="text-txt-dim/50 text-[10px]">Valores somados ao total calculado. Use para conceder +vida, +energia ou +PE extras ao personagem.</p>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <label className="text-red-400 text-[10px] uppercase block mb-1">+ Vida</label>
-            <input type="number" value={data.vidaBonus || 0}
-              onChange={e => up('vidaBonus', Number(e.target.value) || 0)}
-              className="w-full bg-void border border-red-400/30 rounded px-2 py-1.5 text-lg text-red-400 font-mono text-center" />
-          </div>
-          <div className="text-center">
-            <label className="text-sky-400 text-[10px] uppercase block mb-1">+ Energia</label>
-            <input type="number" value={data.energiaBonus || 0}
-              onChange={e => up('energiaBonus', Number(e.target.value) || 0)}
-              className="w-full bg-void border border-sky-400/30 rounded px-2 py-1.5 text-lg text-sky-400 font-mono text-center" />
-          </div>
-          <div className="text-center">
-            <label className="text-amber-400 text-[10px] uppercase block mb-1">+ PE</label>
-            <input type="number" value={data.peBonus || 0}
-              onChange={e => up('peBonus', Number(e.target.value) || 0)}
-              className="w-full bg-void border border-amber-400/30 rounded px-2 py-1.5 text-lg text-amber-400 font-mono text-center" />
-          </div>
-        </div>
-      </div>
-
-      {/* TRIAGENS */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Triagens</h5>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Principal</label>
-            <select value={data.triagemPrincipal || ''} onChange={e => up('triagemPrincipal', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              <option value="">—</option>
-              {getAllTriagemOptions().map(t => <option key={t.id} value={t.id}>{t.name} ({t.classKey})</option>)}
-            </select>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Raça</label>
+              <select value={data.raca || ''} onChange={e => up('raca', e.target.value)} className="admin-input">
+                <option value="">—</option>
+                {RACAS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Classe</label>
+              <select value={data.classe || ''} onChange={e => up('classe', e.target.value)} className="admin-input">
+                <option value="">—</option>
+                {CLASSES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Nível</label>
+              <input type="number" value={data.nivel || 1} onChange={e => up('nivel', Number(e.target.value) || 1)} className="admin-input" />
+            </div>
           </div>
           <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Nível Triagem</label>
-            <input type="number" step="0.1" value={data.triagemPrincipalNivel || 0} onChange={e => up('triagemPrincipalNivel', Number(e.target.value))}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main" />
+            <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Avatar URL</label>
+            <input type="text" value={data.avatar || ''} onChange={e => up('avatar', e.target.value)} className="admin-input text-xs" />
           </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Sub-Triagem</label>
-            <select value={data.subTriagem || ''} onChange={e => up('subTriagem', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              <option value="">—</option>
-              {getAllTriagemOptions().map(t => <option key={t.id} value={t.id}>{t.name} ({t.classKey})</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Nível Sub-Triagem</label>
-            <input type="number" step="0.1" value={data.subTriagemNivel || 0} onChange={e => up('subTriagemNivel', Number(e.target.value))}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main" />
-          </div>
-        </div>
-      </div>
-
-      {/* PERÍCIAS */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Perícias</h5>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
-          {PERICIAS.map(p => {
-            const grau = (data.pericias || {})[p.name] || 0
-            return (
-              <div key={p.name} className="flex items-center gap-1.5 bg-void/50 border border-sep/30 rounded px-2 py-1">
-                <span className="text-txt-dim text-xs flex-1 truncate">{p.name}</span>
-                <select value={grau} onChange={e => updatePericia(p.name, Number(e.target.value))}
-                  className="bg-void border border-sep rounded px-1 py-0.5 text-[10px] text-txt-main">
-                  {[0,1,2,3,4].map(g => <option key={g} value={g}>{g === 0 ? '—' : GRAU_NAMES[g]}</option>)}
-                </select>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ARMA */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Arma</h5>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Tipo</label>
-            <select value={data.arma || ''} onChange={e => up('arma', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              <option value="">— Nenhuma —</option>
-              {WEAPONS.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Rank</label>
-            <select value={data.armaRank || 'Comum'} onChange={e => up('armaRank', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              {WEAPON_RANKS.map(r => <option key={r.rank} value={r.rank}>{r.rank}</option>)}
-            </select>
-          </div>
-        </div>
-        {(data.armaHabilidades || []).length > 0 && (
-          <div className="space-y-2 mt-2">
-            <h6 className="text-txt-dim/60 text-[10px] uppercase">Habilidades da Arma</h6>
-            {(data.armaHabilidades || []).map((h, i) => (
-              <div key={i} className="bg-void/50 border border-sep/30 rounded p-2 space-y-1.5">
-                <div className="flex gap-2">
-                  <input type="text" value={h.nome || ''} onChange={e => updateArmaHab(i, { nome: e.target.value })}
-                    placeholder="Nome" className="flex-1 bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main" />
-                  <select value={h.potencia || 'Fraca'} onChange={e => updateArmaHab(i, { potencia: e.target.value })}
-                    className="bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main">
-                    {Object.entries(WEAPON_ABILITY_COST).map(([l,c]) => <option key={l} value={l}>{l} ({c})</option>)}
-                  </select>
-                  <select value={h.tipo || 'Ativa'} onChange={e => updateArmaHab(i, { tipo: e.target.value })}
-                    className="bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main">
-                    <option>Ativa</option><option>Passiva</option>
-                  </select>
-                  <button onClick={() => setData(prev => ({ ...prev, armaHabilidades: prev.armaHabilidades.filter((_, j) => j !== i) }))}
-                    className="text-err/60 hover:text-err text-xs px-1">✕</button>
-                </div>
-                <textarea value={h.descricao || ''} onChange={e => updateArmaHab(i, { descricao: e.target.value })}
-                  rows={2} placeholder="Descrição..." className="w-full bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main resize-none" />
-                <input type="text" value={h.custo || ''} onChange={e => updateArmaHab(i, { custo: e.target.value })}
-                  placeholder="Custo" className="w-full bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main" />
+        </SectionCard>
+        <SectionCard id="atributos" icon="📊" title="Atributos & Pontos de Esqueleto" color="bg-amber-400">
+          <div className="grid grid-cols-6 gap-2.5">
+            {['FOR','DES','CON','INT','APA','AM'].map(a => (
+              <div key={a} className="text-center space-y-1.5 bg-void/40 border border-sep/20 rounded-lg p-2.5 hover:border-gold/20 transition-colors">
+                <span className="text-txt-dim text-[10px] block font-cinzel tracking-wider">{a}</span>
+                <input type="number" value={attrs[a] || 0} onChange={e => updateAttr(a, e.target.value)}
+                  className="w-full bg-void/80 border border-sep/40 rounded-md px-1 py-1.5 text-sm text-txt-main font-mono text-center focus:border-gold/40 focus:outline-none transition-colors" />
+                <input type="number" value={sk[a] || 0} onChange={e => updateSk(a, e.target.value)}
+                  className="w-full bg-void/80 border border-gold/20 rounded-md px-1 py-1 text-[10px] text-gold/80 font-mono text-center focus:border-gold/40 focus:outline-none transition-colors" placeholder="SK" />
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </SectionCard>
 
-      {/* ARTE MARCIAL */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Arte Marcial</h5>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Estilo</label>
-            <select value={data.arteMarcial || ''} onChange={e => up('arteMarcial', e.target.value)}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              <option value="">— Nenhuma —</option>
-              {MARTIAL_ARTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+        <SectionCard id="recursos" icon="💎" title="Recursos — Bônus Manual (Mestre)" color="bg-emerald-400">
+          <p className="text-txt-dim/50 text-[10px] leading-relaxed">Valores somados ao total calculado. Use para conceder extras ao personagem.</p>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center bg-void/40 border border-red-400/15 rounded-lg p-3 hover:border-red-400/30 transition-colors">
+              <label className="text-red-400 text-[10px] uppercase tracking-wider block mb-2 font-semibold">+ Vida</label>
+              <input type="number" value={data.vidaBonus || 0}
+                onChange={e => up('vidaBonus', Number(e.target.value) || 0)}
+                className="w-full bg-void/80 border border-red-400/20 rounded-lg px-2 py-2 text-xl text-red-400 font-mono text-center focus:border-red-400/50 focus:outline-none transition-colors" />
+            </div>
+            <div className="text-center bg-void/40 border border-sky-400/15 rounded-lg p-3 hover:border-sky-400/30 transition-colors">
+              <label className="text-sky-400 text-[10px] uppercase tracking-wider block mb-2 font-semibold">+ Energia</label>
+              <input type="number" value={data.energiaBonus || 0}
+                onChange={e => up('energiaBonus', Number(e.target.value) || 0)}
+                className="w-full bg-void/80 border border-sky-400/20 rounded-lg px-2 py-2 text-xl text-sky-400 font-mono text-center focus:border-sky-400/50 focus:outline-none transition-colors" />
+            </div>
+            <div className="text-center bg-void/40 border border-amber-400/15 rounded-lg p-3 hover:border-amber-400/30 transition-colors">
+              <label className="text-amber-400 text-[10px] uppercase tracking-wider block mb-2 font-semibold">+ PE</label>
+              <input type="number" value={data.peBonus || 0}
+                onChange={e => up('peBonus', Number(e.target.value) || 0)}
+                className="w-full bg-void/80 border border-amber-400/20 rounded-lg px-2 py-2 text-xl text-amber-400 font-mono text-center focus:border-amber-400/50 focus:outline-none transition-colors" />
+            </div>
           </div>
-          <div>
-            <label className="text-txt-dim/60 text-[10px] uppercase">Grau</label>
-            <select value={data.arteMarcialGrau || 0} onChange={e => up('arteMarcialGrau', Number(e.target.value))}
-              className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main">
-              {GRAU_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
+        </SectionCard>
 
-      {/* MÓDULOS */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Módulos</h5>
-        {(data.modulosAdquiridos || []).map((m, i) => (
-          <div key={i} className="flex gap-2 items-center">
-            <input type="text" value={m.id || ''} onChange={e => updateModulo(i, { id: e.target.value })}
-              placeholder="ID do módulo" className="flex-1 bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main" />
-            <input type="number" value={m.boughtCount || 1} onChange={e => updateModulo(i, { boughtCount: Number(e.target.value) || 1 })}
-              className="w-16 bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main text-center" />
-            <button onClick={() => removeModulo(i)} className="text-err/60 hover:text-err text-xs px-1">✕</button>
+        <SectionCard id="triagens" icon="★" title="Triagens" color="bg-purple-400">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Principal</label>
+              <select value={data.triagemPrincipal || ''} onChange={e => up('triagemPrincipal', e.target.value)} className="admin-input">
+                <option value="">—</option>
+                {getAllTriagemOptions().map(t => <option key={t.id} value={t.id}>{t.name} ({t.classKey})</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Nível Triagem</label>
+              <input type="number" step="0.1" value={data.triagemPrincipalNivel || 0} onChange={e => up('triagemPrincipalNivel', Number(e.target.value))} className="admin-input" />
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Sub-Triagem</label>
+              <select value={data.subTriagem || ''} onChange={e => up('subTriagem', e.target.value)} className="admin-input">
+                <option value="">—</option>
+                {getAllTriagemOptions().map(t => <option key={t.id} value={t.id}>{t.name} ({t.classKey})</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Nível Sub-Triagem</label>
+              <input type="number" step="0.1" value={data.subTriagemNivel || 0} onChange={e => up('subTriagemNivel', Number(e.target.value))} className="admin-input" />
+            </div>
           </div>
-        ))}
-        <button onClick={addModulo} className="text-gold/60 hover:text-gold text-xs">+ Módulo</button>
-      </div>
+        </SectionCard>
 
-      {/* HABILIDADES */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Habilidades ({(data.habilidades || []).length})</h5>
-          <div className="flex gap-1">
-            <button onClick={() => addHabilidade('Passiva')} className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded hover:bg-emerald-500/20 transition-colors">+ Passiva</button>
-            <button onClick={() => addHabilidade('Ativa')} className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded hover:bg-sky-500/20 transition-colors">+ Ativa</button>
-            <button onClick={() => addHabilidade('Ultimate')} className="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded hover:bg-purple-500/20 transition-colors">+ Ultimate</button>
-            <button onClick={() => addHabilidade('Extra (Triagem)')} className="text-[10px] bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded hover:bg-gold/20 transition-colors">+ Extra</button>
+        <SectionCard id="pericias" icon="📜" title="Perícias" color="bg-cyan-400">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+            {PERICIAS.map(p => {
+              const grau = (data.pericias || {})[p.name] || 0
+              return (
+                <div key={p.name} className="flex items-center gap-1.5 bg-void/40 border border-sep/20 rounded-lg px-2.5 py-1.5 hover:border-cyan-400/20 transition-colors">
+                  <span className="text-txt-dim text-xs flex-1 truncate">{p.name}</span>
+                  <select value={grau} onChange={e => updatePericia(p.name, Number(e.target.value))}
+                    className="bg-void/80 border border-sep/30 rounded px-1.5 py-0.5 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none">
+                    {[0,1,2,3,4].map(g => <option key={g} value={g}>{g === 0 ? '—' : GRAU_NAMES[g]}</option>)}
+                  </select>
+                </div>
+              )
+            })}
           </div>
-        </div>
-        {(data.habilidades || []).length === 0 && (
-          <p className="text-txt-dim/40 text-xs italic">Nenhuma habilidade. Use os botões acima para adicionar.</p>
-        )}
-        <div className="space-y-2">
-          {(data.habilidades || []).map((h, i) => (
-            <div key={i} className={`bg-void/50 rounded-lg p-3 space-y-2 border ${
-              h.tipo === 'Passiva' ? 'border-emerald-500/20' :
-              h.tipo === 'Ultimate' ? 'border-purple-500/20' :
-              h.tipo === 'Extra (Triagem)' || h.tipo === 'Extra (Módulo)' ? 'border-gold/20' :
-              'border-sep/30'
-            }`}>
-              <div className="flex gap-2">
-                <select value={h.tipo || ''} onChange={e => updateHabilidade(i, { tipo: e.target.value })}
-                  className="bg-deep border border-sep rounded px-1 py-1 text-[10px] text-txt-main w-24">
-                  <option value="Passiva">Passiva</option>
-                  <option value="Ativa">Ativa</option>
-                  <option value="Ultimate">Ultimate</option>
-                  <option value="Extra (Triagem)">Extra (Triagem)</option>
-                  <option value="Extra (Módulo)">Extra (Módulo)</option>
-                </select>
-                <input type="text" value={h.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })}
-                  className="flex-1 bg-deep border border-sep rounded px-2 py-1 text-sm text-txt-main" placeholder="Nome da habilidade" />
-                <select value={h.status || 'Pendente'} onChange={e => updateHabilidade(i, { status: e.target.value })}
-                  className={`bg-deep border border-sep rounded px-2 py-1 text-xs ${STATUS_COLORS_ADMIN[h.status] || 'text-txt-dim'}`}>
-                  {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <button onClick={() => removeHabilidade(i)} className="text-err/50 hover:text-err text-sm px-1 transition-colors" title="Remover habilidade">✕</button>
-              </div>
-              <textarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })}
-                rows={2} className="w-full bg-deep border border-sep rounded px-2 py-1 text-xs text-txt-main resize-none" placeholder="Descrição da habilidade..." />
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="text-txt-dim/50 text-[9px]">Energia</label>
-                  <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) })}
-                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
+        </SectionCard>
+
+        <SectionCard id="arma" icon="⚔" title="Arma" color="bg-red-400">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Tipo</label>
+              <select value={data.arma || ''} onChange={e => up('arma', e.target.value)} className="admin-input">
+                <option value="">— Nenhuma —</option>
+                {WEAPONS.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Rank</label>
+              <select value={data.armaRank || 'Comum'} onChange={e => up('armaRank', e.target.value)} className="admin-input">
+                {WEAPON_RANKS.map(r => <option key={r.rank} value={r.rank}>{r.rank}</option>)}
+              </select>
+            </div>
+          </div>
+          {(data.armaHabilidades || []).length > 0 && (
+            <div className="space-y-2 mt-2">
+              <h6 className="text-txt-dim/60 text-[10px] uppercase tracking-wider">Habilidades da Arma</h6>
+              {(data.armaHabilidades || []).map((h, i) => (
+                <div key={i} className="bg-void/40 border border-sep/20 rounded-lg p-3 space-y-2 hover:border-red-400/20 transition-colors">
+                  <div className="flex gap-2">
+                    <input type="text" value={h.nome || ''} onChange={e => updateArmaHab(i, { nome: e.target.value })}
+                      placeholder="Nome" className="flex-1 admin-input text-xs" />
+                    <select value={h.potencia || 'Fraca'} onChange={e => updateArmaHab(i, { potencia: e.target.value })}
+                      className="admin-input text-xs w-28">
+                      {Object.entries(WEAPON_ABILITY_COST).map(([l,c]) => <option key={l} value={l}>{l} ({c})</option>)}
+                    </select>
+                    <select value={h.tipo || 'Ativa'} onChange={e => updateArmaHab(i, { tipo: e.target.value })}
+                      className="admin-input text-xs w-24">
+                      <option>Ativa</option><option>Passiva</option>
+                    </select>
+                    <button onClick={() => setData(prev => ({ ...prev, armaHabilidades: prev.armaHabilidades.filter((_, j) => j !== i) }))}
+                      className="text-err/60 hover:text-err text-xs px-2 transition-colors">✕</button>
+                  </div>
+                  <textarea value={h.descricao || ''} onChange={e => updateArmaHab(i, { descricao: e.target.value })}
+                    rows={2} placeholder="Descrição..." className="admin-input text-xs resize-none" />
+                  <input type="text" value={h.custo || ''} onChange={e => updateArmaHab(i, { custo: e.target.value })}
+                    placeholder="Custo" className="admin-input text-xs" />
                 </div>
-                <div>
-                  <label className="text-txt-dim/50 text-[9px]">Dano</label>
-                  <input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })}
-                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main font-mono" />
-                </div>
-                <div>
-                  <label className="text-txt-dim/50 text-[9px]">Duração</label>
-                  <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })}
-                    className="w-full bg-deep border border-sep rounded px-1 py-0.5 text-xs text-txt-main" />
-                </div>
-              </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard id="arteMarcial" icon="👊" title="Arte Marcial" color="bg-orange-400">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Estilo</label>
+              <select value={data.arteMarcial || ''} onChange={e => up('arteMarcial', e.target.value)} className="admin-input">
+                <option value="">— Nenhuma —</option>
+                {MARTIAL_ARTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-txt-dim/60 text-[9px] uppercase tracking-wider block mb-1.5">Grau</label>
+              <select value={data.arteMarcialGrau || 0} onChange={e => up('arteMarcialGrau', Number(e.target.value))} className="admin-input">
+                {GRAU_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
+              </select>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard id="modulos" icon="⚙" title="Módulos" color="bg-yellow-400">
+          {(data.modulosAdquiridos || []).map((m, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input type="text" value={m.id || ''} onChange={e => updateModulo(i, { id: e.target.value })}
+                placeholder="ID do módulo" className="flex-1 admin-input text-xs" />
+              <input type="number" value={m.boughtCount || 1} onChange={e => updateModulo(i, { boughtCount: Number(e.target.value) || 1 })}
+                className="w-16 admin-input text-xs text-center" />
+              <button onClick={() => removeModulo(i)} className="text-err/60 hover:text-err text-xs px-2 transition-colors">✕</button>
             </div>
           ))}
-        </div>
-      </div>
+          <button onClick={addModulo} className="text-gold/60 hover:text-gold text-xs transition-colors">+ Módulo</button>
+        </SectionCard>
 
-      {/* INVENTÁRIO */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Inventário</h5>
-        {(data.inventario || []).map((item, i) => (
-          <div key={i} className="flex gap-2 items-start">
-            <input type="text" value={item.nome || ''} onChange={e => updateInvItem(i, { nome: e.target.value })}
-              placeholder="Nome" className="flex-1 bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main" />
-            <input type="number" value={item.quantidade || 1} onChange={e => updateInvItem(i, { quantidade: Number(e.target.value) || 1 })}
-              className="w-14 bg-void border border-sep rounded px-2 py-1 text-xs text-txt-main text-center" />
-            <button onClick={() => removeInvItem(i)} className="text-err/60 hover:text-err text-xs px-1 mt-1">✕</button>
+        <SectionCard
+          id="habilidades"
+          icon="✦"
+          title={'Habilidades (' + (data.habilidades || []).length + ')'}
+          color="bg-indigo-400"
+          rightSlot={
+            <div className="flex gap-1">
+              <button onClick={() => addHabilidade('Passiva')} className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded hover:bg-emerald-500/20 transition-colors">+ Passiva</button>
+              <button onClick={() => addHabilidade('Ativa')} className="text-[9px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded hover:bg-sky-500/20 transition-colors">+ Ativa</button>
+              <button onClick={() => addHabilidade('Ultimate')} className="text-[9px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded hover:bg-purple-500/20 transition-colors">+ Ultimate</button>
+              <button onClick={() => addHabilidade('Extra (Triagem)')} className="text-[9px] bg-gold/10 text-gold border border-gold/20 px-2 py-0.5 rounded hover:bg-gold/20 transition-colors">+ Extra</button>
+            </div>
+          }
+        >
+          {(data.habilidades || []).length === 0 && (
+            <p className="text-txt-dim/40 text-xs italic">Nenhuma habilidade. Use os botões acima para adicionar.</p>
+          )}
+          <div className="space-y-2">
+            {(data.habilidades || []).map((h, i) => {
+              const typeBorder = h.tipo === 'Passiva' ? 'border-emerald-500/30 hover:border-emerald-500/50'
+                : h.tipo === 'Ultimate' ? 'border-purple-500/30 hover:border-purple-500/50'
+                : h.tipo === 'Extra (Triagem)' || h.tipo === 'Extra (Módulo)' ? 'border-gold/30 hover:border-gold/50'
+                : 'border-sky-500/30 hover:border-sky-500/50'
+              const typeBg = h.tipo === 'Passiva' ? 'bg-emerald-500/5'
+                : h.tipo === 'Ultimate' ? 'bg-purple-500/5'
+                : h.tipo === 'Extra (Triagem)' || h.tipo === 'Extra (Módulo)' ? 'bg-gold/5'
+                : 'bg-sky-500/5'
+              return (
+                <div key={i} className={'rounded-xl p-3.5 space-y-2.5 border transition-all duration-200 backdrop-blur-sm ' + typeBorder + ' ' + typeBg}>
+                  <div className="flex gap-2 items-center">
+                    <select value={h.tipo || ''} onChange={e => updateHabilidade(i, { tipo: e.target.value })}
+                      className="admin-input !py-1 !px-2 !text-[10px] w-28">
+                      <option value="Passiva">Passiva</option>
+                      <option value="Ativa">Ativa</option>
+                      <option value="Ultimate">Ultimate</option>
+                      <option value="Extra (Triagem)">Extra (Triagem)</option>
+                      <option value="Extra (Módulo)">Extra (Módulo)</option>
+                    </select>
+                    <input type="text" value={h.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })}
+                      className="flex-1 admin-input !py-1 !text-sm" placeholder="Nome da habilidade" />
+                    <select value={h.status || 'Pendente'} onChange={e => updateHabilidade(i, { status: e.target.value })}
+                      className={'admin-input !py-1 !px-2 !text-xs w-36 ' + (STATUS_COLORS_ADMIN[h.status] || 'text-txt-dim')}>
+                      {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                    <button onClick={() => removeHabilidade(i)} className="text-err/50 hover:text-err text-sm px-2 transition-colors" title="Remover habilidade">✕</button>
+                  </div>
+                  <textarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })}
+                    rows={2} className="admin-input !text-xs resize-none" placeholder="Descrição da habilidade..." />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-txt-dim/50 text-[9px] uppercase tracking-wider block mb-1">Energia</label>
+                      <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) })}
+                        className="admin-input !text-xs !py-1 font-mono text-center" />
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/50 text-[9px] uppercase tracking-wider block mb-1">Dano</label>
+                      <input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })}
+                        className="admin-input !text-xs !py-1 font-mono text-center" />
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/50 text-[9px] uppercase tracking-wider block mb-1">Duração</label>
+                      <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })}
+                        className="admin-input !text-xs !py-1 text-center" />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-        ))}
-        <button onClick={addInvItem} className="text-gold/60 hover:text-gold text-xs">+ Item</button>
-      </div>
+        </SectionCard>
+        <SectionCard id="inventario" icon="🎒" title="Inventário" color="bg-teal-400">
+          {(data.inventario || []).map((item, i) => (
+            <div key={i} className="flex gap-2 items-start">
+              <input type="text" value={item.nome || ''} onChange={e => updateInvItem(i, { nome: e.target.value })}
+                placeholder="Nome" className="flex-1 admin-input text-xs" />
+              <input type="number" value={item.quantidade || 1} onChange={e => updateInvItem(i, { quantidade: Number(e.target.value) || 1 })}
+                className="w-16 admin-input text-xs text-center" />
+              <button onClick={() => removeInvItem(i)} className="text-err/60 hover:text-err text-xs px-2 mt-2 transition-colors">✕</button>
+            </div>
+          ))}
+          <button onClick={addInvItem} className="text-gold/60 hover:text-gold text-xs transition-colors">+ Item</button>
+        </SectionCard>
 
-      {/* NOTAS */}
-      <div className="bg-void/30 border border-sep/40 rounded-lg p-4 space-y-3">
-        <h5 className="text-gold/80 text-xs uppercase tracking-wider font-semibold">Notas</h5>
-        <textarea value={data.notas || ''} onChange={e => up('notas', e.target.value)}
-          rows={4} className="w-full bg-void border border-sep rounded px-2 py-1.5 text-sm text-txt-main resize-none" />
-      </div>
+        <SectionCard id="notas" icon="📝" title="Notas" color="bg-gray-400">
+          <textarea value={data.notas || ''} onChange={e => up('notas', e.target.value)}
+            rows={4} className="admin-input text-sm resize-none" />
+        </SectionCard>
 
-      {/* JSON BRUTO */}
-      <details className="bg-void/30 border border-sep/40 rounded-lg">
-        <summary className="p-3 text-txt-dim/50 text-xs cursor-pointer hover:text-txt-dim">Ver JSON bruto</summary>
-        <pre className="p-3 text-[9px] text-txt-dim/70 overflow-x-auto max-h-60 overflow-y-auto">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </details>
+        <details id="section-json" className="bg-gradient-to-br from-deep/95 to-deep/70 backdrop-blur-sm border border-sep/30 rounded-xl overflow-hidden shadow-lg shadow-black/20 transition-all duration-300 hover:border-sep/50">
+          <summary className="flex items-center gap-2.5 px-5 py-3 border-b border-sep/15 bg-gradient-to-r from-void/50 via-void/30 to-transparent cursor-pointer hover:bg-void/20 transition-colors list-none">
+            <div className="w-1.5 h-5 rounded-full shrink-0 bg-sep" />
+            <span className="text-txt-dim text-sm">{'{ }'}</span>
+            <h3 className="font-cinzel text-txt-dim text-[11px] uppercase tracking-[0.15em] font-semibold whitespace-nowrap">JSON Bruto</h3>
+            <div className="flex-1 h-px bg-gradient-to-r from-sep/40 to-transparent" />
+            <span className="text-txt-dim/30 text-[10px]">▼</span>
+          </summary>
+          <div className="p-5">
+            <pre className="text-[9px] text-txt-dim/70 overflow-x-auto max-h-60 overflow-y-auto bg-void/60 rounded-lg p-4 border border-sep/20">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </div>
+        </details>
 
-      <div className="flex gap-2 pt-2 border-t border-sep/30">
-        <button onClick={() => onSave({ ...sheet, data })} className="bg-gold text-void text-xs px-4 py-1.5 rounded font-semibold hover:bg-gold-light transition-colors">
-          Salvar Alterações
-        </button>
-        <button onClick={onCancel} className="text-txt-dim text-xs px-3 py-1.5 hover:text-txt-main transition-colors">
-          Cancelar
-        </button>
+        <div className="flex gap-3 pt-2 border-t border-sep/20">
+          <button onClick={() => onSave({ ...sheet, data })} className="bg-gold text-void text-xs px-5 py-2 rounded-lg font-semibold hover:bg-gold-light transition-colors shadow-md shadow-gold/10">
+            Salvar Alterações
+          </button>
+          <button onClick={onCancel} className="text-txt-dim text-xs px-4 py-2 rounded-lg border border-sep/30 hover:text-txt-main hover:border-sep/50 transition-colors">
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   )

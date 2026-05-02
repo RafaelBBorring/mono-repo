@@ -186,18 +186,21 @@ function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
 }
 
 function FullSheetViewer({ sheetId, onBack }) {
-  const { user } = useAuth()
+  const { user, profile, isAdmin } = useAuth()
   const [sheet, setSheet] = useState(null)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [showRaceEvolve, setShowRaceEvolve] = useState(false)
   const [mode, setMode] = useState('sheet')
+  const [saveError, setSaveError] = useState('')
+
+  const client = isAdmin ? getSupabaseAdmin() : supabase
 
   useEffect(() => {
     if (sheetId) loadSheet()
   }, [sheetId])
 
   async function loadSheet() {
-    const { data, error } = await supabase.from('characters').select('*').eq('id', sheetId).single()
+    const { data, error } = await client.from('characters').select('*').eq('id', sheetId).single()
     if (error || !data) {
       setSheet(null)
     } else {
@@ -210,13 +213,18 @@ function FullSheetViewer({ sheetId, onBack }) {
   const debouncedSave = useCallback((s) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
-      const { error } = await supabase.from('characters').update({
+      const { error } = await client.from('characters').update({
         name: s.data?.nome || s.name || 'Sem Nome',
         data: s.data,
       }).eq('id', s.id)
-      if (error) console.error('Erro ao salvar ficha:', error.message)
+      if (error) {
+        console.error('Erro ao salvar ficha:', error.message)
+        setSaveError('Falha ao salvar: ' + error.message)
+      } else {
+        setSaveError('')
+      }
     }, 600)
-  }, [])
+  }, [client])
 
   const update = useCallback((patch) => {
     setSheet(prev => {
@@ -237,11 +245,16 @@ function FullSheetViewer({ sheetId, onBack }) {
   }, [debouncedSave])
 
   async function saveSheet(s) {
-    const { error } = await supabase.from('characters').update({
+    const { error } = await client.from('characters').update({
       name: s.data?.nome || s.name || 'Sem Nome',
       data: s.data,
     }).eq('id', s.id)
-    if (error) console.error('Erro ao salvar ficha:', error.message)
+    if (error) {
+      console.error('Erro ao salvar ficha:', error.message)
+      setSaveError('Falha ao salvar: ' + error.message)
+    } else {
+      setSaveError('')
+    }
   }
 
   function handleLevelUp(newData) {
@@ -299,6 +312,11 @@ function FullSheetViewer({ sheetId, onBack }) {
           )}
         </div>
       </div>
+      {saveError && (
+        <div className="bg-red-500/15 border border-red-500/40 text-red-300 px-4 py-2 rounded text-sm">
+          {saveError}
+        </div>
+      )}
       <Step11Review
         char={char}
         update={update}
@@ -307,6 +325,7 @@ function FullSheetViewer({ sheetId, onBack }) {
         onEdit={onBack}
         onNew={() => {}}
         characterId={sheet.id}
+        normalizeAbilities={false}
       />
       {showLevelUp && (
         <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
@@ -341,6 +360,10 @@ function AppInner() {
   useEffect(() => {
     if (user && profile) loadSheets()
   }, [user, profile])
+
+  useEffect(() => {
+    if (view === 'library' && user && profile) loadSheets()
+  }, [view])
 
   useEffect(() => {
     const wentBack = currentStep < prevStepRef.current

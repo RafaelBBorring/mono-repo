@@ -21,13 +21,51 @@ serve(async (req) => {
       )
     }
 
-    const { messages, temperature, max_tokens } = await req.json()
+    const { messages, temperature, max_tokens, stream } = await req.json()
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Messages array is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
+    }
+
+    const body: Record<string, unknown> = {
+      model: 'google/gemini-2.0-flash-001',
+      messages,
+      temperature: temperature ?? 0.35,
+      max_tokens: max_tokens ?? 4096,
+    }
+
+    if (stream) {
+      body.stream = true
+      const response = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://system-olympo.vercel.app',
+          'X-Title': 'System Olympo 2.0',
+        },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        return new Response(
+          JSON.stringify({ error: err.error?.message || `OpenRouter error: ${response.status}` }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      return new Response(response.body, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
     }
 
     const response = await fetch(OPENROUTER_URL, {
@@ -38,12 +76,7 @@ serve(async (req) => {
         'HTTP-Referer': 'https://system-olympo.vercel.app',
         'X-Title': 'System Olympo 2.0',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
-        messages,
-        temperature: temperature ?? 0.35,
-        max_tokens: max_tokens ?? 4096,
-      }),
+      body: JSON.stringify(body),
     })
 
     const data = await response.json()

@@ -12,7 +12,7 @@ import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus, getSelectedSubr
 import { RACES, RACE_CATEGORIES } from '../../data/races'
 import InventorySection from '../InventorySection'
 import EquipmentSection from '../EquipmentSection'
-import BalanceAnalysis from '../BalanceAnalysis'
+import AbilityAnalysisChat from '../AbilityAnalysisChat'
 import AlchemyLibrarySection from '../AlchemyLibrarySection'
 import SpellLibrarySection from '../SpellLibrarySection'
 import RuneLibrarySection from '../RuneLibrarySection'
@@ -56,8 +56,8 @@ function mergeBonuses(items) {
   }, { ataque: 0, ca: 0, vida: 0, energia: 0, dano: 0 })
 }
 
-export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId }) {
-  return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} characterId={characterId} />
+export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities = true }) {
+  return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} characterId={characterId} normalizeAbilities={normalizeAbilities} />
 }
 
 function SectionHeader({ icon, title, color }) {
@@ -71,7 +71,7 @@ function SectionHeader({ icon, title, color }) {
   )
 }
 
-function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId }) {
+function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities }) {
   const sk = char.skeletonPoints || {}
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
   const totalAttr = (a) => adjustedAttrs[a] || 0
@@ -86,7 +86,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const allTipos = ['Passiva', 'Ativa', 'Ativa', 'Ativa', 'Ultimate', ...extraTypes]
 
   useEffect(() => {
-    if (!update) return
+    if (!update || !normalizeAbilities) return
     const raw = char.habilidades || []
     if (raw.length !== neededAbilities) {
       const copy = [...raw]
@@ -188,7 +188,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
           habs[h.index] = {
             ...habs[h.index],
             ...(h.nome && { nome: h.nome }),
-            ...(h.descricao && { descricao: h.descricao }),
+            ...(h.descricaoBalanceada && { descricao: h.descricaoBalanceada }),
+            ...(!h.descricaoBalanceada && h.descricao && { descricao: h.descricao }),
             ...(h.custoEnergia != null && { custoEnergia: h.custoEnergia }),
             ...(h.dano != null && { dano: h.dano }),
             ...(h.duracao != null && { duracao: h.duracao }),
@@ -207,7 +208,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
           arHabs[h.index] = {
             ...arHabs[h.index],
             ...(h.nome && { nome: h.nome }),
-            ...(h.descricao && { descricao: h.descricao }),
+            ...(h.descricaoBalanceada && { descricao: h.descricaoBalanceada }),
+            ...(!h.descricaoBalanceada && h.descricao && { descricao: h.descricao }),
             ...(h.tipo && { tipo: h.tipo }),
             ...(h.custo && { custo: h.custo }),
           }
@@ -507,7 +509,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* BALANCE ANALYSIS */}
-              <BalanceAnalysis char={char} onApply={handleBalanceApply} characterId={characterId} />
+              <AbilityAnalysisChat char={char} onApply={handleBalanceApply} characterId={characterId} />
 
               {/* HABILIDADES */}
               <section>

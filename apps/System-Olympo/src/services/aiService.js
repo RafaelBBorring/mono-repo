@@ -107,6 +107,94 @@ async function callAI(messages) {
   throw new Error('Falha após múltiplas tentativas. Tente novamente em alguns segundos.')
 }
 
+async function callAIStream(messages, onChunk) {
+  const body = { messages, temperature: 0.35, max_tokens: 4096, stream: true }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('openrouter-chat', {
+      body,
+    })
+    if (error) throw error
+
+    if (data && typeof data === 'object' && data.choices) {
+      const content = data.choices?.[0]?.message?.content || ''
+      if (onChunk) onChunk(content)
+      return content
+    }
+
+    if (typeof data === 'string') {
+      let full = ''
+      const lines = data.split('\n')
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const raw = line.slice(6).trim()
+          if (raw === '[DONE]') break
+          try {
+            const parsed = JSON.parse(raw)
+            const delta = parsed.choices?.[0]?.delta?.content || ''
+            if (delta) {
+              full += delta
+              if (onChunk) onChunk(delta, full)
+            }
+          } catch {}
+        }
+      }
+      return full
+    }
+
+    return typeof data === 'string' ? data : ''
+  } catch (edgeErr) {
+    if (!OPENROUTER_API_KEY) throw edgeErr
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'System Olympo 2.0',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages,
+        temperature: 0.35,
+        max_tokens: 4096,
+        stream: true,
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(`OpenRouter ${response.status}: ${err.error?.message || 'Erro desconhecido'}`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let full = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value, { stream: true })
+      const lines = chunk.split('\n')
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const raw = line.slice(6).trim()
+          if (raw === '[DONE]') break
+          try {
+            const parsed = JSON.parse(raw)
+            const delta = parsed.choices?.[0]?.delta?.content || ''
+            if (delta) {
+              full += delta
+              if (onChunk) onChunk(delta, full)
+            }
+          } catch {}
+        }
+      }
+    }
+    return full
+  }
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function getLevelBand(nivel) {
@@ -204,7 +292,7 @@ function computeCharStats(char) {
       AM:  totalAttr('AM'),  modAM:  mod('AM'),
     },
     vidaTotal, energiaTotal, peTotal, caBase, reacoes,
-    danoBase, ataqueBase: `d20+${ataqueBase}`,
+    danoBase, ataqueBaseNum: ataqueBase, ataqueBase: `d20+${ataqueBase}`,
     armaDanoBonus, armaSlots,
     triagem: `${char.triagemPrincipal || 'N/A'} (Nv ${char.triagemPrincipalNivel || 0}) | Sub: ${char.subTriagem || 'N/A'} (Nv ${char.subTriagemNivel || 0})`,
     triagemAmps: getTriagemAmplifiers(char),
@@ -221,8 +309,8 @@ PROTOCOLO DE EXPANSÃO ÉPICA OLYMPO (Secao 14)
 Você receberá fichas com VALORES CALCULADOS REAIS. Analise SEMPRE com base neles.
 
 PRINCÍPIO FUNDAMENTAL — RESPEITO AO JOGADOR:
-1. NUNCA altere a descrição narrativa da habilidade. O jogador escreveu com propósito.
-2. Se o jogador já atribuiu valores (dano, energia, duração), ANALISE esses valores e ajuste APENAS os números se necessário, mantendo a estrutura e o texto original.
+1. NUNCA altere a estrutura narrativa ou reescreva a descrição da habilidade. O jogador escreveu com propósito.
+2. Se o jogador já atribuiu valores (dano, energia, duração), ANALISE esses valores e ajuste APENAS os números se necessário, mantendo a estrutura e o texto original. Os valores numéricos dentro da descrição TAMBÉM devem ser balanceados.
 3. Habilidades complexas com múltiplos sub-efeitos (ex: passiva que concede 3 benefícios) são NORMAIS. Analise cada sub-efeito separadamente e some os PP.
 4. Interprete descrições narrativas: "alta velocidade" pode ser Vantagem, "ataque garantido" ignora teste de ataque, etc.
 5. Personagens de NÍVEL ALTO devem ter habilidades PODEROSAS. Nunca empobreça um N25-30. O TDH é um TETO, não uma meta a reduzir.
@@ -265,6 +353,34 @@ Ativa Média: N1-7:6 | N8-15:7 | N16-22:8 | N23-30:10
 Ativa Forte: N1-7:8 | N8-15:10 | N16-22:12 | N23-30:14
 Ultimate: N1-7:10 | N8-15:13 | N16-22:16 | N23-30:20
 
+LCP — LIMITE CUMULATIVO DE PODER (Secao 14.6):
+CRÍTICO: Analise TODAS as habilidades JUNTAS. O ORÁCULO deve SOMAR todos os bônus de todas as habilidades e garantir que o TOTAL não exceda os limites abaixo. Cada habilidade NÃO é analisada isoladamente — o ACÚMULO é o que importa.
+
+Limites TOTAIS (Base da ficha + soma de TODAS as habilidades) por faixa de nível:
+
+Bônus Total no dado de ATAQUE (d20+X):
+N1-7: máximo +18 | N8-15: máximo +26 | N16-22: máximo +30 | N23-30: máximo +42
+
+Bônus Total no dado de ESQUIVA/DEFESA (d20+X):
+N1-7: máximo +18 | N8-15: máximo +26 | N16-22: máximo +30 | N23-30: máximo +42
+
+Bônus Total de CA (soma de todas as habilidades):
+N1-7: máximo +4 | N8-15: máximo +6 | N16-22: máximo +6 | N23-30: máximo +10
+
+Ataques Extras Totais (soma de todas as habilidades):
+N1-7: máximo +1 | N8-15: máximo +1 | N16-22: máximo +1 | N23-30: máximo +2
+
+REGRA DE CÁLCULO CUMULATIVO:
+1. Pegue o valor BASE da ficha (ex: Ataque Base = d20+22).
+2. SOMA todos os bônus de ATAQUE de TODAS as habilidades (passivas + ativas + buff).
+3. Se BASE + SOMA > LIMITE DA FAIXA, REDUZA os bônus individuais até caber no limite.
+4. Priorize manter a identidade da habilidade — reduza bônus numéricos antes de remover efeitos.
+5. Bônus temporários (1-2 rodadas) com custo alto de Energia ou condição difícil podem exceder o limite em até +5, mas NUNCA mais que isso.
+6. Bônus passivos permanentos SEM custo devem ser mais conservadores.
+7. Se uma habilidade concede Vantagem em ataques, isso NÃO soma como número, mas conta como 4PP.
+
+EXEMPLO PRÁTICO: Personagem N16 com Ataque Base d20+22. Limite N16-22 = +30. Todas as habilidades juntas podem dar NO MÁXIMO +8 de bônus acumulado no ataque. Se três habilidades concedem +5 cada, o total seria +15 → excederia o limite. Reduza proporcionalmente para +8 total.
+
 CALIBRAÇÃO HP ESPERADO:
 N5: 140-210 | N10: 250-380 | N15: 380-560 | N20: 520-760 | N25: 700-980 | N30: 950-1350
 
@@ -281,7 +397,14 @@ REGRAS DE BALANCEAMENTO:
 10. CDs de resistencia: base 14-16 para N1-10, 18-22 para N11-20, 22-28 para N21-30.
 11. Habilidades com condições (ex: "se atingir 2 disparos", "se em desvantagem numérica") são mais difíceis de ativar e podem ter valores mais altos que o teto do bracket — considere a dificuldade de ativação.
 12. Para passivas complexas com múltiplos sub-efeitos: some os PP de cada sub-efeito e verifique se o total está dentro do limite da passiva para a faixa.
-13. NUNCA reescreva a descrição. Mantenha EXATAMENTE o texto original do jogador. Apenas ajuste os campos numericos (custoEnergia, dano, duracao).
+13. REGRAS DE BALANCEAMENTO DA DESCRIÇÃO: A descrição do jogador contém os valores REAIS das mecânicas. Você DEVE:
+    a) Preservar a estrutura narrativa e o texto do jogador — não reescreva, não reformule.
+    b) Identificar TODOS os valores numéricos mecânicos na descrição (bônus de ataque, esquiva, CA, dano, vida, energia, dados, etc.).
+    c) Substituir APENAS os valores numéricos pelos valores balanceados, mantendo o texto ao redor idêntico.
+    d) Retornar o campo "descricaoBalanceada" com a descrição ORIGINAL mas com os números atualizados.
+    e) Se a descrição contém bônus cumulativos com custo (ex: "+10 no Ataque (-20 de Vida: +15 no Ataque)"), balanceie AMBOS os valores proporcionalmente.
+    f) NUNCA adicione efeitos que não existiam. NUNCA remova efeitos. Apenas ajuste os números.
+    g) Exemplo: se o jogador escreveu "+10 no Ataque" e o balanceamento indica +6, a descrição balanceada fica "+6 no Ataque".
 
 Responda SEMPRE em JSON válido, sem markdown, sem code blocks.`
 }
@@ -299,7 +422,7 @@ FICHA CALCULADA REAL DO PERSONAGEM:
 Nome: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nível: ${stats.nivel} | Faixa: ${stats.band} | Raça: ${char.raca || 'N/A'} (${char.racaTipo || 'N/A'})
 Atributos: FOR ${stats.atributos.FOR}(Mod${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(Mod${stats.atributos.modDES}) | CON ${stats.atributos.CON}(Mod${stats.atributos.modCON}) | INT ${stats.atributos.INT}(Mod${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(Mod${stats.atributos.modAM})
 Vida Total: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase} | Reações: ${stats.reacoes}
-Dano Base de Classe: ${stats.danoBase} | Bônus Arma (${char.armaRank}): ${stats.armaDanoBonus} | Ataque Base: ${stats.ataqueBase}
+Dano Base de Classe: ${stats.danoBase} | Bônus Arma (${char.armaRank}): ${stats.armaDanoBonus} | Ataque Base: ${stats.ataqueBase} (valor numérico: +${stats.ataqueBaseNum})
 DANO TOTAL BASE (sem habilidades): ${stats.danoBase} + ${stats.armaDanoBonus}
 PEH Total disponível: ${pehTotal} | PEH gasto: ${pehSpent} | PEH restante: ${pehTotal - pehSpent}
 Triagens: ${stats.triagem}
@@ -307,6 +430,15 @@ Amplificadores de Triagem: ${stats.triagemAmps}
 Amplificadores de Módulo: ${stats.moduleAmps}
 Módulos: ${(char.modulosAdquiridos || []).map(m => m.id || m).join(', ') || 'Nenhum'}
 Perícias: ${Object.entries(char.pericias || {}).filter(([,v]) => v > 0).map(([k,v]) => `${k}(grau${v})`).join(', ') || 'Nenhuma'}
+
+VALORES BASE PARA CÁLCULO LCP:
+- Ataque Base numérico: +${stats.ataqueBaseNum}
+- CA Base: ${stats.caBase}
+- Limite LCP Ataque para ${stats.band}: ${stats.band === 'N1-7' ? '+18' : stats.band === 'N8-15' ? '+26' : stats.band === 'N16-22' ? '+30' : '+42'}
+- Limite LCP Esquiva para ${stats.band}: ${stats.band === 'N1-7' ? '+18' : stats.band === 'N8-15' ? '+26' : stats.band === 'N16-22' ? '+30' : '+42'}
+- Limite LCP CA bônus para ${stats.band}: ${stats.band === 'N1-7' ? '+4' : stats.band === 'N8-15' ? '+6' : stats.band === 'N16-22' ? '+6' : '+10'}
+- Limite LCP Ataques Extras para ${stats.band}: ${stats.band === 'N1-7' ? '+1' : stats.band === 'N8-15' ? '+1' : stats.band === 'N16-22' ? '+1' : '+2'}
+- Bônus MÁXIMO de habilidades no Ataque: ${(() => { const cap = stats.band === 'N1-7' ? 18 : stats.band === 'N8-15' ? 26 : stats.band === 'N16-22' ? 30 : 42; return '+' + (cap - stats.ataqueBaseNum); })()}
 `
 
   const habilidadesData = (char.habilidades || []).map((h, i) => {
@@ -337,7 +469,7 @@ ${JSON.stringify(habilidadesData, null, 2)}
 HABILIDADES DA ARMA:
 ${JSON.stringify(armaHabs, null, 2)}
 
-INSTRUÇÕES CRÍTICAS:
+  INSTRUÇÕES CRÍTICAS:
 - Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
 - O dano da habilidade é EXTRA ao dano base+arma+atributo que o personagem já possui.
 - PEH Total: ${pehTotal} | Gasto: ${pehSpent}. Habilidades com evolucaoNivel > 0 receberam INVESTIMENTO do jogador e devem ser proporcionais.
@@ -346,17 +478,29 @@ INSTRUÇÕES CRÍTICAS:
 - Habilidades com condições de ativação difíceis (ex: "precisa acertar 2 disparos primeiro") podem ter valores maiores que o teto do bracket.
 - Respeite o NÍVEL do personagem. Um N${stats.nivel} DEVE ter habilidades impactantes. Não empobreça personagens de nível alto.
 
+VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP — Seção 14.6):
+ANTES de responder, VOCÊ DEVE:
+1. Listar TODOS os bônus de ataque de todas as habilidades. Somar: ${stats.ataqueBaseNum} (base) + TOTAL_BONUS_HABILIDADES. Se > limite da faixa, REDUZA.
+2. Listar TODOS os bônus de esquiva/defesa de todas as habilidades. Mesma verificação.
+3. Listar TODOS os bônus de CA de todas as habilidades. Verificar contra limite CA da faixa.
+4. Listar TODOS os ataques extras de todas as habilidades. Verificar contra limite de ataques extras.
+5. Se o jogador descreveu bônus narrativos como "+10 no Ataque", "+5 na Esquiva", "+8 CA" etc., esses SÃO bônus numéricos que contam para o LCP.
+6. No campo "feedback" de cada habilidade, INCLUA a verificação: "Soma cumulativa de bônus de [ataque/esquiva/CA]: +X (base +Y, limite da faixa +Z)".
+
+Esta verificação é OBRIGATÓRIA. Personagens que acumulam bônus absurdos de múltiplas habilidades precisam ser balanceados GLOBALMENTE, não habilidade por habilidade.
+
 Responda EXCLUSIVAMENTE com JSON:
 {
   "habilidades": [
     {
       "index": 0,
       "nome": "mantenha o nome original",
-      "descricao": "MANTEHA EXATAMENTE a descrição original do jogador, palavra por palavra. NUNCA reescreva.",
+      "descricao": "MANTEHA EXATAMENTE a descrição original do jogador, palavra por palavra, sem alterações.",
+      "descricaoBalanceada": "A MESMA descrição do jogador, mas com TODOS os valores numéricos mecânicos substituídos pelos valores balanceados. Preserve estrutura, formatação e narrativa — apenas troque os números.",
       "custoEnergia": numero_ajustado,
       "dano": "XdY+MOD ajustado ou vazio",
       "duracao": "X rodadas ajustado ou vazio",
-      "feedback": "explique: 1) o que analisou 2) se ajustou valores e por quê 3) referência ao TDH/PEH/bracket"
+      "feedback": "explique: 1) o que analisou 2) quais valores na descrição foram alterados (antes→depois) 3) referência ao TDH/PEH/bracket/LCP"
     }
   ],
   "armaHabilidades": [
@@ -364,6 +508,7 @@ Responda EXCLUSIVAMENTE com JSON:
       "index": 0,
       "nome": "mantenha o nome",
       "descricao": "MANTEHA a descrição original. Apenas ajuste valores numéricos se necessário.",
+      "descricaoBalanceada": "Descrição com valores numéricos atualizados, preservando narrativa.",
       "tipo": "Ativa ou Passiva",
       "custo": "custo ajustado",
       "feedback": "explicação"
@@ -635,4 +780,64 @@ export async function analyzeRuneDraft(draft, context = {}) {
 
 export async function analyzeMagicDraft(draft, context = {}) {
   return analyzeMysticDraft('magic', draft, context)
+}
+
+export async function chatAboutAbility(char, userMessage, history = []) {
+  const stats = computeCharStats(char)
+  const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [])
+  const pehSpent = calcPEHSpent(char.habilidades)
+
+  const LCP_CAPS = { 'N1-7': { atk: 18, def: 18, ca: 4, extra: 1 }, 'N8-15': { atk: 26, def: 26, ca: 6, extra: 1 }, 'N16-22': { atk: 30, def: 30, ca: 6, extra: 1 }, 'N23-30': { atk: 42, def: 42, ca: 10, extra: 2 } }
+  const lcp = LCP_CAPS[stats.band] || LCP_CAPS['N16-22']
+  const remainingAtk = Math.max(0, lcp.atk - stats.ataqueBaseNum)
+
+  const charContext = `
+PERSONAGEM: ${char.nome || 'Sem Nome'} | ${char.raca || 'N/A'} (${char.racaTipo || '?'}) | ${char.classe || '?'} | Nível ${stats.nivel} | Faixa ${stats.band}
+Atributos: FOR ${stats.atributos.FOR}(+${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(+${stats.atributos.modDES}) | CON ${stats.atributos.CON}(+${stats.atributos.modCON}) | INT ${stats.atributos.INT}(+${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(+${stats.atributos.modAM})
+Vida: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase}
+Ataque Base: d20+${stats.ataqueBaseNum} | Dano Base: ${stats.danoBase} | Arma Bônus: ${stats.armaDanoBonus}
+PEH: ${pehSpent}/${pehTotal}
+LCP — Limite cumulativo para ${stats.band}: Ataque total ≤ +${lcp.atk} | Esquiva ≤ +${lcp.def} | CA bônus ≤ +${lcp.ca} | Ataques extras ≤ +${lcp.extra}
+BUDGET RESTANTE para habilidades: +${remainingAtk} no ataque (base já é +${stats.ataqueBaseNum})
+Triagem: ${stats.triagem}
+Amplificadores Triagem: ${stats.triagemAmps}
+Amplificadores Módulo: ${stats.moduleAmps}
+
+HABILIDADES ATUAIS:
+${(char.habilidades || []).map((h, i) => `${i + 1}. [${h.tipo}] ${h.nome || '—'} — Energia:${h.custoEnergia || 0} | Dano:${h.dano || '—'} | Duração:${h.duracao || '—'} | Evo:${h.evolucaoNivel || 0} | Status:${h.status || '?'}
+   Descrição: ${h.descricao || '—'}`).join('\n')}
+${(char.armaHabilidades || []).length > 0 ? `\nHABILIDADES DA ARMA:\n${(char.armaHabilidades || []).map((h, i) => `${i + 1}. ${h.nome || '—'} — ${h.tipo || 'Ativa'} | ${h.potencia || '?'}\n   ${h.descricao || '—'}`).join('\n')}` : ''}`
+
+  const systemPrompt = `Voce e o ORÁCULO, motor de balanceamento do Sistema Olympo 2.0.
+Você está em modo CONVERSACIONAL. Responda em português de forma clara e didática.
+
+Você tem acesso completo à ficha do personagem e suas habilidades. O jogador pode:
+- Pedir análise de uma habilidade específica
+- Pedir explicação sobre balanceamento
+- Relatar problemas com valores
+- Pedir sugestões de ajuste
+
+REGRAS QUE VOCÊ DEVE SEGUIR AO ANALISAR:
+1. O personagem está na faixa ${stats.band}. Respeite os limites desta faixa.
+2. LCP (Limite Cumulativo): Ataque total (base + habilidades) NÃO pode exceder +${lcp.atk}. Base já é +${stats.ataqueBaseNum}, sobrando apenas +${remainingAtk} para TODAS as habilidades combinadas.
+3. TDH (Teto de Dano): Cada habilidade tem um teto de dano conforme tipo e faixa.
+4. Se uma habilidade concede bônus de ataque/defesa, esse bônus CONTA para o LCP.
+5. Bônus passivos permanentes devem ser CONSERVADORES (metade do budget temporário).
+6. O nível do personagem é a referência — habilidades devem ser proporcionais.
+7. Considere raça e triagens — elas já adicionam poder base.
+
+Seja direto e objetivo. Cite números e limites quando relevante.`
+
+  const chatHistory = history.slice(-6).map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content,
+  }))
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...chatHistory,
+    { role: 'user', content: `${charContext}\n\nPERGUNTA DO JOGADOR: ${userMessage}` },
+  ]
+
+  return await callAIStream(messages)
 }
