@@ -353,10 +353,24 @@ function AppInner() {
   const [validationError, setValidationError] = useState(null)
   const [sheets, setSheets] = useState([])
   const [viewingSheetId, setViewingSheetId] = useState(null)
+  const [adminTab, setAdminTab] = useState('sheets')
   const prevStepRef = useRef(0)
+  const lastUserRef = useRef(null)
 
   useEffect(() => {
     if (user && profile) loadSheets()
+  }, [user, profile])
+
+  useEffect(() => {
+    if (!user) {
+      lastUserRef.current = null
+      return
+    }
+    if (profile && lastUserRef.current !== user.id) {
+      lastUserRef.current = user.id
+      setView('home')
+      setViewingSheetId(null)
+    }
   }, [user, profile])
 
   useEffect(() => {
@@ -536,31 +550,37 @@ function AppInner() {
   const navItems = [
     { key: 'wizard', label: 'Criar' },
     { key: 'library', label: 'Personagens' },
-    { key: 'reference', label: 'Referência' },
+    { key: 'reference', label: 'Livro de Regras' },
   ]
-  if (isAdmin) navItems.push({ key: 'admin', label: 'Admin' })
+  if (isAdmin) navItems.push({ key: 'admin', label: 'Mesa do Mestre' })
 
   return (
     <div className="system-shell min-h-screen bg-void text-txt-main font-body flex flex-col">
       <ParticleBackground />
       <nav className="olympo-nav bg-deep/95 backdrop-blur border-b border-sep px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <h1 className="font-cinzel text-gold text-lg sm:text-xl tracking-wide">SISTEMA OLYMPO 2.0</h1>
+          <button
+            type="button"
+            onClick={() => { setView('home'); setViewingSheetId(null) }}
+            className="olympo-brand"
+            title="Voltar ao menu principal"
+          >
+            SISTEMA OLYMPO 2.0
+          </button>
           <span className="text-txt-dim text-xs hidden sm:inline">Olá, {profile?.display_name || user.email?.split('@')[0]}</span>
           {isAdmin && <span className="text-[9px] bg-gold/20 text-gold px-1.5 py-0.5 rounded border border-gold/30 hidden sm:inline">ADMIN</span>}
         </div>
-        <div className="flex gap-1 items-center">
-          {/* Home always visible as logo/title click */}
+        <div className="olympo-nav-actions">
           <button
             onClick={() => { setView('home'); setViewingSheetId(null) }}
-            className={`hidden sm:flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors mr-1 ${view === 'home' ? 'text-gold' : 'text-txt-dim/60 hover:text-txt-dim'}`}
-            title="Ir para o Menu Principal"
+            className={`olympo-home-button ${view === 'home' ? 'is-active' : ''}`}
+            title="Menu Principal"
           >
-            ⌂
+            Início
           </button>
           {navItems.map(v => (
             <button key={v.key} onClick={() => { setView(v.key); setViewingSheetId(null) }}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${view === v.key ? 'bg-gold text-void font-semibold' : 'text-txt-dim hover:text-txt-main'}`}>
+              className={`olympo-nav-button ${view === v.key ? 'is-active' : ''}`}>
               {v.label}
             </button>
           ))}
@@ -575,11 +595,15 @@ function AppInner() {
           <HomeMenu
             userName={profile?.display_name || user.email?.split('@')[0]}
             sheetsCount={sheets.length}
+            sheets={sheets}
             onNew={() => { handleNew(); setView('wizard') }}
             onContinue={() => setView('wizard')}
             onLibrary={() => setView('library')}
             onReference={() => setView('reference')}
+            onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
+            onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
             hasDraft={!!char.nome || !!char.classe}
+            isAdmin={isAdmin}
           />
         </main>
       ) : view === 'wizard' ? (
@@ -643,7 +667,7 @@ function AppInner() {
       ) : view === 'admin' && isAdmin ? (
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <AdminDashboard />
+            <AdminDashboard initialTab={adminTab} />
           </div>
         </main>
       ) : (

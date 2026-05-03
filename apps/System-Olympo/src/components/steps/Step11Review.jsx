@@ -363,7 +363,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
         {/* ═══ BODY ═══ */}
         <div className="p-4 sm:p-5">
-          <div className="sheet-body-grid grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className={`sheet-body-grid sheet-view-${sheetView} grid grid-cols-1 lg:grid-cols-12 gap-5`}>
 
             {/* ═══ LEFT COLUMN ═══ */}
             <div className="lg:col-span-7 space-y-5">

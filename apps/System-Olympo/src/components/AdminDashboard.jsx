@@ -1,7 +1,8 @@
 ﻿import { useState, useEffect } from 'react'
 import { getSupabaseAdmin } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS } from '../data/weapons'
+import { RANK_COLORS } from '../data/colors'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../data/martialArts'
 import { PERICIAS, GRAU_NAMES } from '../data/pericias'
 import { TRIAGES } from '../data/triages'
@@ -39,9 +40,9 @@ function findTriagem(key) {
   return null
 }
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ initialTab = 'sheets' }) {
   const { profile } = useAuth()
-  const [tab, setTab] = useState('sheets')
+  const [tab, setTab] = useState(initialTab)
   const [sheets, setSheets] = useState([])
   const [users, setUsers] = useState([])
   const [filterUser, setFilterUser] = useState('')
@@ -50,6 +51,12 @@ export default function AdminDashboard() {
   const [editingSheet, setEditingSheet] = useState(null)
 
   useEffect(() => { loadData() }, [])
+
+  useEffect(() => {
+    setTab(initialTab)
+    setExpandedSheet(null)
+    setEditingSheet(null)
+  }, [initialTab])
 
   async function loadData() {
     setLoading(true)
@@ -103,6 +110,37 @@ export default function AdminDashboard() {
     }
     setSheets(prev => prev.map(s => s.id === sheet.id ? (updated || sheet) : s))
     setEditingSheet(null)
+  }
+
+  async function handlePatch(sheet, patch) {
+    const nextData = { ...(sheet.data || {}), ...patch }
+    const payload = {
+      name: nextData.nome || sheet.name || 'Sem Nome',
+      data: nextData,
+      updated_at: new Date().toISOString(),
+    }
+    const { data: updated, error } = await getSupabaseAdmin()
+      .from('characters')
+      .update(payload)
+      .eq('id', sheet.id)
+      .select()
+      .single()
+    if (error) {
+      alert('Erro ao atualizar: ' + error.message)
+      return
+    }
+    setSheets(prev => prev.map(s => s.id === sheet.id ? (updated || sheet) : s))
+  }
+
+  async function handleAssignLegendary(sheet, legendaryId) {
+    const lw = LEGENDARY_WEAPONS.find(l => l.id === legendaryId)
+    if (!lw) return
+    const existing = sheet.data?.armasLendarias || []
+    if (existing.some(l => l.id === legendaryId)) {
+      alert('Esta arma lendária já está atribuída a este personagem.')
+      return
+    }
+    await handlePatch(sheet, { armasLendarias: [...existing, { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo }] })
   }
 
   if (loading) return <p className="text-txt-dim p-8 animate-pulse">Carregando painel admin...</p>
@@ -175,7 +213,7 @@ export default function AdminDashboard() {
                         <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} />
                       ) : (
                         <>
-                          <AdminSheetView sheet={sheet} />
+                          <AdminSheetView sheet={sheet} onPatch={handlePatch} />
                           <div className="flex gap-2 pt-2 border-t border-sep/30">
                             <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-gold/40 text-gold px-3 py-1.5 rounded hover:bg-gold hover:text-void transition-colors">
                               Editar Ficha Completa
@@ -230,7 +268,7 @@ export default function AdminDashboard() {
                         <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} />
                       ) : (
                         <>
-                          <AdminSheetView sheet={sheet} />
+                          <AdminSheetView sheet={sheet} onPatch={handlePatch} />
                           <div className="flex gap-2 pt-2 border-t border-sep/30">
                             <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-gold/40 text-gold px-3 py-1.5 rounded hover:bg-gold hover:text-void transition-colors">
                               Editar Ficha
@@ -285,7 +323,7 @@ export default function AdminDashboard() {
   )
 }
 
-function AdminSheetView({ sheet }) {
+function AdminSheetView({ sheet, onPatch }) {
   const char = sheet.data || {}
   const attrs = char.atributos || {}
   const sk = char.skeletonPoints || {}
@@ -296,6 +334,8 @@ function AdminSheetView({ sheet }) {
   const triagemDef = findTriagem(char.triagemPrincipal)
   const subTriagemDef = findTriagem(char.subTriagem)
   const periciasArr = Object.entries(char.pericias || {}).filter(([, v]) => v > 0)
+  const equipamentos = char.equipamentos || []
+  const legendaryAssigned = char.armasLendarias || []
 
   return (
     <div className="space-y-4">
@@ -321,7 +361,15 @@ function AdminSheetView({ sheet }) {
       </div>
 
       <div>
-        <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Arma</h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-txt-dim text-xs font-semibold uppercase tracking-wider">Arma Principal</h4>
+          {weapon && onPatch && (
+            <button onClick={() => onPatch(sheet, { arma: null, armaRank: 'Comum', armaHabilidades: [] })}
+              className="text-[10px] bg-err/10 text-err px-2 py-0.5 rounded border border-err/20 hover:bg-err/20 transition-colors">
+              Remover Arma
+            </button>
+          )}
+        </div>
         {weapon ? (
           <div className="bg-void/50 border border-sep/40 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -336,12 +384,22 @@ function AdminSheetView({ sheet }) {
             {(char.armaHabilidades || []).length > 0 && (
               <div className="mt-2 pt-2 border-t border-sep/20 space-y-1">
                 {(char.armaHabilidades || []).map((h, i) => (
-                  <div key={i} className="text-xs">
+                  <div key={i} className="text-xs flex items-start gap-2">
                     <span className="text-txt-main font-semibold">{h.nome || 'Hab'}</span>
-                    <span className="text-txt-dim ml-1">({h.potencia}, {h.tipo || 'Ativa'})</span>
-                    {h.descricao && <p className="text-txt-dim/70 mt-0.5">{h.descricao}</p>}
+                    <span className="text-txt-dim">({h.potencia}, {h.tipo || 'Ativa'})</span>
+                    {onPatch && (
+                      <button onClick={() => {
+                        const habs = (char.armaHabilidades || []).filter((_, j) => j !== i)
+                        onPatch(sheet, { armaHabilidades: habs })
+                      }} className="text-err/50 hover:text-err text-[10px] ml-auto shrink-0">✕</button>
+                    )}
+                    {h.descricao && <p className="text-txt-dim/70 mt-0.5 w-full">{h.descricao}</p>}
                   </div>
                 ))}
+                {onPatch && (
+                  <button onClick={() => onPatch(sheet, { armaHabilidades: [] })}
+                    className="text-[10px] text-err/50 hover:text-err mt-1">Limpar todas habilidades</button>
+                )}
               </div>
             )}
           </div>
@@ -530,14 +588,65 @@ function AdminSheetView({ sheet }) {
         </div>
       )}
 
-      {(char.equipamentos || []).length > 0 && (
+      {equipamentos.length > 0 && (
         <div>
-          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Equipamentos ({(char.equipamentos || []).length})</h4>
-          <div className="flex flex-wrap gap-1.5">
-            {(char.equipamentos || []).map((eq, i) => (
-              <span key={i} className="text-[10px] bg-orange-400/10 text-orange-400 px-2 py-0.5 rounded border border-orange-400/20">
-                {eq.nome || `Equip ${i+1}`} {eq.rank ? `(${eq.rank})` : ''}
-              </span>
+          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Equipamentos ({equipamentos.length})</h4>
+          <div className="space-y-1.5">
+            {equipamentos.map((eq, i) => {
+              const eqW = WEAPONS.find(w => w.id === eq.armaId)
+              const eqR = WEAPON_RANKS.find(r => r.rank === eq.rank) || WEAPON_RANKS[0]
+              const eqRc = RANK_COLORS[eq.rank] || RANK_COLORS.Comum
+              return (
+                <div key={eq.id || i} className={`bg-void/40 border rounded-lg px-3 py-2 ${eqRc.border}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-txt-main text-xs font-semibold">{eq.nome || `Equip ${i+1}`}</span>
+                    {eq.rank && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${eqRc.badge}`}>{eq.rank}</span>}
+                    {eq.dano && <span className="text-red-400/70 text-[10px] font-mono">{eq.dano}</span>}
+                    {onPatch && (
+                      <button onClick={() => {
+                        const next = equipamentos.filter((_, j) => j !== i)
+                        onPatch(sheet, { equipamentos: next })
+                      }} className="text-err/50 hover:text-err text-[10px] ml-auto">✕ Remover</button>
+                    )}
+                  </div>
+                  {eq.efeitos && <p className="text-txt-dim/50 text-[10px] mt-0.5">{eq.efeitos}</p>}
+                  {(eq.habilidades || []).length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {(eq.habilidades || []).map((h, hi) => (
+                        <span key={hi} className="text-[9px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{h.nome || 'Hab'} ({h.potencia})</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {onPatch && (
+              <button onClick={() => onPatch(sheet, { equipamentos: [] })}
+                className="text-[10px] text-err/50 hover:text-err mt-1">Limpar todos equipamentos</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {legendaryAssigned.length > 0 && (
+        <div>
+          <h4 className="text-amber-400 text-xs font-semibold mb-2 uppercase tracking-wider">★ Armas Lendárias Atribuídas</h4>
+          <div className="space-y-1.5">
+            {legendaryAssigned.map((lw, i) => (
+              <div key={lw.id || i} className="bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-300 text-sm">★</span>
+                  <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
+                  <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                  {onPatch && (
+                    <button onClick={() => {
+                      const next = legendaryAssigned.filter((_, j) => j !== i)
+                      onPatch(sheet, { armasLendarias: next })
+                    }} className="text-err/50 hover:text-err text-[10px] ml-auto">✕ Remover</button>
+                  )}
+                </div>
+                <p className="text-txt-dim/60 text-[10px] mt-0.5">{lw.descricao}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -588,6 +697,8 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
     { id: 'modulos', label: 'Módulos', icon: '⚙', color: 'bg-yellow-400' },
     { id: 'habilidades', label: 'Habilidades', icon: '✦', color: 'bg-indigo-400' },
     { id: 'inventario', label: 'Inventário', icon: '🎒', color: 'bg-teal-400' },
+    { id: 'equipamentos', label: 'Equipamentos', icon: '🗡', color: 'bg-orange-400' },
+    { id: 'lendarias', label: 'Lendárias', icon: '★', color: 'bg-amber-400' },
     { id: 'notas', label: 'Notas', icon: '📝', color: 'bg-gray-400' },
     { id: 'json', label: 'JSON', icon: '{ }', color: 'bg-sep' },
   ]
@@ -719,6 +830,46 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
     setData(prev => ({
       ...prev,
       inventario: [...(prev.inventario || []), { nome: '', descricao: '', quantidade: 1 }],
+    }))
+  }
+
+  function updateEquipItem(index, patch) {
+    setData(prev => {
+      const arr = [...(prev.equipamentos || [])]
+      arr[index] = { ...arr[index], ...patch }
+      return { ...prev, equipamentos: arr }
+    })
+  }
+
+  function removeEquipItem(index) {
+    setData(prev => ({
+      ...prev,
+      equipamentos: (prev.equipamentos || []).filter((_, i) => i !== index),
+    }))
+  }
+
+  function addEquipItem() {
+    setData(prev => ({
+      ...prev,
+      equipamentos: [...(prev.equipamentos || []), { id: Date.now(), nome: '', rank: 'Comum', dano: '', efeitos: '', descricao: '', categoria: 'Arma' }],
+    }))
+  }
+
+  function assignLegendary(legendaryId) {
+    const lw = LEGENDARY_WEAPONS.find(l => l.id === legendaryId)
+    if (!lw) return
+    const existing = data.armasLendarias || []
+    if (existing.some(l => l.id === legendaryId)) return
+    setData(prev => ({
+      ...prev,
+      armasLendarias: [...existing, { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo, descricao: lw.descricao }],
+    }))
+  }
+
+  function removeLegendary(index) {
+    setData(prev => ({
+      ...prev,
+      armasLendarias: (prev.armasLendarias || []).filter((_, i) => i !== index),
     }))
   }
 
@@ -1034,6 +1185,86 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
             </div>
           ))}
           <button onClick={addInvItem} className="text-gold/60 hover:text-gold text-xs transition-colors">+ Item</button>
+        </SectionCard>
+
+        <SectionCard id="equipamentos" icon="🗡" title="Equipamentos" color="bg-orange-400">
+          <p className="text-txt-dim/50 text-[10px] leading-relaxed">Equipamentos criados pelo jogador. Remova itens indesejados aqui.</p>
+          {(data.equipamentos || []).length === 0 && (
+            <p className="text-txt-dim/40 text-xs italic">Nenhum equipamento</p>
+          )}
+          {(data.equipamentos || []).map((eq, i) => {
+            const eqRc = RANK_COLORS[eq.rank] || RANK_COLORS.Comum
+            return (
+              <div key={eq.id || i} className={`rounded-lg border ${eqRc.border} bg-void/40 p-3 space-y-2`}>
+                <div className="flex items-center gap-2">
+                  <input type="text" value={eq.nome || ''} onChange={e => updateEquipItem(i, { nome: e.target.value })}
+                    className="flex-1 admin-input text-xs" placeholder="Nome" />
+                  <select value={eq.rank || 'Comum'} onChange={e => updateEquipItem(i, { rank: e.target.value })}
+                    className="admin-input text-xs w-32">
+                    {WEAPON_RANKS.map(r => <option key={r.rank} value={r.rank}>{r.rank}</option>)}
+                  </select>
+                  <button onClick={() => removeEquipItem(i)} className="text-err/60 hover:text-err text-xs px-2 transition-colors">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" value={eq.dano || ''} onChange={e => updateEquipItem(i, { dano: e.target.value })}
+                    className="admin-input text-xs" placeholder="Dano" />
+                  <input type="text" value={eq.efeitos || ''} onChange={e => updateEquipItem(i, { efeitos: e.target.value })}
+                    className="admin-input text-xs" placeholder="Efeitos" />
+                </div>
+                <textarea value={eq.descricao || ''} onChange={e => updateEquipItem(i, { descricao: e.target.value })}
+                  rows={2} placeholder="Descrição" className="admin-input text-xs resize-none" />
+                {(eq.habilidades || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {(eq.habilidades || []).map((h, hi) => (
+                      <span key={hi} className="text-[9px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{h.nome || 'Hab'} ({h.potencia})</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          {(data.equipamentos || []).length > 0 && (
+            <button onClick={() => setData(prev => ({ ...prev, equipamentos: [] }))}
+              className="text-[10px] text-err/50 hover:text-err transition-colors">Limpar todos</button>
+          )}
+        </SectionCard>
+
+        <SectionCard id="lendarias" icon="★" title="Armas Lendárias" color="bg-amber-400">
+          <p className="text-txt-dim/50 text-[10px] leading-relaxed">Atribua armas lendárias da biblioteca a este personagem. Apenas o Mestre pode conceder essas armas.</p>
+
+          {(data.armasLendarias || []).length > 0 && (
+            <div className="space-y-1.5">
+              <h6 className="text-amber-400 text-[10px] uppercase tracking-wider">Atribuídas</h6>
+              {(data.armasLendarias || []).map((lw, i) => (
+                <div key={lw.id || i} className="bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <span className="text-amber-300 text-sm">★</span>
+                  <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
+                  <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                  <button onClick={() => removeLegendary(i)} className="text-err/50 hover:text-err text-[10px] ml-auto">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <h6 className="text-txt-dim/60 text-[10px] uppercase tracking-wider">Biblioteca</h6>
+            {LEGENDARY_WEAPONS.filter(lw => !(data.armasLendarias || []).some(a => a.id === lw.id)).map(lw => (
+              <div key={lw.id} className="bg-void/40 border border-sep/20 rounded-lg px-3 py-2 flex items-center gap-2 hover:border-amber-400/30 transition-colors">
+                <span className="text-amber-400/60 text-sm">★</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
+                  <span className="text-[9px] text-txt-dim ml-1">({lw.tipo})</span>
+                </div>
+                <button onClick={() => assignLegendary(lw.id)}
+                  className="text-[10px] bg-amber-400/10 text-amber-400 px-2 py-0.5 rounded border border-amber-400/20 hover:bg-amber-400/20 transition-colors">
+                  + Atribuir
+                </button>
+              </div>
+            ))}
+            {LEGENDARY_WEAPONS.filter(lw => !(data.armasLendarias || []).some(a => a.id === lw.id)).length === 0 && (
+              <p className="text-txt-dim/40 text-[10px] italic">Todas as lendárias já foram atribuídas</p>
+            )}
+          </div>
         </SectionCard>
 
         <SectionCard id="notas" icon="📝" title="Notas" color="bg-gray-400">
