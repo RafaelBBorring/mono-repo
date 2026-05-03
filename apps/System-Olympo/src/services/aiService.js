@@ -10,7 +10,7 @@
  *  5. Considera nível de evolução de cada habilidade ao calibrar valores
  */
 
-import { WEAPONS as ALL_WEAPONS, WEAPON_RANKS as ALL_WEAPON_RANKS } from '../data/weapons'
+import { WEAPONS as ALL_WEAPONS, WEAPON_RANKS as ALL_WEAPON_RANKS, RANK_LEVEL_BAND as RANK_BAND_MAP } from '../data/weapons'
 import {
   calcVidaTotal, calcEnergiaTotal, calcPeTotal,
   calcCA, calcReacoes, calcDanoBase, calcPEHTotal,
@@ -459,6 +459,8 @@ VALORES BASE PARA CÁLCULO LCP:
     index: i, tipo: 'arma', nome: h.nome || 'Sem nome',
     descricao: h.descricao || '', potencia: h.potencia || 'Fraca',
     tipoHabilidade: h.tipo || 'Ativa', custo: h.custo || '',
+    armaRank: char.armaRank || 'Comum',
+    armaFaixa: RANK_BAND_MAP[char.armaRank] || 'N1-5',
   }))
 
   const userMessage = `${fichaCompleta}
@@ -538,23 +540,67 @@ export async function generateWeaponAbilities(char, weaponId, weaponRank, slots,
   const weaponDef = ALL_WEAPONS.find(w => w.id === weaponId)
   const weaponName = weaponDef?.name || weaponId
   const weaponDano = weaponDef?.dano || '?'
+  const weaponMec = weaponDef?.mec || ''
+  const weaponBand = RANK_BAND_MAP[weaponRank] || 'N1-7'
+
+  const existingHabs = (char.armaHabilidades || []).map((h, i) => ({
+    index: i, nome: h.nome || '', descricao: h.descricao || '', potencia: h.potencia || 'Fraca', tipo: h.tipo || 'Ativa', custo: h.custo || '',
+  }))
 
   const prompt = `
-PERSONAGEM: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nível: ${char.nivel || 1} | Faixa: ${getLevelBand(char.nivel || 1)}
-FOR ${totalAttr('FOR')}(Mod${getModifier(totalAttr('FOR'))}) | DES ${totalAttr('DES')}(Mod${getModifier(totalAttr('DES'))}) | INT ${totalAttr('INT')}(Mod${getModifier(totalAttr('INT'))}) | AM ${totalAttr('AM')}
-Triagem: ${char.triagemPrincipal || 'Nenhuma'} | Módulos: ${getModuleAmplifiers(char)}
+VOCE E O ORACULO — MOTOR DE BALANCEAMENTO DE ARMAS DO SISTEMA OLYMPO 2.0.
 
-ARMA: ${weaponName} | Dano base: ${weaponDano} | Rank: ${weaponRank}
+CONTEXTO DO BALANCEAMENTO DE ARMA:
+O nivel de referencia para balancear as habilidades da arma NAO e o nivel do personagem — e o RANK DA ARMA.
+Cada rank mapeia para uma faixa de poder equivalente a um nivel de personagem:
+- Comum → N1-5 | Incomum → N3-8 | Raro → N6-12
+- Épico → N10-16 | Heroico → N14-20 | Lendário → N18-25
+- Mítico → N22-28 | Transcendente → N26-30
+
+ARMA ATUAL: ${weaponName} | Dano base: ${weaponDano} | Mecânica: ${weaponMec}
+RANK DA ARMA: ${weaponRank} | Faixa de poder equivalente: ${weaponBand}
 Crie EXATAMENTE ${count} habilidade${count > 1 ? 's' : ''}. Total slots NAO pode exceder ${slots}.
 Slots: Fraca=1, Média=2, Forte=3.
+
+PERSONAGEM (contexto adicional): ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nível: ${char.nivel || 1}
+FOR ${totalAttr('FOR')}(Mod${getModifier(totalAttr('FOR'))}) | DES ${totalAttr('DES')}(Mod${getModifier(totalAttr('DES'))}) | INT ${totalAttr('INT')}(Mod${getModifier(totalAttr('INT'))}) | AM ${totalAttr('AM')}
+Triagem: ${char.triagemPrincipal || 'Nenhuma'} | Módulos: ${getModuleAmplifiers(char)}
 ${userDesc ? `\nDESCRIÇÃO DO JOGADOR: "${userDesc}"` : ''}
-Calibre o dano de habilidades como EXTRA ao dano base da arma. Misture Ativa e Passiva.
-Use faixa ${getLevelBand(char.nivel || 1)} do TDH como referência de poder máximo.
+
+REGRAS DE BALANCEAMENTO POR RANK DA ARMA:
+Use a faixa ${weaponBand} como referencia para o TDH e IPL:
+
+TDH (TETO DE DANO POR HABILIDADE DA ARMA):
+N1-5:  Fraca=2d6+8   | Media=3d8+12  | Forte=5d8+18
+N3-8:  Fraca=3d8+12  | Media=4d10+18 | Forte=6d10+24
+N6-12: Fraca=4d10+15 | Media=6d10+22 | Forte=8d12+30
+N10-16: Fraca=5d10+20| Media=7d12+28 | Forte=10d12+38
+N14-20: Fraca=6d12+25| Media=9d12+35 | Forte=12d12+48
+N18-25: Fraca=8d12+30| Media=10d12+42| Forte=14d12+58
+N22-28: Fraca=9d12+35| Media=12d12+48| Forte=16d12+65
+N26-30: Fraca=10d12+40|Media=14d12+55| Forte=20d12+75
+
+CUSTO DE ENERGIA: Fraca=3-10E | Media=10-25E | Forte=25-50E
+DURAÇÃO: Fraca 1-2rod | Media 2-4rod | Forte 3-6rod
+
+IMPORTANTE:
+1. O dano da habilidade e EXTRA ao dano base da arma + bônus do rank.
+2. Habilidades Passivas não devem ter custo de Energia — elas são efeitos permanentes.
+3. Habilidades devem interagir com a mecânica única da arma (${weaponMec}).
+4. Armas de rank alto (Lendário, Mítico, Transcendente) DEVEM ter habilidades poderosas.
+5. Cada habilidade DEVE ter pelo menos 1 efeito mecânico numerico mensuravel.
+6. Misture tipos Ativa e Passiva de forma criativa.
+7. O nome da habilidade deve ser tematico e combinar com o tipo de arma.
+
+${existingHabs.length > 0 ? `
+HABILIDADES EXISTENTES DA ARMA (para contexto):
+${JSON.stringify(existingHabs, null, 2)}
+` : ''}
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "habilidades": [
-    { "nome": "nome criativo", "potencia": "Fraca|Média|Forte", "tipo": "Ativa|Passiva", "custo": "custo", "descricao": "descrição com mecânicas numéricas" }
+    { "nome": "nome criativo e tematico", "potencia": "Fraca|Média|Forte", "tipo": "Ativa|Passiva", "custo": "custo em PE/Energia", "descricao": "descrição com mecânicas numéricas detalhadas e balanceadas para a faixa ${weaponBand}" }
   ]
 }`
 

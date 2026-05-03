@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: morpheus_db
+    environment:
+      POSTGRES_USER: morpheus
+      POSTGRES_PASSWORD: morpheus_dev_password_123
+      POSTGRES_DB: morpheus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U morpheus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - morpheus-network
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: morpheus_app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://morpheus:morpheus_dev_password_123@postgres:5432/morpheus
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: docker-dev-secret-change-in-production-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+      AUTH_TRUST_HOST: "true"
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - morpheus-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  morpheus-network:
+    driver: bridge

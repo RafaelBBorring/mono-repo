@@ -3,6 +3,8 @@ import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calc
 import { exportSheet } from '../../utils/exporter'
 import { ATTR_ICONS, getModifier } from '../../data/attributes'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
+import { RANK_COLORS } from '../../data/colors'
 import { calcPEHTotal } from '../../utils/calculator'
 import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket } from '../../utils/skillEvolution'
 import { PERICIAS, GRAU_NAMES, getGrauBonus } from '../../data/pericias'
@@ -10,6 +12,7 @@ import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
 import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus, getSelectedSubrace, ATTR_KEYS } from '../../utils/raceCalculator'
 import { RACES, RACE_CATEGORIES } from '../../data/races'
+import { generateWeaponAbilities } from '../../services/aiService'
 import InventorySection from '../InventorySection'
 import EquipmentSection from '../EquipmentSection'
 import AbilityAnalysisChat from '../AbilityAnalysisChat'
@@ -135,8 +138,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const pehTotal = cls ? calcPEHTotal(cls, char.nivel, char.choices, char.modulosAdquiridos) : 0
   const pehSpent = calcPEHSpent(char.habilidades)
   const pehRemaining = pehTotal - pehSpent
-
-  const martialArt = MARTIAL_ARTS.find(a => a.id === char.arteMarcial)
 
   const periciasArr = Object.entries(char.pericias || {}).filter(([, v]) => v > 0)
   const systemOptIn = char.systemsOptIn || {}
@@ -430,45 +431,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
             {/* ═══ RIGHT COLUMN ═══ */}
             <div className="lg:col-span-5 space-y-5">
 
-              {/* ARTE MARCIAL */}
-              <section>
-                <SectionHeader icon="👊" title="Arte Marcial" color="bg-orange-400" />
-                {canEdit ? (
-                  <div className="space-y-2">
-                    <select value={char.arteMarcial || ''} onChange={e => update({ arteMarcial: e.target.value || null, arteMarcialGrau: 0 })}
-                      className="w-full bg-void border border-sep/40 rounded px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none">
-                      <option value="">— Nenhuma —</option>
-                      {MARTIAL_ARTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                    {martialArt && (
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {GRAU_LABELS.map((label, gi) => {
-                          const sel = (char.arteMarcialGrau || 0) === gi
-                          return (
-                            <button key={gi} onClick={() => update({ arteMarcialGrau: gi })}
-                              className={`rounded px-2.5 py-1.5 text-[11px] border text-left transition-colors ${sel ? 'bg-orange-400/15 border-orange-400/40 text-orange-300' : 'bg-void/50 border-sep/30 text-txt-dim hover:border-orange-400/30'}`}>
-                              <div className="font-semibold">{label}</div>
-                              <div className="text-[10px] mt-0.5 opacity-70">{martialArt.graus[gi]?.desc}</div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ) : martialArt ? (
-                  <div className="bg-void/50 border border-sep/40 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-txt-main text-sm font-semibold">{martialArt.name}</span>
-                      <span className="text-[10px] bg-orange-400/10 text-orange-400 px-2 py-0.5 rounded border border-orange-400/20">
-                        {martialArt.graus[char.arteMarcialGrau || 0]?.nome || 'Novato'}
-                      </span>
-                    </div>
-                    {martialArt.desc && <p className="text-txt-dim/60 text-[10px] mt-1">{martialArt.desc}</p>}
-                  </div>
-                ) : (
-                  <p className="text-txt-dim/50 text-[11px] italic">Nenhuma arte marcial</p>
-                )}
-              </section>
+              {/* ARMAS & ARTE MARCIAL */}
+              <WeaponMartialPanel char={char} update={update} canEdit={canEdit} />
 
               {/* MÓDULOS */}
               <section>
@@ -956,6 +920,409 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
         </div>
       )}
     </div>
+  )
+}
+
+function WeaponMartialPanel({ char, update, canEdit }) {
+  const nivel = char.nivel || 1
+  const weaponLimit = getWeaponLimitForLevel(nivel)
+  const martialLimit = getMartialArtsLimitForLevel(nivel)
+  const [showWeaponSelector, setShowWeaponSelector] = useState(false)
+  const [showAIPanel, setShowAIPanel] = useState(false)
+  const [aiDesc, setAiDesc] = useState('')
+  const [genLoading, setGenLoading] = useState(false)
+  const [genError, setGenError] = useState('')
+  const [showLegendary, setShowLegendary] = useState(false)
+  const [showMartialSelector, setShowMartialSelector] = useState(false)
+
+  const selectedWeapon = WEAPONS.find(w => w.id === char.arma)
+  const selectedRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
+  const availableSlots = selectedRank.slots
+  const usedSlots = (char.armaHabilidades || []).reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+  const selectedArt = MARTIAL_ARTS.find(a => a.id === char.arteMarcial)
+  const selectedGrau = char.arteMarcialGrau || 0
+  const rc = RANK_COLORS[char.armaRank] || RANK_COLORS.Comum
+  const maxRankIdx = getRankIndex(weaponLimit.maxRank)
+
+  function handleWeaponChange(armaId) {
+    if (!canEdit) return
+    const w = WEAPONS.find(x => x.id === armaId)
+    update({ arma: armaId || null, armaRank: 'Comum', armaHabilidades: [] })
+    setShowWeaponSelector(false)
+  }
+
+  function handleRankChange(rank) {
+    if (!canEdit) return
+    if (!canEquipRank(nivel, rank)) return
+    update({ armaRank: rank, armaHabilidades: [] })
+  }
+
+  function addHabilidade(potencia) {
+    if (!canEdit) return
+    const cost = WEAPON_ABILITY_COST[potencia] || 0
+    if (usedSlots + cost > availableSlots) return
+    const arr = [...(char.armaHabilidades || []), { nome: '', potencia, descricao: '', tipo: 'Ativa', custo: '' }]
+    update({ armaHabilidades: arr })
+  }
+
+  function removeHabilidade(i) {
+    if (!canEdit) return
+    const arr = (char.armaHabilidades || []).filter((_, j) => j !== i)
+    update({ armaHabilidades: arr })
+  }
+
+  function updateHabilidade(i, patch) {
+    if (!canEdit) return
+    const arr = [...(char.armaHabilidades || [])]
+    arr[i] = { ...arr[i], ...patch }
+    update({ armaHabilidades: arr })
+  }
+
+  async function handleAIGenerate() {
+    if (!char.arma) return
+    setGenLoading(true)
+    setGenError('')
+    try {
+      const count = Math.max(1, char.armaHabilidades?.length || 1)
+      const data = await generateWeaponAbilities(char, char.arma, char.armaRank || 'Comum', availableSlots, aiDesc, count)
+      if (data.habilidades?.length) {
+        let totalSlots = 0
+        const fitting = []
+        for (const h of data.habilidades) {
+          const cost = WEAPON_ABILITY_COST[h.potencia] || 1
+          if (totalSlots + cost <= availableSlots) {
+            fitting.push({ ...h, potencia: h.potencia || 'Fraca', tipo: h.tipo || 'Ativa', custo: h.custo || '' })
+            totalSlots += cost
+          }
+        }
+        update({ armaHabilidades: fitting })
+        setShowAIPanel(false)
+        setAiDesc('')
+      }
+    } catch (err) {
+      setGenError(err.message)
+    } finally {
+      setGenLoading(false)
+    }
+  }
+
+  const SLOT_OPTIONS = Object.entries(WEAPON_ABILITY_COST)
+
+  return (
+    <section>
+      <SectionHeader icon="⚔" title="Armas e Arte Marcial" color="bg-orange-400" />
+
+      {!canEdit && !selectedWeapon && !selectedArt && (
+        <p className="text-txt-dim/50 text-[11px] italic">Nenhuma arma ou arte marcial equipada</p>
+      )}
+
+      {/* LIMITES */}
+      <div className="bg-void/60 border border-sep/30 rounded-lg p-2.5 mb-4">
+        <div className="flex flex-wrap gap-3 text-[10px]">
+          <span className="text-txt-dim">Armas: <span className="text-gold font-mono">{weaponLimit.maxWeapons}</span> (máx <span className="text-gold">{weaponLimit.maxRank}</span>)</span>
+          <span className="text-txt-dim">Artes Marciais: <span className="text-orange-400 font-mono">{martialLimit.maxArts}</span> (máx Grau <span className="text-orange-400">{GRAU_LABELS[martialLimit.maxGrau]}</span>)</span>
+        </div>
+      </div>
+
+      {/* ARMA SELECIONADA */}
+      {canEdit && (
+        <div className="space-y-3">
+          {!showWeaponSelector ? (
+            <div>
+              {selectedWeapon ? (
+                <button type="button" onClick={() => setShowWeaponSelector(true)}
+                  className={`w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.glow} p-3 text-left hover:brightness-110 transition-all`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg ${rc.badge} border flex items-center justify-center text-lg shrink-0`}>⚔</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-txt-main text-sm font-semibold">{selectedWeapon.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{char.armaRank}</span>
+                        <span className="text-[10px] text-txt-dim/50">({RANK_LEVEL_BAND[char.armaRank] || '?'})</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5 text-xs">
+                        <span className="text-red-400/90 font-mono">{selectedWeapon.dano}{selectedRank.danoBonus ? `+${selectedRank.danoBonus}` : ''}</span>
+                        <span className="text-txt-dim/60">{selectedWeapon.attr}</span>
+                        <span className="text-sky-400/70">+{selectedRank.caBonus} CA</span>
+                        <span className="text-gold/60">{availableSlots} slots</span>
+                      </div>
+                      <p className="text-txt-dim/50 text-[10px] mt-0.5">{selectedWeapon.mec}</p>
+                    </div>
+                    <span className="text-txt-dim/30 text-xs">▶ editar</span>
+                  </div>
+                </button>
+              ) : (
+                <button type="button" onClick={() => setShowWeaponSelector(true)}
+                  className="w-full border border-dashed border-sep/50 rounded-lg p-3 text-center text-txt-dim/50 text-xs hover:border-gold/30 hover:text-gold/60 transition-colors">
+                  + Selecionar Arma
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="bg-void/60 border border-gold/20 rounded-lg p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gold text-xs font-semibold uppercase tracking-wider">Selecionar Arma</span>
+                <button onClick={() => setShowWeaponSelector(false)} className="text-txt-dim hover:text-err text-xs">✕</button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto">
+                {WEAPONS.map(w => (
+                  <button key={w.id} onClick={() => handleWeaponChange(w.id)}
+                    className={`text-left border rounded-lg p-2 transition-all ${char.arma === w.id ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40 hover:border-gold/30'}`}>
+                    <span className="text-txt-main text-[11px] font-semibold">{w.name}</span>
+                    <div className="flex gap-2 mt-0.5 text-[10px]">
+                      <span className="text-red-400/70 font-mono">{w.dano}</span>
+                      <span className="text-txt-dim/50">{w.attr}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {selectedWeapon && (
+                <button onClick={() => { update({ arma: null, armaRank: 'Comum', armaHabilidades: [] }); setShowWeaponSelector(false) }}
+                  className="text-err/60 hover:text-err text-[10px]">Remover Arma</button>
+              )}
+            </div>
+          )}
+
+          {/* RANK SELECTION */}
+          {selectedWeapon && (
+            <div>
+              <label className="text-txt-dim text-[10px] uppercase tracking-wider block mb-1.5">Rank da Arma</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {WEAPON_RANKS.map(r => {
+                  const rankIdx = getRankIndex(r.rank)
+                  const allowed = rankIdx <= maxRankIdx
+                  const rColors = RANK_COLORS[r.rank]
+                  const active = char.armaRank === r.rank
+                  return (
+                    <button key={r.rank} onClick={() => allowed && handleRankChange(r.rank)} disabled={!allowed}
+                      className={`rounded-lg px-2 py-1.5 text-[10px] border text-left transition-all ${
+                        active ? `${rColors.border} ${rColors.bg} ${rColors.glow}` :
+                        allowed ? 'border-sep/30 bg-void/40 hover:border-sep/60' :
+                        'border-sep/10 bg-void/20 opacity-30 cursor-not-allowed'
+                      }`}>
+                      <div className={`font-semibold ${active ? rColors.text : allowed ? 'text-txt-main' : 'text-txt-dim/30'}`}>{r.rank}</div>
+                      <div className="text-[9px] mt-0.5 space-y-0">
+                        <div className={allowed ? 'text-txt-dim/60' : 'text-txt-dim/20'}>{r.danoBonus || '—'} · +{r.caBonus} CA</div>
+                        <div className={allowed ? 'text-gold/50' : 'text-txt-dim/20'}>{r.slots} slots</div>
+                      </div>
+                      {!allowed && <div className="text-[8px] text-err/40 mt-0.5">Requer N{weaponLimit.maxRank === r.rank ? '' : ''}</div>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* WEAPON ABILITIES */}
+          {selectedWeapon && availableSlots > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-txt-dim text-[10px] uppercase tracking-wider">Habilidades da Arma</span>
+                <span className={`text-[10px] font-mono ${usedSlots > availableSlots ? 'text-err' : usedSlots === availableSlots ? 'text-ok' : 'text-txt-main'}`}>
+                  Slots: {usedSlots}/{availableSlots}
+                </span>
+              </div>
+              {(char.armaHabilidades || []).map((hab, i) => (
+                <div key={i} className="bg-void/40 border border-sep/30 rounded-lg p-2.5 space-y-1.5">
+                  <div className="flex gap-1.5">
+                    <input type="text" value={hab.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })}
+                      placeholder="Nome" className="flex-1 bg-deep border border-sep rounded px-2 py-1 text-[11px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                    <select value={hab.potencia || 'Fraca'} onChange={e => {
+                      const newCost = WEAPON_ABILITY_COST[e.target.value] || 0
+                      const otherSlots = (char.armaHabilidades || []).reduce((s, h2, j) => j === i ? s : s + (WEAPON_ABILITY_COST[h2.potencia] || 0), 0)
+                      if (otherSlots + newCost > availableSlots) return
+                      updateHabilidade(i, { potencia: e.target.value })
+                    }} className="bg-deep border border-sep rounded px-2 py-1 text-[11px] text-txt-main">
+                      {SLOT_OPTIONS.map(([label, cost]) => {
+                        const otherSlots = (char.armaHabilidades || []).reduce((s, h2, j) => j === i ? s : s + (WEAPON_ABILITY_COST[h2.potencia] || 0), 0)
+                        return <option key={label} value={label} disabled={otherSlots + cost > availableSlots}>{label} ({cost})</option>
+                      })}
+                    </select>
+                    <select value={hab.tipo || 'Ativa'} onChange={e => updateHabilidade(i, { tipo: e.target.value })}
+                      className="bg-deep border border-sep rounded px-2 py-1 text-[11px] text-txt-main">
+                      <option value="Ativa">Ativa</option>
+                      <option value="Passiva">Passiva</option>
+                    </select>
+                    <button onClick={() => removeHabilidade(i)} className="px-2 py-1 bg-err/20 text-err rounded text-[10px] hover:bg-err/30">✕</button>
+                  </div>
+                  <textarea value={hab.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })}
+                    placeholder="Descrição da habilidade..." rows={2}
+                    className="w-full bg-deep border border-sep rounded px-2 py-1 text-[10px] text-txt-main resize-none focus:border-gold/40 focus:outline-none" />
+                  <input type="text" value={hab.custo || ''} onChange={e => updateHabilidade(i, { custo: e.target.value })}
+                    placeholder="Custo" className="w-full bg-deep border border-sep rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                </div>
+              ))}
+              {usedSlots < availableSlots && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-txt-dim/50 text-[10px]">Adicionar:</span>
+                  {SLOT_OPTIONS.map(([label, cost]) => (
+                    <button key={label} onClick={() => usedSlots + cost <= availableSlots && addHabilidade(label)}
+                      disabled={usedSlots + cost > availableSlots}
+                      className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                        usedSlots + cost <= availableSlots ? 'bg-void border-gold/30 text-gold hover:bg-gold/10' : 'bg-void/20 border-sep/10 text-txt-dim/20 cursor-not-allowed'
+                      }`}>
+                      + {label} ({cost})
+                    </button>
+                  ))}
+                </div>
+              )}
+              {usedSlots > 0 && (
+                <div className="pt-1.5 border-t border-sep/15">
+                  {!showAIPanel ? (
+                    <button onClick={() => setShowAIPanel(true)}
+                      className="bg-purple-500/10 border border-purple-400/30 text-purple-400 text-[10px] px-3 py-1.5 rounded hover:bg-purple-500/20 transition-colors">
+                      ✦ Gerar com IA
+                    </button>
+                  ) : (
+                    <div className="bg-void/50 border border-purple-400/20 rounded-lg p-2.5 space-y-2">
+                      <p className="text-txt-dim text-[9px]">Descreva o estilo para a IA criar habilidades:</p>
+                      <textarea value={aiDesc} onChange={e => setAiDesc(e.target.value)} placeholder="Ex: Uma katana que corta o vento..." rows={2}
+                        className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-[10px] text-txt-main resize-none focus:border-purple-400/40 focus:outline-none" />
+                      {genError && <p className="text-err text-[9px]">{genError}</p>}
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => setShowAIPanel(false)} className="text-txt-dim text-[10px] px-2 py-1 hover:text-txt-main">Cancelar</button>
+                        <button onClick={handleAIGenerate} disabled={genLoading}
+                          className="bg-purple-500 text-white text-[10px] px-3 py-1 rounded font-semibold hover:bg-purple-400 transition-colors disabled:opacity-50 flex items-center gap-1">
+                          {genLoading && <span className="animate-spin inline-block w-2.5 h-2.5 border border-gold/30 border-t-gold rounded-full" />}
+                          {genLoading ? 'Gerando...' : 'Gerar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LEGENDARY WEAPONS */}
+          <div>
+            <button type="button" onClick={() => setShowLegendary(!showLegendary)}
+              className="text-amber-400/60 text-[10px] hover:text-amber-400 transition-colors flex items-center gap-1">
+              <span>★</span> Armas Lendárias
+              <span className="text-txt-dim/30 text-[9px]">({showLegendary ? 'ocultar' : 'ver'})</span>
+            </button>
+            {showLegendary && (
+              <div className="mt-2 space-y-2">
+                <p className="text-txt-dim/50 text-[9px] italic">Armas exclusivas da narrativa. Apenas o Mestre pode atribuí-las a personagens.</p>
+                {LEGENDARY_WEAPONS.map(lw => (
+                  <div key={lw.id} className="bg-void/50 border border-amber-400/20 rounded-lg p-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-amber-400 text-sm">★</span>
+                      <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
+                      <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                      <span className="text-[9px] text-txt-dim/50">{lw.tipo}</span>
+                    </div>
+                    <p className="text-txt-dim/70 text-[10px] leading-relaxed">{lw.descricao}</p>
+                    <div className="flex gap-3 mt-1 text-[10px]">
+                      <span className="text-red-400/80 font-mono">Dano: {lw.dano}</span>
+                      <span className="text-txt-dim/50">{lw.attr}</span>
+                    </div>
+                    <p className="text-gold/50 text-[9px] mt-1 italic">{lw.mec}</p>
+                    {(lw.habilidades || []).length > 0 && (
+                      <div className="mt-1.5 space-y-1">
+                        {(lw.habilidades || []).map((h, hi) => (
+                          <div key={hi} className="bg-amber-400/5 border border-amber-400/10 rounded px-2 py-1">
+                            <span className="text-amber-400/80 text-[10px] font-semibold">{h.nome}</span>
+                            <span className="text-[8px] text-amber-400/40 ml-1">{h.potencia} · {h.tipo}</span>
+                            <p className="text-txt-dim/60 text-[9px]">{h.descricao}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* MARTE MARCIAL */}
+          <div className="border-t border-sep/20 pt-3">
+            {!showMartialSelector ? (
+              selectedArt ? (
+                <button type="button" onClick={() => setShowMartialSelector(true)} className="w-full text-left">
+                  <div className="bg-void/50 border border-orange-400/20 rounded-lg p-2.5 hover:border-orange-400/40 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="text-orange-400 text-sm">👊</span>
+                      <span className="text-txt-main text-xs font-semibold">{selectedArt.name}</span>
+                      <span className="text-[10px] bg-orange-400/10 text-orange-400 px-1.5 py-0.5 rounded border border-orange-400/20">
+                        {selectedArt.graus[selectedGrau]?.nome || 'Novato'}
+                      </span>
+                      <span className="text-txt-dim/30 text-[10px] ml-auto">▶</span>
+                    </div>
+                    <p className="text-txt-dim/60 text-[10px] mt-1">{selectedArt.graus[selectedGrau]?.desc}</p>
+                  </div>
+                </button>
+              ) : (
+                <button type="button" onClick={() => setShowMartialSelector(true)}
+                  className="w-full border border-dashed border-sep/50 rounded-lg p-2.5 text-center text-txt-dim/50 text-[10px] hover:border-orange-400/30 hover:text-orange-400/60 transition-colors">
+                  + Selecionar Arte Marcial
+                </button>
+              )
+            ) : (
+              <div className="bg-void/60 border border-orange-400/20 rounded-lg p-2.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-orange-400 text-[10px] font-semibold uppercase tracking-wider">Arte Marcial</span>
+                  <button onClick={() => setShowMartialSelector(false)} className="text-txt-dim hover:text-err text-xs">✕</button>
+                </div>
+                <select value={char.arteMarcial || ''} onChange={e => update({ arteMarcial: e.target.value || null, arteMarcialGrau: 0 })}
+                  className="w-full bg-void border border-sep/40 rounded px-2 py-1.5 text-[11px] text-txt-main focus:border-orange-400/40 focus:outline-none">
+                  <option value="">— Nenhuma —</option>
+                  {MARTIAL_ARTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                {selectedArt && (
+                  <div className="grid grid-cols-2 gap-1">
+                    {GRAU_LABELS.map((label, gi) => {
+                      const allowed = gi <= martialLimit.maxGrau
+                      const sel = (char.arteMarcialGrau || 0) === gi
+                      return (
+                        <button key={gi} onClick={() => allowed && update({ arteMarcialGrau: gi })} disabled={!allowed}
+                          className={`rounded px-2 py-1.5 text-[10px] border text-left transition-colors ${
+                            sel ? 'bg-orange-400/15 border-orange-400/40 text-orange-300' :
+                            allowed ? 'bg-void/50 border-sep/30 text-txt-dim hover:border-orange-400/30' :
+                            'bg-void/20 border-sep/10 text-txt-dim/20 cursor-not-allowed'
+                          }`}>
+                          <div className="font-semibold">{label}</div>
+                          <div className="text-[9px] mt-0.5 opacity-70">{selectedArt.graus[gi]?.desc}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                {selectedArt && (
+                  <button onClick={() => { update({ arteMarcial: null, arteMarcialGrau: 0 }) }}
+                    className="text-err/60 hover:text-err text-[10px]">Remover Arte Marcial</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* READ-ONLY VIEW */}
+      {!canEdit && selectedWeapon && (
+        <div className={`rounded-lg border ${rc.border} ${rc.bg} ${rc.glow} p-3`}>
+          <div className="flex items-center gap-2">
+            <span className="text-txt-main text-sm font-semibold">{selectedWeapon.name}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{char.armaRank}</span>
+          </div>
+          <div className="flex gap-3 mt-0.5 text-xs">
+            <span className="text-red-400/90 font-mono">{selectedWeapon.dano}{selectedRank.danoBonus ? `+${selectedRank.danoBonus}` : ''}</span>
+            <span className="text-txt-dim/60">{selectedWeapon.attr}</span>
+          </div>
+        </div>
+      )}
+      {!canEdit && selectedArt && (
+        <div className="bg-void/50 border border-sep/40 rounded-lg p-2.5 mt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-txt-main text-xs font-semibold">{selectedArt.name}</span>
+            <span className="text-[10px] bg-orange-400/10 text-orange-400 px-1.5 py-0.5 rounded border border-orange-400/20">
+              {selectedArt.graus[selectedGrau]?.nome || 'Novato'}
+            </span>
+          </div>
+          <p className="text-txt-dim/60 text-[10px] mt-0.5">{selectedArt.graus[selectedGrau]?.desc}</p>
+        </div>
+      )}
+    </section>
   )
 }
 

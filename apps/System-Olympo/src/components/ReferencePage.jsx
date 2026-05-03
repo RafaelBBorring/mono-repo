@@ -4,7 +4,7 @@ import { PROGRESSION } from '../data/progression'
 import { TRIAGES } from '../data/triages'
 import { PERICIAS, GRAU_NAMES, GRAUS_BY_TIER } from '../data/pericias'
 import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '../data/modules'
-import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, WEAPON_LIMITS, MARTIAL_ARTS_LIMITS, LEGENDARY_WEAPONS } from '../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS as MA_GRAU_LABELS } from '../data/martialArts'
 import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../data/races'
 import { ALCHEMY_FALLBACK_RITUALS } from '../data/alchemyFallbackRituals'
@@ -20,7 +20,7 @@ import { useState } from 'react'
 const sections = [
   'Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias',
   'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
-  'Armas', 'Ranks de Arma', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Criação de Personagem', 'Balanceamento',
+  'Armas', 'Ranks de Arma', 'Limites de Equipamento', 'Armas Lendárias', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Criação de Personagem', 'Balanceamento',
 ]
 
 export default function ReferencePage() {
@@ -49,6 +49,8 @@ export default function ReferencePage() {
         {section === 'Módulos Ativos' && <ModulesSection items={MODULES_ACTIVE} title="Módulos Ativos" active />}
         {section === 'Armas' && <WeaponsSection />}
         {section === 'Ranks de Arma' && <RanksSection />}
+        {section === 'Limites de Equipamento' && <EquipLimitsSection />}
+        {section === 'Armas Lendárias' && <LegendaryWeaponsSection />}
         {section === 'Artes Marciais' && <MartialArtsSection />}
         {section === 'Alquimia' && <AlchemySection />}
         {section === 'Feitiços' && <SpellsSection />}
@@ -700,36 +702,183 @@ function WeaponsSection() {
 }
 
 function RanksSection() {
+  const rankColorMap = ['text-txt-dim','text-emerald-400','text-sky-400','text-purple-400','text-rose-400','text-amber-300','text-fuchsia-400','text-cyan-300']
   return (
     <div>
-      <SectionTitle>Ranks de Arma</SectionTitle>
+      <SectionTitle>Ranks de Arma (8 Patentes)</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">Cada rank define o poder da arma e mapeia para uma faixa de nível equivalente usada pela IA para balancear habilidades.</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-sep text-txt-dim">
               <th className="py-2 px-3 text-left">Rank</th>
+              <th className="py-2 px-3 text-left">Faixa Equiv.</th>
               <th className="py-2 px-3 text-left">Dano Bônus</th>
               <th className="py-2 px-3 text-left">CA Bônus</th>
               <th className="py-2 px-3 text-left">Slots</th>
             </tr>
           </thead>
           <tbody>
-            {WEAPON_RANKS.map((r, i) => {
-              const rankColors = ['text-txt-dim','text-txt-main','text-green-400','text-sky-400','text-purple-400','text-amber-300','text-red-400']
-              const col = rankColors[i] || 'text-gold'
-              return (
-                <tr key={r.rank} className="border-b border-sep/50 hover:bg-void/60">
-                  <td className={`py-2 px-3 font-cinzel font-bold ${col}`}>{r.rank}</td>
-                  <td className="py-2 px-3 font-mono text-red-400">{r.danoBonus || '—'}</td>
-                  <td className="py-2 px-3 font-mono text-sky-400">+{r.caBonus}</td>
-                  <td className="py-2 px-3 font-mono text-orange-400">{r.slots}</td>
-                </tr>
-              )
-            })}
+            {WEAPON_RANKS.map((r, i) => (
+              <tr key={r.rank} className="border-b border-sep/50 hover:bg-void/60">
+                <td className={`py-2 px-3 font-cinzel font-bold ${rankColorMap[i] || 'text-gold'}`}>{r.rank}</td>
+                <td className="py-2 px-3 font-mono text-gold/70 text-xs">{RANK_LEVEL_BAND[r.rank]}</td>
+                <td className="py-2 px-3 font-mono text-red-400">{r.danoBonus || '—'}</td>
+                <td className="py-2 px-3 font-mono text-sky-400">+{r.caBonus}</td>
+                <td className="py-2 px-3 font-mono text-orange-400">{r.slots}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
       <p className="text-txt-dim text-sm mt-3">Custo de slot por tipo de habilidade: Fraca=1 | Média=2 | Forte=3</p>
+    </div>
+  )
+}
+
+function EquipLimitsSection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Limites de Equipamento por Nível</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">O nível do personagem define quantas armas ele pode equipar, qual o rank máximo permitido, quantas artes marciais pode praticar e qual grau pode alcançar.</p>
+
+      <div className="bg-void rounded-xl border border-gold/20 p-4">
+        <h3 className="text-gold text-sm font-semibold mb-3">Armas por Faixa de Nível</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Nível Mínimo</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Máx Armas</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank Máximo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {WEAPON_LIMITS.map((l, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 font-mono text-gold">N{l.minLevel}+</td>
+                  <td className="py-2 px-3 font-mono text-orange-400">{l.maxWeapons}</td>
+                  <td className="py-2 px-3 font-cinzel text-amber-300">{l.maxRank}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-orange-400/20 p-4">
+        <h3 className="text-orange-400 text-sm font-semibold mb-3">Artes Marciais por Faixa de Nível</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Nível Mínimo</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Máx Artes Marciais</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Grau Máximo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MARTIAL_ARTS_LIMITS.map((l, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 font-mono text-orange-400">N{l.minLevel}+</td>
+                  <td className="py-2 px-3 font-mono text-txt-main">{l.maxArts}</td>
+                  <td className="py-2 px-3 text-orange-300">{MA_GRAU_LABELS[l.maxGrau]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
+        <p className="text-gold font-semibold text-sm mb-1">Observações</p>
+        <p>• Personagens começam com 1 arma no rank Comum (Nível 1).</p>
+        <p>• O rank da arma limita as habilidades disponíveis e o poder máximo que a IA atribui.</p>
+        <p>• Artes Marciais seguem progressão de grau: Novato → Treinado → Formado → Especialista.</p>
+        <p>• Apenas a partir de N23 um personagem pode ter 2 artes marciais simultâneas.</p>
+      </div>
+    </div>
+  )
+}
+
+function LegendaryWeaponsSection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Armas Lendárias</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Armas Lendárias são itens únicos e exclusivos da narrativa. Qualquer jogador pode <span className="text-amber-300">visualizar</span> as armas lendárias existentes,
+        mas <span className="text-amber-300 font-semibold">apenas o Mestre (Admin)</span> pode atribuí-las a personagens específicos.
+      </p>
+
+      <div className="bg-void rounded-xl border border-amber-400/20 p-4 mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-amber-400 text-lg">★</span>
+          <h3 className="text-amber-400 font-cinzel text-base">Como Funciona</h3>
+        </div>
+        <ul className="space-y-1.5 text-xs text-txt-dim">
+          <li>• Armas Lendárias possuem habilidades fixas e balanceadas para o rank Lendário ou superior.</li>
+          <li>• Elas são <span className="text-amber-300">atributos narrativos</span> — não podem ser compradas, apenas concedidas pelo Mestre.</li>
+          <li>• Uma vez atribuída, a arma substitui ou complementa o arsenal do personagem.</li>
+          <li>• O Mestre define quando e como a arma entra na campanha.</li>
+        </ul>
+      </div>
+
+      <div className="space-y-4">
+        {LEGENDARY_WEAPONS.map(lw => (
+          <div key={lw.id} className="bg-void/60 border border-amber-400/20 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-2xl">⚔</div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-300 font-cinzel text-lg font-bold">{lw.name}</span>
+                  <span className="text-[10px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                  <span className="text-[10px] text-txt-dim">{lw.tipo}</span>
+                </div>
+                <p className="text-txt-dim text-xs mt-0.5">{lw.descricao}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
+                <span className="text-txt-dim text-[9px] uppercase">Dano</span>
+                <p className="text-red-400 font-mono text-sm">{lw.dano}</p>
+              </div>
+              <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
+                <span className="text-txt-dim text-[9px] uppercase">Atributo</span>
+                <p className="text-txt-main font-mono text-sm">{lw.attr}</p>
+              </div>
+              <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
+                <span className="text-txt-dim text-[9px] uppercase">Rank</span>
+                <p className="text-amber-400 font-mono text-sm">{lw.rank}</p>
+              </div>
+            </div>
+
+            <div className="bg-deep rounded-lg border border-sep/30 p-2.5 mb-3">
+              <span className="text-txt-dim text-[9px] uppercase">Mecânica Única</span>
+              <p className="text-gold/80 text-xs mt-0.5 leading-relaxed">{lw.mec}</p>
+            </div>
+
+            {(lw.habilidades || []).length > 0 && (
+              <div>
+                <span className="text-amber-400 text-[10px] uppercase tracking-wider font-semibold">Habilidades</span>
+                <div className="space-y-1.5 mt-2">
+                  {(lw.habilidades || []).map((h, i) => (
+                    <div key={i} className="bg-amber-400/5 border border-amber-400/15 rounded-lg p-2.5">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-amber-300 text-xs font-semibold">{h.nome}</span>
+                        <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded">{h.potencia}</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded ${h.tipo === 'Passiva' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-sky-400/10 text-sky-400'}`}>{h.tipo}</span>
+                        {h.custo && <span className="text-[9px] text-gold/60 font-mono ml-auto">{h.custo}</span>}
+                      </div>
+                      <p className="text-txt-dim text-[11px] leading-relaxed">{h.descricao}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -1169,9 +1318,8 @@ function CreationGuideSection() {
     { n: 7, title: 'Triagens', desc: 'Escolha UMA Triagem Principal (da mesma classe). A partir de N16, pode escolher UMA Sub-Triagem de qualquer classe (máx nível 0.3). Não pode repetir a mesma triagem.' },
     { n: 8, title: 'Módulos de Evolução', desc: 'Gaste os Módulos de Evolução ganhos na progressão. Existem Passivos (sempre ativos), Especiais (aquisição múltipla) e Ativos (custam PE). Verifique os requisitos.' },
     { n: 9, title: 'Perícias', desc: 'Treine perícias usando os pontos disponíveis (classe + progressão). Cada grau custa 1 ponto. O grau máximo depende do nível: N1-7 Treinado, N8-13 Veterano, N14-22 Especialista, N23-30 Mestre.' },
-    { n: 10, title: 'Arma e Arte Marcial', desc: 'Escolha uma arma (17 disponíveis, cada uma com mecânica única) e seu Rank (Comum a Mítico). Opcionalmente escolha uma Arte Marcial (Boxe, Karatê, Muay Thai, Judô, Taekwondo, Aikido).' },
-    { n: 11, title: 'Habilidades', desc: 'Crie 5 habilidades: 1 Passiva, 3 Ativas e 1 Ultimate. Defina nome, descrição, custo de energia, dano, duração, camada SCP e PP estimado. Algumas triagens concedem habilidades extras.' },
-    { n: 12, title: 'Revisão e Ficha Final', desc: 'Revise todos os dados, verifique os cálculos automáticos (Vida, Energia, PE, CA, Reações, Percepção Passiva) e finalize a ficha.' },
+    { n: 10, title: 'Habilidades', desc: 'Crie 5 habilidades: 1 Passiva, 3 Ativas e 1 Ultimate. Defina nome, descrição, custo de energia, dano, duração, camada SCP e PP estimado. Algumas triagens concedem habilidades extras.' },
+    { n: 11, title: 'Revisão — Arma, Arte Marcial e Ficha Final', desc: 'Na tela de revisão, escolha sua Arma (19 disponíveis com mecânicas únicas) e seu Rank (Comum a Transcendente, 8 patentes). Opcionalmente escolha uma Arte Marcial (Boxe, Karatê, Muay Thai, Judô, Taekwondo, Aikido) com grau limitado pelo nível. Revise cálculos, use a IA para balancear, e finalize a ficha.' },
   ]
 
   return (
@@ -1190,8 +1338,7 @@ function CreationGuideSection() {
             'border-teal-400/30 bg-teal-400/5',
             'border-purple-400/30 bg-purple-400/5',
             'border-orange-400/30 bg-orange-400/5',
-            'border-sky-400/30 bg-sky-400/5',
-            'border-amber-300/30 bg-amber-300/5',
+            'border-indigo-400/30 bg-indigo-400/5',
             'border-gold/30 bg-gold/5',
           ]
           const numColors = [
@@ -1204,8 +1351,7 @@ function CreationGuideSection() {
             'border-teal-400 text-teal-400 bg-teal-400/10',
             'border-purple-400 text-purple-400 bg-purple-400/10',
             'border-orange-400 text-orange-400 bg-orange-400/10',
-            'border-sky-400 text-sky-400 bg-sky-400/10',
-            'border-amber-300 text-amber-300 bg-amber-300/10',
+            'border-indigo-400 text-indigo-400 bg-indigo-400/10',
             'border-gold text-gold bg-gold/10',
           ]
           return (

@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env
+.env.local
+.env*.local
+.vscode
+.idea
+coverage
+.DS_Store
+Thumbs.db
+docker-compose*.yml
+Dockerfile
+.dockerignore
