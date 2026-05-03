@@ -74,6 +74,54 @@ function SectionHeader({ icon, title, color }) {
   )
 }
 
+const SHEET_VIEWS = [
+  { key: 'overview', label: 'Visão', hint: 'O essencial para jogar agora.' },
+  { key: 'combat', label: 'Combate', hint: 'Defesa, arma e números de mesa.' },
+  { key: 'powers', label: 'Poderes', hint: 'Módulos, habilidades e análise.' },
+  { key: 'traits', label: 'Traços', hint: 'Raça, perícias e triagens.' },
+  { key: 'inventory', label: 'Bolsa', hint: 'Itens, equipamentos e notas.' },
+  { key: 'mystic', label: 'Místico', hint: 'Disciplinas opcionais.' },
+  { key: 'full', label: 'Tudo', hint: 'Ficha completa sem filtros.' },
+]
+
+function getSheetTriageTitle(char, cls) {
+  const key = char.triagemPrincipal
+  if (!key) return 'Sem triagem'
+  if (TRIAGES[cls]?.[key]?.name) return TRIAGES[cls][key].name
+  for (const classKey of Object.keys(TRIAGES)) {
+    if (TRIAGES[classKey]?.[key]?.name) return TRIAGES[classKey][key].name
+  }
+  return key
+}
+
+function SheetViewTabs({ active, onChange, counts }) {
+  return (
+    <div className="sheet-view-tabs" aria-label="Modos de leitura da ficha">
+      {SHEET_VIEWS.map(view => (
+        <button
+          key={view.key}
+          type="button"
+          onClick={() => onChange(view.key)}
+          className={`sheet-view-tab ${active === view.key ? 'is-active' : ''}`}
+          title={view.hint}
+        >
+          <span>{view.label}</span>
+          {counts?.[view.key] != null && <small>{counts[view.key]}</small>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function HeroMetric({ label, value, tone = 'gold' }) {
+  return (
+    <div className={`sheet-hero-metric is-${tone}`}>
+      <span>{label}</span>
+      <strong>{value || '-'}</strong>
+    </div>
+  )
+}
+
 function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities }) {
   const sk = char.skeletonPoints || {}
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
@@ -148,6 +196,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const runesEnabled = systemOptIn.runes || (char.runes || []).length > 0
   const magicEnabled = systemOptIn.magic || (char.magics || []).length > 0
   const magicProfile = getMagicProfile(char)
+  const [sheetView, setSheetView] = useState('overview')
 
   function handleCopy() {
     navigator.clipboard.writeText(exportSheet(char, derived)).catch(() => {})
@@ -221,10 +270,25 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   }
 
   const canEdit = !!update
+  const showAll = sheetView === 'full'
+  const visible = (...views) => showAll || views.includes(sheetView)
+  const abilityCount = (char.habilidades || []).filter(h => h.nome || h.descricao).length
+  const mysticCount = (char.alchemyRituals || []).length + (char.spells || []).length + (char.runes || []).length + (char.magics || []).length
+  const equipmentCount = Array.isArray(char.equipamentos)
+    ? char.equipamentos.length
+    : Object.values(char.equipamentos || {}).filter(Boolean).length
+  const inventoryCount = (char.inventario || []).length + equipmentCount + (char.arma ? 1 : 0) + (char.arteMarcial ? 1 : 0)
+  const sheetCounts = {
+    powers: abilityCount + acquiredModules.length,
+    traits: periciasArr.length + (char.raca ? 1 : 0) + (char.triagemPrincipal ? 1 : 0),
+    inventory: inventoryCount,
+    mystic: mysticCount,
+  }
+  const primaryTriage = getSheetTriageTitle(char, cls)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+    <div className="sheet-experience space-y-4">
+      <div className="sheet-actionbar">
         <button onClick={handleCopy} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
           Copiar Texto
         </button>
@@ -259,9 +323,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         </div>
       </div>
 
-      <div className="bg-deep/95 backdrop-blur-sm border border-gold/15 rounded-xl overflow-hidden shadow-2xl shadow-black/40">
+      <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
+
+      <div className="character-sheet-shell bg-deep/95 backdrop-blur-sm border border-gold/15 overflow-hidden shadow-2xl shadow-black/40">
         {/* ═══ HEADER ═══ */}
-        <div className="relative overflow-hidden">
+        <div className="sheet-hero-legacy relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-gold/3" />
           <div className="relative px-6 py-5 flex items-center gap-5">
             <div className="shrink-0">
@@ -286,18 +352,24 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </div>
             </div>
           </div>
+          <div className="sheet-hero-metrics">
+            <HeroMetric label="Vida" value={vidaNow} tone="life" />
+            <HeroMetric label="Energia" value={energiaNow} tone="energy" />
+            <HeroMetric label="CA" value={derived.ca} tone="guard" />
+            <HeroMetric label="Triagem" value={primaryTriage} tone="gold" />
+          </div>
           <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
         </div>
 
         {/* ═══ BODY ═══ */}
         <div className="p-4 sm:p-5">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="sheet-body-grid grid grid-cols-1 lg:grid-cols-12 gap-5">
 
             {/* ═══ LEFT COLUMN ═══ */}
             <div className="lg:col-span-7 space-y-5">
 
               {/* ATTRIBUTES */}
-              <section>
+              <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="📊" title="Atributos" color="bg-amber-400" />
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {['FOR','DES','CON','INT','APA','AM'].map(a => {
@@ -318,7 +390,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* RESOURCES */}
-              <section>
+              <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="💎" title="Recursos" color="bg-emerald-400" />
                 <div className="grid grid-cols-3 gap-2.5">
                   <ResBox label="Vida" icon="❤" current={vidaNow} max={derived.vida}
@@ -340,7 +412,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* COMBAT */}
-              <section className="bg-void/60 border border-red-400/15 rounded-lg p-4">
+              <section className={visible('overview', 'combat') ? 'sheet-panel bg-void/60 border border-red-400/15 rounded-lg p-4' : 'hidden'}>
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
@@ -367,7 +439,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* PERÍCIAS */}
-              <section>
+              <section className={visible('traits') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="📜" title="Perícias Treinadas" color="bg-cyan-400" />
                 {periciasArr.length > 0 ? (
                   <div className="overflow-hidden rounded-lg border border-sep/60">
@@ -403,13 +475,13 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* TRIAGENS */}
-              <section>
+              <section className={visible('traits', 'combat') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="★" title="Triagens" color="bg-purple-400" />
                 <TriagemSection char={char} cls={cls} />
               </section>
 
               {/* HERANÇA RACIAL */}
-              <details className="group">
+              <details className={visible('traits') ? 'group sheet-panel' : 'hidden'}>
                 <summary className="flex items-center gap-2 cursor-pointer hover:bg-gold/[0.035] rounded-lg px-1 py-1 -mx-1 transition-colors list-none">
                   <div className="flex items-center gap-2 flex-1">
                     <div className="w-1 h-4 rounded-full bg-emerald-400" />
@@ -425,17 +497,41 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </details>
 
               {/* ARMAS & EQUIPAMENTOS */}
-              <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onDrawerToggle={() => {}} />
+              <div className={visible('inventory', 'combat') ? '' : 'hidden'}>
+                <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onDrawerToggle={() => {}} />
+              </div>
             </div>
 
             {/* ═══ RIGHT COLUMN ═══ */}
             <div className="lg:col-span-5 space-y-5">
 
+              {visible('overview') && (
+                <section className="sheet-panel sheet-focus-panel">
+                  <SectionHeader icon=">" title="Mapa da Ficha" color="bg-gold" />
+                  <div className="sheet-focus-grid">
+                    {[
+                      { key: 'combat', label: 'Combate', value: `${derived.ca} CA`, desc: `${derived.reacoes} reações` },
+                      { key: 'powers', label: 'Poderes', value: abilityCount, desc: `${acquiredModules.length} módulos` },
+                      { key: 'traits', label: 'Traços', value: periciasArr.length, desc: primaryTriage },
+                      { key: 'inventory', label: 'Bolsa', value: inventoryCount, desc: `${mysticCount} registros místicos` },
+                    ].map(item => (
+                      <button key={item.key} type="button" onClick={() => setSheetView(item.key)} className="sheet-focus-card">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                        <small>{item.desc}</small>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* ARMAS & ARTE MARCIAL */}
-              <WeaponMartialPanel char={char} update={update} canEdit={canEdit} />
+              <div className={visible('combat', 'inventory') ? '' : 'hidden'}>
+                <WeaponMartialPanel char={char} update={update} canEdit={canEdit} />
+              </div>
 
               {/* MÓDULOS */}
-              <section>
+              <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="⚙" title="Módulos de Evolução" color="bg-yellow-400" />
                 {acquiredModules.length > 0 ? (
                   <div className="space-y-1.5">
@@ -473,10 +569,12 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* BALANCE ANALYSIS */}
-              <AbilityAnalysisChat char={char} onApply={handleBalanceApply} characterId={characterId} />
+              <div className={visible('powers') ? '' : 'hidden'}>
+                <AbilityAnalysisChat char={char} onApply={handleBalanceApply} characterId={characterId} />
+              </div>
 
               {/* HABILIDADES */}
-              <section>
+              <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="✦" title="Habilidades" color="bg-indigo-400" />
                 {canEdit && (
                   <div className="mb-3 bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-2.5 flex items-center gap-3 text-[11px]">
@@ -520,15 +618,17 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* INVENTÁRIO */}
-              <InventorySection
-                items={char.inventario || []}
-                canEdit={canEdit}
-                onUpdate={(items) => update({ inventario: items })}
-                onDrawerToggle={() => {}}
-              />
+              <div className={visible('inventory') ? '' : 'hidden'}>
+                <InventorySection
+                  items={char.inventario || []}
+                  canEdit={canEdit}
+                  onUpdate={(items) => update({ inventario: items })}
+                  onDrawerToggle={() => {}}
+                />
+              </div>
 
               {/* NOTAS */}
-              <section>
+              <section className={visible('inventory') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="📝" title="Notas" color="bg-gray-400" />
                 {canEdit ? (
                   <textarea value={char.notas || ''} onChange={e => update({ notas: e.target.value })} placeholder="Anotações do jogador..."
@@ -540,7 +640,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* RESERVED — FUTURE SECTIONS */}
-              <section>
+              <section className={showAll ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="🔮" title="Em Desenvolvimento" color="bg-gold/60" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
@@ -562,7 +662,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
           </div>
 
-          <div className="mt-5 border-t border-sep/30 pt-5">
+          <div className={`mt-5 border-t border-sep/30 pt-5 ${visible('mystic') ? '' : 'hidden'}`}>
             <OptionalSystemsSection
               char={char}
               update={update}
