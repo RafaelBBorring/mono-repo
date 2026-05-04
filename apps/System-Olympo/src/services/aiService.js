@@ -554,7 +554,7 @@ CONTEXTO DO BALANCEAMENTO DE ARMA:
 O nivel de referencia para balancear as habilidades da arma NAO e o nivel do personagem — e o RANK DA ARMA.
 Cada rank mapeia para uma faixa de poder equivalente a um nivel de personagem:
 - Comum → N1-5 | Incomum → N3-8 | Raro → N6-12
-- Épico → N10-16 | Heroico → N14-20 | Lendário → N18-25
+- Épico → N10-16 | Heroico → N14-20 | Ancestral → N18-25
 - Mítico → N22-28 | Transcendente → N26-30
 
 ARMA ATUAL: ${weaponName} | Dano base: ${weaponDano} | Mecânica: ${weaponMec}
@@ -587,7 +587,7 @@ IMPORTANTE:
 1. O dano da habilidade e EXTRA ao dano base da arma + bônus do rank.
 2. Habilidades Passivas não devem ter custo de Energia — elas são efeitos permanentes.
 3. Habilidades devem interagir com a mecânica única da arma (${weaponMec}).
-4. Armas de rank alto (Lendário, Mítico, Transcendente) DEVEM ter habilidades poderosas.
+4. Armas de rank alto (Ancestral, Mítico, Transcendente) DEVEM ter habilidades poderosas.
 5. Cada habilidade DEVE ter pelo menos 1 efeito mecânico numerico mensuravel.
 6. Misture tipos Ativa e Passiva de forma criativa.
 7. O nome da habilidade deve ser tematico e combinar com o tipo de arma.
@@ -746,6 +746,32 @@ function buildMysticDraftPrompt(systemType, draft, context = {}) {
         '- Se houver conflito entre numero e fantasia, prefira preservar a fantasia e ajustar custo, duracao, dt e contrapeso.',
       ],
     },
+    magic: {
+      title: 'SISTEMA: MAGIAS DO OLYMPO — CONJURACAO ARCANA PURA',
+      lore: [
+        '- Magias sao a forma pura de conjuracao arcana. Apenas Magos possuem acesso nativo a este sistema.',
+        '- Cada escola de magia (Fogo, Gelo, Eletrico, Arcano, Gravidade, Ilusao) tem identidade propria e mecanicas distintas.',
+        '- Magias sao mais densas e exigentes que feiticos. Um mago com 3o circulo de magia pode moldar o campo de batalha inteiro.',
+        '- O Mago investe PEH pesado em magia — os valores devem refletir esse custo de oportunidade.',
+      ],
+      balance: [
+        '- 1o circulo: magia basica e linear. Entrada natural. PE 6-14. Custo estrutural: 4 espacos.',
+        '- 2o circulo: magia de combate e utilidade confiavel. PE 10-22. Custo estrutural: 6 espacos.',
+        '- 3o circulo: magia densa, com risco real e identidade de escola nitida. PE 20-35. Custo estrutural: 10 espacos.',
+        '- 4o circulo: magia suprema, rarissima e exigente. PE 35-50. Custo estrutural: 15 espacos.',
+      ],
+      protocol: [
+        '- Magias sao mais poderosas que feiticos de mesmo circulo, pois exigem classe dedicada e PEH mais alto.',
+        '- Cada magia deve refletir a escola escolhida: Fogo = dano em area, Gelo = controle, Eletrico = rajada rapida, Arcano = versatilidade, Gravidade = manipulacao espacial, Ilusao = engano.',
+        '- Cura segue o limite de 30% da vida esperada da faixa por uso imediato, salvo efeitos prolongados.',
+        '- Controle total dura no maximo 1 rodada; prefira lentidao, penalidade e supressao temporaria.',
+      ],
+      extras: [
+        '- Se o admin pedir uma magia de escola especifica, complete nome, efeito, custo e contrapeso coerentes com a escola.',
+        '- Magias de 4o circulo devem ser realmente catastroficas — justify o custo estrutural de 15 espacos.',
+        '- Se houver conflito entre numero e fantasia, preserve a fantasia e ajuste custo, CD, duracao e contrapeso.',
+      ],
+    },
   }
   const block = blocks[systemType] || blocks.alchemy
   const prompt = `
@@ -826,6 +852,106 @@ export async function analyzeRuneDraft(draft, context = {}) {
 
 export async function analyzeMagicDraft(draft, context = {}) {
   return analyzeMysticDraft('magic', draft, context)
+}
+
+export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
+  const analysisNote = typeof context.analysis_note === 'string' ? context.analysis_note.trim() : ''
+  const powerLevel = draft.power_level || 'notavel'
+
+  const POWER_LEVEL_GUIDE = {
+    menor: {
+      label: 'Menor',
+      powerBudget: 'Poderosa mas contida. Dano base similar a armas Comuns-Incomuns, mas com habilidades lendárias que a tornam superior taticamente.',
+      damageScale: '2d6+8 a 4d8+15 para habilidades ofensivas',
+      effectCap: 'Efeitos utilitarios e taticos. Pode conceder vantagem, resistencia elemental, mobilidade limitada. Nunca domina o campo de batalha.',
+      slotBudget: '2-3 habilidades no maximo',
+    },
+    notavel: {
+      label: 'Notável',
+      powerBudget: 'Forte e distinta. Se destaca no combate com habilidades que viram confrontos individuais.',
+      damageScale: '3d10+18 a 6d10+25 para habilidades ofensivas',
+      effectCap: 'Efeitos de combate significativos. Pode conceder regeneracao parcial, penetracao de armadura, area moderada. Vira combates 1v1.',
+      slotBudget: '3-4 habilidades',
+    },
+    maior: {
+      label: 'Maior',
+      powerBudget: 'Entre as mais poderosas. Armas que definem o destino de conflitos regionais.',
+      damageScale: '6d12+30 a 10d12+45 para habilidades ofensivas',
+      effectCap: 'Efeitos que mudam o curso de batalhas. Pode afetar multiplos alvos, conceder imunidade temporaria, abrir portais curtos. Temida por lendas.',
+      slotBudget: '4-6 habilidades',
+    },
+    suprema: {
+      label: 'Suprema',
+      powerBudget: 'Poder absoluto. Escallibur, a Lança do Destino — armas que moldam a historia do mundo.',
+      damageScale: '10d12+50 a 16d12+75 para habilidades ofensivas',
+      effectCap: 'Efeitos epicos que transcendem combate normal. Pode selar entidades, rasgar realidade, comandar exercitos. Essas armas SAO a lenda.',
+      slotBudget: '5-8 habilidades',
+    },
+  }
+
+  const guide = POWER_LEVEL_GUIDE[powerLevel] || POWER_LEVEL_GUIDE.notavel
+
+  const prompt = `
+VOCE E O ORACULO — MOTOR DE BALANCEAMENTO DE ARMAS LENDARIAS DO SISTEMA OLYMPO 2.0.
+
+SISTEMA: ARMAS LENDARIAS DA FORJA LENDÁRIA
+LORE:
+- Armas lendarias sao itens unicos e exclusivos da narrativa, criados pelo Mestre.
+- Cada arma lendaria possui um NIVEL DE PODER que define quao destrutiva ela é.
+- Uma adaga lendaria Menor é muito poderosa para seu tamanho, mas ainda nao causa tanto dano quanto uma escopeta comum — se destaca por suas HABILIDADES.
+- Uma arma lendaria Suprema como Escallibur é uma das armas mais poderosas do mundo — seu dano bruto e habilidades sao incomparáveis.
+- O dano base da arma e o dano do seu ataque normal. As HABILIDADES da arma é que definem sua verdadeira força lendária.
+
+NIVEL DE PODER: ${guide.label}
+GUIA DE PODER:
+- Budget: ${guide.powerBudget}
+- Escala de dano para habilidades: ${guide.damageScale}
+- Limite de efeitos: ${guide.effectCap}
+- Quantidade de habilidades: ${guide.slotBudget}
+
+RASCUNHO DA ARMA:
+${JSON.stringify(draft, null, 2)}
+
+CONTEXTO OPCIONAL:
+${JSON.stringify(context, null, 2)}
+
+INSTRUCAO DIRETA DO ADMIN:
+${analysisNote || 'Nenhuma. Apenas revisar, completar e balancear a arma lendária atual.'}
+
+REGRAS DE BALANCEAMENTO:
+1. O dano base (campo "dano") deve ser coerente com o tipo de arma e nivel de poder. Adagas lendarias Menores causam 2d4-2d6, espadas Supremas causam 4d12+.
+2. As HABILIDADES da arma sao o que a torna lendária. Elas devem ser tematicas, unicas e balanceadas para o nivel de poder.
+3. NUNCA altere a descricao narrativa escrita pelo admin. Apenas ajuste valores NUMERICOS (dados, modificadores, custos, CDs, duracoes).
+4. Cada habilidade deve ter custo de PE ou Energia proporcional ao poder.
+5. Habilidades passivas devem ser mais sutis que as ativas.
+6. O campo "effect" pode conter a descricao das habilidades. Se o admin descreveu habilidades, mantenha-as e balanceie os numeros.
+7. Armas de nivel de poder Menor podem ser mais uteis que destrutivas. Armas Supremas sao forcas da natureza.
+8. Preserve a IDENTIDADE da arma. Se é uma adaga furtiva, mantenha furtiva. Se é um martelo de guerra, mantenha brutal.
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "name": "nome refinado",
+  "dano": "dano base balanceado",
+  "attr": "atributo",
+  "short_description": "descricao visual mantida ou refinada",
+  "effect": "efeito final com numeros balanceados — preserve a narrativa do admin, ajuste apenas numeros",
+  "power_level": "${powerLevel}",
+  "source": "origem mantida",
+  "tags": ["rank:Lendária", "base:...", "attr:...", "power_level:${powerLevel}", "image:..."],
+  "ai_feedback": "explicacao curta de balanceamento e decisoes"
+}`
+
+  const response = await callAI([
+    { role: 'system', content: buildSystemContext() },
+    { role: 'user', content: prompt },
+  ])
+
+  try {
+    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    return JSON.parse(cleaned)
+  } catch {
+    throw new Error('A IA retornou um formato invalido para a arma lendária.')
+  }
 }
 
 export async function chatAboutAbility(char, userMessage, history = []) {

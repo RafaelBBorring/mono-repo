@@ -806,18 +806,18 @@ function LegendaryWeaponsSection() {
     <div className="space-y-6">
       <SectionTitle>Armas Lendárias</SectionTitle>
       <p className="text-txt-dim text-sm mb-4">
-        Armas Lendárias são itens únicos e exclusivos da narrativa. Qualquer jogador pode <span className="text-amber-300">visualizar</span> as armas lendárias existentes,
-        mas <span className="text-amber-300 font-semibold">apenas o Mestre (Admin)</span> pode atribuí-las a personagens específicos.
+        Armas Lendárias são itens únicos e exclusivos da narrativa. Qualquer jogador pode <span className="text-lime-200">visualizar</span> as armas lendárias existentes,
+        mas <span className="text-lime-200 font-semibold">apenas o Mestre (Admin)</span> pode atribuí-las a personagens específicos.
       </p>
 
-      <div className="bg-void rounded-xl border border-amber-400/20 p-4 mb-4">
+      <div className="bg-void rounded-xl border border-lime-300/20 p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-amber-400 text-lg">★</span>
-          <h3 className="text-amber-400 font-cinzel text-base">Como Funciona</h3>
+          <span className="text-lime-300 text-lg">★</span>
+          <h3 className="text-lime-300 font-cinzel text-base">Como Funciona</h3>
         </div>
         <ul className="space-y-1.5 text-xs text-txt-dim">
-          <li>• Armas Lendárias possuem habilidades fixas e balanceadas para o rank Lendário ou superior.</li>
-          <li>• Elas são <span className="text-amber-300">atributos narrativos</span> — não podem ser compradas, apenas concedidas pelo Mestre.</li>
+          <li>• Armas Lendárias são peças narrativas exclusivas da Forja Lendária, separadas dos ranks comuns de arma.</li>
+          <li>• Elas são <span className="text-lime-200">atributos narrativos</span> — não podem ser compradas, apenas concedidas pelo Mestre.</li>
           <li>• Uma vez atribuída, a arma substitui ou complementa o arsenal do personagem.</li>
           <li>• O Mestre define quando e como a arma entra na campanha.</li>
         </ul>
@@ -825,13 +825,13 @@ function LegendaryWeaponsSection() {
 
       <div className="space-y-4">
         {LEGENDARY_WEAPONS.map(lw => (
-          <div key={lw.id} className="bg-void/60 border border-amber-400/20 rounded-xl p-4">
+          <div key={lw.id} className="bg-void/60 border border-lime-300/20 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-lg bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-2xl">⚔</div>
+              <div className="w-12 h-12 rounded-lg bg-lime-300/10 border border-lime-300/30 flex items-center justify-center text-2xl">⚔</div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-300 font-cinzel text-lg font-bold">{lw.name}</span>
-                  <span className="text-[10px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                  <span className="text-lime-200 font-cinzel text-lg font-bold">{lw.name}</span>
+                  <span className="text-[10px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded border border-lime-300/20">{lw.rank}</span>
                   <span className="text-[10px] text-txt-dim">{lw.tipo}</span>
                 </div>
                 <p className="text-txt-dim text-xs mt-0.5">{lw.descricao}</p>
@@ -849,7 +849,7 @@ function LegendaryWeaponsSection() {
               </div>
               <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
                 <span className="text-txt-dim text-[9px] uppercase">Rank</span>
-                <p className="text-amber-400 font-mono text-sm">{lw.rank}</p>
+                <p className="text-lime-300 font-mono text-sm">{lw.rank}</p>
               </div>
             </div>
 
@@ -860,13 +860,13 @@ function LegendaryWeaponsSection() {
 
             {(lw.habilidades || []).length > 0 && (
               <div>
-                <span className="text-amber-400 text-[10px] uppercase tracking-wider font-semibold">Habilidades</span>
+                <span className="text-lime-300 text-[10px] uppercase tracking-wider font-semibold">Habilidades</span>
                 <div className="space-y-1.5 mt-2">
                   {(lw.habilidades || []).map((h, i) => (
-                    <div key={i} className="bg-amber-400/5 border border-amber-400/15 rounded-lg p-2.5">
+                    <div key={i} className="bg-lime-300/5 border border-lime-300/15 rounded-lg p-2.5">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-amber-300 text-xs font-semibold">{h.nome}</span>
-                        <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded">{h.potencia}</span>
+                        <span className="text-lime-200 text-xs font-semibold">{h.nome}</span>
+                        <span className="text-[9px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded">{h.potencia}</span>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded ${h.tipo === 'Passiva' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-sky-400/10 text-sky-400'}`}>{h.tipo}</span>
                         {h.custo && <span className="text-[9px] text-gold/60 font-mono ml-auto">{h.custo}</span>}
                       </div>

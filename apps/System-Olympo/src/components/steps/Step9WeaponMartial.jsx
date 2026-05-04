@@ -75,11 +75,11 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="font-cinzel text-gold text-2xl mb-1">Etapa 9: Arma e Arte Marcial</h2>
-        <p className="text-txt-dim text-sm mb-6">Escolha o equipamento e a técnica de combate do personagem.</p>
+        <h2 className="font-cinzel text-gold text-2xl mb-1">Etapa 9: Arte Marcial</h2>
+        <p className="text-txt-dim text-sm mb-6">Escolha a tecnica de combate do personagem. Armas e equipamentos ficam na Bolsa da ficha.</p>
       </div>
 
-      <section className="bg-deep border border-sep rounded-lg p-5 space-y-5">
+      {false && <section className="bg-deep border border-sep rounded-lg p-5 space-y-5">
         <h3 className="font-cinzel text-gold-light text-lg">Arma</h3>
 
         <div>
@@ -290,7 +290,7 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
             )}
           </div>
         )}
-      </section>
+      </section>}
 
       <section className="bg-deep border border-sep rounded-lg p-5 space-y-5">
         <h3 className="font-cinzel text-gold-light text-lg">Arte Marcial</h3>

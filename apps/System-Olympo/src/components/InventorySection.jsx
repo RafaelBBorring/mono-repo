@@ -59,7 +59,7 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 rounded-full bg-green-400" />
           <span className="text-txt-dim text-[11px]">🎒</span>
-          <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Inventário</h3>
+          <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Itens Avulsos</h3>
           <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
           {canEdit && (
             <button onClick={() => setShowCreate(true)}

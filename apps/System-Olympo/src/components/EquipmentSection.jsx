@@ -1,10 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { generateWeaponAbilities, analyzeBalance } from '../services/aiService'
 import { getAttrValue } from '../utils/calculator'
 import { getModifier } from '../data/attributes'
+import { useAuth } from '../contexts/AuthContext'
+import { fetchMysticWeapons } from '../services/alchemyService'
+
+function tagValue(tags = [], key) {
+  const found = tags.find(t => t.startsWith(`${key}:`))
+  return found ? found.slice(key.length + 1) : ''
+}
 
 function getWeaponTriagemBonus(char) {
   const tp = char.triagemPrincipal || ''
@@ -42,15 +49,27 @@ function getAssassinReactionBonus(char) {
   return bonus
 }
 
-export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerToggle }) {
+export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterUpdate, onDrawerToggle }) {
+  const { isAdmin } = useAuth()
   const weapon = WEAPONS.find(w => w.id === char.arma)
   const weaponRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
   const equipamentos = char.equipamentos || []
+  const legendaryAssigned = char.armasLendarias || []
   const [showCreate, setShowCreate] = useState(false)
+  const [showLegendaryCatalog, setShowLegendaryCatalog] = useState(false)
+  const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const [showWeaponDrawer, setShowWeaponDrawer] = useState(false)
   const editImgRef = useRef(null)
+
+  useEffect(() => {
+    let alive = true
+    fetchMysticWeapons().then((res) => {
+      if (alive) setLegendaryForgeItems(res.data || [])
+    })
+    return () => { alive = false }
+  }, [])
 
   function openDrawer(idx) { setViewIdx(idx); setEditMode(false); onDrawerToggle?.(true) }
   function closeDrawer() { setViewIdx(null); setEditMode(false); onDrawerToggle?.(false) }
@@ -69,6 +88,66 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerTogg
   function removeEquip(idx) {
     onUpdate(equipamentos.filter((_, i) => i !== idx))
     closeDrawer()
+  }
+
+  function updatePrimaryWeapon(patch) {
+    onCharacterUpdate?.(patch)
+  }
+
+  function removePrimaryWeapon() {
+    onCharacterUpdate?.({
+      arma: null,
+      armaRank: 'Comum',
+      armaHabilidades: [],
+      armaNome: '',
+      armaImagem: null,
+    })
+    setShowWeaponDrawer(false)
+  }
+
+  const legendaryCatalog = [
+    ...LEGENDARY_WEAPONS.map(item => ({
+      id: `static_${item.id}`,
+      sourceId: item.id,
+      name: item.name,
+      rank: 'Lendária',
+      tipo: item.tipo,
+      image: item.image || item.imagem || '',
+      descricao: item.descricao || '',
+    })),
+    ...legendaryForgeItems.map(item => ({
+      id: `forge_${item.id}`,
+      sourceId: item.id,
+      name: item.name,
+      rank: 'Lendária',
+      tipo: item.range || item.law_name || 'Forja Lendária',
+      image: tagValue(item.tags || [], 'image'),
+      descricao: item.short_description || '',
+      power_level: tagValue(item.tags || [], 'power_level') || 'notavel',
+    })),
+  ]
+
+  function assignLegendary(item) {
+    if (!isAdmin || !onCharacterUpdate) return
+    const exists = (char.armasLendarias || []).some(lw => lw.id === item.id || lw.sourceId === item.sourceId)
+    if (exists) return
+    onCharacterUpdate({
+      armasLendarias: [...(char.armasLendarias || []), {
+        id: item.id,
+        sourceId: item.sourceId,
+        name: item.name,
+        rank: 'Lendária',
+        tipo: item.tipo,
+        image: item.image || '',
+      }],
+    })
+  }
+
+  function removeLegendary(idx) {
+    if (!isAdmin || !onCharacterUpdate) return
+    onCharacterUpdate({
+      armasLendarias: (char.armasLendarias || []).filter((_, i) => i !== idx),
+    })
   }
 
   function handleDrawerImage(e) {
@@ -101,39 +180,62 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerTogg
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 rounded-full bg-orange-400" />
           <span className="text-txt-dim text-[11px]">🗡</span>
-          <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Armas & Equipamentos</h3>
+          <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Armas e Equipamentos</h3>
           <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
+          <button onClick={() => setShowLegendaryCatalog(true)}
+            className="text-[9px] border border-lime-300/30 text-lime-300/80 px-2 py-0.5 rounded hover:bg-lime-300/10 hover:text-lime-300 transition-colors shrink-0">
+            Armas Lendárias
+          </button>
           {canEdit && (
             <button onClick={() => setShowCreate(true)}
               className="text-[9px] border border-gold/30 text-gold/70 px-2 py-0.5 rounded hover:bg-gold/10 hover:text-gold transition-colors shrink-0">
-              + Equip
+              + Arma/Equip
             </button>
           )}
         </div>
 
         <div className="space-y-2">
-          {weapon && (
-            <button type="button" onClick={() => setShowWeaponDrawer(true)} className="w-full text-left">
-              <WeaponCard weapon={weapon} rank={weaponRank} habilidades={char.armaHabilidades || []} triagemBonus={getWeaponTriagemBonus(char)} />
-            </button>
-          )}
-
-          {equipamentos.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
+          {(weapon || equipamentos.length > 0 || legendaryAssigned.length > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {weapon && (
+                <WeaponCard
+                  weapon={weapon}
+                  rank={weaponRank}
+                  habilidades={char.armaHabilidades || []}
+                  triagemBonus={getWeaponTriagemBonus(char)}
+                  image={char.armaImagem}
+                  displayName={char.armaNome || weapon.name}
+                  onClick={() => setShowWeaponDrawer(true)}
+                />
+              )}
               {equipamentos.map((item, idx) => (
                 <EquipCard key={item.id || idx} item={item} onClick={() => openDrawer(idx)} />
+              ))}
+              {legendaryAssigned.map((item, idx) => (
+                <LegendaryAssignedCard key={item.id || idx} item={item} canRemove={canEdit && isAdmin} onRemove={() => removeLegendary(idx)} />
               ))}
             </div>
           )}
 
-          {!weapon && equipamentos.length === 0 && (
+          {!weapon && equipamentos.length === 0 && legendaryAssigned.length === 0 && (
             <p className="text-txt-dim/50 text-[11px] italic">Nenhum equipamento</p>
           )}
         </div>
       </section>
 
       {showCreate && createPortal(
-        <EquipCreateModal onSave={addEquip} onClose={() => setShowCreate(false)} />,
+        <EquipCreateModal char={char} onSave={addEquip} onClose={() => setShowCreate(false)} />,
+        document.body
+      )}
+
+      {showLegendaryCatalog && createPortal(
+        <LegendaryCatalogModal
+          items={legendaryCatalog}
+          assigned={legendaryAssigned}
+          isAdmin={isAdmin}
+          onAssign={assignLegendary}
+          onClose={() => setShowLegendaryCatalog(false)}
+        />,
         document.body
       )}
 
@@ -159,6 +261,9 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerTogg
           rank={weaponRank}
           habilidades={char.armaHabilidades || []}
           char={char}
+          canEdit={canEdit}
+          onUpdate={updatePrimaryWeapon}
+          onDelete={removePrimaryWeapon}
           onClose={() => setShowWeaponDrawer(false)}
         />,
         document.body
@@ -167,17 +272,57 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onDrawerTogg
   )
 }
 
-function WeaponCard({ weapon, rank, habilidades, triagemBonus = [] }) {
+function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displayName, onClick }) {
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   return (
-    <div className={`rounded-lg border ${rc.border} ${rc.bg} p-3 ${rc.glow} transition-all hover:brightness-110 cursor-pointer`}>
+    <button type="button" onClick={onClick}
+      className={`armory-card armory-card-weapon w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left`}>
+      <div className="armory-rank-rail" />
+      <div className={`armory-icon ${rc.badge}`}>
+        {image ? <img src={image} alt="" className="w-full h-full object-cover" /> : <span>ARM</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-txt-main text-sm font-semibold truncate">{displayName || weapon.name}</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge} shrink-0`}>{rank.rank}</span>
+        </div>
+        <div className="flex items-center gap-3 mt-1 text-xs">
+          <span className="text-red-400/90 font-mono">Dano {weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
+          <span className="text-txt-dim/60">{weapon.attr}</span>
+          {habilidades.length > 0 && <span className="text-gold/60">{habilidades.length} hab.</span>}
+        </div>
+        {triagemBonus.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {triagemBonus.map((b, i) => (
+              <span key={i} className={`text-[9px] ${b.color} bg-void/60 px-1.5 py-0.5 rounded border border-current/20 font-mono`}>
+                {b.label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <span className="armory-open">ver</span>
+    </button>
+  )
+  return (
+    <div onClick={onClick} className={`rounded-lg border ${rc.border} ${rc.bg} p-3 ${rc.glow} transition-all hover:brightness-110 cursor-pointer`}>
+      <div className="relative mb-2">
+        {image ? (
+          <img src={image} alt="" className={`w-full aspect-[4/3] rounded-lg object-cover border ${rc.border}`} />
+        ) : (
+          <div className={`w-full aspect-[4/3] rounded-lg ${rc.badge} border flex items-center justify-center text-3xl`}>
+            IMG
+          </div>
+        )}
+        {rank.rank && <span className={`absolute left-2 top-2 text-[8px] px-1 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>}
+      </div>
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-lg ${rc.badge} border flex items-center justify-center text-lg shrink-0`}>
           ⚔
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-txt-main text-sm font-semibold">{weapon.name}</span>
+            <span className="text-txt-main text-sm font-semibold">{displayName || weapon.name}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>
           </div>
           <div className="flex items-center gap-4 mt-0.5 text-xs">
@@ -205,11 +350,15 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [] }) {
   )
 }
 
-function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
+function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onClose }) {
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [editMode, setEditMode] = useState(false)
+  const [editName, setEditName] = useState(char.armaNome || weapon.name)
+  const [editRank, setEditRank] = useState(rank.rank)
+  const imageRef = useRef(null)
   const triagemBonus = getWeaponTriagemBonus(char)
   const assassinBonus = getAssassinReactionBonus(char)
 
@@ -226,6 +375,35 @@ function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
     }
   }
 
+  function handlePrimaryImage(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const size = 256
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        const scale = Math.max(size / img.width, size / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+        onUpdate?.({ armaImagem: canvas.toDataURL('image/webp', 0.78) })
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function saveEdit() {
+    onUpdate?.({ armaNome: editName, armaRank: editRank })
+    setEditMode(false)
+  }
+
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -234,7 +412,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
           <div className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-lg ${rc.badge} border flex items-center justify-center text-base`}>⚔</div>
             <div>
-              <h3 className="text-txt-main text-sm font-semibold">{weapon.name}</h3>
+              <h3 className="text-txt-main text-sm font-semibold">{char.armaNome || weapon.name}</h3>
               <span className={`text-[9px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>
             </div>
           </div>
@@ -242,6 +420,53 @@ function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {canEdit && (
+            <div className="flex gap-2">
+              <button onClick={() => setEditMode(!editMode)}
+                className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">
+                {editMode ? 'Cancelar edicao' : 'Editar arma'}
+              </button>
+              <button onClick={onDelete}
+                className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">
+                Remover arma
+              </button>
+            </div>
+          )}
+
+          {editMode && canEdit && (
+            <div className="bg-void/50 border border-gold/20 rounded-lg p-3 space-y-3">
+              <div className="flex items-center gap-3">
+                <button onClick={() => imageRef.current?.click()}
+                  className="w-20 h-20 rounded-lg border border-sep/40 flex items-center justify-center hover:border-gold/40 transition-colors overflow-hidden bg-void/50 shrink-0">
+                  {char.armaImagem ? <img src={char.armaImagem} alt="" className="w-full h-full object-cover" /> : <span className="text-txt-dim/40 text-xs">IMG</span>}
+                </button>
+                <input ref={imageRef} type="file" accept="image/*" onChange={handlePrimaryImage} className="hidden" />
+                <div className="flex-1 space-y-2">
+                  <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da arma"
+                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                  <div className="flex flex-wrap gap-1">
+                    {WEAPON_RANKS.map(r => {
+                      const c = RANK_COLORS[r.rank]
+                      return (
+                        <button key={r.rank} onClick={() => setEditRank(r.rank)}
+                          className={`text-[9px] px-2 py-0.5 rounded border transition-colors ${editRank === r.rank ? `${c.badge}` : 'border-sep/30 text-txt-dim/50 hover:border-sep/60'}`}>
+                          {r.rank}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+              <button onClick={saveEdit} className="text-[10px] bg-gold text-void px-3 py-1.5 rounded-lg hover:bg-gold-light transition-colors font-semibold">
+                Salvar
+              </button>
+            </div>
+          )}
+
+          {char.armaImagem && !editMode && (
+            <img src={char.armaImagem} alt="" className={`w-full aspect-[16/9] rounded-lg object-cover border ${rc.border}`} />
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div className={`bg-void/50 border rounded-lg px-3 py-2 ${rc.border}`}>
               <span className="text-txt-dim/50 text-[9px] uppercase">Dano</span>
@@ -361,14 +586,38 @@ function WeaponDrawer({ weapon, rank, habilidades, char, onClose }) {
 
 function EquipCard({ item, onClick }) {
   const rc = RANK_COLORS[item.rank] || RANK_COLORS.Comum
+  const isLegendaryItem = item.categoria === 'Arma Lendaria' || item.categoria === 'Arma Lendária' || item.categoria === 'Arma Mistica'
+  const isWeapon = item.categoria === 'Arma' || isLegendaryItem
   return (
     <button type="button" onClick={onClick}
-      className={`rounded-lg border ${rc.border} ${rc.bg} p-2 text-center hover:brightness-110 transition-all ${rc.glow}`}>
-      <div className="flex justify-center mb-1.5">
+      className={`armory-card w-full rounded-lg border ${isLegendaryItem ? 'border-lime-300/45 bg-lime-300/8 text-lime-300 shadow-lg shadow-lime-300/10' : `${rc.border} ${rc.bg} ${rc.text} ${rc.glow}`} p-3 text-left`}>
+      <div className="armory-rank-rail" />
+      <div className={`armory-icon ${isLegendaryItem ? 'bg-lime-300/10 text-lime-300 border-lime-300/25' : rc.badge}`}>
+        {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span>{isWeapon ? 'ARM' : 'EQP'}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-txt-main text-sm font-semibold truncate">{item.nome || 'Equipamento'}</span>
+          {item.rank && <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${isLegendaryItem ? 'bg-lime-300/10 text-lime-300 border-lime-300/25' : rc.badge}`}>{isLegendaryItem ? 'Lendária' : item.rank}</span>}
+        </div>
+        <div className="flex items-center gap-3 mt-1 text-xs">
+          <span className={isLegendaryItem ? 'text-lime-300/80' : 'text-txt-dim/60'}>{isLegendaryItem ? 'Arma Lendária' : item.categoria || 'Equipamento'}</span>
+          {item.dano && <span className="text-red-400/80 font-mono">{item.dano}</span>}
+          {(item.habilidades || []).length > 0 && <span className="text-gold/60">{item.habilidades.length} hab.</span>}
+        </div>
+        {item.efeitos && <p className="text-txt-dim/55 text-[10px] mt-1 truncate">{item.efeitos}</p>}
+      </div>
+      <span className="armory-open">abrir</span>
+    </button>
+  )
+  return (
+    <button type="button" onClick={onClick}
+      className={`rounded-lg border ${rc.border} ${rc.bg} p-2.5 text-left hover:brightness-110 transition-all ${rc.glow} overflow-hidden`}>
+      <div className="relative mb-2">
         {item.imagem ? (
-          <img src={item.imagem} alt="" className="w-14 h-14 rounded-lg object-cover border border-sep/30" />
+          <img src={item.imagem} alt="" className={`w-full aspect-[4/3] rounded-lg object-cover border ${rc.border}`} />
         ) : (
-          <div className={`w-14 h-14 rounded-lg ${rc.badge} border flex items-center justify-center text-xl`}>
+          <div className={`w-full aspect-[4/3] rounded-lg ${rc.badge} border flex items-center justify-center text-2xl`}>
             {item.categoria === 'Arma' ? '⚔' : '🛡'}
           </div>
         )}
@@ -382,8 +631,86 @@ function EquipCard({ item, onClick }) {
   )
 }
 
-function EquipCreateModal({ onSave, onClose }) {
+function LegendaryAssignedCard({ item, canRemove, onRemove }) {
+  const rc = RANK_COLORS['Lendária']
+  return (
+    <div className={`armory-card w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left`}>
+      <div className="armory-rank-rail" />
+      <div className={`armory-icon ${rc.badge}`}>
+        {item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <span>LEN</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-txt-main text-sm font-semibold truncate">{item.name || 'Arma Lendária'}</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge} shrink-0`}>Lendária</span>
+        </div>
+        <div className="text-lime-300/70 text-xs mt-1">{item.tipo || 'Forja Lendária'}</div>
+      </div>
+      {canRemove && (
+        <button type="button" onClick={onRemove}
+          className="text-err/50 hover:text-err text-xs border border-err/20 hover:bg-err/10 rounded px-2 py-1 transition-colors">
+          Remover
+        </button>
+      )}
+    </div>
+  )
+}
+
+function LegendaryCatalogModal({ items, assigned, isAdmin, onAssign, onClose }) {
+  const assignedIds = new Set((assigned || []).flatMap(item => [item.id, item.sourceId, item.sourceId ? `static_${item.sourceId}` : null, item.sourceId ? `forge_${item.sourceId}` : null]).filter(Boolean))
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose}>
+      <div className="bg-deep border border-lime-300/25 rounded-xl w-full max-w-3xl shadow-2xl shadow-black/50 max-h-[86vh] flex flex-col modal-content" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="font-cinzel text-lime-300 text-sm">Catálogo de Armas Lendárias</h3>
+            <p className="text-txt-dim/60 text-[10px] mt-1">Visualização breve. Somente o Mestre pode atribuir uma arma lendária.</p>
+          </div>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
+        </div>
+        <div className="p-5 overflow-y-auto">
+          {items.length === 0 ? (
+            <p className="text-txt-dim/50 text-xs italic">Nenhuma arma lendária disponível na forja.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {items.map(item => {
+                const already = assignedIds.has(item.id)
+                return (
+                  <div key={item.id} className="legendary-catalog-card rounded-lg border border-lime-300/25 bg-lime-300/5 overflow-hidden">
+                    <div className="aspect-[4/3] bg-void/70 grid place-items-center border-b border-lime-300/15 overflow-hidden">
+                      {item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <span className="font-cinzel text-lime-300/55 text-sm">Lendária</span>}
+                    </div>
+                    <div className="p-3 space-y-2">
+                      <div className="font-cinzel text-lime-200 text-sm leading-tight truncate">{item.name}</div>
+                      <div className="text-txt-dim/50 text-[10px] truncate">{item.tipo || 'Forja Lendária'}</div>
+                      {item.power_level && (
+                        <span className="text-[9px] bg-amber-300/10 text-amber-200 px-1.5 py-0.5 rounded border border-amber-300/20">
+                          {WEAPON_POWER_LEVELS.find(p => p.value === item.power_level)?.label || 'Notável'}
+                        </span>
+                      )}
+                      {isAdmin ? (
+                        <button onClick={() => onAssign(item)} disabled={already}
+                          className={`w-full text-[10px] px-3 py-1.5 rounded border transition-colors ${already ? 'border-sep/30 text-txt-dim/35 cursor-not-allowed' : 'border-lime-300/35 text-lime-300 hover:bg-lime-300/10'}`}>
+                          {already ? 'Já atribuída' : 'Atribuir'}
+                        </button>
+                      ) : (
+                        <div className="text-[10px] text-txt-dim/40 border border-sep/25 rounded px-2 py-1.5 text-center">Restrita ao Mestre</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EquipCreateModal({ char, onSave, onClose }) {
   const [step, setStep] = useState(0)
+  const [itemCategory, setItemCategory] = useState('Arma')
   const [selectedType, setSelectedType] = useState('')
   const [selectedRank, setSelectedRank] = useState('Comum')
   const [nome, setNome] = useState('')
@@ -434,7 +761,15 @@ function EquipCreateModal({ onSave, onClose }) {
   function selectType(id) {
     const w = WEAPONS.find(x => x.id === id)
     setSelectedType(id)
-    if (w) { setDano(w.dano); setNome(w.name); setEfeitos(w.mec) }
+    if (w) {
+      setDano(w.dano)
+      setNome(w.name)
+      setEfeitos(w.mec)
+    } else {
+      setDano('')
+      setNome('')
+      setEfeitos('')
+    }
     setStep(1)
   }
 
@@ -456,7 +791,7 @@ function EquipCreateModal({ onSave, onClose }) {
     setGenLoading(true)
     setGenError('')
     try {
-      const data = await generateWeaponAbilities(char, selectedType, selectedRank, rankDef.slots)
+      const data = await generateWeaponAbilities(char || {}, selectedType, selectedRank, rankDef.slots)
       if (data.habilidades?.length) {
         const valid = data.habilidades.filter(h => {
           const cost = WEAPON_ABILITY_COST[h.potencia] || 1
@@ -483,7 +818,7 @@ function EquipCreateModal({ onSave, onClose }) {
   function handleSave() {
     onSave({
       id: Date.now(), nome, descricao, imagem, dano, efeitos,
-      categoria: 'Arma', armaId: selectedType, rank: selectedRank,
+      categoria: itemCategory, armaId: selectedType === 'custom' ? null : selectedType, rank: selectedRank,
       habilidades: habilidades.filter(h => h.nome.trim()),
     })
   }
@@ -505,7 +840,20 @@ function EquipCreateModal({ onSave, onClose }) {
           {step === 0 && (
             <div className="space-y-3">
               <h4 className="text-txt-dim text-xs uppercase tracking-wider">Selecione o tipo de arma</h4>
+              <div className="grid grid-cols-3 gap-2">
+                {['Arma', 'Equipamento'].map(cat => (
+                  <button key={cat} onClick={() => setItemCategory(cat)}
+                    className={`border rounded-lg px-2 py-2 text-[10px] font-semibold transition-all ${itemCategory === cat ? 'border-gold/60 bg-gold/10 text-gold' : 'border-sep/40 bg-void/40 text-txt-dim hover:border-gold/30'}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
               <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => selectType('custom')}
+                  className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === 'custom' ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40'}`}>
+                  <span className="text-txt-main text-[11px] font-semibold">Personalizada</span>
+                  <div className="text-[10px] mt-0.5 text-txt-dim/50">Nome, dano e imagem livres</div>
+                </button>
                 {WEAPONS.map(w => (
                   <button key={w.id} onClick={() => selectType(w.id)}
                     className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === w.id ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40'}`}>

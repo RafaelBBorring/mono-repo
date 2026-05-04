@@ -1,15 +1,18 @@
 ﻿import { useState, useEffect } from 'react'
 import { getSupabaseAdmin } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../data/martialArts'
 import { PERICIAS, GRAU_NAMES } from '../data/pericias'
 import { TRIAGES } from '../data/triages'
+import { fetchMysticWeapons } from '../services/alchemyService'
 import AlchemyAdminPanel from './AlchemyAdminPanel'
 import SpellAdminPanel from './SpellAdminPanel'
 import RuneAdminPanel from './RuneAdminPanel'
 import MagicAdminPanel from './MagicAdminPanel'
+import MysticWeaponAdminPanel from './MysticWeaponAdminPanel'
+import GrimoireAdminPage from './GrimoireAdminPage'
 
 const STATUS_COLORS_ADMIN = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -49,8 +52,15 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
   const [loading, setLoading] = useState(true)
   const [expandedSheet, setExpandedSheet] = useState(null)
   const [editingSheet, setEditingSheet] = useState(null)
+  const [forgeWeapons, setForgeWeapons] = useState([])
 
   useEffect(() => { loadData() }, [])
+
+  useEffect(() => {
+    fetchMysticWeapons().then(res => {
+      setForgeWeapons(res.data || [])
+    })
+  }, [])
 
   useEffect(() => {
     setTab(initialTab)
@@ -134,13 +144,17 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
 
   async function handleAssignLegendary(sheet, legendaryId) {
     const lw = LEGENDARY_WEAPONS.find(l => l.id === legendaryId)
-    if (!lw) return
+    const fw = !lw ? forgeWeapons.find(w => w.id === legendaryId) : null
+    if (!lw && !fw) return
     const existing = sheet.data?.armasLendarias || []
     if (existing.some(l => l.id === legendaryId)) {
       alert('Esta arma lendária já está atribuída a este personagem.')
       return
     }
-    await handlePatch(sheet, { armasLendarias: [...existing, { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo }] })
+    const entry = lw
+      ? { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo }
+      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge' }
+    await handlePatch(sheet, { armasLendarias: [...existing, entry] })
   }
 
   if (loading) return <p className="text-txt-dim p-8 animate-pulse">Carregando painel admin...</p>
@@ -149,14 +163,12 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="font-cinzel text-gold text-2xl">Painel Administrativo</h2>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap justify-end gap-1">
           {[
             { key: 'sheets', label: 'Fichas' },
             { key: 'abilities', label: 'Habilidades' },
-            { key: 'alchemy', label: 'Alquimia' },
-            { key: 'spells', label: 'Feitiços' },
-            { key: 'runes', label: 'Runas' },
-            { key: 'magic', label: 'Magias' },
+            { key: 'grimoire', label: 'Grimório' },
+            { key: 'mysticWeapons', label: 'Forja Lendária' },
             { key: 'users', label: 'Usuários' },
           ].map(t => (
             <button key={t.key} onClick={() => { setTab(t.key); setExpandedSheet(null); setEditingSheet(null) }}
@@ -315,10 +327,12 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
         </div>
       )}
 
+      {tab === 'grimoire' && <GrimoireAdminPage />}
       {tab === 'alchemy' && <AlchemyAdminPanel />}
       {tab === 'spells' && <SpellAdminPanel />}
       {tab === 'runes' && <RuneAdminPanel />}
       {tab === 'magic' && <MagicAdminPanel />}
+      {tab === 'mysticWeapons' && <MysticWeaponAdminPanel />}
     </div>
   )
 }
@@ -630,14 +644,14 @@ function AdminSheetView({ sheet, onPatch }) {
 
       {legendaryAssigned.length > 0 && (
         <div>
-          <h4 className="text-amber-400 text-xs font-semibold mb-2 uppercase tracking-wider">★ Armas Lendárias Atribuídas</h4>
+          <h4 className="text-lime-300 text-xs font-semibold mb-2 uppercase tracking-wider">★ Armas Lendárias Atribuídas</h4>
           <div className="space-y-1.5">
             {legendaryAssigned.map((lw, i) => (
-              <div key={lw.id || i} className="bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">
+              <div key={lw.id || i} className="bg-lime-300/5 border border-lime-300/20 rounded-lg px-3 py-2">
                 <div className="flex items-center gap-2">
                   <span className="text-amber-300 text-sm">★</span>
                   <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
-                  <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                  <span className="text-[9px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded border border-lime-300/20">{lw.rank}</span>
                   {onPatch && (
                     <button onClick={() => {
                       const next = legendaryAssigned.filter((_, j) => j !== i)
@@ -698,7 +712,7 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
     { id: 'habilidades', label: 'Habilidades', icon: '✦', color: 'bg-indigo-400' },
     { id: 'inventario', label: 'Inventário', icon: '🎒', color: 'bg-teal-400' },
     { id: 'equipamentos', label: 'Equipamentos', icon: '🗡', color: 'bg-orange-400' },
-    { id: 'lendarias', label: 'Lendárias', icon: '★', color: 'bg-amber-400' },
+    { id: 'lendarias', label: 'Lendárias', icon: '★', color: 'bg-lime-300' },
     { id: 'notas', label: 'Notas', icon: '📝', color: 'bg-gray-400' },
     { id: 'json', label: 'JSON', icon: '{ }', color: 'bg-sep' },
   ]
@@ -857,12 +871,16 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
 
   function assignLegendary(legendaryId) {
     const lw = LEGENDARY_WEAPONS.find(l => l.id === legendaryId)
-    if (!lw) return
+    const fw = !lw ? forgeWeapons.find(w => w.id === legendaryId) : null
+    if (!lw && !fw) return
     const existing = data.armasLendarias || []
     if (existing.some(l => l.id === legendaryId)) return
+    const entry = lw
+      ? { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo, descricao: lw.descricao }
+      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge' }
     setData(prev => ({
       ...prev,
-      armasLendarias: [...existing, { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo, descricao: lw.descricao }],
+      armasLendarias: [...existing, entry],
     }))
   }
 
@@ -1229,17 +1247,17 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
           )}
         </SectionCard>
 
-        <SectionCard id="lendarias" icon="★" title="Armas Lendárias" color="bg-amber-400">
+        <SectionCard id="lendarias" icon="★" title="Armas Lendárias" color="bg-lime-300">
           <p className="text-txt-dim/50 text-[10px] leading-relaxed">Atribua armas lendárias da biblioteca a este personagem. Apenas o Mestre pode conceder essas armas.</p>
 
           {(data.armasLendarias || []).length > 0 && (
             <div className="space-y-1.5">
               <h6 className="text-amber-400 text-[10px] uppercase tracking-wider">Atribuídas</h6>
               {(data.armasLendarias || []).map((lw, i) => (
-                <div key={lw.id || i} className="bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2 flex items-center gap-2">
-                  <span className="text-amber-300 text-sm">★</span>
+                <div key={lw.id || i} className="bg-lime-300/5 border border-lime-300/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <span className="text-lime-300 text-sm">★</span>
                   <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
-                  <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
+                  <span className="text-[9px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded border border-lime-300/20">{lw.rank}</span>
                   <button onClick={() => removeLegendary(i)} className="text-err/50 hover:text-err text-[10px] ml-auto">✕</button>
                 </div>
               ))}
@@ -1248,22 +1266,34 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
 
           <div className="space-y-1.5">
             <h6 className="text-txt-dim/60 text-[10px] uppercase tracking-wider">Biblioteca</h6>
-            {LEGENDARY_WEAPONS.filter(lw => !(data.armasLendarias || []).some(a => a.id === lw.id)).map(lw => (
-              <div key={lw.id} className="bg-void/40 border border-sep/20 rounded-lg px-3 py-2 flex items-center gap-2 hover:border-amber-400/30 transition-colors">
-                <span className="text-amber-400/60 text-sm">★</span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
-                  <span className="text-[9px] text-txt-dim ml-1">({lw.tipo})</span>
+            {(() => {
+              const allLegendary = [
+                ...LEGENDARY_WEAPONS.filter(lw => !(data.armasLendarias || []).some(a => a.id === lw.id)).map(lw => ({ ...lw, _source: 'static' })),
+                ...forgeWeapons.filter(fw => !(data.armasLendarias || []).some(a => a.id === fw.id)).map(fw => ({
+                  id: fw.id,
+                  name: fw.name,
+                  tipo: fw.range || fw.law_name || 'Forja Lendária',
+                  descricao: fw.short_description || fw.effect || '',
+                  _source: 'forge',
+                })),
+              ]
+              return allLegendary.length === 0 ? (
+                <p className="text-txt-dim/40 text-[10px] italic">Nenhuma arma lendária disponível para atribuir</p>
+              ) : allLegendary.map(item => (
+                <div key={item.id} className="bg-void/40 border border-sep/20 rounded-lg px-3 py-2 flex items-center gap-2 hover:border-lime-300/30 transition-colors">
+                  <span className="text-amber-400/60 text-sm">★</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-txt-main text-xs font-semibold">{item.name}</span>
+                    <span className="text-[9px] text-txt-dim ml-1">({item.tipo})</span>
+                    {item._source === 'forge' && <span className="text-[8px] bg-lime-300/10 text-lime-300 px-1 py-0.5 rounded ml-1">Forja</span>}
+                  </div>
+                  <button onClick={() => assignLegendary(item.id)}
+                    className="text-[10px] bg-amber-400/10 text-amber-400 px-2 py-0.5 rounded border border-amber-400/20 hover:bg-amber-400/20 transition-colors">
+                    + Atribuir
+                  </button>
                 </div>
-                <button onClick={() => assignLegendary(lw.id)}
-                  className="text-[10px] bg-amber-400/10 text-amber-400 px-2 py-0.5 rounded border border-amber-400/20 hover:bg-amber-400/20 transition-colors">
-                  + Atribuir
-                </button>
-              </div>
-            ))}
-            {LEGENDARY_WEAPONS.filter(lw => !(data.armasLendarias || []).some(a => a.id === lw.id)).length === 0 && (
-              <p className="text-txt-dim/40 text-[10px] italic">Todas as lendárias já foram atribuídas</p>
-            )}
+              ))
+            })()}
           </div>
         </SectionCard>
 

@@ -26,7 +26,7 @@ export const WEAPON_RANKS = [
   { rank: 'Raro', danoBonus: '+2d6', caBonus: 4, slots: 2 },
   { rank: 'Épico', danoBonus: '+3d8', caBonus: 5, slots: 3 },
   { rank: 'Heroico', danoBonus: '+4d8', caBonus: 6, slots: 4 },
-  { rank: 'Lendário', danoBonus: '+5d10', caBonus: 7, slots: 5 },
+  { rank: 'Ancestral', danoBonus: '+5d10', caBonus: 7, slots: 5 },
   { rank: 'Mítico', danoBonus: '+6d12', caBonus: 9, slots: 6 },
   { rank: 'Transcendente', danoBonus: '+8d12', caBonus: 12, slots: 8 },
 ]
@@ -39,7 +39,7 @@ export const RANK_LEVEL_BAND = {
   Raro: 'N6-12',
   Épico: 'N10-16',
   Heroico: 'N14-20',
-  Lendário: 'N18-25',
+  Ancestral: 'N18-25',
   Mítico: 'N22-28',
   Transcendente: 'N26-30',
 }
@@ -48,7 +48,7 @@ export const WEAPON_LIMITS = [
   { minLevel: 1, maxWeapons: 1, maxRank: 'Raro' },
   { minLevel: 8, maxWeapons: 1, maxRank: 'Épico' },
   { minLevel: 14, maxWeapons: 2, maxRank: 'Heroico' },
-  { minLevel: 20, maxWeapons: 2, maxRank: 'Lendário' },
+  { minLevel: 20, maxWeapons: 2, maxRank: 'Ancestral' },
   { minLevel: 26, maxWeapons: 3, maxRank: 'Transcendente' },
 ]
 
@@ -80,20 +80,11 @@ export function canEquipRank(nivel, rank) {
   return rankIdx <= maxIdx
 }
 
-export const LEGENDARY_WEAPONS = [
-  {
-    id: 'requiem',
-    name: 'Requiem',
-    tipo: 'pistola',
-    dano: '2d10',
-    attr: 'DES',
-    rank: 'Lendário',
-    descricao: 'Pistola lendária forjada nas sombras do Abismo. Cada disparo ecoa como um acorde final — silenciando a vida de quem o ouve.',
-    mec: 'Disparo FATAL: ao acertar crítico, o alvo recebe +4d12 dano necrótico e deve fazer CD CON 22 ou perder 1 ação no próximo turno. Recarga: 6 munições (ação parcial).',
-    habilidades: [
-      { nome: 'Acorde de Morte', potencia: 'Forte', tipo: 'Ativa', custo: '3 PE', descricao: 'Canaliza energia abissal em um disparo perfurante. Alvo recebe 3d12 dano necrótico adicional e −4 em todas as defesas por 2 rodadas.' },
-      { nome: 'Sinfonia do Fim', potencia: 'Forte', tipo: 'Ativa', custo: '5 PE', descricao: 'Dispara uma salva de 3 projéteis sombrios em cone de 8m. Cada projétil causa 2d8 necrótico e reduz cura do alvo em 50% por 3 rodadas.' },
-    ],
-    assignedTo: null,
-  },
+export const LEGENDARY_WEAPONS = []
+
+export const WEAPON_POWER_LEVELS = [
+  { value: 'menor', label: 'Menor', desc: 'Poderosa mas contida. Uma adaga lendária, um anel com vontade própria — superior ao comum, mas não esmaga exércitos.' },
+  { value: 'notavel', label: 'Notável', desc: 'Forte e distinta. Se destaca no campo de batalha, virando combates com suas habilidades únicas.' },
+  { value: 'maior', label: 'Maior', desc: 'Entre as mais poderosas. Armas que definem o destino de nações e são temidas por lendas.' },
+  { value: 'suprema', label: 'Suprema', desc: 'Poder absoluto. Escallibur, a Lança do Destino — armas que moldam a história do mundo.' },
 ]

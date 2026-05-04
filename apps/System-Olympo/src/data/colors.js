@@ -4,7 +4,8 @@ export const RANK_COLORS = {
   Raro:         { border: 'border-sky-400/30', bg: 'bg-sky-400/5', text: 'text-sky-400', badge: 'bg-sky-400/10 text-sky-400 border-sky-400/20', glow: '' },
   Épico:        { border: 'border-purple-400/30', bg: 'bg-purple-400/5', text: 'text-purple-400', badge: 'bg-purple-400/10 text-purple-400 border-purple-400/20', glow: 'shadow-purple-400/10' },
   Heroico:      { border: 'border-rose-400/40', bg: 'bg-rose-400/5', text: 'text-rose-400', badge: 'bg-rose-400/10 text-rose-400 border-rose-400/20', glow: 'shadow-rose-400/10' },
-  Lendário:     { border: 'border-amber-400/40', bg: 'bg-amber-400/5', text: 'text-amber-400', badge: 'bg-amber-400/10 text-amber-400 border-amber-400/20', glow: 'shadow-lg shadow-amber-400/15' },
+  Ancestral:    { border: 'border-amber-400/40', bg: 'bg-amber-400/5', text: 'text-amber-400', badge: 'bg-amber-400/10 text-amber-400 border-amber-400/20', glow: 'shadow-lg shadow-amber-400/15' },
+  Lendária:     { border: 'border-lime-300/50', bg: 'bg-lime-300/5', text: 'text-lime-300', badge: 'bg-lime-300/10 text-lime-300 border-lime-300/30', glow: 'shadow-xl shadow-lime-300/15' },
   Mítico:       { border: 'border-fuchsia-400/40', bg: 'bg-fuchsia-400/5', text: 'text-fuchsia-400', badge: 'bg-fuchsia-400/10 text-fuchsia-400 border-fuchsia-400/20', glow: 'shadow-lg shadow-fuchsia-400/20' },
   Transcendente:{ border: 'border-cyan-300/50', bg: 'bg-cyan-300/5', text: 'text-cyan-300', badge: 'bg-cyan-300/10 text-cyan-300 border-cyan-300/30', glow: 'shadow-xl shadow-cyan-300/25' },
 }

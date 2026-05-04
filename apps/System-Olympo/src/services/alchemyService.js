@@ -65,6 +65,10 @@ export async function fetchMagicRituals() {
   return fetchMysticEntries('magic', MAGIC_FALLBACK_RITUALS)
 }
 
+export async function fetchMysticWeapons() {
+  return fetchMysticEntries('mystic_weapon', [])
+}
+
 export async function saveMysticEntry(payload) {
   return getSupabaseAdmin()
     .from('alchemy_rituals')
@@ -89,6 +93,10 @@ export async function saveMagicRitual(payload) {
   return saveMysticEntry({ ...payload, ritual_type: 'magic' })
 }
 
+export async function saveMysticWeapon(payload) {
+  return saveMysticEntry({ ...payload, ritual_type: 'mystic_weapon' })
+}
+
 export async function deleteMysticEntry(id) {
   return getSupabaseAdmin().from('alchemy_rituals').delete().eq('id', id)
 }
@@ -106,6 +114,10 @@ export async function deleteRuneRitual(id) {
 }
 
 export async function deleteMagicRitual(id) {
+  return deleteMysticEntry(id)
+}
+
+export async function deleteMysticWeapon(id) {
   return deleteMysticEntry(id)
 }
 

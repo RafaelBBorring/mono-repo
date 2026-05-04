@@ -198,14 +198,22 @@ export default function HomeMenu({
   isAdmin,
 }) {
   const recentSheets = sheets.slice(0, 6)
-  const adminActions = [
-    { key: 'sheets', label: 'Fichas', detail: `${sheetsCount} personagens` },
+  const legacyAdminActions = [
+    { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens`, tone: 'sheets' },
     { key: 'abilities', label: 'Revisões', detail: 'Habilidades pendentes' },
     { key: 'alchemy', label: 'Alquimia', detail: 'Rituais e fórmulas' },
     { key: 'spells', label: 'Feitiços', detail: 'Tradições e grimórios' },
     { key: 'runes', label: 'Runas', detail: 'Inscrições místicas' },
     { key: 'magic', label: 'Magias', detail: 'Escolas arcanas' },
     { key: 'users', label: 'Usuários', detail: 'Acesso e perfis' },
+  ]
+
+  const adminActions = [
+    { key: 'grimoire', label: 'Grimório do Mestre', detail: 'Feitiços, rituais, magias e runas', tone: 'grimoire' },
+    { key: 'mysticWeapons', label: 'Forja Lendária', detail: 'Relíquias e armas únicas', tone: 'legendary' },
+    { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens`, tone: 'sheets' },
+    { key: 'abilities', label: 'Tribunal de Poderes', detail: 'Habilidades pendentes', tone: 'abilities' },
+    { key: 'users', label: 'Registro de Usuários', detail: 'Acesso e perfis', tone: 'users' },
   ]
 
   return (
@@ -283,7 +291,7 @@ export default function HomeMenu({
           </div>
           <div className="home-admin-grid">
             {adminActions.map(action => (
-              <button key={action.key} type="button" onClick={() => onAdminArea?.(action.key)} className="home-admin-card">
+              <button key={action.key} type="button" onClick={() => onAdminArea?.(action.key)} className={`home-admin-card is-${action.tone}`}>
                 <span>{action.label}</span>
                 <small>{action.detail}</small>
               </button>

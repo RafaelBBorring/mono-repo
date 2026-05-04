@@ -363,6 +363,28 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
         {/* ═══ BODY ═══ */}
         <div className="p-4 sm:p-5">
+          {visible('inventory') && (
+            <section className="sheet-panel mb-5 space-y-5">
+              <div>
+                <EquipmentSection
+                  char={char}
+                  canEdit={canEdit}
+                  onUpdate={(eq) => update({ equipamentos: eq })}
+                  onCharacterUpdate={update}
+                  onDrawerToggle={() => {}}
+                />
+              </div>
+              <div className="border-t border-sep/25 pt-5">
+                <InventorySection
+                  items={char.inventario || []}
+                  canEdit={canEdit}
+                  onUpdate={(items) => update({ inventario: items })}
+                  onDrawerToggle={() => {}}
+                />
+              </div>
+            </section>
+          )}
+
           <div className={`sheet-body-grid sheet-view-${sheetView} grid grid-cols-1 lg:grid-cols-12 gap-5`}>
 
             {/* ═══ LEFT COLUMN ═══ */}
@@ -497,8 +519,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </details>
 
               {/* ARMAS & EQUIPAMENTOS */}
-              <div className={visible('inventory', 'combat') ? '' : 'hidden'}>
-                <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onDrawerToggle={() => {}} />
+              <div className={sheetView === 'combat' ? '' : 'hidden'}>
+                <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onCharacterUpdate={update} onDrawerToggle={() => {}} />
               </div>
             </div>
 
@@ -526,7 +548,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               )}
 
               {/* ARMAS & ARTE MARCIAL */}
-              <div className={visible('combat', 'inventory') ? '' : 'hidden'}>
+              <div className={sheetView === 'combat' ? '' : 'hidden'}>
                 <WeaponMartialPanel char={char} update={update} canEdit={canEdit} />
               </div>
 
@@ -618,7 +640,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* INVENTÁRIO */}
-              <div className={visible('inventory') ? '' : 'hidden'}>
+              <div className="hidden">
                 <InventorySection
                   items={char.inventario || []}
                   canEdit={canEdit}
@@ -1110,7 +1132,7 @@ function WeaponMartialPanel({ char, update, canEdit }) {
 
   return (
     <section>
-      <SectionHeader icon="⚔" title="Armas e Arte Marcial" color="bg-orange-400" />
+      <SectionHeader icon=">" title="Artes Marciais" color="bg-orange-400" />
 
       {!canEdit && !selectedWeapon && !selectedArt && (
         <p className="text-txt-dim/50 text-[11px] italic">Nenhuma arma ou arte marcial equipada</p>
@@ -1119,13 +1141,12 @@ function WeaponMartialPanel({ char, update, canEdit }) {
       {/* LIMITES */}
       <div className="bg-void/60 border border-sep/30 rounded-lg p-2.5 mb-4">
         <div className="flex flex-wrap gap-3 text-[10px]">
-          <span className="text-txt-dim">Armas: <span className="text-gold font-mono">{weaponLimit.maxWeapons}</span> (máx <span className="text-gold">{weaponLimit.maxRank}</span>)</span>
           <span className="text-txt-dim">Artes Marciais: <span className="text-orange-400 font-mono">{martialLimit.maxArts}</span> (máx Grau <span className="text-orange-400">{GRAU_LABELS[martialLimit.maxGrau]}</span>)</span>
         </div>
       </div>
 
       {/* ARMA SELECIONADA */}
-      {canEdit && (
+      {canEdit && false && (
         <div className="space-y-3">
           {!showWeaponSelector ? (
             <div>
@@ -1398,8 +1419,41 @@ function WeaponMartialPanel({ char, update, canEdit }) {
         </div>
       )}
 
+      {canEdit && (
+        <div className="space-y-2">
+          <select value={char.arteMarcial || ''} onChange={e => update({ arteMarcial: e.target.value || null, arteMarcialGrau: 0 })}
+            className="w-full bg-void border border-sep/40 rounded px-2 py-2 text-xs text-txt-main focus:border-orange-400/40 focus:outline-none">
+            <option value="">Nenhuma arte marcial</option>
+            {MARTIAL_ARTS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          {selectedArt && (
+            <>
+              <div className="grid grid-cols-2 gap-1">
+                {GRAU_LABELS.map((label, gi) => {
+                  const allowed = gi <= martialLimit.maxGrau
+                  const sel = (char.arteMarcialGrau || 0) === gi
+                  return (
+                    <button key={gi} onClick={() => allowed && update({ arteMarcialGrau: gi })} disabled={!allowed}
+                      className={`rounded px-2 py-1.5 text-[10px] border text-left transition-colors ${
+                        sel ? 'bg-orange-400/15 border-orange-400/40 text-orange-300' :
+                        allowed ? 'bg-void/50 border-sep/30 text-txt-dim hover:border-orange-400/30' :
+                        'bg-void/20 border-sep/10 text-txt-dim/20 cursor-not-allowed'
+                      }`}>
+                      <div className="font-semibold">{label}</div>
+                      <div className="text-[9px] mt-0.5 opacity-70">{selectedArt.graus[gi]?.desc}</div>
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={() => update({ arteMarcial: null, arteMarcialGrau: 0 })}
+                className="text-err/60 hover:text-err text-[10px]">Remover Arte Marcial</button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* READ-ONLY VIEW */}
-      {!canEdit && selectedWeapon && (
+      {false && !canEdit && selectedWeapon && (
         <div className={`rounded-lg border ${rc.border} ${rc.bg} ${rc.glow} p-3`}>
           <div className="flex items-center gap-2">
             <span className="text-txt-main text-sm font-semibold">{selectedWeapon.name}</span>
