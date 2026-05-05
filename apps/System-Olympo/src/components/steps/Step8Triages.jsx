@@ -81,6 +81,7 @@ export default function Step8Triages({ char, update, updateNested }) {
               {Object.entries(classTriages).map(([key, triage]) => {
                 const isSelected = triagemPrincipal === key
                 const unlocked = getUnlockedLevels(triage, principalLevel)
+                const triageImage = getTriagemImage(classe, key)
 
                 return (
                   <div
@@ -93,15 +94,9 @@ export default function Step8Triages({ char, update, updateNested }) {
                     }`}
                     style={{
                       ...(isSelected ? { boxShadow: `0 0 16px ${classColor.glow}` } : {}),
-                      '--triage-img': getTriagemImage(classe, key) ? `url(${getTriagemImage(classe, key)})` : undefined,
+                      '--triage-img': triageImage ? `url("${triageImage}")` : 'none',
                     }}
                   >
-                    {getTriagemImage(classe, key) && (
-                      <div className="relative h-32 -mx-4 -mt-4 mb-3 overflow-hidden rounded-t">
-                        <img src={getTriagemImage(classe, key)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#1c1b1c] via-[#1c1b1c]/60 to-transparent" />
-                      </div>
-                    )}
                     <div className="flex items-center justify-between mb-1">
                       <h4 className={`font-cinzel text-lg ${isSelected ? classColor.text : 'text-txt-main'}`}>
                         {triage.name}
