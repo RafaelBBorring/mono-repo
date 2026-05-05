@@ -13,7 +13,7 @@ function estimateItemWeight(item = {}) {
   return 0.5
 }
 
-export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate }) {
+export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate, maxCarry }) {
   const [showCreate, setShowCreate] = useState(false)
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
@@ -124,7 +124,7 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
 
         <div className="inventory-load-footer">
           <span>Carga</span>
-          <strong>{totalWeight.toFixed(1)} kg</strong>
+          <strong className={maxCarry && totalWeight > maxCarry ? 'text-red-400' : ''}>{totalWeight.toFixed(1)} kg{maxCarry ? ` / ${maxCarry} kg` : ''}</strong>
         </div>
       </section>
 

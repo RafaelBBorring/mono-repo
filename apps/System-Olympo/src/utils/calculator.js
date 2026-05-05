@@ -251,4 +251,20 @@ export function calcPEHTotal(classe, nivel, choices, modulosAdquiridos) {
   return total
 }
 
+export function calcCarryCapacity(atributos, skeletonPoints, char) {
+  const total = (a) => (atributos[a] || 0) + (skeletonPoints[a] || 0)
+  const baseFOR = total('FOR')
+  const baseCON = total('CON')
+  let capacity = 10 + (baseFOR * 2) + Math.floor(baseCON * 0.5)
+  if (char) {
+    const mods = char.modulosAdquiridos || []
+    if (mods.some(m => m.id === 'mochila_avancada')) capacity += 10
+    if (mods.some(m => m.id === 'forja_pessoal')) capacity += 5
+    const eq = Array.isArray(char.equipamentos) ? char.equipamentos : Object.values(char.equipamentos || {})
+    if (eq.some(e => /mochila|backpack|bolsa.*refor/i.test(e.nome || ''))) capacity += 8
+    if (eq.some(e => /bolsa.*dimens|bag.*holding/i.test(e.nome || ''))) capacity += 20
+  }
+  return capacity
+}
+
 export { getProgressionRewards, getClassDef, getAttrValue }

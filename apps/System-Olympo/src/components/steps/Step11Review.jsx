@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes } from '../../utils/calculator'
+import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes, calcCarryCapacity } from '../../utils/calculator'
 import { exportSheet } from '../../utils/exporter'
 import { ATTR_ICONS, getModifier } from '../../data/attributes'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
@@ -509,6 +509,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                     wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
                     onWalletUpdate={(patch) => update(patch)}
                     onDrawerToggle={() => {}}
+                    maxCarry={calcCarryCapacity(char.atributos, sk, char)}
                   />
                 </div>
               </section>

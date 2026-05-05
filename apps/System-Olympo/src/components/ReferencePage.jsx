@@ -20,7 +20,7 @@ import { useState } from 'react'
 const sections = [
   'Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias',
   'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
-  'Armas', 'Ranks de Arma', 'Limites de Equipamento', 'Armas Lendárias', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Criação de Personagem', 'Balanceamento',
+  'Armas', 'Ranks de Arma', 'Limites de Equipamento', 'Equipamentos', 'Armas Lendárias', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Criação de Personagem', 'Balanceamento',
 ]
 
 export default function ReferencePage() {
@@ -53,6 +53,7 @@ export default function ReferencePage() {
         {section === 'Armas' && <WeaponsSection />}
         {section === 'Ranks de Arma' && <RanksSection />}
         {section === 'Limites de Equipamento' && <EquipLimitsSection />}
+        {section === 'Equipamentos' && <EquipmentSection />}
         {section === 'Armas Lendárias' && <LegendaryWeaponsSection />}
         {section === 'Artes Marciais' && <MartialArtsSection />}
         {section === 'Alquimia' && <AlchemySection />}
@@ -799,6 +800,140 @@ function EquipLimitsSection() {
         <p>• O rank da arma limita as habilidades disponíveis e o poder máximo que a IA atribui.</p>
         <p>• Artes Marciais seguem progressão de grau: Novato → Treinado → Formado → Especialista.</p>
         <p>• Apenas a partir de N23 um personagem pode ter 2 artes marciais simultâneas.</p>
+      </div>
+    </div>
+  )
+}
+
+function EquipmentSection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Sistema de Equipamentos</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Equipamentos complementam as armas e oferecem proteção, utilidades e bônus passivos. Dividem-se em
+        <span className="text-primary"> Armaduras</span>,
+        <span className="text-sky-400"> Escudos</span>,
+        <span className="text-purple-400"> Acessórios</span> e
+        <span className="text-on-surface-variant"> Itens de Utilidade</span>.
+      </p>
+
+      <div className="bg-void rounded-xl border border-primary/20 p-4">
+        <h3 className="text-primary text-sm font-semibold mb-3">Tipos de Equipamento</h3>
+        <div className="grid gap-3">
+          {[
+            { nome: 'Armadura Leve', ca: '+1 CA', desc: 'Couro, tecido reforçado. Ocupa Torso. Sem penalidade.' },
+            { nome: 'Armadura Média', ca: '+3 CA', desc: 'Cota de malha. Ocupa Torso + Pernas. −1 DES.' },
+            { nome: 'Armadura Pesada', ca: '+5 CA', desc: 'Placas completas. Ocupa Torso + Pernas + Braços. −2 DES.' },
+            { nome: 'Elmo', ca: '+1 CA', desc: 'Proteção craniana. Ocupa Cabeça.' },
+            { nome: 'Escudo', ca: '+2 CA', desc: 'Ocupa uma mão. Pode ser usado para ataque ou defesa.' },
+            { nome: 'Acessório', ca: '+0 CA', desc: 'Anéis, amuletos, capas. Concedem passivas. Ocupa Acessório.' },
+            { nome: 'Item de Utilidade', ca: '—', desc: 'Escutas, ganchos, tasers, kits. Efeitos situacionais. Não ocupa slot.' },
+          ].map((eq, i) => (
+            <div key={i} className="bg-void/60 border border-sep/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-txt-main font-semibold text-sm">{eq.nome}</span>
+                <span className="text-primary font-mono text-xs">{eq.ca}</span>
+              </div>
+              <p className="text-txt-dim text-xs">{eq.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-purple-400/20 p-4">
+        <h3 className="text-purple-400 text-sm font-semibold mb-3">Ranks de Equipamento</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">+CA Bônus</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Slots de Passiva</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { rank: 'Comum', ca: 0, slots: 0 },
+                { rank: 'Incomum', ca: 1, slots: 1 },
+                { rank: 'Raro', ca: 2, slots: 1 },
+                { rank: 'Epico', ca: 3, slots: 2 },
+                { rank: 'Heroico', ca: 4, slots: 2 },
+                { rank: 'Ancestral', ca: 5, slots: 3 },
+                { rank: 'Mitico', ca: 7, slots: 3 },
+                { rank: 'Transcendente', ca: 10, slots: 4 },
+              ].map((r, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
+                  <td className="py-2 px-3 font-mono text-primary">{r.ca > 0 ? `+${r.ca}` : '—'}</td>
+                  <td className="py-2 px-3 font-mono text-purple-400">{r.slots}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-txt-dim text-xs mt-2">Equipamentos recebem passivas conforme o rank. Apenas uma peça do set pode ter passiva ativa — sets completos concedem bônus extra.</p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Set</h3>
+        <div className="grid gap-3">
+          {[
+            { name: 'Guardião', pieces: 3, bonus: '+2 CA, Redução de dano 2/passou', desc: 'A proteção completa reforça a determinação.' },
+            { name: 'Sombra', pieces: 3, bonus: '+1 DES, Vantagem em Furtividade', desc: 'As peças se fundem à escuridão.' },
+            { name: 'Arcano', pieces: 3, bonus: '+3 Energia, Redução custo mágico 10%', desc: 'O tecido pulsa com energia latente.' },
+            { name: 'Guerreiro', pieces: 2, bonus: '+5 Vida, +1 Ataque', desc: 'Herança de batalhas antigas.' },
+          ].map((s, i) => (
+            <div key={i} className="bg-void/60 border border-emerald-400/15 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-emerald-400 font-semibold text-sm">{s.name} ({s.pieces} peças)</span>
+              </div>
+              <p className="text-primary font-mono text-xs mb-1">{s.bonus}</p>
+              <p className="text-txt-dim text-xs italic">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sky-400/20 p-4">
+        <h3 className="text-sky-400 text-sm font-semibold mb-3">Itens de Utilidade</h3>
+        <div className="grid gap-2">
+          {[
+            { nome: 'Escuta Eletrônica', efeito: 'Vantagem em Percepção auditiva', peso: '0.2 kg' },
+            { nome: 'Gancho de Escalada', efeito: 'Escalada sem teste em superfícies adequadas', peso: '1.5 kg' },
+            { nome: 'Taser de Pulso', efeito: '1d4+INT, CD 12 CON ou paralisia 1 turno', peso: '0.3 kg' },
+            { nome: 'Kit Médico Portátil', efeito: 'Restaura 1d8+INT Vida (3 usos)', peso: '0.5 kg' },
+            { nome: 'Kit de Ladrão', efeito: 'Vantagem em prestidigitação e arrombamento', peso: '0.3 kg' },
+            { nome: 'Lente de Visão Noturna', efeito: 'Visão no escuro 30m', peso: '0.2 kg' },
+            { nome: 'Granada de Fumaça', efeito: 'Área 5m obscurecida por 3 turnos', peso: '0.4 kg' },
+            { nome: 'Corda de Aço (10m)', efeito: 'Suporta 200kg, imobilizar FOR vs FOR', peso: '1 kg' },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center justify-between bg-void/40 border border-sep/20 rounded px-3 py-2">
+              <div>
+                <span className="text-txt-main text-sm font-semibold">{item.nome}</span>
+                <p className="text-txt-dim text-xs">{item.efeito}</p>
+              </div>
+              <span className="text-on-surface-variant font-mono text-xs">{item.peso}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-amber-400/20 p-4">
+        <h3 className="text-amber-400 text-sm font-semibold mb-3">Capacidade de Carga</h3>
+        <p className="text-txt-dim text-sm mb-2">Cada personagem possui uma capacidade base de carga derivada de seus atributos:</p>
+        <div className="bg-void/60 border border-sep/30 rounded p-3 text-sm text-txt-main font-mono">
+          Carga Máxima = 10 + (FOR × 2) + ⌊CON × 0.5⌋ kg
+        </div>
+        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada) e itens especiais podem aumentar a capacidade. Exceder a carga impede ações atléticas.</p>
+      </div>
+
+      <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
+        <p className="text-primary font-semibold text-sm mb-1">Observações</p>
+        <p>• Equipamentos seguem os mesmos ranks de armas para limites por nível.</p>
+        <p>• Capacidade de moeda inicial: $50 Dólares + 5 Dracmas.</p>
+        <p>• Peso corporal não conta para a capacidade de carga.</p>
+        <p>• Sets completos ativam automaticamente o bônus de set quando todas as peças estão equipadas.</p>
+        <p>• A IA balanceia passivas de equipamento usando os mesmos limites SCP/TDH de habilidades.</p>
       </div>
     </div>
   )

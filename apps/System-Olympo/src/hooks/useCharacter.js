@@ -68,8 +68,8 @@ const initialState = {
   notas: '',
   inventario: [],
   equipamentos: [],
-  dolares: 0,
-  dracmas: 0,
+  dolares: 50,
+  dracmas: 5,
 }
 
 export function useCharacter() {
