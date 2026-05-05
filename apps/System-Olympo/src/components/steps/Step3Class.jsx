@@ -2,6 +2,7 @@ import { CLASSES } from '../../data/classes'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcDanoBase } from '../../utils/calculator'
 import { getModifier } from '../../data/attributes'
 import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
+import { CLASS_IMAGES } from '../../data/triageImages'
 
 export default function Step3Class({ char, update }) {
   const sk = char.skeletonPoints || {}
@@ -64,10 +65,14 @@ export default function Step3Class({ char, update }) {
               }`}
               style={isSelected ? { boxShadow: `0 0 20px ${accent.glow}` } : undefined}
             >
-              <div className={`h-16 bg-gradient-to-br ${accent.bg} to-transparent flex items-center px-5`}>
-                <span className={`material-symbols-outlined ${accent.accent} scale-[2] opacity-20 group-hover:opacity-60 transition-opacity`}>
-                  {accent.icon}
-                </span>
+              <div className={`h-28 bg-gradient-to-br ${accent.bg} to-transparent flex items-center justify-center overflow-hidden relative`}>
+                {CLASS_IMAGES[cls] ? (
+                  <img src={CLASS_IMAGES[cls]} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+                ) : (
+                  <span className={`material-symbols-outlined ${accent.accent} scale-[2] opacity-20 group-hover:opacity-60 transition-opacity`}>
+                    {accent.icon}
+                  </span>
+                )}
               </div>
               <div className="p-5 -mt-6">
                 <h3 className="font-cinzel text-on-surface text-lg uppercase tracking-wider mb-1 group-hover:text-primary transition-colors">{def.name}</h3>

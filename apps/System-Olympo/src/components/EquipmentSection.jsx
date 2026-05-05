@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
-import { generateWeaponAbilities, analyzeBalance } from '../services/aiService'
+import { generateWeaponAbilities, generateEquipmentAbilities, analyzeBalance } from '../services/aiService'
 import { getAttrValue } from '../utils/calculator'
 import { getModifier } from '../data/attributes'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchMysticWeapons } from '../services/alchemyService'
+import { EQUIPMENT_TYPES, EQUIPMENT_RARITIES, SIMPLE_ITEMS, SET_BONUSES } from '../data/equipment'
 
 function tagValue(tags = [], key) {
   const found = tags.find(t => t.startsWith(`${key}:`))
@@ -711,6 +712,7 @@ function LegendaryCatalogModal({ items, assigned, isAdmin, onAssign, onClose }) 
 function EquipCreateModal({ char, onSave, onClose }) {
   const [step, setStep] = useState(0)
   const [itemCategory, setItemCategory] = useState('Arma')
+  const [equipType, setEquipType] = useState(null)
   const [selectedType, setSelectedType] = useState('')
   const [selectedRank, setSelectedRank] = useState('Comum')
   const [nome, setNome] = useState('')
@@ -718,8 +720,11 @@ function EquipCreateModal({ char, onSave, onClose }) {
   const [dano, setDano] = useState('')
   const [efeitos, setEfeitos] = useState('')
   const [habilidades, setHabilidades] = useState([])
+  const [passivas, setPassivas] = useState([])
   const [imagem, setImagem] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [setId, setSetId] = useState(null)
+  const [equipado, setEquipado] = useState(false)
   const fileRef = useRef(null)
   const modalRef = useRef(null)
   const [genLoading, setGenLoading] = useState(false)
@@ -733,7 +738,24 @@ function EquipCreateModal({ char, onSave, onClose }) {
 
   const weaponDef = WEAPONS.find(w => w.id === selectedType)
   const rankDef = WEAPON_RANKS.find(r => r.rank === selectedRank) || WEAPON_RANKS[0]
+  const equipRarity = EQUIPMENT_RARITIES.find(r => r.rank === selectedRank)
+  const passiveSlotsAvail = itemCategory === 'Equipamento' ? (equipRarity?.passiveSlots || 0) : 0
   const usedSlots = habilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+
+  async function handleAIEquip() {
+    if (!equipType) return
+    setGenLoading(true); setGenError('')
+    try {
+      const data = await generateEquipmentAbilities(char || {}, equipType, selectedRank, passiveSlotsAvail, nome)
+      if (data.passivas?.length) {
+        setPassivas(data.passivas)
+      }
+    } catch (err) {
+      setGenError(err.message)
+    } finally {
+      setGenLoading(false)
+    }
+  }
 
   function handleImage(e) {
     const file = e.target.files?.[0]
@@ -818,8 +840,14 @@ function EquipCreateModal({ char, onSave, onClose }) {
   function handleSave() {
     onSave({
       id: Date.now(), nome, descricao, imagem, dano, efeitos,
-      categoria: itemCategory, armaId: selectedType === 'custom' ? null : selectedType, rank: selectedRank,
-      habilidades: habilidades.filter(h => h.nome.trim()),
+      categoria: itemCategory,
+      armaId: itemCategory === 'Arma' ? (selectedType === 'custom' ? null : selectedType) : null,
+      tipoEquip: itemCategory === 'Equipamento' ? equipType : (itemCategory === 'Utilidade' ? 'utilidade' : null),
+      rank: selectedRank,
+      habilidades: itemCategory === 'Arma' ? habilidades.filter(h => h.nome.trim()) : [],
+      passivas: itemCategory === 'Equipamento' ? passivas : [],
+      setId: itemCategory === 'Equipamento' ? setId : null,
+      equipado: itemCategory === 'Equipamento' ? equipado : false,
     })
   }
 
@@ -839,53 +867,128 @@ function EquipCreateModal({ char, onSave, onClose }) {
         <div className="flex-1 overflow-y-auto p-6">
           {step === 0 && (
             <div className="space-y-3">
-              <h4 className="text-txt-dim text-xs uppercase tracking-wider">Selecione o tipo de arma</h4>
+              <h4 className="text-txt-dim text-xs uppercase tracking-wider">Categoria</h4>
               <div className="grid grid-cols-3 gap-2">
-                {['Arma', 'Equipamento'].map(cat => (
-                  <button key={cat} onClick={() => setItemCategory(cat)}
-                    className={`border rounded-lg px-2 py-2 text-[10px] font-semibold transition-all ${itemCategory === cat ? 'border-gold/60 bg-gold/10 text-gold' : 'border-sep/40 bg-void/40 text-txt-dim hover:border-gold/30'}`}>
-                    {cat}
+                {[
+                  { cat: 'Arma', icon: '⚔', desc: 'Espadas, armas de fogo' },
+                  { cat: 'Equipamento', icon: '🛡', desc: 'Armaduras, coletes' },
+                  { cat: 'Utilidade', icon: '🔧', desc: 'Escutas, kits, tasers' },
+                ].map(c => (
+                  <button key={c.cat} onClick={() => { setItemCategory(c.cat); setSelectedType(''); setEquipType(null) }}
+                    className={`border rounded-lg px-2 py-2.5 text-center transition-all ${itemCategory === c.cat ? 'border-gold/60 bg-gold/10 text-gold' : 'border-sep/40 bg-void/40 text-txt-dim hover:border-gold/30'}`}>
+                    <span className="text-lg block mb-1">{c.icon}</span>
+                    <span className="text-[10px] font-semibold block">{c.cat}</span>
+                    <span className="text-[8px] text-txt-dim/50 block mt-0.5">{c.desc}</span>
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => selectType('custom')}
-                  className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === 'custom' ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40'}`}>
-                  <span className="text-txt-main text-[11px] font-semibold">Personalizada</span>
-                  <div className="text-[10px] mt-0.5 text-txt-dim/50">Nome, dano e imagem livres</div>
-                </button>
-                {WEAPONS.map(w => (
-                  <button key={w.id} onClick={() => selectType(w.id)}
-                    className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === w.id ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40'}`}>
-                    <span className="text-txt-main text-[11px] font-semibold">{w.name}</span>
-                    <div className="flex gap-3 mt-0.5 text-[10px]">
-                      <span className="text-red-400/70 font-mono">{w.dano}</span>
-                      <span className="text-txt-dim/50">{w.attr}</span>
+
+              {itemCategory === 'Arma' && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => selectType('custom')}
+                    className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === 'custom' ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40'}`}>
+                    <span className="text-txt-main text-[11px] font-semibold">Personalizada</span>
+                    <div className="text-[10px] mt-0.5 text-txt-dim/50">Nome, dano e imagem livres</div>
+                  </button>
+                  {WEAPONS.map(w => (
+                    <button key={w.id} onClick={() => selectType(w.id)}
+                      className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === w.id ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40'}`}>
+                      <span className="text-txt-main text-[11px] font-semibold">{w.name}</span>
+                      <div className="flex gap-3 mt-0.5 text-[10px]">
+                        <span className="text-red-400/70 font-mono">{w.dano}</span>
+                        <span className="text-txt-dim/50">{w.attr}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {itemCategory === 'Equipamento' && (
+                <div className="grid grid-cols-2 gap-2">
+                  {EQUIPMENT_TYPES.filter(t => t.id !== 'utilidade').map(et => (
+                    <button key={et.id} onClick={() => { setEquipType(et.id); setSelectedType(et.id); setNome(et.label); setEfeitos(et.desc); setDano(''); setStep(1) }}
+                      className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${equipType === et.id ? 'border-primary/50 bg-primary/5' : 'border-sep/40 bg-void/40'}`}>
+                      <span className="text-txt-main text-[11px] font-semibold">{et.label}</span>
+                      <div className="text-[10px] mt-0.5 text-txt-dim/50">{et.desc}</div>
+                      <div className="text-[9px] mt-1 text-primary/60 font-mono">CA base: +{et.caBase}{et.penalty ? ` | DES ${et.penalty}` : ''}</div>
+                    </button>
+                  ))}
+                  <div className="col-span-2 mt-2">
+                    <h5 className="text-txt-dim text-[10px] uppercase tracking-wider mb-1">Set (opcional)</h5>
+                    <div className="flex flex-wrap gap-1">
+                      {SET_BONUSES.map(s => (
+                        <button key={s.id} onClick={() => setSetId(setId === s.id ? null : s.id)}
+                          className={`text-[9px] px-2 py-1 rounded border transition-colors ${setId === s.id ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-400' : 'border-sep/30 text-txt-dim/50 hover:border-sep/50'}`}>
+                          {s.name}
+                        </button>
+                      ))}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {itemCategory === 'Utilidade' && (
+                <div className="grid grid-cols-2 gap-2">
+                  {SIMPLE_ITEMS.map(si => (
+                    <button key={si.id} onClick={() => { setEquipType('utilidade'); setSelectedType(si.id); setNome(si.nome); setDescricao(si.desc); setEfeitos(si.efeito); setDano(''); setStep(1) }}
+                      className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${selectedType === si.id ? 'border-sky-400/50 bg-sky-400/5' : 'border-sep/40 bg-void/40'}`}>
+                      <span className="text-txt-main text-[11px] font-semibold">{si.nome}</span>
+                      <div className="text-[10px] mt-0.5 text-txt-dim/50 leading-snug">{si.efeito}</div>
+                      <div className="text-[9px] mt-1 text-sky-400/60 font-mono">{si.peso} kg</div>
+                    </button>
+                  ))}
+                  <button onClick={() => { setEquipType('utilidade'); setSelectedType('custom_util'); setNome(''); setDescricao(''); setEfeitos(''); setDano(''); setStep(1) }}
+                    className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 border-dashed border-sep/30 bg-void/20`}>
+                    <span className="text-txt-dim/60 text-[11px] font-semibold">Personalizado</span>
+                    <div className="text-[10px] mt-0.5 text-txt-dim/40">Item customizado</div>
                   </button>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
           {step === 1 && (
             <div className="space-y-3">
-              <h4 className="text-txt-dim text-xs uppercase tracking-wider">Rank da arma</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {WEAPON_RANKS.map(r => {
-                  const rc = RANK_COLORS[r.rank]
-                  return (
-                    <button key={r.rank} onClick={() => setSelectedRank(r.rank)}
-                      className={`text-left border rounded-lg p-2.5 transition-all ${selectedRank === r.rank ? `${rc.border} ${rc.bg} ${rc.glow}` : 'border-sep/40 bg-void/40 hover:border-sep/70'}`}>
-                      <span className={`text-xs font-semibold ${rc.text}`}>{r.rank}</span>
-                      <div className="text-[10px] mt-0.5 text-txt-dim/60 space-y-0.5">
-                        <div>Dano: <span className="text-red-400/70 font-mono">{r.danoBonus || '—'}</span></div>
-                        <div>+CA: <span className="font-mono">{r.caBonus}</span> · Slots: <span className="font-mono">{r.slots}</span></div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+              <h4 className="text-txt-dim text-xs uppercase tracking-wider">
+                {itemCategory === 'Arma' ? 'Rank da arma' : itemCategory === 'Equipamento' ? 'Rank do equipamento' : 'Detalhes do item'}
+              </h4>
+              {itemCategory === 'Utilidade' ? (
+                <div className="space-y-3">
+                  <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome do item"
+                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                  <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição" rows={2}
+                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-gold/40 focus:outline-none" />
+                  <input type="text" value={efeitos} onChange={e => setEfeitos(e.target.value)} placeholder="Efeito mecânico"
+                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {WEAPON_RANKS.map(r => {
+                    const rc = RANK_COLORS[r.rank]
+                    const rarity = EQUIPMENT_RARITIES.find(er => er.rank === r.rank)
+                    return (
+                      <button key={r.rank} onClick={() => setSelectedRank(r.rank)}
+                        className={`text-left border rounded-lg p-2.5 transition-all ${selectedRank === r.rank ? `${rc.border} ${rc.bg} ${rc.glow}` : 'border-sep/40 bg-void/40 hover:border-sep/70'}`}>
+                        <span className={`text-xs font-semibold ${rc.text}`}>{r.rank}</span>
+                        <div className="text-[10px] mt-0.5 text-txt-dim/60 space-y-0.5">
+                          {itemCategory === 'Arma' && (
+                            <>
+                              <div>Dano: <span className="text-red-400/70 font-mono">{r.danoBonus || '—'}</span></div>
+                              <div>+CA: <span className="font-mono">{r.caBonus}</span> · Slots: <span className="font-mono">{r.slots}</span></div>
+                            </>
+                          )}
+                          {itemCategory === 'Equipamento' && rarity && (
+                            <>
+                              <div>+CA bônus: <span className="text-primary font-mono">{rarity.caBonus}</span></div>
+                              <div>Passivas: <span className="font-mono">{rarity.passiveSlots}</span></div>
+                            </>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -913,11 +1016,18 @@ function EquipCreateModal({ char, onSave, onClose }) {
                     <input type="text" value={efeitos} onChange={e => setEfeitos(e.target.value)} placeholder="Efeitos"
                       className="bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
                   </div>
+                  {itemCategory === 'Equipamento' && (
+                    <label className="flex items-center gap-2 text-[10px] text-txt-dim cursor-pointer">
+                      <input type="checkbox" checked={equipado} onChange={e => setEquipado(e.target.checked)} className="accent-gold" />
+                      Equipado
+                    </label>
+                  )}
                 </div>
               </div>
               <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição (opcional)" rows={2}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-gold/40 focus:outline-none" />
-              {rankDef.slots > 0 && (
+
+              {itemCategory === 'Arma' && rankDef.slots > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-txt-dim text-[10px] uppercase tracking-wider">Habilidades ({rankDef.rank})</span>
@@ -962,6 +1072,36 @@ function EquipCreateModal({ char, onSave, onClose }) {
                   ))}
                   {usedSlots < rankDef.slots && (
                     <button onClick={addHabilidade} className="text-gold/60 hover:text-gold text-[10px]">+ Habilidade</button>
+                  )}
+                </div>
+              )}
+
+              {itemCategory === 'Equipamento' && passiveSlotsAvail > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-txt-dim text-[10px] uppercase tracking-wider">Passivas ({selectedRank})</span>
+                    <button
+                      onClick={handleAIEquip}
+                      disabled={genLoading}
+                      className="text-[9px] bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 px-2 py-0.5 rounded hover:bg-emerald-500/20 transition-colors disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {genLoading && <span className="animate-spin inline-block w-2.5 h-2.5 border border-emerald-400/40 border-t-emerald-400 rounded-full" />}
+                      {genLoading ? '...' : '✦ IA Equipe'}
+                    </button>
+                  </div>
+                  {genError && <p className="text-err text-[9px] mb-1.5">{genError}</p>}
+                  {passivas.map((p, i) => (
+                    <div key={i} className="bg-void/40 border border-emerald-400/15 rounded-lg p-2.5 mb-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-emerald-400 text-[10px] font-semibold">{p.nome}</span>
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">{p.tipo || 'Passiva'}</span>
+                      </div>
+                      <p className="text-txt-dim/70 text-[10px] leading-relaxed">{p.descricao}</p>
+                      <p className="text-primary/60 text-[9px] font-mono mt-1">{p.efeito}</p>
+                    </div>
+                  ))}
+                  {passivas.length === 0 && !genLoading && (
+                    <p className="text-txt-dim/40 text-[10px] italic">Clique em "IA Equipe" para gerar passivas, ou deixe sem passivas.</p>
                   )}
                 </div>
               )}

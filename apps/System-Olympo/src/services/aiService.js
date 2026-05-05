@@ -1013,3 +1013,78 @@ Seja direto e objetivo. Cite números e limites quando relevante.`
 
   return await callAIStream(messages)
 }
+
+export async function generateEquipmentAbilities(char, equipType, equipRank, passiveSlots, userDesc = '') {
+  const nivel = char.nivel || 1
+  const attrs = char.atributos || {}
+  const sk = char.skeletonPoints || {}
+  const cls = char.classe || ''
+
+  const attrVals = {}
+  for (const a of ['FOR', 'DES', 'CON', 'INT', 'APA', 'AM']) {
+    attrVals[a] = getAttrValue(attrs, a, sk, char)
+  }
+
+  const vida = cls ? calcVidaTotal(cls, nivel, attrs, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 100
+  const ca = cls ? calcCA(attrs, sk, char.pericias, char) : 10
+
+  const systemPrompt = `Você é um sistema de balanceamento para um RPG chamado Olympo 2.0.
+Sua tarefa é criar passivas para equipamentos (armaduras, coletes, escudos, acessórios).
+
+CONTEXTO DO PERSONAGEM:
+- Classe: ${cls} | Nível: ${nivel}
+- Atributos: FOR ${attrVals.FOR} | DES ${attrVals.DES} | CON ${attrVals.CON} | INT ${attrVals.INT} | APA ${attrVals.APA} | AM ${attrVals.AM}
+- Vida: ${vida} | CA base: ${ca}
+- Triagem: ${char.triagemPrincipal || 'Nenhuma'} (${char.triagemPrincipalNivel || 0})
+
+EQUIPAMENTO:
+- Tipo: ${equipType}
+- Rank: ${equipRank}
+- Slots de Passiva disponíveis: ${passiveSlots}
+${userDesc ? `- Descrição do jogador: ${userDesc}` : ''}
+
+REGRAS DE BALANCEAMENTO PARA EQUIPAMENTOS:
+1. PASSIVAS devem ser SUTIS — equipamentos NÃO são armas. Eles oferecem:
+   - Sobrevida: redução de dano fixa (máx 3/nível band), +Vida temporária, resistência a condição
+   - Utilidade: vantagem em testes específicos, movimento especial, sense amplificado
+   - Sinergia: bônus quando condição X acontece (ex: "+2 CA quando adjacente a aliado")
+2. NÃO crie passivas que adicionam dano direto — isso é para armas
+3. Coletes balísticos: redução de dano balístico, absorção de impacto
+4. Armaduras: CA bonus + resistência a tipo de dano
+5. Escudos: bloqueio ativo (REAÇÃO), proteção contra projéteis
+6. Acessórios: bônus passivos sutis (sentidos, resistência mental, etc.)
+7. MÁXIMO de efeitos por passiva: 1 efeito principal + 1 condição
+8. Use formato de dano do sistema: NdN+mod (ex: reduz 1d6 de dano balístico)
+
+LIMITES POR RANK:
+- Comum: sem passiva
+- Incomum: efeito menor (ex: vantagem em 1 teste específico)
+- Raro: efeito moderado (redução de dano 1-2, +1-3 em condição específica)
+- Epico: efeito forte (redução 2-3, resistência a tipo, +5 Vida temporária)
+- Heroico+: efeitos combinados permitidos
+
+Responda APENAS com JSON:
+{
+  "passivas": [
+    {
+      "nome": "string",
+      "descricao": "string detalhada",
+      "tipo": "Passiva",
+      "efeito": "string resumido do efeito mecânico"
+    }
+  ]
+}`
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: `Crie ${passiveSlots} passiva(s) para este equipamento tipo "${equipType}" rank ${equipRank}. Seja conciso e balanceado.` },
+  ]
+
+  const data = await callAI(messages)
+  try {
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data
+    return { passivas: (parsed.passivas || []).slice(0, passiveSlots) }
+  } catch {
+    return { passivas: [] }
+  }
+}
