@@ -3382,15 +3382,18 @@ body {
   position: absolute;
   top: -5rem;
   right: -4rem;
-  z-index: -1;
-  width: min(340px, 68%);
-  height: 380px;
+  z-index: 1;
+  width: min(330px, 66%);
+  height: min(330px, 66vw);
   opacity: 0;
   transform: translate(-22px, 36px) scale(0.92);
   transition: opacity 240ms ease, transform 360ms ease;
+  background-image: var(--triage-img);
   background-repeat: no-repeat;
-  background-size: contain;
-  background-position: right top;
+  background-size: cover;
+  background-position: center top;
+  border-radius: 9999px;
+  clip-path: circle(50% at 50% 50%);
   pointer-events: none;
 }
 
@@ -3418,8 +3421,8 @@ body {
   .triage-main-card::before {
     top: -4rem;
     right: -3.5rem;
-    width: 72%;
-    height: 315px;
+    width: min(265px, 72%);
+    height: min(265px, 72vw);
     opacity: 0;
   }
 
