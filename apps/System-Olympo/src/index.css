@@ -3357,10 +3357,11 @@ body {
 
 .triage-main-card {
   --triage-img: none;
-  --triage-glow: rgba(245,200,76,0.28);
   overflow: visible;
   isolation: isolate;
   z-index: 0;
+  transform-origin: center;
+  transition: transform 260ms ease, opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
 
 .triage-main-card > * {
@@ -3371,81 +3372,83 @@ body {
 .triage-main-card::after {
   content: "";
   position: absolute;
-  right: -3rem;
-  bottom: -2.75rem;
-  z-index: -2;
-  width: min(300px, 62%);
-  height: 300px;
-  opacity: 0.34;
-  transform: translate(18px, 18px);
-  transition: opacity 260ms ease, transform 360ms ease;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.9;
+  transition: opacity 220ms ease;
   background:
-    radial-gradient(circle at 58% 52%, var(--triage-glow), transparent 68%);
-  filter: blur(14px);
+    linear-gradient(90deg, rgba(14,12,14,0.98) 0%, rgba(14,12,14,0.95) 58%, rgba(14,12,14,0.78) 100%);
   pointer-events: none;
 }
 
 .triage-main-card::before {
   content: "";
   position: absolute;
-  right: -2.3rem;
-  bottom: -1.8rem;
+  top: -2.6rem;
+  right: -3.25rem;
   z-index: -1;
-  width: min(300px, 60%);
-  height: 330px;
-  opacity: 0.82;
-  transform: translate(18px, 16px) scale(0.98);
-  transition: opacity 240ms ease, transform 340ms ease, filter 340ms ease;
+  width: min(315px, 62%);
+  height: 335px;
+  opacity: 0;
+  transform: translate(-18px, 28px) scale(0.94);
+  transition: opacity 240ms ease, transform 360ms ease, filter 300ms ease;
   background-image: var(--triage-img);
   background-repeat: no-repeat;
   background-size: contain;
-  background-position: right bottom;
+  background-position: right top;
   filter:
-    grayscale(0.08)
-    saturate(1.12)
-    contrast(1.14)
-    drop-shadow(0 0 18px var(--triage-glow))
-    drop-shadow(0 18px 28px rgba(0,0,0,0.58));
-  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 100%);
-  mask-image: linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 100%);
+    grayscale(0.02)
+    saturate(1.04)
+    contrast(1.08)
+    drop-shadow(0 18px 30px rgba(0,0,0,0.62));
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.94) 0%, rgba(0,0,0,1) 76%, transparent 100%);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.94) 0%, rgba(0,0,0,1) 76%, transparent 100%);
   pointer-events: none;
 }
-
-.triage-stage.triage-guerreiro .triage-main-card { --triage-glow: rgba(248,113,113,0.45); }
-.triage-stage.triage-operativo .triage-main-card { --triage-glow: rgba(96,165,250,0.45); }
-.triage-stage.triage-mistico .triage-main-card { --triage-glow: rgba(192,132,252,0.48); }
 
 .triage-stage.triage-guerreiro .triage-main-card::before { background-color: rgba(248,113,113,0.12); }
 .triage-stage.triage-operativo .triage-main-card::before { background-color: rgba(96,165,250,0.12); }
 .triage-stage.triage-mistico .triage-main-card::before { background-color: rgba(192,132,252,0.12); }
 
+.triage-main-grid:has(.triage-main-card:hover) .triage-main-card:not(:hover) {
+  opacity: 0.72;
+  transform: scale(0.965);
+}
+
+.triage-main-card:hover {
+  z-index: 4;
+  transform: scale(1.015);
+}
+
 .triage-main-card:hover::after {
-  opacity: 0.54;
-  transform: translate(30px, -18px);
+  opacity: 0.98;
 }
 
 .triage-main-card:hover::before {
-  opacity: 0.92;
-  transform: translate(34px, -28px) scale(1.06);
+  opacity: 0.86;
+  transform: translate(38px, -34px) scale(1.03);
   filter:
     grayscale(0)
-    saturate(1.28)
-    contrast(1.18)
-    drop-shadow(0 0 28px var(--triage-glow))
-    drop-shadow(0 20px 34px rgba(0,0,0,0.62));
+    saturate(1.1)
+    contrast(1.1)
+    drop-shadow(0 20px 34px rgba(0,0,0,0.66));
 }
 
 @media (max-width: 640px) {
   .triage-main-card::before {
-    right: -3.2rem;
-    bottom: -1.25rem;
+    top: -2rem;
+    right: -3rem;
     width: 66%;
-    opacity: 0.8;
+    opacity: 0;
+  }
+
+  .triage-main-grid:has(.triage-main-card:hover) .triage-main-card:not(:hover) {
+    transform: scale(0.985);
   }
 
   .triage-main-card:hover::before {
-    opacity: 0.86;
-    transform: translate(20px, -18px) scale(1.03);
+    opacity: 0.82;
+    transform: translate(20px, -22px) scale(1.02);
   }
 }
 

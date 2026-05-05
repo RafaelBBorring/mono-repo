@@ -77,7 +77,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                 <span className="text-warn ml-2">— Selecione uma triagem principal</span>
               )}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="triage-main-grid grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(classTriages).map(([key, triage]) => {
                 const isSelected = triagemPrincipal === key
                 const unlocked = getUnlockedLevels(triage, principalLevel)
