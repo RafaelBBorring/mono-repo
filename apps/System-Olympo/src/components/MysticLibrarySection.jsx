@@ -162,16 +162,16 @@ export default function MysticLibrarySection({ char, update, config, compact = f
   const badges = ruleBadges({ char, profile, selectedItems, spaceUsed }) || []
 
   return (
-    <section className={`mystic-grimoire bg-void/50 border ${sectionBorder} rounded-xl ${compact ? 'p-4' : 'p-5'} space-y-4`}>
+    <section className={`mystic-grimoire codex-card ${sectionBorder} ${compact ? 'p-4' : 'p-5'} space-y-4`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-sm ${accentClass}`}>{icon}</span>
             <h3 className={`font-cinzel text-sm uppercase tracking-[0.12em] font-semibold ${accentClass}`}>Grimorio de {title}</h3>
           </div>
-          <p className="text-txt-dim text-xs max-w-3xl">{introText}</p>
+          <p className="text-on-surface-variant text-xs max-w-3xl">{introText}</p>
         </div>
-        <div className="text-xs text-txt-dim space-y-1">
+        <div className="text-xs text-on-surface-variant space-y-1">
           <div>Fonte: <span className={sourceMode === 'database' ? 'text-emerald-400' : 'text-amber-300'}>{sourceMode === 'database' ? 'Banco' : 'Catalogo local'}</span></div>
           <div>{selectedItems.length} {itemLabelPlural}</div>
         </div>
@@ -190,8 +190,8 @@ export default function MysticLibrarySection({ char, update, config, compact = f
       {selectedItems.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="text-txt-main text-sm font-semibold">Selecionados</div>
-            <div className="text-[11px] text-txt-dim">{spaceUsed}/{profile.spaceBudget || 0} espacos ocupados</div>
+            <div className="text-on-surface text-sm font-semibold">Selecionados</div>
+            <div className="text-[11px] text-on-surface-variant">{spaceUsed}/{profile.spaceBudget || 0} espacos ocupados</div>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
             {selectedItems
@@ -286,7 +286,7 @@ export default function MysticLibrarySection({ char, update, config, compact = f
       <div className={`grid gap-4 ${wide ? 'xl:grid-cols-[minmax(0,1.35fr)_430px]' : 'xl:grid-cols-[minmax(0,1.1fr)_390px]'}`}>
         <div className="space-y-3 min-w-0">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="text-txt-main text-sm font-semibold">Biblioteca</div>
+            <div className="text-on-surface text-sm font-semibold">Biblioteca</div>
             {error && <span className="text-[11px] text-amber-300">{error}</span>}
           </div>
 

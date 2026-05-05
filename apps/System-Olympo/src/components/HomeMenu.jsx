@@ -9,14 +9,6 @@ function getSheetRace(sheet) {
   return sheet.data?.raca || sheet.data?.racaTipo || 'Linhagem oculta'
 }
 
-function getLevelTone(level = 1) {
-  if (level <= 8) return 'seed'
-  if (level <= 16) return 'spark'
-  if (level <= 22) return 'war'
-  if (level <= 29) return 'arcane'
-  return 'divine'
-}
-
 function HomeThreeStage() {
   const canvasRef = useRef(null)
 
@@ -39,8 +31,8 @@ function HomeThreeStage() {
     const positions = new Float32Array(particleCount * 3)
     const basePositions = new Float32Array(particleCount * 3)
     const colors = new Float32Array(particleCount * 3)
-    const colorA = new THREE.Color(0xc9a84c)
-    const colorB = new THREE.Color(0x5cc8cc)
+    const colorA = new THREE.Color(0xf7bd48)
+    const colorB = new THREE.Color(0x00daf3)
     for (let i = 0; i < particleCount; i += 1) {
       const radius = 1.4 + Math.random() * 5.8
       const angle = Math.random() * Math.PI * 2
@@ -71,7 +63,7 @@ function HomeThreeStage() {
 
     const shardGeometry = new THREE.IcosahedronGeometry(0.09, 0)
     const shardMaterial = new THREE.MeshBasicMaterial({
-      color: 0xe8c97e,
+      color: 0xffdea6,
       transparent: true,
       opacity: 0.34,
       blending: THREE.AdditiveBlending,
@@ -181,7 +173,7 @@ function HomeThreeStage() {
     }
   }, [])
 
-  return <canvas ref={canvasRef} className="home-three-canvas" aria-hidden="true" />
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />
 }
 
 export default function HomeMenu({
@@ -198,107 +190,156 @@ export default function HomeMenu({
   isAdmin,
 }) {
   const recentSheets = sheets.slice(0, 6)
-  const legacyAdminActions = [
-    { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens`, tone: 'sheets' },
-    { key: 'abilities', label: 'Revisões', detail: 'Habilidades pendentes' },
-    { key: 'alchemy', label: 'Alquimia', detail: 'Rituais e fórmulas' },
-    { key: 'spells', label: 'Feitiços', detail: 'Tradições e grimórios' },
-    { key: 'runes', label: 'Runas', detail: 'Inscrições místicas' },
-    { key: 'magic', label: 'Magias', detail: 'Escolas arcanas' },
-    { key: 'users', label: 'Usuários', detail: 'Acesso e perfis' },
-  ]
 
   const adminActions = [
-    { key: 'grimoire', label: 'Grimório do Mestre', detail: 'Feitiços, rituais, magias e runas', tone: 'grimoire' },
-    { key: 'mysticWeapons', label: 'Forja Lendária', detail: 'Relíquias e armas únicas', tone: 'legendary' },
-    { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens`, tone: 'sheets' },
-    { key: 'abilities', label: 'Tribunal de Poderes', detail: 'Habilidades pendentes', tone: 'abilities' },
-    { key: 'users', label: 'Registro de Usuários', detail: 'Acesso e perfis', tone: 'users' },
+    { key: 'grimoire', label: 'Grimório do Mestre', detail: 'Gestão de feitiços e conhecimentos proibidos.', icon: 'menu_book' },
+    { key: 'mysticWeapons', label: 'Forja Lendária', detail: 'Criação e manutenção de artefatos únicos.', icon: 'auto_fix_high' },
+    { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens registrados.`, icon: 'groups' },
+    { key: 'abilities', label: 'Tribunal de Poderes', detail: 'Moderação e balanceamento de habilidades.', icon: 'gavel' },
+    { key: 'users', label: 'Registro de Usuários', detail: 'Controle de acesso à Biblioteca Proibida.', icon: 'manage_accounts' },
   ]
 
   return (
-    <div className="home-dashboard is-epic">
-      <section className="home-hero-showcase">
+    <main className="min-h-screen">
+      {/* ── Hero Section ── */}
+      <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
         <HomeThreeStage />
-        <div className="home-hero-content">
-          <span className="home-eyebrow">Sistema Olympo 2.0</span>
-          <h1 className="font-cinzel">Herdeiros do Amanhã</h1>
-          <p>
-            Sua mesa começa aqui: escolha um herói, forje uma nova ficha ou abra o livro de regras quando precisar consultar o mundo.
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background z-10 pointer-events-none" />
+        <div className="relative z-20 text-center max-w-4xl px-6">
+          <h1 className="font-cinzel text-primary text-glow-gold mb-4 tracking-[0.2em]"
+              style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', lineHeight: 1.1 }}>
+            HERDEIROS DO AMANHÃ
+          </h1>
+          <p className="text-on-surface-variant font-body mb-10 max-w-2xl mx-auto italic"
+             style={{ fontSize: 'clamp(1rem, 2vw, 1.15rem)', lineHeight: 1.7 }}>
+            "O destino não é escrito nas estrelas, mas sim nos arquivos que os deuses esqueceram."
           </p>
-          <div className="home-hero-actions">
-            <button type="button" onClick={onNew} className="home-create-button">
-              <span>Criar Novo Personagem</span>
-              <small>Iniciar uma jornada do zero</small>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <button type="button" onClick={onNew}
+              className="sigil-button group relative px-10 py-4 bg-surface-container-low/40 backdrop-blur-md rounded-xl overflow-hidden transition-all duration-500">
+              <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="relative font-cinzel text-xl text-primary tracking-widest flex items-center gap-3">
+                <span className="material-symbols-outlined">auto_awesome</span>
+                CRIAR NOVO PERSONAGEM
+              </span>
             </button>
             {hasDraft && (
-              <button type="button" onClick={onContinue} className="home-secondary-button">
+              <button type="button" onClick={onContinue}
+                className="sigil-button px-6 py-4 bg-surface-container-low/20 backdrop-blur-md rounded-xl font-cinzel text-sm text-secondary-fixed-dim tracking-widest">
                 Retomar Rascunho
               </button>
             )}
-            <button type="button" onClick={onReference} className="home-rulebook-link">
-              Livro de Regras
-            </button>
           </div>
         </div>
       </section>
 
-      <section className="home-character-section">
-        <div className="home-section-head">
-          <div>
-            <span className="home-eyebrow">Entrar em jogo</span>
-            <h2 className="font-cinzel">Escolha uma ficha</h2>
-          </div>
-          <button type="button" onClick={onLibrary} className="home-quiet-button">
-            Biblioteca completa
-          </button>
+      {/* ── Character Selection ── */}
+      <section className="max-w-7xl mx-auto px-6 md:px-12 py-16">
+        <div className="flex items-center gap-4 mb-12">
+          <div className="h-px flex-grow bg-gradient-to-r from-transparent to-primary/30" />
+          <h2 className="font-cinzel text-primary-fixed tracking-[0.15em] uppercase"
+              style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)' }}>
+            ESCOLHA UMA FICHA
+          </h2>
+          <div className="h-px flex-grow bg-gradient-to-l from-transparent to-primary/30" />
         </div>
 
         {recentSheets.length > 0 ? (
-          <div className="home-epic-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {recentSheets.map(sheet => (
-              <button key={sheet.id} type="button" onClick={() => onOpenSheet?.(sheet.id)} className="home-epic-card">
-                <div className="home-epic-portrait">
+              <button key={sheet.id} type="button" onClick={() => onOpenSheet?.(sheet.id)}
+                className="glass-card group hover:-translate-y-2 transition-all duration-300 p-6 flex items-center gap-6 cursor-pointer text-left w-full">
+                <div className="relative w-24 h-24 shrink-0">
                   {sheet.data?.avatar ? (
-                    <img src={sheet.data.avatar} alt="" />
+                    <img src={sheet.data.avatar} alt=""
+                      className="w-full h-full object-cover rounded-xl border border-primary/20 group-hover:border-secondary-fixed-dim transition-colors" />
                   ) : (
-                    <span>{getInitial(sheet.name || sheet.data?.nome)}</span>
+                    <div className="w-full h-full rounded-xl border border-primary/20 bg-surface-container flex items-center justify-center text-primary text-2xl font-cinzel">
+                      {getInitial(sheet.name || sheet.data?.nome)}
+                    </div>
                   )}
+                  <div className="absolute -bottom-2 -right-2 bg-surface-container-highest px-2 py-0.5 rounded border border-white/10 font-mono text-secondary-fixed-dim text-xs font-bold">
+                    LV {sheet.data?.nivel || 1}
+                  </div>
                 </div>
-                <strong>{sheet.name || sheet.data?.nome || 'Sem nome'}</strong>
-                <small>
-                  {getSheetRace(sheet)}
-                  <span className={`home-level-badge is-${getLevelTone(sheet.data?.nivel || 1)}`}>Nv {sheet.data?.nivel || 1}</span>
-                </small>
+                <div className="min-w-0">
+                  <h3 className="font-cinzel text-xl text-on-surface mb-1 group-hover:text-primary transition-colors truncate">
+                    {sheet.name || sheet.data?.nome || 'Sem nome'}
+                  </h3>
+                  <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">person</span>
+                    {getSheetRace(sheet)}
+                  </p>
+                  <div className="mt-3 w-24 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full shadow-[0_0_8px_#f7bd48]"
+                      style={{ width: `${Math.min(100, ((sheet.data?.nivel || 1) / 30) * 100)}%` }} />
+                  </div>
+                </div>
               </button>
             ))}
+            <button type="button" onClick={onNew}
+              className="glass-card border-dashed !border-white/10 flex flex-col items-center justify-center p-8 text-outline hover:text-secondary-fixed-dim hover:!border-secondary/50 transition-all cursor-pointer">
+              <span className="material-symbols-outlined text-4xl mb-2">add_circle</span>
+              <span className="font-cinzel text-sm tracking-widest uppercase">Novos Caminhos</span>
+            </button>
           </div>
         ) : (
-          <div className="home-empty-epic">
-            <strong>O salão ainda está vazio.</strong>
-            <span>Crie o primeiro personagem para preencher esta galeria.</span>
+          <div className="glass-card text-center py-20 px-8">
+            <span className="material-symbols-outlined text-6xl text-primary/30 mb-4 block">explore</span>
+            <p className="font-cinzel text-lg text-on-surface mb-2">O salão ainda está vazio.</p>
+            <p className="text-on-surface-variant text-sm mb-6">Crie o primeiro personagem para preencher esta galeria.</p>
+            <button type="button" onClick={onNew}
+              className="sigil-button px-8 py-3 bg-surface-container-low/40 rounded-xl font-cinzel text-sm text-primary tracking-widest">
+              <span className="material-symbols-outlined text-sm align-middle mr-2">auto_awesome</span>
+              Começar Jornada
+            </button>
           </div>
         )}
       </section>
 
+      {/* ── Admin Panel ── */}
       {isAdmin && (
-        <section className="home-admin-section">
-          <div className="home-section-head">
-            <div>
-              <span className="home-eyebrow">Mesa do Mestre</span>
-              <h2 className="font-cinzel">Painel administrativo</h2>
-            </div>
+        <section className="max-w-7xl mx-auto px-6 md:px-12 pt-12 pb-24">
+          <div className="mb-10">
+            <h2 className="font-cinzel text-on-surface flex items-center gap-4"
+                style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)' }}>
+              <span className="material-symbols-outlined text-primary text-3xl">admin_panel_settings</span>
+              PAINEL ADMINISTRATIVO
+            </h2>
+            <div className="w-32 h-0.5 bg-primary mt-2" />
           </div>
-          <div className="home-admin-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {adminActions.map(action => (
-              <button key={action.key} type="button" onClick={() => onAdminArea?.(action.key)} className={`home-admin-card is-${action.tone}`}>
-                <span>{action.label}</span>
-                <small>{action.detail}</small>
+              <button key={action.key} type="button" onClick={() => onAdminArea?.(action.key)}
+                className="glass-card group p-6 flex flex-col items-start text-left hover:bg-primary/5 transition-all">
+                <span className="material-symbols-outlined text-primary mb-4 text-3xl group-hover:scale-110 transition-transform"
+                  style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>
+                  {action.icon}
+                </span>
+                <h4 className="font-cinzel text-sm text-primary-fixed mb-2 tracking-wide">{action.label}</h4>
+                <p className="font-mono text-primary/40 leading-relaxed uppercase" style={{ fontSize: '10px' }}>
+                  {action.detail}
+                </p>
               </button>
             ))}
           </div>
         </section>
       )}
-    </div>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-white/5 bg-surface-container-lowest/80 backdrop-blur-md py-8 px-6 md:px-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 opacity-50">
+          <div className="flex items-center gap-2 font-mono text-xs tracking-tighter text-outline">
+            <span className="material-symbols-outlined text-sm">security</span>
+            ENCRYPTED PROTOCOL V2.0 — OLYMPO ECOSYSTEM
+          </div>
+          <div className="flex gap-8 font-mono text-xs text-outline uppercase">
+            <button onClick={onReference} className="hover:text-primary transition-colors">Livro de Regras</button>
+            <button onClick={onLibrary} className="hover:text-primary transition-colors">Biblioteca</button>
+            <button onClick={onReference} className="hover:text-primary transition-colors">Suporte</button>
+          </div>
+        </div>
+      </footer>
+    </main>
   )
 }

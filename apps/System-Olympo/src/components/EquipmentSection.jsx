@@ -178,17 +178,17 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
     <>
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-4 rounded-full bg-orange-400" />
-          <span className="text-txt-dim text-[11px]">🗡</span>
-          <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Armas e Equipamentos</h3>
-          <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
+          <div className="section-header text-primary mb-0 flex-1">
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>swords</span>
+            Armas e Equipamentos
+          </div>
           <button onClick={() => setShowLegendaryCatalog(true)}
             className="text-[9px] border border-lime-300/30 text-lime-300/80 px-2 py-0.5 rounded hover:bg-lime-300/10 hover:text-lime-300 transition-colors shrink-0">
             Armas Lendárias
           </button>
           {canEdit && (
             <button onClick={() => setShowCreate(true)}
-              className="text-[9px] border border-gold/30 text-gold/70 px-2 py-0.5 rounded hover:bg-gold/10 hover:text-gold transition-colors shrink-0">
+              className="text-[9px] border border-primary/30 text-primary/70 px-2 py-0.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0">
               + Arma/Equip
             </button>
           )}
@@ -407,12 +407,12 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[420px] bg-deep border-l border-gold/15 shadow-2xl shadow-black/60 flex flex-col">
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[420px] bg-deep border-l border-primary/15 shadow-2xl shadow-black/60 flex flex-col">
         <div className="px-5 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-lg ${rc.badge} border flex items-center justify-center text-base`}>⚔</div>
             <div>
-              <h3 className="text-txt-main text-sm font-semibold">{char.armaNome || weapon.name}</h3>
+              <h3 className="text-on-surface text-sm font-semibold">{char.armaNome || weapon.name}</h3>
               <span className={`text-[9px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>
             </div>
           </div>
@@ -825,9 +825,9 @@ function EquipCreateModal({ char, onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose}>
-      <div ref={modalRef} className="bg-deep border border-gold/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()}>
+      <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
-          <h3 className="font-cinzel text-gold text-sm">Novo Equipamento</h3>
+          <h3 className="font-cinzel text-primary text-sm">Novo Equipamento</h3>
           <div className="flex items-center gap-2">
             {[0, 1, 2].map(s => (
               <div key={s} className={`w-2 h-2 rounded-full transition-colors ${step >= s ? 'bg-gold' : 'bg-sep/50'}`} />
@@ -1009,10 +1009,10 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/40 drawer-overlay" onClick={onClose} />
-      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[360px] bg-deep border-l border-gold/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[360px] bg-deep border-l border-primary/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
         <div className="px-4 py-3 border-b border-sep/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-cinzel text-gold text-xs uppercase tracking-wider">Equipamento</h3>
+            <h3 className="font-cinzel text-primary text-xs uppercase tracking-wider">Equipamento</h3>
             {item.rank && <span className={`text-[8px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{item.rank}</span>}
           </div>
           <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">✕</button>

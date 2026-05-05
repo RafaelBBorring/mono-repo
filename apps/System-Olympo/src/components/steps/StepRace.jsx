@@ -115,17 +115,19 @@ export default function StepRace({ char, update }) {
     <div className="race-stage space-y-6">
       <div className="race-hero">
         <div className="min-w-0">
-          <p className="text-gold/70 text-xs font-semibold uppercase tracking-[0.22em]">Etapa 2</p>
-          <h2 className="font-cinzel text-gold text-3xl sm:text-4xl mt-1">Origem do Personagem</h2>
-          <p className="text-txt-dim text-sm sm:text-base mt-3 max-w-3xl">
+          <div className="section-header text-primary mb-2">
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>public</span>
+            Origem do Personagem
+          </div>
+          <p className="text-on-surface-variant text-sm sm:text-base mt-3 max-w-3xl">
             Escolha a raca, o caminho interno e as concessoes mecanicas. Tudo abaixo entra no calculo da ficha:
             atributos, HP, PE, pericias, modulos e exportacao.
           </p>
         </div>
 
         <div className="race-hero-summary">
-          <span className="text-txt-dim text-xs uppercase tracking-[0.18em]">Escolha atual</span>
-          <strong className="font-cinzel text-xl text-txt-main mt-1">
+          <span className="text-outline text-xs uppercase tracking-[0.18em]">Escolha atual</span>
+          <strong className="font-cinzel text-xl text-on-surface mt-1">
             {selectedRace ? selectedRace.name : 'Nenhuma raca'}
           </strong>
           <span className="text-purple-300 text-sm truncate">
@@ -161,10 +163,10 @@ export default function StepRace({ char, update }) {
         <div className="race-list-panel">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
-              <h3 className="font-cinzel text-gold text-lg">Racas Disponiveis</h3>
-              <p className="text-txt-dim text-xs mt-1">Clique em uma raca para ver os detalhes completos.</p>
+            <h3 className="font-cinzel text-primary text-lg">Racas Disponiveis</h3>
+            <p className="text-on-surface-variant text-xs mt-1">Clique em uma raca para ver os detalhes completos.</p>
             </div>
-            <span className="text-xs text-txt-dim border border-sep rounded-full px-3 py-1">{filteredRaces.length} opcoes</span>
+            <span className="text-xs text-on-surface-variant border border-outline/20 rounded-full px-3 py-1">{filteredRaces.length} opcoes</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
@@ -212,8 +214,8 @@ export default function StepRace({ char, update }) {
           {!selectedRace ? (
             <div className="race-empty-state">
               <div className="text-5xl text-gold/70">?</div>
-              <h3 className="font-cinzel text-2xl text-gold mt-4">Nenhuma raca selecionada</h3>
-              <p className="text-txt-dim text-sm mt-2 max-w-md">
+              <h3 className="font-cinzel text-2xl text-primary mt-4">Nenhuma raca selecionada</h3>
+              <p className="text-on-surface-variant text-sm mt-2 max-w-md">
                 Selecione uma origem na lista. O painel vai mostrar impacto numerico, caminho, passivas,
                 vantagens, fraquezas e evolucao.
               </p>

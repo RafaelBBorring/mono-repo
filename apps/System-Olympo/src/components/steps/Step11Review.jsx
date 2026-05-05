@@ -65,11 +65,11 @@ export default function Step11Review({ char, onSave, onEdit, onNew, update, upda
 
 function SectionHeader({ icon, title, color }) {
   return (
-    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-sep/20">
+    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-primary/20">
       <div className={`w-1.5 h-5 rounded-full ${color}`} />
-      <span className="text-txt-dim text-sm">{icon}</span>
-      <h3 className="font-cinzel text-txt-main text-sm uppercase tracking-[0.12em] font-semibold">{title}</h3>
-      <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
+      <span className="text-outline text-sm">{icon}</span>
+      <h3 className="font-cinzel text-on-surface text-sm uppercase tracking-[0.1em] font-semibold">{title}</h3>
+      <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
     </div>
   )
 }
@@ -325,40 +325,52 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
       <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
 
-      <div className="character-sheet-shell bg-deep/95 backdrop-blur-sm border border-gold/15 overflow-hidden shadow-2xl shadow-black/40">
-        {/* ═══ HEADER ═══ */}
-        <div className="sheet-hero-legacy relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-gold/3" />
-          <div className="relative px-6 py-5 flex items-center gap-5">
-            <div className="shrink-0">
+      <div className="codex-card overflow-hidden">
+        <div className="flex flex-col xl:flex-row">
+          <section className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center border-l-4 border-l-primary bg-gradient-to-br from-primary/5 via-transparent to-transparent">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 border border-primary/30 -m-2 rounded hidden md:block" />
               {char.avatar ? (
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-gold/20 blur-lg scale-110" />
-                  <img src={char.avatar} alt="" className="relative w-24 h-24 rounded-full border-2 border-gold/50 object-cover shadow-lg shadow-gold/10" />
-                </div>
+                <img src={char.avatar} alt="" className="relative w-28 h-28 object-cover border border-primary/20 bg-surface-container" />
               ) : (
-                <div className="w-24 h-24 rounded-full border-2 border-sep/60 bg-void flex items-center justify-center shadow-lg shadow-black/30">
-                  <span className="text-txt-dim text-3xl">👤</span>
+                <div className="relative w-28 h-28 bg-surface-container border border-primary/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-4xl text-primary/30">person</span>
                 </div>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-cinzel text-gold text-2xl sm:text-3xl leading-tight truncate">{char.nome || 'Sem Nome'}</h1>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="bg-gold/10 text-gold text-[11px] px-2.5 py-0.5 rounded font-semibold border border-gold/20">{cls || '—'}</span>
-                <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">Nv {char.nivel || 1}</span>
-                <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{getRaceLabel(char) || '—'}</span>
-                {char.racaTipo && <span className="bg-void/80 text-txt-dim text-[11px] px-2.5 py-0.5 rounded border border-sep/40">{char.racaTipo}</span>}
+            <div className="flex-1 text-center md:text-left space-y-3 min-w-0">
+              <h2 className="font-cinzel text-white uppercase tracking-[0.05em] truncate" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', lineHeight: 1.1 }}>
+                {char.nome || 'Sem Nome'}
+              </h2>
+              <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-1">
+                <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>Classe: {cls || '—'}</span>
+                <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>Nível {char.nivel || 1}</span>
+                <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>{getRaceLabel(char) || '—'}</span>
+              </div>
+              <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                <span className="px-3 py-1 bg-primary/5 border border-primary/20 text-primary font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em' }}>{cls || '—'}</span>
+                <span className="px-3 py-1 bg-white/5 border border-white/10 text-on-surface-variant font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em' }}>Nível {char.nivel || 1}</span>
+                {primaryTriage !== 'Sem triagem' && (
+                  <span className="px-3 py-1 bg-secondary-fixed-dim/5 border border-secondary-fixed-dim/20 text-secondary-fixed-dim font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em' }}>{primaryTriage}</span>
+                )}
               </div>
             </div>
-          </div>
-          <div className="sheet-hero-metrics">
-            <HeroMetric label="Vida" value={vidaNow} tone="life" />
-            <HeroMetric label="Energia" value={energiaNow} tone="energy" />
-            <HeroMetric label="CA" value={derived.ca} tone="guard" />
-            <HeroMetric label="Triagem" value={primaryTriage} tone="gold" />
-          </div>
-          <div className="h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+          </section>
+
+          <section className="xl:w-[420px] grid grid-cols-3 border-t xl:border-t-0 xl:border-l border-white/5">
+            <div className="flex flex-col items-center justify-center py-6 bg-resource-vida/5 border-r border-white/5">
+              <span className="font-mono text-resource-vida/70 uppercase tracking-[0.2em] mb-2" style={{ fontSize: '10px' }}>Vida</span>
+              <span className="font-mono text-resource-vida stat-glow-green leading-none" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaNow}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center py-6 bg-resource-energia/5 border-r border-white/5">
+              <span className="font-mono text-resource-energia/70 uppercase tracking-[0.2em] mb-2" style={{ fontSize: '10px' }}>Energia</span>
+              <span className="font-mono text-resource-energia stat-glow-gold leading-none" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaNow}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center py-6 bg-resource-pe/5">
+              <span className="font-mono text-resource-pe/70 uppercase tracking-[0.2em] mb-2" style={{ fontSize: '10px' }}>P.E.</span>
+              <span className="font-mono text-resource-pe stat-glow-blue leading-none" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peNow}</span>
+            </div>
+          </section>
         </div>
 
         {/* ═══ BODY ═══ */}
@@ -379,6 +391,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   items={char.inventario || []}
                   canEdit={canEdit}
                   onUpdate={(items) => update({ inventario: items })}
+                  wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
+                  onWalletUpdate={(patch) => update(patch)}
                   onDrawerToggle={() => {}}
                 />
               </div>
@@ -393,16 +407,15 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {/* ATTRIBUTES */}
               <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="📊" title="Atributos" color="bg-amber-400" />
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                   {['FOR','DES','CON','INT','APA','AM'].map(a => {
                     const v = totalAttr(a)
                     const m = getModifier(v)
                     return (
-                      <div key={a} className="bg-void/80 rounded-lg border border-sep/60 flex flex-col items-center justify-center py-3 px-1 hover:border-gold/30 transition-colors group">
-                        <span className="text-[11px] text-txt-dim group-hover:text-gold/60 transition-colors">{ATTR_ICONS[a]}</span>
-                        <span className="font-cinzel text-gold/70 text-[10px] mt-0.5">{a}</span>
-                        <span className="font-mono text-txt-main text-xl leading-none mt-1">{v}</span>
-                        <span className={`font-mono text-[11px] mt-0.5 ${m >= 0 ? 'text-emerald-400/80' : 'text-red-400/70'}`}>
+                      <div key={a} className="flex flex-col items-center p-3 border border-primary/10 bg-white/5 hover:border-primary/30 transition-colors">
+                        <span className="font-mono text-outline uppercase tracking-widest mb-1" style={{ fontSize: '10px' }}>{ATTR_ICONS[a]} {a}</span>
+                        <span className="font-mono text-white leading-none" style={{ fontSize: '28px' }}>{v}</span>
+                        <span className={`font-mono font-bold ${m >= 0 ? 'text-primary' : 'text-secondary-fixed-dim'}`} style={{ fontSize: '11px' }}>
                           {m >= 0 ? '+' : ''}{m}
                         </span>
                       </div>
@@ -645,6 +658,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   items={char.inventario || []}
                   canEdit={canEdit}
                   onUpdate={(items) => update({ inventario: items })}
+                  wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
+                  onWalletUpdate={(patch) => update(patch)}
                   onDrawerToggle={() => {}}
                 />
               </div>

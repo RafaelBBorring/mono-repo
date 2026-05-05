@@ -49,19 +49,22 @@ export default function Step6Pericias({ char, update, updateNested }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="font-cinzel text-gold text-xl">Etapa 6: Perícias</h2>
+        <div className="section-header text-primary mb-0 flex-1">
+          <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>psychology</span>
+          Perícias
+        </div>
         <div className="flex items-center gap-2">
-          <span className={`font-mono text-sm ${remaining < 0 ? 'text-err' : remaining === 0 ? 'text-ok' : 'text-txt-main'}`}>
+          <span className={`font-mono text-sm ${remaining < 0 ? 'text-err' : remaining === 0 ? 'text-ok' : 'text-on-surface'}`}>
             {used}/{available}
           </span>
-          <span className="text-txt-dim text-xs">pontos usados</span>
+          <span className="text-outline text-xs">pontos usados</span>
         </div>
       </div>
 
-      <div className="bg-deep border border-sep rounded p-3 flex flex-wrap items-center gap-4 text-xs text-txt-dim">
-        <span>Grau máximo: <span className="text-gold font-mono">{maxGrau}</span> ({GRAU_NAMES[maxGrau]})</span>
-        <span>Disponíveis: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-txt-dim' : 'text-err'}`}>{remaining}</span></span>
-        <span className="text-gold-light">Cada grau custa 1 ponto</span>
+      <div className="codex-card p-3 flex flex-wrap items-center gap-4 text-xs text-on-surface-variant">
+        <span>Grau máximo: <span className="text-primary font-mono">{maxGrau}</span> ({GRAU_NAMES[maxGrau]})</span>
+        <span>Disponíveis: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-on-surface-variant' : 'text-err'}`}>{remaining}</span></span>
+        <span className="text-primary/70">Cada grau custa 1 ponto</span>
         <span className="text-teal-300">Alquimia aumenta espacos e circulos dos rituais.</span>
         {(modulosAdquiridos || []).filter(m => m.id === 'treino_intensivo').length > 0 && (() => {
           const ti = modulosAdquiridos.find(m => m.id === 'treino_intensivo')

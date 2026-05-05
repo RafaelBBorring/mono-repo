@@ -120,12 +120,15 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="abilities-stage space-y-8">
 
       {/* ── Header ── */}
       <div>
-        <h2 className="font-cinzel text-gold text-2xl mb-1">Etapa 10: Habilidades do Personagem</h2>
-        <p className="text-txt-dim text-sm mb-3">
+        <div className="section-header text-primary mb-4">
+          <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>auto_awesome</span>
+          Habilidades do Personagem
+        </div>
+        <p className="text-on-surface-variant text-sm mb-3">
           Defina as {needed} habilidades do personagem: 1 Passiva, 3 Ativas, 1 Ultimate
           {triagemCount > 0 && <span className="text-purple-400"> + {triagemCount} de Triagem</span>}
           {moduloCount  > 0 && <span className="text-sky-400"> + {moduloCount} de Módulo</span>}.
@@ -145,12 +148,12 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
       </div>
 
       {/* ── Painel PEH ── */}
-      <div className="bg-gold/5 border border-gold/30 rounded-xl p-4 space-y-3">
+      <div className="codex-card !bg-primary/5 border-primary/30 p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="font-cinzel text-gold text-sm tracking-wider">Pontos de Evolução de Habilidades (PEH)</h3>
+          <h3 className="font-cinzel text-primary text-sm tracking-wider">Pontos de Evolução de Habilidades (PEH)</h3>
           <div className="text-right">
-            <span className="font-cinzel text-2xl text-gold">{pehLivre}</span>
-            <span className="text-txt-dim text-xs ml-1">/ {pehTotal} livres</span>
+            <span className="font-cinzel text-2xl text-primary">{pehLivre}</span>
+            <span className="text-on-surface-variant text-xs ml-1">/ {pehTotal} livres</span>
           </div>
         </div>
 

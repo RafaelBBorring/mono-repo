@@ -2,7 +2,7 @@ import { ATTRIBUTES, ATTR_ICONS, ATTR_LABELS, getModifier, getAttrCap } from '..
 import { calcSkeletonPointsAvailable, calcVidaTotal, calcEnergiaTotal } from '../../utils/calculator'
 import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
 
-export default function Step4SkeletonPoints({ char, update, updateNested }) {
+export default function Step4SkeletonPoints({ char, update }) {
   const sk = char.skeletonPoints || {}
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
   const totalAttr = (a) => adjustedAttrs[a] || 0
@@ -55,8 +55,11 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
   if (!char.classe) {
     return (
       <div className="space-y-6">
-        <h2 className="font-cinzel text-gold text-xl">Etapa 4 — Pontos de Esqueleto</h2>
-        <div className="bg-deep border border-sep rounded-lg p-5">
+        <div className="section-header text-primary mb-8">
+          <span className="material-symbols-outlined text-primary">tune</span>
+          Pontos de Esqueleto
+        </div>
+        <div className="codex-card p-5">
           <p className="text-warn text-sm">Selecione uma classe na Etapa 3 primeiro.</p>
         </div>
       </div>
@@ -66,33 +69,31 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-cinzel text-gold text-xl">Etapa 4 — Pontos de Esqueleto</h2>
-        <button
-          onClick={handleReset}
-          className="border border-gold text-gold rounded px-4 py-2 hover:bg-gold hover:text-void text-sm transition-colors"
-        >
+        <div className="section-header text-primary mb-0 flex-1">
+          <span className="material-symbols-outlined text-primary">tune</span>
+          Pontos de Esqueleto
+        </div>
+        <button onClick={handleReset}
+          className="sigil-button text-primary rounded px-4 py-2 text-sm font-cinzel uppercase tracking-wider hover:text-white">
           Resetar
         </button>
       </div>
 
-      <div className="bg-deep border border-sep rounded-lg p-5 hover:border-gold transition-colors">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-txt-dim text-sm">Total Disponível</p>
-            <p className="font-mono text-2xl text-gold">{totalAvailable}</p>
-          </div>
-          <div>
-            <p className="text-txt-dim text-sm">Gastos</p>
-            <p className="font-mono text-2xl text-warn">{totalSpent}</p>
-          </div>
-          <div>
-            <p className="text-txt-dim text-sm">Restantes</p>
-            <p className={`font-mono text-2xl ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-txt-dim' : 'text-err'}`}>
-              {remaining}
-            </p>
-          </div>
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="codex-card p-4">
+          <p className="font-mono text-outline uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Disponível</p>
+          <p className="font-mono text-primary leading-none" style={{ fontSize: '28px' }}>{totalAvailable}</p>
         </div>
-        <p className="text-center text-txt-dim text-xs mt-2">Limite por atributo nesta faixa: <span className="text-gold font-mono">{attrCap}</span></p>
+        <div className="codex-card p-4">
+          <p className="font-mono text-outline uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Gastos</p>
+          <p className="font-mono text-warn leading-none" style={{ fontSize: '28px' }}>{totalSpent}</p>
+        </div>
+        <div className="codex-card p-4">
+          <p className="font-mono text-outline uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Restantes</p>
+          <p className={`font-mono leading-none ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-outline' : 'text-err'}`} style={{ fontSize: '28px' }}>
+            {remaining}
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -101,55 +102,44 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
           const skVal = sk[attr] || 0
           const total = baseVal + skVal
           const mod = getModifier(total)
+          const atCap = total >= attrCap
 
           return (
-            <div
-              key={attr}
-              className="bg-deep border border-sep rounded-lg p-4 hover:border-gold transition-colors"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">{ATTR_ICONS[attr]}</span>
+            <div key={attr}
+              className={`codex-card p-4 transition-all ${atCap ? '!border-err/40' : skVal > 0 ? '!border-primary/40' : ''}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-primary text-lg">{ATTR_ICONS[attr]}</span>
                 <div>
-                  <p className="font-cinzel text-gold text-sm">{attr}</p>
-                  <p className="text-txt-dim text-xs">{ATTR_LABELS[attr]}</p>
+                  <p className="font-cinzel text-primary text-sm uppercase">{attr}</p>
+                  <p className="text-outline text-xs">{ATTR_LABELS[attr]}</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-lg text-txt-main">{total}</span>
-                <span className={`font-mono text-sm ${mod >= 0 ? 'text-ok' : 'text-err'}`}>
-                  ({mod >= 0 ? '+' : ''}{mod})
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-on-surface" style={{ fontSize: '28px' }}>{total}</span>
+                <span className={`font-mono font-bold ${mod >= 0 ? 'text-secondary-fixed-dim' : 'text-err'}`} style={{ fontSize: '14px' }}>
+                  {mod >= 0 ? '+' : ''}{mod}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleRemove(attr)}
-                  disabled={skVal <= 0}
+                <button onClick={() => handleRemove(attr)} disabled={skVal <= 0}
                   className={`w-8 h-8 rounded font-bold text-sm flex items-center justify-center transition-colors ${
-                    skVal > 0
-                      ? 'border border-gold text-gold hover:bg-gold hover:text-void'
-                      : 'border border-sep text-txt-dim cursor-not-allowed'
-                  }`}
-                >
+                    skVal > 0 ? 'border border-primary/40 text-primary hover:bg-primary hover:text-on-primary' : 'border border-outline/20 text-outline/30 cursor-not-allowed'
+                  }`}>
                   −
                 </button>
-                <span className="font-mono text-sm text-gold flex-1 text-center">{skVal}</span>
-                <button
-                  onClick={() => handleAdd(attr)}
-                  disabled={remaining <= 0 || total >= attrCap}
+                <span className="font-mono text-primary flex-1 text-center text-sm">{skVal}</span>
+                <button onClick={() => handleAdd(attr)} disabled={remaining <= 0 || total >= attrCap}
                   className={`w-8 h-8 rounded font-bold text-sm flex items-center justify-center transition-colors ${
-                    remaining > 0 && total < attrCap
-                      ? 'border border-gold text-gold hover:bg-gold hover:text-void'
-                      : 'border border-sep text-txt-dim cursor-not-allowed'
-                  }`}
-                >
+                    remaining > 0 && total < attrCap ? 'border border-primary/40 text-primary hover:bg-primary hover:text-on-primary' : 'border border-outline/20 text-outline/30 cursor-not-allowed'
+                  }`}>
                   +
                 </button>
               </div>
 
-              <p className={`text-warn text-xs mt-1 text-center h-4 ${total >= attrCap ? '' : 'invisible'}`}>Limite atingido</p>
-              <p className="text-txt-dim text-xs mt-1 text-center">
+              {atCap && <p className="text-err text-xs mt-2 text-center font-mono">Limite atingido</p>}
+              <p className="text-outline text-xs mt-1 text-center font-mono">
                 Base {baseVal} + Esq. {skVal}
               </p>
             </div>
@@ -157,45 +147,25 @@ export default function Step4SkeletonPoints({ char, update, updateNested }) {
         })}
       </div>
 
-      <div className="bg-deep border border-sep rounded-lg p-5 hover:border-gold transition-colors">
-        <h3 className="font-cinzel text-gold text-sm mb-3">Impacto em Derivados</h3>
+      <div className="codex-card p-5">
+        <h3 className="font-cinzel text-primary text-sm mb-3 uppercase tracking-wider">Impacto em Derivados</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-txt-dim text-sm">Vida</p>
+            <p className="font-mono text-resource-vida/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Vida</p>
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-lg text-txt-main">{vidaNow}</span>
-              {vidaNow !== vidaNoSk && (
-                <span className="text-ok text-xs">(+{vidaNow - vidaNoSk})</span>
-              )}
+              <span className="font-mono text-resource-vida text-lg">{vidaNow}</span>
+              {vidaNow !== vidaNoSk && <span className="text-ok text-xs font-mono">(+{vidaNow - vidaNoSk})</span>}
             </div>
           </div>
           <div>
-            <p className="text-txt-dim text-sm">Energia</p>
+            <p className="font-mono text-resource-energia/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Energia</p>
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-lg text-txt-main">{energiaNow}</span>
-              {energiaNow !== energiaNoSk && (
-                <span className="text-ok text-xs">(+{energiaNow - energiaNoSk})</span>
-              )}
+              <span className="font-mono text-resource-energia text-lg">{energiaNow}</span>
+              {energiaNow !== energiaNoSk && <span className="text-ok text-xs font-mono">(+{energiaNow - energiaNoSk})</span>}
             </div>
           </div>
         </div>
       </div>
-
-      {char.skeletonHistory && char.skeletonHistory.length > 0 && (
-        <div className="bg-deep border border-sep rounded-lg p-5">
-          <h3 className="font-cinzel text-gold text-sm mb-2">Histórico de Alocação</h3>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {char.skeletonHistory.map((entry, i) => (
-              <div key={i} className="flex justify-between text-xs">
-                <span className="text-txt-dim">
-                  {ATTR_ICONS[entry.attr]} {ATTR_LABELS[entry.attr]}
-                </span>
-                <span className="font-mono text-txt-main">→ {entry.value} pontos</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

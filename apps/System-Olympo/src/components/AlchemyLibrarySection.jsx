@@ -139,18 +139,18 @@ export default function AlchemyLibrarySection({ char, update, compact = false, w
   }
 
   return (
-    <section className={`bg-void/50 border border-teal-400/20 rounded-xl ${compact ? 'p-4' : 'p-5'} space-y-4`}>
+    <section className={`codex-card border-teal-400/20 ${compact ? 'p-4' : 'p-5'} space-y-4`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-teal-300 text-sm">⚗</span>
             <h3 className="font-cinzel text-teal-300 text-sm uppercase tracking-[0.12em] font-semibold">Rituais de Alquimia</h3>
           </div>
-          <p className="text-txt-dim text-xs max-w-3xl">
+          <p className="text-on-surface-variant text-xs max-w-3xl">
             Aqui o limite nao e um numero fixo de rituais. Cada personagem recebe um orcamento de espacos alquimicos e cada circulo consome uma parte desse total.
           </p>
         </div>
-        <div className="text-xs text-txt-dim space-y-1">
+        <div className="text-xs text-on-surface-variant space-y-1">
           <div>Fonte: <span className={sourceMode === 'database' ? 'text-emerald-400' : 'text-amber-300'}>{sourceMode === 'database' ? 'Banco' : 'Catalogo local'}</span></div>
           <div>{selectedRituals.length} ritual(is) selecionado(s)</div>
         </div>

@@ -9,7 +9,7 @@ export default function Step5Progression({ char, update, updateNested }) {
   if (!prog) {
     return (
       <div className="text-txt-dim text-center py-8">
-        Selecione uma classe na Etapa 2 para ver a progressão.
+        Selecione uma classe na Etapa 3 para ver a progressão.
       </div>
     )
   }
@@ -43,8 +43,11 @@ export default function Step5Progression({ char, update, updateNested }) {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="font-cinzel text-gold text-xl">Etapa 5: Progressão Nível a Nível</h2>
+    <div className={`progression-stage progression-${String(classe).toLowerCase()} space-y-6`}>
+      <div className="section-header text-primary mb-8">
+        <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>trending_up</span>
+        Progressão Nível a Nível
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -65,7 +68,7 @@ export default function Step5Progression({ char, update, updateNested }) {
               const hasSubTriagem = entry.rewards.some(r => r.type === 'sub_triagem')
 
               return (
-                <tr key={n} className="border-b border-sep/50 hover:bg-panel/30">
+                <tr key={n} className={`progression-row ${entry.rewards.map(r => `has-${r.type}`).join(' ')} border-b border-sep/50 hover:bg-panel/30`}>
                   <td className="py-2 pr-3 font-mono text-txt-main">{n}</td>
                   <td className="py-2 pr-3 text-txt-main">
                     <span>{normalizeProgressionLabel(entry.label)}</span>
@@ -115,8 +118,8 @@ export default function Step5Progression({ char, update, updateNested }) {
         </table>
       </div>
 
-      <div className="bg-deep border border-sep rounded p-4">
-        <h3 className="font-cinzel text-gold text-lg mb-3">Bônus Totais da Progressão</h3>
+      <div className="codex-card p-5">
+        <h3 className="font-cinzel text-primary text-lg mb-3 tracking-wider">Bônus Totais da Progressão</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <TotalBadge label="Vida Fixo" value={totals.vida} />
           <TotalBadge label="Energia Fixo" value={totals.energia} />
@@ -143,9 +146,9 @@ function accumulate(totals, r) {
 
 function TotalBadge({ label, value }) {
   return (
-    <div className="bg-void border border-sep rounded px-3 py-2">
-      <div className="text-txt-dim text-xs">{label}</div>
-      <div className="font-mono text-txt-main text-lg">{value > 0 ? `+${value}` : value}</div>
+    <div className="codex-card !bg-surface-container border border-primary/10 px-3 py-2 rounded">
+      <div className="text-outline text-xs font-mono uppercase tracking-wider" style={{ fontSize: '10px' }}>{label}</div>
+      <div className="font-mono text-on-surface text-lg">{value > 0 ? `+${value}` : value}</div>
     </div>
   )
 }

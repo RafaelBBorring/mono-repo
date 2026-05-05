@@ -413,9 +413,9 @@ function AppInner() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-void flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <ParticleBackground />
-        <div className="text-gold font-cinzel text-xl animate-pulse">Carregando...</div>
+        <div className="text-primary font-cinzel text-xl animate-pulse tracking-widest">Carregando...</div>
       </div>
     )
   }
@@ -555,43 +555,61 @@ function AppInner() {
   if (isAdmin) navItems.push({ key: 'admin', label: 'Mesa do Mestre' })
 
   return (
-    <div className="system-shell min-h-screen bg-void text-txt-main font-body flex flex-col">
+    <div className="min-h-screen bg-background text-on-background font-body flex flex-col">
       <ParticleBackground />
-      <nav className="olympo-nav bg-deep/95 backdrop-blur border-b border-sep px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { setView('home'); setViewingSheetId(null) }}
-            className="olympo-brand"
-            title="Voltar ao menu principal"
-          >
-            SISTEMA OLYMPO 2.0
+      <header className="top-app-bar sticky top-0 z-50 w-full px-6 md:px-8 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <button type="button" onClick={() => { setView('home'); setViewingSheetId(null) }}
+            className="flex flex-col text-left hover:opacity-80 transition-opacity" title="Voltar ao menu principal">
+            <span className="font-cinzel text-primary tracking-[0.15em] uppercase" style={{ fontSize: 'clamp(1rem, 2vw, 1.35rem)', lineHeight: 1 }}>
+              Olympo
+            </span>
+            <span className="font-mono text-outline uppercase" style={{ fontSize: '10px', letterSpacing: '0.4em' }}>
+              Archivist Codex
+            </span>
           </button>
-          <span className="text-txt-dim text-xs hidden sm:inline">Olá, {profile?.display_name || user.email?.split('@')[0]}</span>
-          {isAdmin && <span className="text-[9px] bg-gold/20 text-gold px-1.5 py-0.5 rounded border border-gold/30 hidden sm:inline">ADMIN</span>}
+          <div className="h-6 w-px bg-primary/20 hidden sm:block" />
+          <span className="font-mono text-outline hidden sm:inline" style={{ fontSize: '11px', letterSpacing: '0.08em' }}>
+            Olá, {profile?.display_name || user.email?.split('@')[0]}
+          </span>
+          {isAdmin && (
+            <span className="font-mono text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 hidden sm:inline" style={{ fontSize: '9px' }}>
+              ADMIN
+            </span>
+          )}
         </div>
-        <div className="olympo-nav-actions">
-          <button
-            onClick={() => { setView('home'); setViewingSheetId(null) }}
-            className={`olympo-home-button ${view === 'home' ? 'is-active' : ''}`}
-            title="Menu Principal"
-          >
-            Início
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+          <button onClick={() => { setView('home'); setViewingSheetId(null) }}
+            className={`font-mono uppercase tracking-[0.15em] transition-colors pb-0.5 ${view === 'home' ? 'text-primary border-b border-primary' : 'text-outline hover:text-primary'}`}
+            style={{ fontSize: '11px' }}>
+            Visão Geral
           </button>
           {navItems.map(v => (
             <button key={v.key} onClick={() => { setView(v.key); setViewingSheetId(null) }}
-              className={`olympo-nav-button ${view === v.key ? 'is-active' : ''}`}>
+              className={`font-mono uppercase tracking-[0.15em] transition-colors pb-0.5 ${view === v.key ? 'text-primary border-b border-primary' : 'text-outline hover:text-primary'}`}
+              style={{ fontSize: '11px' }}>
               {v.label}
             </button>
           ))}
-          <button onClick={logout} className="ml-2 text-txt-dim text-xs hover:text-err transition-colors" title="Sair">
+          <div className="h-6 w-px bg-primary/20" />
+          <button onClick={handleNew}
+            className="sigil-button bg-primary-container/20 text-primary px-5 py-1.5 rounded font-cinzel text-xs uppercase tracking-widest hover:text-white">
+            <span className="material-symbols-outlined text-sm align-middle mr-1">auto_awesome</span>
+            Criar Ficha
+          </button>
+          <button onClick={logout}
+            className="font-mono text-outline hover:text-err transition-colors uppercase" style={{ fontSize: '11px' }}>
             Sair
           </button>
-        </div>
-      </nav>
+        </nav>
+        <button onClick={() => { setView('home'); setViewingSheetId(null) }}
+          className="md:hidden text-primary p-2" title="Menu">
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+      </header>
 
       {view === 'home' ? (
-        <main className="flex-1 overflow-y-auto flex items-center justify-center">
+        <div className="flex-1 overflow-y-auto">
           <HomeMenu
             userName={profile?.display_name || user.email?.split('@')[0]}
             sheetsCount={sheets.length}
@@ -604,26 +622,26 @@ function AppInner() {
             onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
             hasDraft={!!char.nome || !!char.classe}
             isAdmin={isAdmin}
-          />
-        </main>
+           />
+         </div>
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">
-            <div className={`wizard-forge mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 || currentStep === 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
-              <div className="mb-6">
+            <div className={`mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 || currentStep === 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
+              <div className="mb-6 codex-card p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-txt-dim text-sm">Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
-                  <span className="text-gold text-sm font-semibold">{STEPS[currentStep].label}</span>
+                  <span className="font-mono text-outline uppercase tracking-widest" style={{ fontSize: '11px' }}>Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
+                  <span className="font-cinzel text-primary text-sm font-semibold uppercase tracking-wider">{STEPS[currentStep].label}</span>
                 </div>
-                <div className="h-1.5 bg-panel rounded-full overflow-hidden">
-                  <div className="h-full bg-gold rounded-full transition-all duration-300" style={{ width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%` }} />
+                <div className="h-1 bg-surface-container-highest rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%` }} />
                 </div>
               </div>
 
               {validationError && (
-                <div className="mb-4 bg-err/10 border border-err/30 rounded p-3 text-err text-sm flex items-center justify-between">
+                <div className="mb-4 bg-error-container/20 border border-error/30 rounded p-3 text-error text-sm flex items-center justify-between">
                   <span>{validationError}</span>
-                  <button onClick={() => setValidationError(null)} className="text-err/60 hover:text-err ml-2">✕</button>
+                  <button onClick={() => setValidationError(null)} className="text-error/60 hover:text-error ml-2">✕</button>
                 </div>
               )}
 
@@ -634,18 +652,18 @@ function AppInner() {
                   <StepComponent {...stepProps} />
                   <div className="flex justify-between mt-8 pb-6">
                     <button onClick={goPrev} disabled={!canGoPrev}
-                      className={`px-5 py-2 rounded font-semibold text-sm transition-colors ${canGoPrev ? 'bg-panel text-txt-main hover:bg-sep' : 'bg-panel/50 text-txt-dim/50 cursor-not-allowed'}`}>
+                      className={`px-5 py-2 rounded font-semibold text-sm transition-colors ${canGoPrev ? 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline/20' : 'bg-surface-container/50 text-outline/50 cursor-not-allowed'}`}>
                       ← Anterior
                     </button>
                     <button onClick={goNext} disabled={!canGoNext}
-                      className={`px-5 py-2 rounded font-semibold text-sm transition-colors ${canGoNext ? 'bg-gold text-void hover:bg-gold-light' : 'bg-gold/30 text-void/50 cursor-not-allowed'}`}>
+                      className={`px-5 py-2 rounded font-semibold text-sm transition-colors ${canGoNext ? 'bg-primary text-on-primary hover:bg-primary-fixed' : 'bg-primary/30 text-on-primary/50 cursor-not-allowed'}`}>
                       Próximo →
                     </button>
                   </div>
                 </>
               )}
             </div>
-          </main>
+        </main>
           <Sidebar char={char} step={currentStep + 1} />
         </div>
       ) : view === 'library' ? (

@@ -91,9 +91,12 @@ export default function Step7Modules({ char, update, updateNested }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="font-cinzel text-gold text-xl">Etapa 7: Módulos de Evolução</h2>
-        <div className="text-sm text-txt-dim">
-          Módulos: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-txt-dim' : 'text-err'}`}>{remaining}</span>/{totalAvailable} disponíveis
+        <div className="section-header text-primary mb-0 flex-1">
+          <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>extension</span>
+          Módulos de Evolução
+        </div>
+        <div className="text-sm text-on-surface-variant">
+          Módulos: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-on-surface-variant' : 'text-err'}`}>{remaining}</span>/{totalAvailable} disponíveis
         </div>
       </div>
 
@@ -173,8 +176,8 @@ export default function Step7Modules({ char, update, updateNested }) {
       </div>
 
       {modulosAdquiridos.length > 0 && (
-        <div className="bg-deep border border-sep rounded p-4">
-          <h3 className="font-cinzel text-gold text-lg mb-3">Módulos Adquiridos</h3>
+        <div className="codex-card p-5">
+          <h3 className="font-cinzel text-primary text-lg mb-3 tracking-wider">Módulos Adquiridos</h3>
           <div className="flex flex-wrap gap-2">
             {modulosAdquiridos.map((mod, idx) => (
               <div

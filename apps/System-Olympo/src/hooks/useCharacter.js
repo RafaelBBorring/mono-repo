@@ -16,6 +16,9 @@ const initialHabilidade = (tipo) => ({
 
 const initialState = {
   nome: '',
+  idade: '',
+  altura: '',
+  pesoCorporal: '',
   raca: '',
   racaTipo: '',
   racaDeus: null,
@@ -65,6 +68,8 @@ const initialState = {
   notas: '',
   inventario: [],
   equipamentos: [],
+  dolares: 0,
+  dracmas: 0,
 }
 
 export function useCharacter() {

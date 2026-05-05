@@ -162,7 +162,10 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-cinzel text-gold text-2xl">Painel Administrativo</h2>
+        <div className="section-header text-primary mb-0 flex-1">
+          <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>admin_panel_settings</span>
+          Painel Administrativo
+        </div>
         <div className="flex flex-wrap justify-end gap-1">
           {[
             { key: 'sheets', label: 'Fichas' },
@@ -172,7 +175,7 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
             { key: 'users', label: 'Usuários' },
           ].map(t => (
             <button key={t.key} onClick={() => { setTab(t.key); setExpandedSheet(null); setEditingSheet(null) }}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${tab === t.key ? 'bg-gold text-void font-semibold' : 'text-txt-dim hover:text-txt-main'}`}>
+              className={`px-3 py-1.5 rounded text-sm transition-colors ${tab === t.key ? 'bg-primary text-on-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}>
               {t.label}
             </button>
           ))}
@@ -227,7 +230,7 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
                         <>
                           <AdminSheetView sheet={sheet} onPatch={handlePatch} />
                           <div className="flex gap-2 pt-2 border-t border-sep/30">
-                            <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-gold/40 text-gold px-3 py-1.5 rounded hover:bg-gold hover:text-void transition-colors">
+                            <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-primary/40 text-primary px-3 py-1.5 rounded hover:bg-primary hover:text-on-primary transition-colors">
                               Editar Ficha Completa
                             </button>
                             <button onClick={() => handleDeleteSheet(sheet.id)} className="text-xs border border-err/30 text-err px-3 py-1.5 rounded hover:bg-err hover:text-white transition-colors">

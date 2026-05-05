@@ -49,15 +49,27 @@ export default function AvatarCropper({ value, onChange }) {
     ctx.clearRect(0, 0, AVATAR_SIZE, AVATAR_SIZE)
     ctx.save()
     ctx.beginPath()
-    ctx.arc(AVATAR_SIZE / 2, AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2)
+    roundRect(ctx, 8, 8, AVATAR_SIZE - 16, AVATAR_SIZE - 16, 34)
     ctx.clip()
     ctx.drawImage(img, offset.x, offset.y, img.width * scale, img.height * scale)
     ctx.restore()
     ctx.beginPath()
-    ctx.arc(AVATAR_SIZE / 2, AVATAR_SIZE / 2, AVATAR_SIZE / 2 - 2, 0, Math.PI * 2)
+    roundRect(ctx, 8, 8, AVATAR_SIZE - 16, AVATAR_SIZE - 16, 34)
     ctx.strokeStyle = 'rgba(201,168,76,0.5)'
     ctx.lineWidth = 2
     ctx.stroke()
+  }
+
+  function roundRect(ctx, x, y, width, height, radius) {
+    ctx.moveTo(x + radius, y)
+    ctx.lineTo(x + width - radius, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+    ctx.lineTo(x + width, y + height - radius)
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+    ctx.lineTo(x + radius, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+    ctx.lineTo(x, y + radius)
+    ctx.quadraticCurveTo(x, y, x + radius, y)
   }
 
   function loadImage(file) {
@@ -168,7 +180,7 @@ export default function AvatarCropper({ value, onChange }) {
     const ctx = c.getContext('2d')
     const outScale = outSize / AVATAR_SIZE
     ctx.beginPath()
-    ctx.arc(outSize / 2, outSize / 2, outSize / 2, 0, Math.PI * 2)
+    roundRect(ctx, 0, 0, outSize, outSize, 18)
     ctx.clip()
     ctx.drawImage(img, offset.x * outScale, offset.y * outScale, img.width * scale * outScale, img.height * scale * outScale)
     onChange(c.toDataURL('image/webp', 0.7))
@@ -215,7 +227,7 @@ export default function AvatarCropper({ value, onChange }) {
   return (
     <div className="space-y-3">
       <div
-        className="relative mx-auto rounded-full overflow-hidden border-2 border-gold/40 shadow-lg shadow-gold/10"
+        className="avatar-crop-frame relative mx-auto overflow-hidden border-2 border-gold/40 shadow-lg shadow-gold/10"
         style={{ width: 200, height: 200 }}
         onDrop={handleDrop}
         onDragOver={e => e.preventDefault()}

@@ -28,16 +28,19 @@ export default function ReferencePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      <h1 className="font-cinzel text-gold text-3xl mb-6 text-center">Referência do Sistema Olympo 2.0</h1>
+      <div className="section-header text-primary mb-8 justify-center">
+        <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>menu_book</span>
+        Referência do Sistema Olympo 2.0
+      </div>
       <div className="flex flex-wrap gap-2 mb-6 justify-center">
         {sections.map(s => (
           <button key={s} onClick={() => setSection(s)}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${section === s ? 'bg-gold text-void' : 'border border-sep text-txt-dim hover:border-gold hover:text-gold'}`}>
+            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${section === s ? 'bg-primary text-on-primary' : 'border border-outline/30 text-on-surface-variant hover:border-primary hover:text-primary'}`}>
             {s}
           </button>
         ))}
       </div>
-      <div className="bg-deep border border-sep rounded-lg p-6">
+      <div className="codex-card p-6">
         {section === 'Raças' && <RacasSection />}
         {section === 'Atributos' && <AttributesSection />}
         {section === 'Classes' && <ClassesSection />}
@@ -319,7 +322,7 @@ function getDiffStars(n) {
 }
 
 function SectionTitle({ children }) {
-  return <h2 className="font-cinzel text-gold text-2xl mb-4">{children}</h2>
+  return <h2 className="font-cinzel text-primary text-2xl mb-4 tracking-wider">{children}</h2>
 }
 
 function AttributesSection() {

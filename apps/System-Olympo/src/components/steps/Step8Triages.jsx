@@ -52,11 +52,14 @@ export default function Step8Triages({ char, update, updateNested }) {
   const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
 
   return (
-    <div className="space-y-8">
-      <h2 className="font-cinzel text-gold text-xl">Etapa 8: Triagens</h2>
+    <div className={`triage-stage triage-${String(classe).toLowerCase()} space-y-8`}>
+      <div className="section-header text-primary mb-8">
+        <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>account_tree</span>
+        Triagens
+      </div>
 
       <div>
-        <h3 className="font-cinzel text-gold text-lg mb-2">Triagem Principal</h3>
+        <h3 className="font-cinzel text-primary text-lg mb-2 tracking-wider">Triagem Principal</h3>
         {principalLevel < 0.1 ? (
           <p className="text-txt-dim text-sm">Nenhuma triagem principal desbloqueada no nível atual.</p>
         ) : (
@@ -76,7 +79,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                   <div
                     key={key}
                     onClick={() => selectPrincipal(key)}
-                    className={`bg-deep border rounded p-4 cursor-pointer transition-all ${
+                    className={`triage-main-card bg-deep border rounded p-4 cursor-pointer transition-all ${
                       isSelected
                         ? 'border-gold shadow-[0_0_12px_rgba(201,168,76,0.3)]'
                         : 'border-sep hover:border-gold/50'
@@ -125,7 +128,7 @@ export default function Step8Triages({ char, update, updateNested }) {
 
       {showSubTriagem && (
         <div>
-          <h3 className="font-cinzel text-gold text-lg mb-2">Sub-Triagem</h3>
+          <h3 className="font-cinzel text-primary text-lg mb-2 tracking-wider">Sub-Triagem</h3>
           {subLevel < 0.1 ? (
             <p className="text-txt-dim text-sm">Nenhuma sub-triagem desbloqueada no nível atual.</p>
           ) : (
@@ -145,7 +148,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                       <div
                         key={`${classKey}-${triageKey}`}
                         onClick={() => !isSameAsPrincipal && selectSub(classKey, triageKey)}
-                        className={`bg-deep border rounded p-3 transition-all ${
+                        className={`triage-sub-card is-${String(classKey).toLowerCase()} bg-deep border rounded p-3 transition-all ${
                           isSameAsPrincipal
                             ? 'border-sep/20 opacity-30 cursor-not-allowed'
                             : isSelected
@@ -194,8 +197,8 @@ export default function Step8Triages({ char, update, updateNested }) {
       )}
 
       {triagemPrincipal && principalLevel >= 0.1 && (
-        <div className="bg-deep border border-sep rounded p-4">
-          <h3 className="font-cinzel text-gold text-lg mb-2">Efeitos Acumulados</h3>
+        <div className="codex-card p-5">
+          <h3 className="font-cinzel text-primary text-lg mb-2 tracking-wider">Efeitos Acumulados</h3>
           <div className="space-y-1">
             {principalLevels
               .filter(lvl => lvl <= principalLevel)
