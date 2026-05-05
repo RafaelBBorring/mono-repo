@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Morpheus — Gestão de Salas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;1,300&family=Nunito:wght@300;400;500;600&display=swap"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:#06040f;overflow:hidden;}
+#root{width:100%;height:100%;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:rgba(196,181,253,.2);border-radius:2px;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes toastIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes dotPop{0%{transform:scale(0.6)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+input::placeholder,textarea::placeholder{color:rgba(240,237,232,.16);}
+input,textarea,select{color-scheme:dark;}
+button{transition:all .18s;font-family:'Nunito',sans-serif;}
+</style>
+</head>
+<body>
+<canvas id="bg" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
+<div id="nebula" style="position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 20% 12%,rgba(48,14,95,.28) 0%,transparent 52%),radial-gradient(ellipse at 80% 88%,rgba(12,42,80,.22) 0%,transparent 52%);"></div>
+<div id="root" style="position:relative;z-index:1;width:100%;height:100%;"></div>
+<div id="toasts" style="position:fixed;bottom:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none;"></div>
+
+<script>
+/* ══════════════ DATA ══════════════ */
+const ROOMS=[
+  {id:1,name:"Sala 01",sym:"◎",hex:"#c4b5fd",rgb:"196,181,253"},
+  {id:2,name:"Sala 02",sym:"◈",hex:"#7dd3fc",rgb:"125,211,252"},
+  {id:3,name:"Sala 03",sym:"◉",hex:"#fda4af",rgb:"253,164,175"},
+  {id:4,name:"Sala 04",sym:"◐",hex:"#6ee7b7",rgb:"110,231,183"},
+];
+const PSYCHS=[
+  {id:1,name:"Dra. Cátia Alves",  ini:"CA",hex:"#c4b5fd",rgb:"196,181,253"},
+  {id:2,name:"Dr. Marcelo Dias",  ini:"MD",hex:"#7dd3fc",rgb:"125,211,252"},
+  {id:3,name:"Dra. Fernanda Cruz",ini:"FC",hex:"#fda4af",rgb:"253,164,175"},
+  {id:4,name:"Dra. Juliana Matos",ini:"JM",hex:"#6ee7b7",rgb:"110,231,183"},
+];
+const MONTHS=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const WDAYS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const HOURS=["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"];
+const ADMIN_PIN="1234";
+
+const todayISO=()=>new Date().toISOString().slice(0,10);
+const genId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const sname=n=>{const p=n.split(" ");return p[0]+" "+p[1];};
+const offsetDate=(n)=>{const r=new Date();r.setDate(r.getDate()+n);return r.toISOString().slice(0,10);};
+
+let reservations=[
+  {id:"r1", roomId:1,psychId:1,date:offsetDate(0), startTime:"09:00",endTime:"10:00",notes:""},
+  {id:"r2", roomId:2,psychId:2,date:offsetDate(0), startTime:"10:00",endTime:"11:30",notes:"Avaliação inicial"},
+  {id:"r3", roomId:3,psychId:3,date:offsetDate(0), startTime:"14:00",endTime:"15:00",notes:""},
+  {id:"r4", roomId:4,psychId:4,date:offsetDate(0), startTime:"16:00",endTime:"17:00",notes:""},
+  {id:"r5", roomId:1,psychId:2,date:offsetDate(1), startTime:"09:00",endTime:"10:00",notes:""},
+  {id:"r6", roomId:2,psychId:4,date:offsetDate(1), startTime:"11:00",endTime:"12:00",notes:"Grupo terapêutico"},
+  {id:"r7", roomId:3,psychId:1,date:offsetDate(1), startTime:"14:00",endTime:"15:30",notes:""},
+  {id:"r8", roomId:1,psychId:3,date:offsetDate(2), startTime:"09:00",endTime:"10:00",notes:""},
+  {id:"r9", roomId:4,psychId:2,date:offsetDate(2), startTime:"13:00",endTime:"14:00",notes:""},
+  {id:"r10",roomId:2,psychId:1,date:offsetDate(3), startTime:"10:00",endTime:"11:00",notes:""},
+  {id:"r11",roomId:3,psychId:4,date:offsetDate(3), startTime:"15:00",endTime:"16:30",notes:""},
+  {id:"r12",roomId:1,psychId:2,date:offsetDate(5), startTime:"09:00",endTime:"10:00",notes:""},
+  {id:"r13",roomId:4,psychId:3,date:offsetDate(5), startTime:"14:00",endTime:"15:00",notes:""},
+  {id:"r14",roomId:2,psychId:1,date:offsetDate(7), startTime:"09:00",endTime:"10:30",notes:""},
+  {id:"r15",roomId:3,psychId:2,date:offsetDate(7), startTime:"13:00",endTime:"14:00",notes:""},
+  {id:"r16",roomId:1,psychId:4,date:offsetDate(8), startTime:"10:00",endTime:"11:00",notes:"Avaliação"},
+  {id:"r17",roomId:2,psychId:3,date:offsetDate(10),startTime:"09:00",endTime:"10:00",notes:""},
+  {id:"r18",roomId:4,psychId:1,date:offsetDate(14),startTime:"14:00",endTime:"15:00",notes:""},
+  {id:"r19",roomId:1,psychId:3,date:offsetDate(14),startTime:"09:00",endTime:"10:00",notes:""},
+  {id:"r20",roomId:3,psychId:2,date:offsetDate(21),startTime:"11:00",endTime:"12:00",notes:""},
+];
+
+/* ══════════════ THREE.JS ══════════════ */
+(function(){
+  const canvas=document.getElementById("bg");
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,500);
+  camera.position.z=55;
+  const N=180,pos=new Float32Array(N*3),col=new Float32Array(N*3),vel=new Float32Array(N*3);
+  const pal=[new THREE.Color("#c4b5fd"),new THREE.Color("#7dd3fc"),new THREE.Color("#fda4af"),new THREE.Color("#6ee7b7")];
+  for(let i=0;i<N;i++){
+    pos[i*3]=(Math.random()-.5)*130;pos[i*3+1]=(Math.random()-.5)*85;pos[i*3+2]=(Math.random()-.5)*55;
+    vel[i*3]=(Math.random()-.5)*.008;vel[i*3+1]=(Math.random()-.5)*.005;
+    const c=pal[i%4];col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  geo.setAttribute("color",new THREE.BufferAttribute(col,3));
+  const mat=new THREE.PointsMaterial({size:.38,vertexColors:true,transparent:true,opacity:.4});
+  scene.add(new THREE.Points(geo,mat));
+  let t=0;
+  (function tick(){
+    requestAnimationFrame(tick);t+=.001;
+    const p=geo.attributes.position.array;
+    for(let i=0;i<N;i++){
+      p[i*3]+=vel[i*3];p[i*3+1]+=vel[i*3+1];
+      if(p[i*3]>65)p[i*3]=-65;if(p[i*3]<-65)p[i*3]=65;
+      if(p[i*3+1]>42)p[i*3+1]=-42;if(p[i*3+1]<-42)p[i*3+1]=42;
+    }
+    geo.attributes.position.needsUpdate=true;
+    mat.opacity=.3+Math.sin(t*.8)*.09;
+    renderer.render(scene,camera);
+  })();
+  window.addEventListener("resize",()=>{renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();});
+})();
+
+/* ══════════════ TOAST ══════════════ */
+function toast(msg,type="info"){
+  const C={success:"110,231,183",error:"253,164,175",info:"196,181,253"};
+  const e=mk("div");
+  e.style.cssText=`background:rgba(${C[type]||C.info},.13);border:1px solid rgba(${C[type]||C.info},.42);border-radius:10px;padding:9px 14px;color:#f0ede8;font-size:12px;font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:7px;min-width:180px;animation:toastIn .3s ease;`;
+  e.innerHTML=`<span style="color:rgb(${C[type]||C.info})">${type==="success"?"✓":type==="error"?"✕":"◎"}</span>${msg}`;
+  document.getElementById("toasts").appendChild(e);
+  setTimeout(()=>e.remove(),2800);
+}
+
+/* ══════════════ STATE ══════════════ */
+let appView="splash";
+let activePsych=null;
+let weekOffset=0;
+let psychCalYear=new Date().getFullYear(),psychCalMonth=new Date().getMonth();
+let psychSelDate=todayISO();
+
+/* ══════════════ RENDER ══════════════ */
+function render(){
+  const root=document.getElementById("root");
+  root.innerHTML="";
+  root.style.cssText="position:relative;z-index:1;width:100%;min-height:100vh;overflow:auto;";
+  if(appView==="splash") drawSplash(root);
+  else if(appView==="admin") drawAdmin(root);
+  else if(appView==="psych") drawPsych(root);
+}
+
+/* ══════════════════════════════════════
+   SPLASH
+══════════════════════════════════════ */
+function drawSplash(root){
+  const wrap=mk("div");
+  wrap.style.cssText="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;animation:fadeIn .5s ease;";
+  root.appendChild(wrap);
+
+  function showHome(){
+    wrap.innerHTML="";
+    wrap.innerHTML+=`<svg width="50" height="50" viewBox="0 0 64 64" fill="none" style="margin-bottom:10px"><circle cx="32" cy="32" r="29" stroke="rgba(196,181,253,.2)" stroke-width="1"/><circle cx="32" cy="32" r="18" stroke="rgba(196,181,253,.35)" stroke-width="1"/><circle cx="32" cy="32" r="5" fill="rgba(196,181,253,.6)"/><circle cx="32" cy="14" r="2.5" fill="rgba(125,211,252,.58)"/><circle cx="50" cy="41" r="2.5" fill="rgba(253,164,175,.58)"/><circle cx="14" cy="41" r="2.5" fill="rgba(110,231,183,.58)"/><line x1="32" y1="16.5" x2="32" y2="27" stroke="rgba(196,181,253,.18)" stroke-width="1"/><line x1="47.5" y1="39" x2="38.5" y2="33.5" stroke="rgba(125,211,252,.18)" stroke-width="1"/><line x1="16.5" y1="39" x2="25.5" y2="33.5" stroke="rgba(253,164,175,.18)" stroke-width="1"/></svg>`;
+    const title=mk("div");title.style.cssText="text-align:center;margin-bottom:40px;";
+    title.innerHTML=`<div style="font-family:'Playfair Display',serif;font-size:clamp(36px,7vw,58px);font-weight:300;letter-spacing:14px;color:#f0ede8;line-height:1;text-shadow:0 0 55px rgba(196,181,253,.25);">MORPHEUS</div><div style="font-family:'Nunito',sans-serif;font-size:10px;letter-spacing:5px;color:rgba(196,181,253,.5);margin-top:7px;">GESTÃO DE SALAS & CONSULTAS</div><div style="width:46px;height:1px;background:linear-gradient(90deg,transparent,rgba(196,181,253,.3),transparent);margin:12px auto 0;"></div>`;
+    wrap.appendChild(title);
+    const btns=mk("div");btns.style.cssText="display:flex;flex-direction:column;gap:10px;width:100%;max-width:272px;";
+    const b1=mkBtn("◎  Acessar como Psicólogo(a)","196,181,253","100%");b1.onclick=()=>showPsych();
+    const b2=mkGhostBtn("⚙  Acesso Administrativo","100%");b2.onclick=()=>showPin();
+    const hint=mk("div");hint.style.cssText="text-align:center;font-family:'Nunito',sans-serif;font-size:10px;color:rgba(240,237,232,.12);margin-top:4px;";
+    hint.textContent="PIN admin: 1234";
+    btns.append(b1,b2,hint);wrap.appendChild(btns);
+  }
+
+  function showPin(){
+    wrap.innerHTML="";
+    let pinVal="";
+    const inner=mk("div");inner.style.cssText="text-align:center;";
+    const label=mk("div");label.style.cssText="font-family:'Nunito',sans-serif;font-size:9px;letter-spacing:4px;color:rgba(196,181,253,.56);margin-bottom:20px;";
+    label.textContent="CÓDIGO DE ACESSO ADMIN";
+    const dotsWrap=mk("div");dotsWrap.style.cssText="display:flex;gap:12px;justify-content:center;margin-bottom:28px;";
+    const dotEls=[];
+    for(let i=0;i<4;i++){
+      const dot=mk("div");dot.style.cssText="width:11px;height:11px;border-radius:50%;background:transparent;border:1.5px solid rgba(196,181,253,.35);transition:all .2s;";
+      dotsWrap.appendChild(dot);dotEls.push(dot);
+    }
+    function updateDots(){
+      dotEls.forEach((dot,i)=>{
+        if(i<pinVal.length){dot.style.background="#c4b5fd";dot.style.boxShadow="0 0 10px rgba(196,181,253,.88)";dot.style.animation="dotPop .2s ease";}
+        else{dot.style.background="transparent";dot.style.boxShadow="none";dot.style.animation="none";}
+      });
+    }
+    function shakeAndReset(){
+      inner.style.animation="shake .45s ease";
+      setTimeout(()=>{inner.style.animation="none";pinVal="";updateDots();},480);
+    }
+    function pressDigit(d){
+      if(pinVal.length>=4)return;
+      pinVal+=d;updateDots();
+      if(pinVal.length===4){
+        setTimeout(()=>{
+          if(pinVal===ADMIN_PIN){appView="admin";render();toast("Bem-vindo, Administrador ✓","success");}
+          else shakeAndReset();
+        },120);
+      }
+    }
+    const numpad=mk("div");numpad.style.cssText="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:195px;margin:0 auto;";
+    [1,2,3,4,5,6,7,8,9,"",0,"⌫"].forEach(function(digit){
+      const nb=mk("button");nb.textContent=digit;
+      nb.style.cssText=`height:50px;border-radius:10px;border:1px solid rgba(196,181,253,${digit===""?0:.12});background:${digit===""?"transparent":"rgba(196,181,253,.07)"};color:#f0ede8;font-size:17px;font-family:'Nunito',sans-serif;cursor:${digit===""?"default":"pointer"};`;
+      if(digit!==""){
+        nb.onmouseenter=function(){nb.style.background="rgba(196,181,253,.19)";};
+        nb.onmouseleave=function(){nb.style.background="rgba(196,181,253,.07)";};
+        nb.onclick=function(){if(digit==="⌫"){if(pinVal.length>0){pinVal=pinVal.slice(0,-1);updateDots();}}else pressDigit(String(digit));};
+      }
+      numpad.appendChild(nb);
+    });
+    const back=mk("button");back.style.cssText="margin-top:15px;background:none;border:none;color:rgba(196,181,253,.32);cursor:pointer;font-family:'Nunito',sans-serif;font-size:11px;";
+    back.textContent="← Voltar";back.onclick=()=>showHome();
+    inner.append(label,dotsWrap,numpad,back);wrap.appendChild(inner);
+  }
+
+  function showPsych(){
+    wrap.innerHTML="";
+    const label=mk("div");label.style.cssText="font-family:'Nunito',sans-serif;font-size:9px;letter-spacing:4px;color:rgba(196,181,253,.55);margin-bottom:18px;";
+    label.textContent="SELECIONE SEU PERFIL";
+    const grid=mk("div");grid.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:370px;";
+    PSYCHS.forEach(function(p){
+      const card=mk("div");
+      card.style.cssText=`padding:16px 12px;border-radius:14px;border:1px solid rgba(${p.rgb},.2);background:rgba(${p.rgb},.06);cursor:pointer;text-align:center;transition:all .22s;`;
+      card.innerHTML=`<div style="width:40px;height:40px;border-radius:50%;background:rgba(${p.rgb},.2);border:1px solid rgba(${p.rgb},.36);display:flex;align-items:center;justify-content:center;margin:0 auto 9px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:${p.hex};">${p.ini}</div><div style="font-family:'Nunito',sans-serif;font-size:11px;color:#f0ede8;font-weight:500;line-height:1.4;">${p.name}</div>`;
+      card.onmouseenter=function(){card.style.background=`rgba(${p.rgb},.17)`;card.style.transform="translateY(-3px)";card.style.borderColor=`rgba(${p.rgb},.4)`;};
+      card.onmouseleave=function(){card.style.background=`rgba(${p.rgb},.06)`;card.style.transform="translateY(0)";card.style.borderColor=`rgba(${p.rgb},.2)`;};
+      card.onclick=function(){activePsych=p;appView="psych";psychSelDate=todayISO();psychCalYear=new Date().getFullYear();psychCalMonth=new Date().getMonth();render();toast("Bem-vind"+(p.name.includes("Dra")?"a":"o")+", "+sname(p.name)+" ✓","success");};
+      grid.appendChild(card);
+    });
+    const back=mk("button");back.style.cssText="margin-top:13px;background:none;border:none;color:rgba(196,181,253,.32);cursor:pointer;font-family:'Nunito',sans-serif;font-size:11px;";
+    back.textContent="← Voltar";back.onclick=()=>showHome();
+    wrap.append(label,grid,back);
+  }
+
+  showHome();
+}
+
+/* ══════════════════════════════════════
+   ADMIN DASHBOARD
+══════════════════════════════════════ */
+function getWeekDays(wo){
+  const t=new Date(),dow=t.getDay(),adj=(dow===0?-6:1);
+  const mon=new Date(t);mon.setDate(t.getDate()-dow+adj+wo*7);
+  return Array.from({length:7},function(_,i){
+    const dd=new Date(mon);dd.setDate(mon.getDate()+i);
+    return{iso:dd.toISOString().slice(0,10),num:dd.getDate(),name:WDAYS[dd.getDay()],isT:dd.toISOString().slice(0,10)===todayISO()};
+  });
+}
+
+function drawAdmin(root){
+  root.style.cssText="position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;animation:fadeIn .4s ease;overflow:auto;";
+  const hdr=mk("div");hdr.style.cssText="padding:16px clamp(12px,2.5vw,32px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;";
+  hdr.innerHTML=`<div><div style="font-family:'Playfair Display',serif;font-size:clamp(16px,2.5vw,22px);color:#f0ede8;font-weight:300;letter-spacing:4px;">MORPHEUS</div><div style="font-family:'Nunito',sans-serif;font-size:9px;color:rgba(196,181,253,.45);margin-top:2px;letter-spacing:1px;">PAINEL ADMINISTRATIVO</div></div>`;
+  const hR=mk("div");hR.style.cssText="display:flex;gap:6px;align-items:center;flex-wrap:wrap;";
+  const badge=mk("div");badge.style.cssText="padding:3px 11px;border-radius:20px;background:rgba(196,181,253,.1);border:1px solid rgba(196,181,253,.2);font-family:'Nunito',sans-serif;font-size:9px;color:#c4b5fd;letter-spacing:1.5px;";badge.textContent="⚙ ADMIN";
+  const bNew=mkBtn("+ Nova Reserva","196,181,253");bNew.style.fontSize="11px";bNew.style.padding="7px 13px";bNew.onclick=()=>showModal("new",{});
+  const bOut=mkGhostBtn("Sair");bOut.onclick=()=>{appView="splash";render();};
+  hR.append(badge,bNew,bOut);hdr.appendChild(hR);root.appendChild(hdr);
+
+  const wdays=getWeekDays(weekOffset);
+  const d0=wdays[0],d6=wdays[6];
+  const wLabel=d0.num+" – "+d6.num+" "+MONTHS[new Date(d6.iso).getMonth()];
+  const wnav=mk("div");wnav.style.cssText="padding:9px clamp(12px,2.5vw,32px);display:flex;align-items:center;gap:10px;flex-shrink:0;";
+  const bPW=navBtn2("‹","196,181,253");bPW.onclick=()=>{weekOffset--;render();};
+  const bNW=navBtn2("›","196,181,253");bNW.onclick=()=>{weekOffset++;render();};
+  const wLbl=mk("span");wLbl.style.cssText="font-family:'Nunito',sans-serif;font-size:12px;color:#f0ede8;min-width:140px;text-align:center;";wLbl.textContent=wLabel;
+  wnav.append(bPW,wLbl,bNW);
+  if(weekOffset!==0){const bT=mk("button");bT.style.cssText="background:none;border:none;color:rgba(196,181,253,.36);cursor:pointer;font-family:'Nunito',sans-serif;font-size:10px;padding:0 4px;";bT.textContent="Hoje";bT.onclick=()=>{weekOffset=0;render();};wnav.appendChild(bT);}
+  root.appendChild(wnav);
+
+  const gWrap=mk("div");gWrap.style.cssText="padding:0 clamp(12px,2.5vw,32px) 28px;overflow-x:auto;flex:1;";
+  const grid=mk("div");grid.style.cssText="display:grid;grid-template-columns:80px repeat(7,minmax(90px,1fr));gap:1px;min-width:700px;";
+  grid.appendChild(mk("div"));
+  wdays.forEach(function(dd){
+    const th=mk("div");th.style.cssText="padding:5px 6px;text-align:center;";
+    th.innerHTML=`<div style="font-family:'Nunito',sans-serif;font-size:8px;color:${dd.isT?"#c4b5fd":"rgba(240,237,232,.26)"};letter-spacing:1px;">${dd.name}</div><div style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;margin-top:2px;border-radius:6px;background:${dd.isT?"rgba(196,181,253,.15)":"none"};font-family:'Nunito',sans-serif;font-size:14px;color:${dd.isT?"#c4b5fd":"rgba(240,237,232,.7)"};font-weight:${dd.isT?600:300};">${dd.num}</div>`;
+    grid.appendChild(th);
+  });
+  ROOMS.forEach(function(room){
+    const rlbl=mk("div");rlbl.style.cssText="display:flex;align-items:flex-start;gap:5px;padding:8px 5px;border-top:1px solid rgba(255,255,255,.04);";
+    rlbl.innerHTML=`<span style="color:${room.hex};font-size:14px;margin-top:1px;">${room.sym}</span><div style="font-family:'Nunito',sans-serif;font-size:9px;color:rgba(240,237,232,.5);margin-top:2px;font-weight:500;">${room.name}</div>`;
+    grid.appendChild(rlbl);
+    wdays.forEach(function(dd){
+      const cell=mk("div");cell.style.cssText=`border-top:1px solid rgba(255,255,255,.04);border-left:1px solid rgba(255,255,255,.03);padding:4px;min-height:76px;cursor:pointer;background:${dd.isT?"rgba("+room.rgb+",.025)":"transparent"};transition:background .14s;position:relative;`;
+      cell.onmouseenter=function(){cell.style.background="rgba("+room.rgb+",.07)";};
+      cell.onmouseleave=function(){cell.style.background=dd.isT?"rgba("+room.rgb+",.025)":"transparent";};
+      cell.onclick=function(){showModal("new",{roomId:room.id,date:dd.iso});};
+      const dayRes=reservations.filter(function(r){return r.roomId===room.id&&r.date===dd.iso;}).sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+      dayRes.forEach(function(r){
+        const ps=PSYCHS.find(function(p){return p.id===r.psychId;});
+        const chip=mk("div");chip.style.cssText=`margin-bottom:3px;padding:3px 5px;border-radius:4px;background:rgba(${ps.rgb},.17);border:1px solid rgba(${ps.rgb},.32);cursor:pointer;`;
+        chip.innerHTML=`<div style="font-family:'Nunito',sans-serif;font-size:8px;color:${ps.hex};font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sname(ps.name)}</div><div style="font-family:'Nunito',sans-serif;font-size:7px;color:rgba(${ps.rgb},.62);">${r.startTime}–${r.endTime}</div>`;
+        chip.onmouseenter=function(){chip.style.background="rgba("+ps.rgb+",.3)";};
+        chip.onmouseleave=function(){chip.style.background="rgba("+ps.rgb+",.17)";};
+        chip.onclick=function(e){e.stopPropagation();showModal("det",r);};
+        cell.appendChild(chip);
+      });
+      grid.appendChild(cell);
+    });
+  });
+  gWrap.appendChild(grid);root.appendChild(gWrap);
+}
+
+/* ══════════════════════════════════════
+   PSYCH DASHBOARD
+══════════════════════════════════════ */
+function drawPsych(root){
+  const p=activePsych;
+  root.style.cssText="position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;animation:fadeIn .4s ease;overflow:hidden;";
+  const myRes=reservations.filter(function(r){return r.psychId===p.id;}).sort(function(a,b){return a.date.localeCompare(b.date)||a.startTime.localeCompare(b.startTime);});
+  const upcoming=myRes.filter(function(r){return r.date>=todayISO();});
+
+  const hdr=mk("div");hdr.style.cssText="padding:14px clamp(12px,2.5vw,32px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;";
+  const hL=mk("div");hL.style.cssText="display:flex;align-items:center;gap:10px;";
+  hL.innerHTML=`<div style="width:36px;height:36px;border-radius:50%;background:rgba(${p.rgb},.2);border:1px solid rgba(${p.rgb},.36);display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:${p.hex};flex-shrink:0;">${p.ini}</div><div><div style="font-family:'Playfair Display',serif;font-size:clamp(13px,2.2vw,18px);color:#f0ede8;font-weight:300;">Olá, ${sname(p.name)}</div><div style="font-family:'Nunito',sans-serif;font-size:9px;color:rgba(${p.rgb},.5);margin-top:1px;">${upcoming.length} consulta${upcoming.length!==1?"s":""} agendada${upcoming.length!==1?"s":""}</div></div>`;
+  const hR=mk("div");hR.style.cssText="display:flex;gap:6px;flex-wrap:wrap;";
+  const bAv=mkBtn("◎ Ver Disponibilidade",p.rgb);bAv.style.fontSize="11px";bAv.style.padding="7px 13px";bAv.onclick=()=>showModal("avail",{});
+  const bOut2=mkGhostBtn("Sair");bOut2.onclick=()=>{appView="splash";render();};
+  hR.append(bAv,bOut2);hdr.append(hL,hR);root.appendChild(hdr);
+
+  const body=mk("div");body.style.cssText="flex:1;display:grid;grid-template-columns:minmax(260px,1fr) minmax(260px,1.4fr);overflow:hidden;";
+
+  // LEFT
+  const left=mk("div");left.style.cssText="border-right:1px solid rgba(255,255,255,.04);padding:18px clamp(12px,2.5vw,26px);overflow-y:auto;";
+  const mnav=mk("div");mnav.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;";
+  const bPM=navBtn2("‹",p.rgb);bPM.onclick=()=>{const dd=new Date(psychCalYear,psychCalMonth-1,1);psychCalMonth=dd.getMonth();psychCalYear=dd.getFullYear();render();};
+  const bNM=navBtn2("›",p.rgb);bNM.onclick=()=>{const dd=new Date(psychCalYear,psychCalMonth+1,1);psychCalMonth=dd.getMonth();psychCalYear=dd.getFullYear();render();};
+  const mLbl=mk("span");mLbl.style.cssText="font-family:'Nunito',sans-serif;color:#f0ede8;font-size:12px;font-weight:500;";mLbl.textContent=MONTHS[psychCalMonth]+" "+psychCalYear;
+  mnav.append(bPM,mLbl,bNM);left.appendChild(mnav);
+  const whdr=mk("div");whdr.style.cssText="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:3px;";
+  WDAYS.forEach(function(w){const wd=mk("div");wd.style.cssText="text-align:center;font-family:'Nunito',sans-serif;font-size:8px;color:rgba(240,237,232,.22);padding:2px 0;";wd.textContent=w;whdr.appendChild(wd);});
+  left.appendChild(whdr);
+  const dim=new Date(psychCalYear,psychCalMonth+1,0).getDate();
+  const fd=new Date(psychCalYear,psychCalMonth,1).getDay();
+  const bookedDates=new Set(myRes.map(function(r){return r.date;}));
+  const dgrid=mk("div");dgrid.style.cssText="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;";
+  for(let i=0;i<fd;i++)dgrid.appendChild(mk("div"));
+  for(let i=1;i<=dim;i++){
+    const iso=psychCalYear+"-"+String(psychCalMonth+1).padStart(2,"0")+"-"+String(i).padStart(2,"0");
+    const isSel=iso===psychSelDate,isT=iso===todayISO(),booked=bookedDates.has(iso);
+    const day=mk("div");day.style.cssText=`aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;position:relative;background:${isSel?"rgba("+p.rgb+",.22)":"transparent"};border:${isSel?"1px solid rgba("+p.rgb+",.5)":isT?"1px solid rgba("+p.rgb+",.24)":"1px solid transparent"};color:${isSel?p.hex:"#f0ede8"};font-family:'Nunito',sans-serif;font-size:11px;transition:all .12s;`;
+    day.textContent=i;
+    if(booked){const dot=mk("div");dot.style.cssText=`position:absolute;bottom:1px;width:4px;height:4px;border-radius:50%;background:${p.hex};box-shadow:0 0 5px ${p.hex};`;day.appendChild(dot);}
+    day.onmouseenter=function(){if(!isSel)day.style.background="rgba("+p.rgb+",.1)";};
+    day.onmouseleave=function(){if(!isSel)day.style.background="transparent";};
+    day.onclick=function(){psychSelDate=iso;render();};
+    dgrid.appendChild(day);
+  }
+  left.appendChild(dgrid);
+  const dayRes2=myRes.filter(function(r){return r.date===psychSelDate;});
+  const detDiv=mk("div");detDiv.style.cssText="margin-top:16px;border-top:1px solid rgba(255,255,255,.04);padding-top:12px;";
+  const selFmt=new Date(psychSelDate+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+  detDiv.innerHTML=`<div style="font-family:'Nunito',sans-serif;font-size:8px;color:rgba(${p.rgb},.6);letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;">${selFmt}</div>`;
+  if(dayRes2.length===0){detDiv.innerHTML+=`<div style="font-family:'Nunito',sans-serif;font-size:11px;color:rgba(240,237,232,.2);text-align:center;padding:14px 0;"><div style="font-size:18px;margin-bottom:3px;opacity:.35;">◌</div>Nenhuma reserva</div>`;}
+  else{dayRes2.forEach(function(r){const room=ROOMS.find(function(rm){return rm.id===r.roomId;});detDiv.innerHTML+=`<div style="margin-bottom:5px;padding:9px 11px;border-radius:9px;background:rgba(${room.rgb},.08);border:1px solid rgba(${room.rgb},.16);display:flex;align-items:center;gap:7px;"><span style="color:${room.hex};font-size:14px;">${room.sym}</span><div><div style="font-family:'Nunito',sans-serif;font-size:12px;color:#f0ede8;font-weight:500;">${room.name}</div><div style="font-family:'Nunito',sans-serif;font-size:10px;color:rgba(${room.rgb},.66);">${r.startTime} – ${r.endTime}${r.notes?" · "+r.notes:""}</div></div></div>`;});}
+  left.appendChild(detDiv);
+
+  // RIGHT
+  const right=mk("div");right.style.cssText="padding:18px clamp(12px,2.5vw,28px);overflow-y:auto;";
+  const upLabel=mk("div");upLabel.style.cssText="font-family:'Nunito',sans-serif;font-size:8px;color:rgba(240,237,232,.24);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;";upLabel.textContent="Próximas Reservas";right.appendChild(upLabel);
+  if(upcoming.length===0){const empty=mk("div");empty.style.cssText="text-align:center;padding:42px 0;color:rgba(240,237,232,.16);font-family:'Nunito',sans-serif;font-size:13px;";empty.innerHTML="<div style='font-size:30px;margin-bottom:8px;opacity:.3;'>◌</div>Sem consultas agendadas";right.appendChild(empty);}
+  else{
+    const groups={};upcoming.forEach(function(r){if(!groups[r.date])groups[r.date]=[];groups[r.date].push(r);});
+    Object.entries(groups).sort(function(a,b){return a[0].localeCompare(b[0]);}).forEach(function(entry){
+      const date=entry[0],res=entry[1];
+      const isToday=date===todayISO();
+      const df2=new Date(date+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+      const parts=df2.split(",");const shortDate=parts.length>1?parts[1].trim():df2;
+      const sep=mk("div");sep.style.cssText="display:flex;align-items:center;gap:7px;margin-bottom:7px;";
+      sep.innerHTML=`<div style="height:1px;flex:1;background:rgba(255,255,255,.04);"></div><span style="font-family:'Nunito',sans-serif;font-size:9px;color:${isToday?p.hex:"rgba(240,237,232,.32)"};font-weight:${isToday?600:400};white-space:nowrap;text-transform:capitalize;">${isToday?"Hoje · "+shortDate:df2}</span><div style="height:1px;flex:1;background:rgba(255,255,255,.04);"></div>`;
+      right.appendChild(sep);
+      res.forEach(function(r){
+        const room=ROOMS.find(function(rm){return rm.id===r.roomId;});
+        const card=mk("div");card.style.cssText=`margin-bottom:6px;padding:12px 13px;border-radius:11px;background:rgba(${room.rgb},.07);border:1px solid rgba(${room.rgb},.12);display:flex;align-items:center;gap:10px;`;
+        card.innerHTML=`<div style="width:34px;height:34px;border-radius:8px;background:rgba(${room.rgb},.14);display:flex;align-items:center;justify-content:center;font-size:15px;color:${room.hex};flex-shrink:0;">${room.sym}</div><div style="flex:1;min-width:0;"><div style="font-family:'Nunito',sans-serif;font-size:12px;color:#f0ede8;font-weight:500;">${room.name}</div><div style="font-family:'Nunito',sans-serif;font-size:10px;color:rgba(${room.rgb},.65);">${r.startTime} – ${r.endTime}${r.notes?" · "+r.notes:""}</div></div><div style="padding:2px 8px;border-radius:20px;background:rgba(${room.rgb},.1);border:1px solid rgba(${room.rgb},.18);font-family:'Nunito',sans-serif;font-size:9px;color:${room.hex};white-space:nowrap;flex-shrink:0;">${r.startTime}</div>`;
+        right.appendChild(card);
+      });
+      const spacer=mk("div");spacer.style.marginBottom="12px";right.appendChild(spacer);
+    });
+  }
+  body.append(left,right);root.appendChild(body);
+}
+
+/* ══════════════════════════════════════
+   MODALS
+══════════════════════════════════════ */
+function showModal(type,data){
+  const existing=document.getElementById("modal-layer");if(existing)existing.remove();
+  const layer=mk("div");layer.id="modal-layer";layer.style.cssText="position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;";
+  const backdrop=mk("div");backdrop.style.cssText="position:absolute;inset:0;background:rgba(4,3,12,.9);backdrop-filter:blur(10px);";backdrop.onclick=()=>layer.remove();
+  layer.appendChild(backdrop);
+  if(type==="new")buildNewModal(layer,data);
+  else if(type==="det")buildDetModal(layer,data);
+  else if(type==="avail")buildAvailModal(layer);
+  document.body.appendChild(layer);
+}
+
+function mBox(rgb){const b=mk("div");b.style.cssText=`position:relative;background:rgba(10,7,24,.98);border:1px solid rgba(${rgb||"196,181,253"},.22);border-radius:20px;padding:22px clamp(16px,3vw,26px);width:min(450px,100%);max-height:88vh;overflow-y:auto;animation:slideUp .24s ease;`;return b;}
+
+function buildNewModal(layer,prefill){
+  let fPsychId=prefill.psychId||null,fRoomId=prefill.roomId||null,fDate=prefill.date||todayISO(),fSt="09:00",fEt="10:00",fNotes="";
+  const box=mBox();
+  const lbl="font-family:'Nunito',sans-serif;font-size:9px;color:rgba(240,237,232,.3);letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:4px;";
+  const inp="width:100%;background:rgba(240,237,232,.06);border:1px solid rgba(240,237,232,.1);border-radius:8px;padding:9px 10px;color:#f0ede8;font-family:'Nunito',sans-serif;font-size:12px;outline:none;box-sizing:border-box;";
+  function rebuild(){
+    box.innerHTML="";
+    const tR=mk("div");tR.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;";
+    const title=mk("div");title.style.cssText="font-family:'Playfair Display',serif;font-size:18px;color:#f0ede8;font-weight:300;";title.textContent="Nova Reserva";
+    const xBtn=mk("button");xBtn.style.cssText="background:rgba(240,237,232,.06);border:1px solid rgba(240,237,232,.09);border-radius:50%;width:28px;height:28px;color:rgba(240,237,232,.44);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;";xBtn.textContent="×";xBtn.onclick=()=>layer.remove();
+    tR.append(title,xBtn);box.appendChild(tR);
+    const psS=mk("div");psS.style.marginBottom="12px";const psL=mk("span");psL.style.cssText=lbl;psL.textContent="Psicólogo(a)";
+    const psG=mk("div");psG.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:5px;";
+    PSYCHS.forEach(function(p){const sel=fPsychId===p.id;const c=mk("div");c.style.cssText=`padding:8px 9px;border-radius:8px;border:1px solid rgba(${p.rgb},${sel?.44:.14});background:rgba(${p.rgb},${sel?.18:.05});cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s;`;c.innerHTML=`<div style="width:24px;height:24px;border-radius:50%;background:rgba(${p.rgb},.2);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:${p.hex};font-family:'Nunito',sans-serif;flex-shrink:0;">${p.ini}</div><span style="font-family:'Nunito',sans-serif;font-size:9px;color:${sel?p.hex:"rgba(240,237,232,.5)"};font-weight:${sel?600:400};line-height:1.3;">${p.name}</span>`;c.onclick=function(){fPsychId=p.id;rebuild();};psG.appendChild(c);});
+    psS.append(psL,psG);box.appendChild(psS);
+    const rmS=mk("div");rmS.style.marginBottom="12px";const rmL=mk("span");rmL.style.cssText=lbl;rmL.textContent="Sala";
+    const rmG=mk("div");rmG.style.cssText="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;";
+    ROOMS.forEach(function(r){const sel=fRoomId===r.id;const c=mk("div");c.style.cssText=`padding:8px 4px;border-radius:8px;border:1px solid rgba(${r.rgb},${sel?.44:.14});background:rgba(${r.rgb},${sel?.18:.05});cursor:pointer;text-align:center;transition:all .12s;`;c.innerHTML=`<div style="font-size:17px;color:${r.hex};margin-bottom:2px;">${r.sym}</div><div style="font-family:'Nunito',sans-serif;font-size:8px;color:${sel?r.hex:"rgba(240,237,232,.4)"};">${r.name}</div>`;c.onclick=function(){fRoomId=r.id;rebuild();};rmG.appendChild(c);});
+    rmS.append(rmL,rmG);box.appendChild(rmS);
+    const dRow=mk("div");dRow.style.cssText="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;";
+    dRow.innerHTML=`<div style="grid-column:span 3;"><span style="${lbl}">Data</span><input id="fDate" type="date" value="${fDate}" style="${inp}"></div><div><span style="${lbl}">Início</span><select id="fSt" style="${inp}cursor:pointer;">${HOURS.map(function(h){return'<option value="'+h+'" style="background:#0c0921"'+(h===fSt?" selected":"")+'>'+h+'</option>';}).join("")}</select></div><div><span style="${lbl}">Término</span><select id="fEt" style="${inp}cursor:pointer;">${HOURS.map(function(h){return'<option value="'+h+'" style="background:#0c0921"'+(h===fEt?" selected":"")+'>'+h+'</option>';}).join("")}</select></div><div><span style="${lbl}">Obs.</span><input id="fNotes" placeholder="Opcional" value="${fNotes}" style="${inp}"></div>`;
+    box.appendChild(dRow);
+    const errDiv=mk("div");errDiv.id="mErr";errDiv.style.marginBottom="8px";box.appendChild(errDiv);
+    const bRow=mk("div");bRow.style.cssText="display:flex;gap:7px;";
+    const bC=mk("button");bC.style.cssText="flex:1;padding:10px;border-radius:9px;border:1px solid rgba(240,237,232,.08);background:transparent;color:rgba(240,237,232,.36);font-family:'Nunito',sans-serif;font-size:12px;cursor:pointer;";bC.textContent="Cancelar";bC.onclick=()=>layer.remove();
+    const bS=mk("button");bS.style.cssText="flex:2;padding:10px;border-radius:9px;border:1px solid rgba(196,181,253,.4);background:rgba(196,181,253,.15);color:#c4b5fd;font-family:'Nunito',sans-serif;font-size:12px;cursor:pointer;font-weight:600;";bS.textContent="Confirmar Reserva";
+    bS.onmouseenter=function(){bS.style.background="rgba(196,181,253,.3)";};bS.onmouseleave=function(){bS.style.background="rgba(196,181,253,.15)";};
+    bS.onclick=function(){
+      fDate=document.getElementById("fDate").value;fSt=document.getElementById("fSt").value;fEt=document.getElementById("fEt").value;fNotes=document.getElementById("fNotes").value;
+      const errEl=document.getElementById("mErr");
+      function setErr(msg){errEl.innerHTML=`<div style="padding:7px 11px;border-radius:8px;background:rgba(253,164,175,.08);border:1px solid rgba(253,164,175,.24);color:#fda4af;font-family:'Nunito',sans-serif;font-size:11px;"><span style="margin-right:5px;">⚠</span>${msg}</div>`;}
+      if(!fPsychId){setErr("Selecione o(a) psicólogo(a).");return;}
+      if(!fRoomId){setErr("Selecione uma sala.");return;}
+      if(!fDate){setErr("Informe a data.");return;}
+      if(fSt>=fEt){setErr("Início deve ser anterior ao término.");return;}
+      if(reservations.some(function(r){return r.roomId===fRoomId&&r.date===fDate&&fSt<r.endTime&&fEt>r.startTime;})){setErr("Conflito de horário! Sala ocupada neste período.");return;}
+      bS.textContent="Salvando...";bS.disabled=true;
+      setTimeout(function(){reservations.push({id:genId(),roomId:fRoomId,psychId:fPsychId,date:fDate,startTime:fSt,endTime:fEt,notes:fNotes});layer.remove();render();toast("Reserva criada com sucesso!","success");},400);
+    };
+    bRow.append(bC,bS);box.appendChild(bRow);
+  }
+  rebuild();layer.appendChild(box);
+}
+
+function buildDetModal(layer,r){
+  const room=ROOMS.find(function(rm){return rm.id===r.roomId;});
+  const ps=PSYCHS.find(function(p){return p.id===r.psychId;});
+  const df=new Date(r.date+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const box=mBox(room.rgb);
+  box.innerHTML=`<div style="margin-bottom:14px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;"><span style="font-size:19px;color:${room.hex};">${room.sym}</span><span style="font-family:'Playfair Display',serif;font-size:17px;color:#f0ede8;font-weight:300;">${room.name}</span></div><div style="font-family:'Nunito',sans-serif;font-size:10px;color:rgba(240,237,232,.3);text-transform:capitalize;">${df}</div></div><div style="padding:12px 13px;border-radius:10px;background:rgba(${ps.rgb},.09);border:1px solid rgba(${ps.rgb},.2);margin-bottom:16px;"><div style="display:flex;align-items:center;gap:9px;"><div style="width:32px;height:32px;border-radius:50%;background:rgba(${ps.rgb},.22);display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-size:10px;font-weight:700;color:${ps.hex};flex-shrink:0;">${ps.ini}</div><div><div style="font-family:'Nunito',sans-serif;font-size:13px;color:#f0ede8;font-weight:500;">${ps.name}</div><div style="font-family:'Nunito',sans-serif;font-size:11px;color:rgba(${ps.rgb},.66);">${r.startTime} – ${r.endTime}</div>${r.notes?`<div style="font-family:'Nunito',sans-serif;font-size:10px;color:rgba(240,237,232,.3);margin-top:4px;border-top:1px solid rgba(${ps.rgb},.12);padding-top:6px;">${r.notes}</div>`:""}</div></div></div><div style="display:flex;gap:7px;"><button id="dClose" style="flex:1;padding:10px;border-radius:9px;border:1px solid rgba(240,237,232,.08);background:transparent;color:rgba(240,237,232,.36);font-family:'Nunito',sans-serif;font-size:12px;cursor:pointer;">Fechar</button><button id="dDel" style="flex:1;padding:10px;border-radius:9px;border:1px solid rgba(253,164,175,.3);background:rgba(253,164,175,.07);color:#fda4af;font-family:'Nunito',sans-serif;font-size:12px;cursor:pointer;">Excluir Reserva</button></div>`;
+  layer.appendChild(box);
+  box.querySelector("#dClose").onclick=()=>layer.remove();
+  const db=box.querySelector("#dDel");db.onmouseenter=function(){db.style.background="rgba(253,164,175,.18)";};db.onmouseleave=function(){db.style.background="rgba(253,164,175,.07)";};
+  db.onclick=function(){reservations=reservations.filter(function(rv){return rv.id!==r.id;});layer.remove();render();toast("Reserva removida.","info");};
+}
+
+function buildAvailModal(layer){
+  let avDate=todayISO();
+  const MIN=8,MAX=20,TOTAL=(MAX-MIN)*60;
+  const t2p=function(t){const pts=t.split(":");return((parseInt(pts[0])-MIN)*60+parseInt(pts[1]))/TOTAL*100;};
+  const box=mBox();box.style.width="min(560px,100%)";
+  function rebuild(){
+    box.innerHTML="";
+    const dayRes=reservations.filter(function(r){return r.date===avDate;});
+    const df=new Date(avDate+"T00:00:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    const tR=mk("div");tR.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;";
+    tR.innerHTML=`<div><div style="font-family:'Playfair Display',serif;font-size:18px;color:#f0ede8;font-weight:300;">Disponibilidade das Salas</div><div style="font-family:'Nunito',sans-serif;font-size:10px;color:rgba(240,237,232,.28);margin-top:2px;text-transform:capitalize;">${df}</div></div>`;
+    const xBtn=mk("button");xBtn.style.cssText="background:rgba(240,237,232,.06);border:1px solid rgba(240,237,232,.09);border-radius:50%;width:28px;height:28px;color:rgba(240,237,232,.44);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;";xBtn.textContent="×";xBtn.onclick=()=>layer.remove();
+    tR.appendChild(xBtn);box.appendChild(tR);
+    const dI=mk("input");dI.type="date";dI.value=avDate;dI.style.cssText="width:100%;background:rgba(240,237,232,.06);border:1px solid rgba(196,181,253,.17);border-radius:8px;padding:8px 10px;color:#f0ede8;font-family:'Nunito',sans-serif;font-size:11px;outline:none;margin-bottom:18px;";dI.onchange=function(){avDate=dI.value;rebuild();};box.appendChild(dI);
+    const ruler=mk("div");ruler.style.cssText="padding-left:64px;margin-bottom:4px;";ruler.innerHTML=`<div style="display:flex;justify-content:space-between;">${[8,10,12,14,16,18,20].map(function(h){return'<span style="font-family:\'Nunito\',sans-serif;font-size:7px;color:rgba(240,237,232,.18);">'+h+'h</span>';}).join("")}</div>`;box.appendChild(ruler);
+    const rows=mk("div");rows.style.cssText="display:flex;flex-direction:column;gap:7px;";
+    ROOMS.forEach(function(room){
+      const rr=dayRes.filter(function(r){return r.roomId===room.id;});
+      const row=mk("div");row.style.cssText="display:flex;align-items:center;gap:8px;";
+      const lbl=mk("div");lbl.style.cssText="width:56px;flex-shrink:0;display:flex;align-items:center;gap:4px;";lbl.innerHTML=`<span style="font-size:12px;color:${room.hex};">${room.sym}</span><span style="font-family:'Nunito',sans-serif;font-size:8px;color:rgba(240,237,232,.38);">${room.name}</span>`;
+      const bar=mk("div");bar.style.cssText="flex:1;height:32px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden;";
+      if(rr.length===0){bar.innerHTML=`<div style="position:absolute;inset:0;display:flex;align-items:center;padding-left:8px;"><span style="font-family:'Nunito',sans-serif;font-size:7px;color:rgba(110,231,183,.42);letter-spacing:.4px;">● Livre</span></div>`;}
+      else{rr.forEach(function(r){const ps=PSYCHS.find(function(p){return p.id===r.psychId;});const left=t2p(r.startTime),width=Math.max(t2p(r.endTime)-left,0);const seg=mk("div");seg.style.cssText=`position:absolute;top:2px;bottom:2px;left:${left}%;width:${width}%;min-width:2px;border-radius:4px;background:rgba(${ps.rgb},.24);border:1px solid rgba(${ps.rgb},.44);display:flex;align-items:center;padding:0 4px;overflow:hidden;`;seg.innerHTML=`<span style="font-family:'Nunito',sans-serif;font-size:7px;color:${ps.hex};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;">${sname(ps.name)}</span>`;bar.appendChild(seg);});}
+      row.append(lbl,bar);rows.appendChild(row);
+    });
+    box.appendChild(rows);
+    const leg=mk("div");leg.style.cssText="margin-top:16px;border-top:1px solid rgba(255,255,255,.04);padding-top:12px;";leg.innerHTML=`<div style="font-family:'Nunito',sans-serif;font-size:7px;color:rgba(240,237,232,.18);letter-spacing:2px;margin-bottom:7px;">PROFISSIONAIS</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${PSYCHS.map(function(p){return'<div style="display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;background:rgba('+p.rgb+',.09);border:1px solid rgba('+p.rgb+',.17);"><div style="width:4px;height:4px;border-radius:50%;background:'+p.hex+';"></div><span style="font-family:\'Nunito\',sans-serif;font-size:8px;color:rgba('+p.rgb+',.78);">'+p.name+'</span></div>';}).join("")}</div>`;
+    box.appendChild(leg);
+  }
+  rebuild();layer.appendChild(box);
+}
+
+/* ══════════════ HELPERS ══════════════ */
+function mk(tag){return document.createElement(tag);}
+function mkBtn(text,rgb,w){const b=mk("button");b.textContent=text;b.style.cssText=`width:${w||"auto"};padding:9px 16px;border-radius:10px;border:1px solid rgba(${rgb},.32);background:rgba(${rgb},.09);color:#f0ede8;font-family:'Nunito',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;`;b.onmouseenter=function(){b.style.background="rgba("+rgb+",.2)";};b.onmouseleave=function(){b.style.background="rgba("+rgb+",.09)";};return b;}
+function mkGhostBtn(text,w){const b=mk("button");b.textContent=text;b.style.cssText=`width:${w||"auto"};padding:9px 16px;border-radius:10px;border:1px solid rgba(240,237,232,.08);background:transparent;color:rgba(240,237,232,.42);font-family:'Nunito',sans-serif;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;`;b.onmouseenter=function(){b.style.background="rgba(240,237,232,.05)";};b.onmouseleave=function(){b.style.background="transparent";};return b;}
+function navBtn2(txt,rgb){const b=mk("button");b.textContent=txt;b.style.cssText=`background:none;border:1px solid rgba(${rgb||"196,181,253"},.14);border-radius:6px;width:25px;height:25px;color:rgba(${rgb||"196,181,253"},.6);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;`;return b;}
+
+/* ══════════════ BOOT ══════════════ */
+render();
+</script>
+</body>
+</html>

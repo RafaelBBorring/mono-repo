@@ -21,7 +21,12 @@ export default function Step8Triages({ char, update, updateNested }) {
   const classTriages = getAllTriagesForClass(classe)
   const triagemPrincipal = char.triagemPrincipal || null
 
-  const allTriages = getAllTriages()
+  const CLASS_COLORS = {
+    Guerreiro: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', selected: 'border-rose-400', text: 'text-rose-400', glow: 'rgba(248,113,113,0.25)' },
+    Operativo: { bg: 'bg-sky-500/5', border: 'border-sky-500/30', selected: 'border-sky-400', text: 'text-sky-400', glow: 'rgba(96,165,250,0.25)' },
+    'Místico': { bg: 'bg-purple-500/5', border: 'border-purple-500/30', selected: 'border-purple-400', text: 'text-purple-400', glow: 'rgba(192,132,252,0.25)' },
+  }
+  const classColor = CLASS_COLORS[classe] || CLASS_COLORS.Guerreiro
 
   function selectPrincipal(key) {
     update({
@@ -79,18 +84,19 @@ export default function Step8Triages({ char, update, updateNested }) {
                   <div
                     key={key}
                     onClick={() => selectPrincipal(key)}
-                    className={`triage-main-card bg-deep border rounded p-4 cursor-pointer transition-all ${
+                    className={`triage-main-card ${classColor.bg} border rounded p-4 cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-gold shadow-[0_0_12px_rgba(201,168,76,0.3)]'
-                        : 'border-sep hover:border-gold/50'
+                        ? `${classColor.selected}`
+                        : `${classColor.border} hover:${classColor.selected}`
                     }`}
+                    style={isSelected ? { boxShadow: `0 0 16px ${classColor.glow}` } : undefined}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <h4 className={`font-cinzel text-lg ${isSelected ? 'text-gold' : 'text-txt-main'}`}>
+                      <h4 className={`font-cinzel text-lg ${isSelected ? classColor.text : 'text-txt-main'}`}>
                         {triage.name}
                       </h4>
                       {isSelected && (
-                        <span className="text-xs bg-gold/20 text-gold px-2 py-0.5 rounded">Ativa</span>
+                        <span className={`text-xs ${classColor.bg} ${classColor.text} px-2 py-0.5 rounded border ${classColor.border}`}>Ativa</span>
                       )}
                     </div>
                     <p className="text-txt-dim text-xs mb-3">{triage.desc}</p>
@@ -106,11 +112,11 @@ export default function Step8Triages({ char, update, updateNested }) {
                             key={lvl}
                             className={`flex gap-2 text-xs rounded px-2 py-1.5 ${
                               isUnlocked
-                                ? isSelected ? 'bg-gold/10 text-txt-main' : 'bg-panel/50 text-txt-main'
+                                ? isSelected ? `${classColor.bg} text-txt-main` : 'bg-panel/50 text-txt-main'
                                 : 'text-txt-dim/40'
                             }`}
                           >
-                            <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? 'text-gold' : ''}`}>
+                            <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? classColor.text : ''}`}>
                               {lvl}
                             </span>
                             <span>{desc}</span>
@@ -152,15 +158,15 @@ export default function Step8Triages({ char, update, updateNested }) {
                           isSameAsPrincipal
                             ? 'border-sep/20 opacity-30 cursor-not-allowed'
                             : isSelected
-                              ? 'border-warn shadow-[0_0_8px_rgba(224,160,48,0.3)] cursor-pointer'
-                              : 'border-sep hover:border-gold/50 cursor-pointer'
+                              ? 'border-gray-400/40 shadow-[0_0_8px_rgba(160,160,180,0.2)] cursor-pointer'
+                              : 'border-sep hover:border-white/20 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <h4 className={`font-body text-sm font-semibold ${isSelected ? 'text-warn' : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
+                          <h4 className={`font-body text-sm font-semibold ${isSelected ? 'text-gray-300' : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
                             {triage.name}
                           </h4>
-                          <span className="text-txt-dim text-xs">{isSameAsPrincipal ? 'Já é Principal' : classKey}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${CLASS_COLORS[classKey]?.bg || ''} ${CLASS_COLORS[classKey]?.text || 'text-txt-dim'}`}>{classKey}</span>
                         </div>
                         <p className="text-txt-dim text-xs mb-2">{triage.desc}</p>
                         <div className="space-y-1">
@@ -174,11 +180,11 @@ export default function Step8Triages({ char, update, updateNested }) {
                                 key={lvl}
                                 className={`flex gap-2 text-xs rounded px-2 py-1 ${
                                   isUnlocked
-                                    ? isSelected ? 'bg-warn/10 text-txt-main' : 'bg-panel/50 text-txt-main'
+                                    ? isSelected ? 'bg-gray-500/10 text-txt-main' : 'bg-panel/50 text-txt-main'
                                     : 'text-txt-dim/40'
                                 }`}
                               >
-                                <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? 'text-warn' : ''}`}>
+                                <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? 'text-gray-300' : ''}`}>
                                   {lvl}
                                 </span>
                                 <span>{desc}</span>
@@ -209,7 +215,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                 if (!desc) return null
                 return (
                   <div key={lvl} className="flex gap-2 text-sm">
-                    <span className="text-gold font-mono w-8">{lvl}</span>
+                    <span className={`${classColor.text} font-mono w-8`}>{lvl}</span>
                     <span className="text-txt-main">{desc}</span>
                   </div>
                 )

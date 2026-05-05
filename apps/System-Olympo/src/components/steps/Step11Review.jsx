@@ -196,7 +196,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const runesEnabled = systemOptIn.runes || (char.runes || []).length > 0
   const magicEnabled = systemOptIn.magic || (char.magics || []).length > 0
   const magicProfile = getMagicProfile(char)
-  const [sheetView, setSheetView] = useState('overview')
+  const [sheetView, setSheetView] = useState('full')
 
   function handleCopy() {
     navigator.clipboard.writeText(exportSheet(char, derived)).catch(() => {})
@@ -375,30 +375,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
         {/* ═══ BODY ═══ */}
         <div className="p-4 sm:p-5">
-          {visible('inventory') && (
-            <section className="sheet-panel mb-5 space-y-5">
-              <div>
-                <EquipmentSection
-                  char={char}
-                  canEdit={canEdit}
-                  onUpdate={(eq) => update({ equipamentos: eq })}
-                  onCharacterUpdate={update}
-                  onDrawerToggle={() => {}}
-                />
-              </div>
-              <div className="border-t border-sep/25 pt-5">
-                <InventorySection
-                  items={char.inventario || []}
-                  canEdit={canEdit}
-                  onUpdate={(items) => update({ inventario: items })}
-                  wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
-                  onWalletUpdate={(patch) => update(patch)}
-                  onDrawerToggle={() => {}}
-                />
-              </div>
-            </section>
-          )}
-
           <div className={`sheet-body-grid sheet-view-${sheetView} grid grid-cols-1 lg:grid-cols-12 gap-5`}>
 
             {/* ═══ LEFT COLUMN ═══ */}
@@ -515,6 +491,28 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <TriagemSection char={char} cls={cls} />
               </section>
 
+              {/* INVENTÁRIO & EQUIPAMENTOS */}
+              <section className={visible('inventory') ? 'sheet-panel space-y-5' : 'hidden'}>
+                <SectionHeader icon="🎒" title="Inventário & Equipamentos" color="bg-amber-400" />
+                <EquipmentSection
+                  char={char}
+                  canEdit={canEdit}
+                  onUpdate={(eq) => update({ equipamentos: eq })}
+                  onCharacterUpdate={update}
+                  onDrawerToggle={() => {}}
+                />
+                <div className="border-t border-sep/25 pt-5">
+                  <InventorySection
+                    items={char.inventario || []}
+                    canEdit={canEdit}
+                    onUpdate={(items) => update({ inventario: items })}
+                    wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
+                    onWalletUpdate={(patch) => update(patch)}
+                    onDrawerToggle={() => {}}
+                  />
+                </div>
+              </section>
+
               {/* HERANÇA RACIAL */}
               <details className={visible('traits') ? 'group sheet-panel' : 'hidden'}>
                 <summary className="flex items-center gap-2 cursor-pointer hover:bg-gold/[0.035] rounded-lg px-1 py-1 -mx-1 transition-colors list-none">
@@ -530,11 +528,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   <RaceHeritageSection char={char} />
                 </div>
               </details>
-
-              {/* ARMAS & EQUIPAMENTOS */}
-              <div className={sheetView === 'combat' ? '' : 'hidden'}>
-                <EquipmentSection char={char} canEdit={canEdit} onUpdate={(eq) => update({ equipamentos: eq })} onCharacterUpdate={update} onDrawerToggle={() => {}} />
-              </div>
             </div>
 
             {/* ═══ RIGHT COLUMN ═══ */}
@@ -651,18 +644,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   ))}
                 </div>
               </section>
-
-              {/* INVENTÁRIO */}
-              <div className="hidden">
-                <InventorySection
-                  items={char.inventario || []}
-                  canEdit={canEdit}
-                  onUpdate={(items) => update({ inventario: items })}
-                  wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
-                  onWalletUpdate={(patch) => update(patch)}
-                  onDrawerToggle={() => {}}
-                />
-              </div>
 
               {/* NOTAS */}
               <section className={visible('inventory') ? 'sheet-panel' : 'hidden'}>

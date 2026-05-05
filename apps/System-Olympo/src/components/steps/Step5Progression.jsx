@@ -14,7 +14,25 @@ export default function Step5Progression({ char, update, updateNested }) {
     )
   }
 
-  const choices = char.choices || {}
+  const CLASS_COLORS = {
+    Guerreiro: { text: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
+    Operativo: { text: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+    'Místico': { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+  }
+  const classColor = CLASS_COLORS[classe] || { text: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/30' }
+
+  const REWARD_COLORS = {
+    vida_fixo: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: '❤' },
+    energia_fixo: { text: 'text-sky-400', bg: 'bg-sky-500/10', icon: '⚡' },
+    pe_fixo: { text: 'text-amber-400', bg: 'bg-amber-500/10', icon: '✦' },
+    modulo: { text: 'text-orange-400', bg: 'bg-orange-500/10', icon: '⚙' },
+    triagem_principal: { ...classColor, icon: '★' },
+    sub_triagem: { text: 'text-gray-400', bg: 'bg-gray-500/10', icon: '◆' },
+  }
+
+  function getRewardColor(type) {
+    return REWARD_COLORS[type] || { text: 'text-txt-main', bg: '', icon: '' }
+  }
 
   const totals = { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0 }
 
@@ -70,18 +88,27 @@ export default function Step5Progression({ char, update, updateNested }) {
               return (
                 <tr key={n} className={`progression-row ${entry.rewards.map(r => `has-${r.type}`).join(' ')} border-b border-sep/50 hover:bg-panel/30`}>
                   <td className="py-2 pr-3 font-mono text-txt-main">{n}</td>
-                  <td className="py-2 pr-3 text-txt-main">
-                    <span>{normalizeProgressionLabel(entry.label)}</span>
-                    {hasTriagem && (
-                      <span className="ml-2 text-gold text-xs">
-                        (Triagem Principal desbloqueada)
-                      </span>
-                    )}
-                    {hasSubTriagem && (
-                      <span className="ml-2 text-warn text-xs">
-                        (Sub-Triagem desbloqueada)
-                      </span>
-                    )}
+                  <td className="py-2 pr-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {entry.rewards.filter(r => r.type !== 'escolha').map((r, ri) => {
+                        const rc = getRewardColor(r.type)
+                        return (
+                          <span key={ri} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono ${rc.text} ${rc.bg}`}>
+                            {rc.icon && <span className="text-[10px]">{rc.icon}</span>}
+                            {r.type === 'vida_fixo' ? `+${r.value} Vida`
+                              : r.type === 'energia_fixo' ? `+${r.value} Energia`
+                              : r.type === 'pe_fixo' ? `+${r.value} PE`
+                              : r.type === 'pontos_esqueleto' ? `+${r.value} Esqueleto`
+                              : r.type === 'modulo' ? `+${r.value} Módulo`
+                              : r.type === 'pericias_treinadas' ? `+${scaleTrainedSkillsReward(r.value)} Perícias`
+                              : r.type === 'peh' ? `+${r.value} PEH`
+                              : r.type === 'triagem_principal' ? 'Triagem Principal'
+                              : r.type === 'sub_triagem' ? 'Sub-Triagem'
+                              : normalizeProgressionLabel(r.type)}
+                          </span>
+                        )
+                      })}
+                    </div>
                   </td>
                   <td className="py-2">
                     {hasChoice && choiceReward && (
@@ -121,12 +148,12 @@ export default function Step5Progression({ char, update, updateNested }) {
       <div className="codex-card p-5">
         <h3 className="font-cinzel text-primary text-lg mb-3 tracking-wider">Bônus Totais da Progressão</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <TotalBadge label="Vida Fixo" value={totals.vida} />
-          <TotalBadge label="Energia Fixo" value={totals.energia} />
-          <TotalBadge label="PE Fixo" value={totals.pe} />
-          <TotalBadge label="Pontos Esqueleto" value={totals.esqueleto} />
-          <TotalBadge label="Módulos" value={totals.modulo} />
-          <TotalBadge label="Perícias Treinadas" value={totals.pericias} />
+          <TotalBadge label="Vida Fixo" value={totals.vida} color="text-emerald-400" />
+          <TotalBadge label="Energia Fixo" value={totals.energia} color="text-sky-400" />
+          <TotalBadge label="PE Fixo" value={totals.pe} color="text-amber-400" />
+          <TotalBadge label="Pontos Esqueleto" value={totals.esqueleto} color="text-cyan-400" />
+          <TotalBadge label="Módulos" value={totals.modulo} color="text-orange-400" />
+          <TotalBadge label="Perícias Treinadas" value={totals.pericias} color="text-violet-400" />
         </div>
       </div>
     </div>
@@ -144,11 +171,11 @@ function accumulate(totals, r) {
   }
 }
 
-function TotalBadge({ label, value }) {
+function TotalBadge({ label, value, color = 'text-on-surface' }) {
   return (
     <div className="codex-card !bg-surface-container border border-primary/10 px-3 py-2 rounded">
       <div className="text-outline text-xs font-mono uppercase tracking-wider" style={{ fontSize: '10px' }}>{label}</div>
-      <div className="font-mono text-on-surface text-lg">{value > 0 ? `+${value}` : value}</div>
+      <div className={`font-mono text-lg ${color}`}>{value > 0 ? `+${value}` : value}</div>
     </div>
   )
 }

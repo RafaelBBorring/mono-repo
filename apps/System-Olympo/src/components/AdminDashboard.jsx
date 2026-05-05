@@ -43,7 +43,7 @@ function findTriagem(key) {
   return null
 }
 
-export default function AdminDashboard({ initialTab = 'sheets' }) {
+export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
   const { profile } = useAuth()
   const [tab, setTab] = useState(initialTab)
   const [sheets, setSheets] = useState([])
@@ -230,6 +230,11 @@ export default function AdminDashboard({ initialTab = 'sheets' }) {
                         <>
                           <AdminSheetView sheet={sheet} onPatch={handlePatch} />
                           <div className="flex gap-2 pt-2 border-t border-sep/30">
+                            {onViewSheet && (
+                              <button onClick={() => onViewSheet(sheet.id)} className="text-xs border border-secondary-fixed-dim/40 text-secondary-fixed-dim px-3 py-1.5 rounded hover:bg-secondary-fixed-dim hover:text-on-primary transition-colors">
+                                Ver Ficha
+                              </button>
+                            )}
                             <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-primary/40 text-primary px-3 py-1.5 rounded hover:bg-primary hover:text-on-primary transition-colors">
                               Editar Ficha Completa
                             </button>

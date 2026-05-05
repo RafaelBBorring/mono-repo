@@ -1,8 +1,112 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as THREE from 'three'
 
-function getInitial(name) {
-  return (name || '?').trim().slice(0, 1).toUpperCase()
+const LEVEL_TIERS = [
+  { min: 1, max: 8, label: 'Novato', color: '#60a5fa', glow: 'rgba(96,165,250,0.35)', border: 'border-sky-400/50', bg: 'bg-sky-400/10', text: 'text-sky-400', bar: 'bg-sky-400' },
+  { min: 9, max: 16, label: 'Veterano', color: '#f7bd48', glow: 'rgba(247,189,72,0.35)', border: 'border-primary/50', bg: 'bg-primary/10', text: 'text-primary', bar: 'bg-primary' },
+  { min: 17, max: 24, label: 'Elite', color: '#c084fc', glow: 'rgba(192,132,252,0.35)', border: 'border-purple-400/50', bg: 'bg-purple-400/10', text: 'text-purple-400', bar: 'bg-purple-400' },
+  { min: 25, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.4)', border: 'border-rose-400/50', bg: 'bg-rose-400/10', text: 'text-rose-400', bar: 'bg-rose-400' },
+]
+
+function getLevelTier(level) {
+  return LEVEL_TIERS.find(t => level >= t.min && level <= t.max) || LEVEL_TIERS[0]
+}
+
+function CharacterCard({ sheet, onOpenSheet, onIconChange }) {
+  const level = sheet.data?.nivel || 1
+  const tier = getLevelTier(level)
+  const [hovering, setHovering] = useState(false)
+  const fileRef = useRef(null)
+
+  const handleIconClick = useCallback((e) => {
+    e.stopPropagation()
+    fileRef.current?.click()
+  }, [])
+
+  const handleFileChange = useCallback((e) => {
+    const file = e.target.files?.[0]
+    if (!file || !onIconChange) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const size = 256
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        const scale = Math.max(size / img.width, size / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+        onIconChange(sheet.id, canvas.toDataURL('image/webp', 0.7))
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }, [onIconChange, sheet.id])
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenSheet?.(sheet.id)}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      className="glass-card group relative p-6 flex items-center gap-6 cursor-pointer text-left w-full overflow-hidden"
+      style={{ transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s cubic-bezier(0.16,1,0.3,1)' }}
+    >
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{ boxShadow: `inset 0 0 60px ${tier.glow}, 0 0 40px ${tier.glow}` }}
+      />
+      <div className="relative w-24 h-24 shrink-0" style={{ transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: hovering ? 'scale(1.05)' : 'scale(1)' }}>
+        {sheet.data?.avatar ? (
+          <img src={sheet.data.avatar} alt=""
+            className="w-full h-full object-cover rounded-xl border-2 transition-all duration-400"
+            style={{ borderColor: hovering ? tier.color : 'rgba(247,189,72,0.2)', boxShadow: hovering ? `0 0 24px ${tier.glow}` : 'none' }} />
+        ) : (
+          <div className="w-full h-full rounded-xl border-2 bg-surface-container flex items-center justify-center text-2xl font-cinzel transition-all duration-400"
+            style={{ borderColor: hovering ? tier.color : 'rgba(247,189,72,0.2)', color: tier.color, boxShadow: hovering ? `0 0 24px ${tier.glow}` : 'none' }}>
+            {getInitial(sheet.name || sheet.data?.nome)}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleIconClick}
+          className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-surface-container-highest/90 border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-on-primary z-10"
+          title="Alterar ícone"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 0, 'wght' 400" }}>photo_camera</span>
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <div
+          className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded border font-mono text-xs font-bold ${tier.bg} ${tier.text}`}
+          style={{ borderColor: tier.color + '40' }}
+        >
+          LV {level}
+        </div>
+      </div>
+      <div className="min-w-0 relative z-10">
+        <h3 className="font-cinzel text-xl text-on-surface mb-1 group-hover:text-primary transition-colors truncate">
+          {sheet.name || sheet.data?.nome || 'Sem nome'}
+        </h3>
+        <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+          <span className="material-symbols-outlined text-sm">person</span>
+          {getSheetRace(sheet)}
+        </p>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${tier.bar} rounded-full`}
+              style={{ width: `${Math.min(100, (level / 30) * 100)}%`, boxShadow: hovering ? `0 0 10px ${tier.glow}` : `0 0 6px ${tier.glow}`, transition: 'box-shadow 0.4s ease' }}
+            />
+          </div>
+          <span className={`text-[10px] font-mono ${tier.text} uppercase tracking-wider`}>{tier.label}</span>
+        </div>
+      </div>
+    </button>
+  )
 }
 
 function getSheetRace(sheet) {
@@ -186,6 +290,7 @@ export default function HomeMenu({
   onReference,
   onOpenSheet,
   onAdminArea,
+  onIconChange,
   hasDraft,
   isAdmin,
 }) {
@@ -247,35 +352,7 @@ export default function HomeMenu({
         {recentSheets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {recentSheets.map(sheet => (
-              <button key={sheet.id} type="button" onClick={() => onOpenSheet?.(sheet.id)}
-                className="glass-card group hover:-translate-y-2 transition-all duration-300 p-6 flex items-center gap-6 cursor-pointer text-left w-full">
-                <div className="relative w-24 h-24 shrink-0">
-                  {sheet.data?.avatar ? (
-                    <img src={sheet.data.avatar} alt=""
-                      className="w-full h-full object-cover rounded-xl border border-primary/20 group-hover:border-secondary-fixed-dim transition-colors" />
-                  ) : (
-                    <div className="w-full h-full rounded-xl border border-primary/20 bg-surface-container flex items-center justify-center text-primary text-2xl font-cinzel">
-                      {getInitial(sheet.name || sheet.data?.nome)}
-                    </div>
-                  )}
-                  <div className="absolute -bottom-2 -right-2 bg-surface-container-highest px-2 py-0.5 rounded border border-white/10 font-mono text-secondary-fixed-dim text-xs font-bold">
-                    LV {sheet.data?.nivel || 1}
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-cinzel text-xl text-on-surface mb-1 group-hover:text-primary transition-colors truncate">
-                    {sheet.name || sheet.data?.nome || 'Sem nome'}
-                  </h3>
-                  <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">person</span>
-                    {getSheetRace(sheet)}
-                  </p>
-                  <div className="mt-3 w-24 h-1 bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full shadow-[0_0_8px_#f7bd48]"
-                      style={{ width: `${Math.min(100, ((sheet.data?.nivel || 1) / 30) * 100)}%` }} />
-                  </div>
-                </div>
-              </button>
+              <CharacterCard key={sheet.id} sheet={sheet} onOpenSheet={onOpenSheet} onIconChange={onIconChange} />
             ))}
             <button type="button" onClick={onNew}
               className="glass-card border-dashed !border-white/10 flex flex-col items-center justify-center p-8 text-outline hover:text-secondary-fixed-dim hover:!border-secondary/50 transition-all cursor-pointer">

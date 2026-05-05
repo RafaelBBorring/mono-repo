@@ -36,9 +36,9 @@ export default function Step3Class({ char, update }) {
   }
 
   const CLASS_ACCENT = {
-    Guerreiro: { border: 'border-rose-500/40', bg: 'from-rose-500/5', icon: 'swords', accent: 'text-rose-400' },
-    Operativo: { border: 'border-sky-500/40', bg: 'from-sky-500/5', icon: 'precision_manufacturing', accent: 'text-sky-400' },
-    Místico: { border: 'border-purple-500/40', bg: 'from-purple-500/5', icon: 'auto_awesome', accent: 'text-purple-400' },
+    Guerreiro: { border: 'border-rose-500/40', bg: 'from-rose-500/5', bgSolid: 'bg-rose-500/5', icon: 'swords', accent: 'text-rose-400', glow: 'rgba(248,113,113,0.15)' },
+    Operativo: { border: 'border-sky-500/40', bg: 'from-sky-500/5', bgSolid: 'bg-sky-500/5', icon: 'precision_manufacturing', accent: 'text-sky-400', glow: 'rgba(96,165,250,0.15)' },
+    Místico: { border: 'border-purple-500/40', bg: 'from-purple-500/5', bgSolid: 'bg-purple-500/5', icon: 'auto_awesome', accent: 'text-purple-400', glow: 'rgba(192,132,252,0.15)' },
   }
 
   return (
@@ -53,15 +53,17 @@ export default function Step3Class({ char, update }) {
           const def = CLASSES[cls]
           const base = getBaseStats(cls)
           const isSelected = char.classe === cls
-          const accent = CLASS_ACCENT[cls] || { border: 'border-primary/40', bg: 'from-primary/5', icon: 'shield', accent: 'text-primary' }
+          const accent = CLASS_ACCENT[cls] || { border: 'border-primary/40', bg: 'from-primary/5', bgSolid: 'bg-primary/5', icon: 'shield', accent: 'text-primary', glow: 'rgba(247,189,72,0.1)' }
 
           return (
             <button key={cls} onClick={() => update({ classe: cls })}
               className={`text-left transition-all duration-300 group border-b-4 ${
                 isSelected
-                  ? `codex-card !border-b-primary ${accent.border} shadow-[0_0_20px_rgba(247,189,72,0.15)]`
+                  ? `${accent.bgSolid} !border-b-primary ${accent.border}`
                   : `glass-card hover:-translate-y-1 ${accent.border}`
-              }`}>
+              }`}
+              style={isSelected ? { boxShadow: `0 0 20px ${accent.glow}` } : undefined}
+            >
               <div className={`h-16 bg-gradient-to-br ${accent.bg} to-transparent flex items-center px-5`}>
                 <span className={`material-symbols-outlined ${accent.accent} scale-[2] opacity-20 group-hover:opacity-60 transition-opacity`}>
                   {accent.icon}

@@ -610,19 +610,24 @@ function AppInner() {
 
       {view === 'home' ? (
         <div className="flex-1 overflow-y-auto">
-          <HomeMenu
-            userName={profile?.display_name || user.email?.split('@')[0]}
-            sheetsCount={sheets.length}
-            sheets={sheets}
-            onNew={() => { handleNew(); setView('wizard') }}
-            onContinue={() => setView('wizard')}
-            onLibrary={() => setView('library')}
-            onReference={() => setView('reference')}
-            onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
-            onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
-            hasDraft={!!char.nome || !!char.classe}
-            isAdmin={isAdmin}
-           />
+           <HomeMenu
+             userName={profile?.display_name || user.email?.split('@')[0]}
+             sheetsCount={sheets.length}
+             sheets={sheets}
+             onNew={() => { handleNew(); setView('wizard') }}
+             onContinue={() => setView('wizard')}
+             onLibrary={() => setView('library')}
+             onReference={() => setView('reference')}
+             onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
+             onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
+             onIconChange={async (sheetId, avatarData) => {
+               const admin = getSupabaseAdmin()
+               const { error } = await admin.from('characters').update({ data: { ...(sheets.find(s => s.id === sheetId)?.data || {}), avatar: avatarData } }).eq('id', sheetId)
+               if (!error) setSheets(prev => prev.map(s => s.id === sheetId ? { ...s, data: { ...s.data, avatar: avatarData } } : s))
+             }}
+             hasDraft={!!char.nome || !!char.classe}
+             isAdmin={isAdmin}
+            />
          </div>
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
@@ -685,7 +690,7 @@ function AppInner() {
       ) : view === 'admin' && isAdmin ? (
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <AdminDashboard initialTab={adminTab} />
+            <AdminDashboard initialTab={adminTab} onViewSheet={(id) => { setViewingSheetId(id); setView('library') }} />
           </div>
         </main>
       ) : (
