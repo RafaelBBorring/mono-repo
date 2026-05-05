@@ -15,9 +15,9 @@ export default function Step5Progression({ char, update, updateNested }) {
   }
 
   const CLASS_COLORS = {
-    Guerreiro: { text: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
-    Operativo: { text: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
-    'Místico': { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+    GUERREIRO: { text: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
+    OPERATIVO: { text: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+    MISTICO: { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
   }
   const classColor = CLASS_COLORS[classe] || { text: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/30' }
 

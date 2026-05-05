@@ -1,17 +1,19 @@
 const TRIAGE_IMAGES = {
-  Guerreiro: {
+  GUERREIRO: {
     TATICO: '/triagens/Guerreiro, Tatico.png',
+    TÁTICO: '/triagens/Guerreiro, Tatico.png',
     LUTADOR: null,
     TANK: '/triagens/Guerreiro, Tank.png',
     SOLDADO: '/triagens/Guerreiro, Soldado.png',
     ASSASSINO: null,
   },
-  Operativo: {
+  OPERATIVO: {
     INFILTRADO: null,
     ATIRADOR: '/triagens/Operativo, Atirador.png',
     TECNICO: '/triagens/Operativo, Tecnico.png',
+    TÉCNICO: '/triagens/Operativo, Tecnico.png',
   },
-  'Místico': {
+  MISTICO: {
     COMBATE: null,
     SUPORTE: null,
     INTUITIVO: null,
@@ -20,9 +22,9 @@ const TRIAGE_IMAGES = {
 }
 
 export const CLASS_IMAGES = {
-  Guerreiro: '/triagens/Guerreiro, Soldado.png',
-  Operativo: '/triagens/Operativo, Atirador.png',
-  'Místico': '/triagens/Mistico, Graduado.png',
+  GUERREIRO: '/triagens/Guerreiro, Soldado.png',
+  OPERATIVO: '/triagens/Operativo, Atirador.png',
+  MISTICO: '/triagens/Mistico, Graduado.png',
 }
 
 export function getTriagemImage(classKey, triageKey) {

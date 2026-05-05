@@ -23,11 +23,11 @@ export default function Step8Triages({ char, update, updateNested }) {
   const triagemPrincipal = char.triagemPrincipal || null
 
   const CLASS_COLORS = {
-    Guerreiro: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', selected: 'border-rose-400', text: 'text-rose-400', glow: 'rgba(248,113,113,0.25)' },
-    Operativo: { bg: 'bg-sky-500/5', border: 'border-sky-500/30', selected: 'border-sky-400', text: 'text-sky-400', glow: 'rgba(96,165,250,0.25)' },
-    'Místico': { bg: 'bg-purple-500/5', border: 'border-purple-500/30', selected: 'border-purple-400', text: 'text-purple-400', glow: 'rgba(192,132,252,0.25)' },
+    GUERREIRO: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', selected: 'border-rose-400', text: 'text-rose-400', glow: 'rgba(248,113,113,0.25)' },
+    OPERATIVO: { bg: 'bg-sky-500/5', border: 'border-sky-500/30', selected: 'border-sky-400', text: 'text-sky-400', glow: 'rgba(96,165,250,0.25)' },
+    MISTICO: { bg: 'bg-purple-500/5', border: 'border-purple-500/30', selected: 'border-purple-400', text: 'text-purple-400', glow: 'rgba(192,132,252,0.25)' },
   }
-  const classColor = CLASS_COLORS[classe] || CLASS_COLORS.Guerreiro
+  const classColor = CLASS_COLORS[classe] || CLASS_COLORS.GUERREIRO
 
   function selectPrincipal(key) {
     update({
