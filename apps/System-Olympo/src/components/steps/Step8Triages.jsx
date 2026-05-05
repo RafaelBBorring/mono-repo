@@ -20,6 +20,7 @@ export default function Step8Triages({ char, update, updateNested }) {
   const showSubTriagem = nivel >= 16
 
   const classTriages = getAllTriagesForClass(classe)
+  const allTriages = getAllTriages()
   const triagemPrincipal = char.triagemPrincipal || null
 
   const CLASS_COLORS = {
