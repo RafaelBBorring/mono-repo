@@ -2,21 +2,22 @@ const TRIAGE_IMAGES = {
   GUERREIRO: {
     TATICO: '/triagens/Guerreiro-Tatico.png',
     TÁTICO: '/triagens/Guerreiro-Tatico.png',
-    LUTADOR: null,
+    LUTADOR: '/triagens/Guerreiro-Lutador.png',
     TANK: '/triagens/Guerreiro-Tank.png',
     SOLDADO: '/triagens/Guerreiro-Soldado.png',
-    ASSASSINO: null,
+    ASSASSINO: '/triagens/Operativo-Assassino.png',
   },
   OPERATIVO: {
-    INFILTRADO: null,
+    ASSASSINO: '/triagens/Operativo-Assassino.png',
+    INFILTRADO: '/triagens/Operativo-Infiltrado.png',
     ATIRADOR: '/triagens/Operativo-Atirador.png',
     TECNICO: '/triagens/Operativo-Tecnico.png',
     TÉCNICO: '/triagens/Operativo-Tecnico.png',
   },
   MISTICO: {
-    COMBATE: null,
-    SUPORTE: null,
-    INTUITIVO: null,
+    COMBATE: '/triagens/Mistico-Combate.png',
+    SUPORTE: '/triagens/Mistico-Suporte.png',
+    INTUITIVO: '/triagens/Mistico-Intuitivo.png',
     GRADUADO: '/triagens/Mistico-Graduado.png',
   },
 }

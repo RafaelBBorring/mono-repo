@@ -91,7 +91,10 @@ export default function Step8Triages({ char, update, updateNested }) {
                         ? `${classColor.selected}`
                         : `${classColor.border} hover:${classColor.selected}`
                     }`}
-                    style={isSelected ? { boxShadow: `0 0 16px ${classColor.glow}` } : undefined}
+                    style={{
+                      ...(isSelected ? { boxShadow: `0 0 16px ${classColor.glow}` } : {}),
+                      '--triage-img': getTriagemImage(classe, key) ? `url(${getTriagemImage(classe, key)})` : undefined,
+                    }}
                   >
                     {getTriagemImage(classe, key) && (
                       <div className="relative h-32 -mx-4 -mt-4 mb-3 overflow-hidden rounded-t">

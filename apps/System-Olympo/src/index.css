@@ -3362,10 +3362,9 @@ body {
   opacity: 0;
   transform: translateX(28px) scale(0.96);
   transition: opacity 220ms ease, transform 300ms ease;
-  background:
-    linear-gradient(180deg, transparent 0 12%, rgba(255,255,255,0.06) 12% 16%, transparent 16% 22%),
-    radial-gradient(ellipse at 50% 18%, rgba(255,255,255,0.18), transparent 18%),
-    linear-gradient(165deg, rgba(245,200,76,0.2), transparent 58%);
+  background-image: var(--triage-img);
+  background-size: cover;
+  background-position: center;
   clip-path: polygon(44% 0, 64% 8%, 70% 26%, 61% 43%, 78% 100%, 18% 100%, 35% 43%, 27% 26%, 32% 8%);
   pointer-events: none;
 }
