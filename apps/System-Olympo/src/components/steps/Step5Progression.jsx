@@ -5,6 +5,7 @@ import { normalizeProgressionLabel, scaleTrainedSkillsReward } from '../../utils
 export default function Step5Progression({ char, update, updateNested }) {
   const classe = char.classe
   const nivel = char.nivel || 1
+  const choices = char.choices || {}
   const prog = PROGRESSION[classe]
   if (!prog) {
     return (
