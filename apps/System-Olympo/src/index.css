@@ -3355,6 +3355,14 @@ body {
   overflow: hidden;
 }
 
+.triage-main-grid {
+  position: relative;
+  overflow: visible;
+  padding-top: 4.75rem;
+  row-gap: 5.25rem;
+  transition: padding 260ms ease, gap 260ms ease;
+}
+
 .triage-main-card {
   --triage-img: none;
   overflow: visible;
@@ -3369,28 +3377,16 @@ body {
   z-index: 2;
 }
 
-.triage-main-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  opacity: 0.9;
-  transition: opacity 220ms ease;
-  background:
-    linear-gradient(90deg, rgba(14,12,14,0.98) 0%, rgba(14,12,14,0.95) 58%, rgba(14,12,14,0.78) 100%);
-  pointer-events: none;
-}
-
 .triage-main-card::before {
   content: "";
   position: absolute;
-  top: -2.6rem;
-  right: -3.25rem;
+  top: -5rem;
+  right: -4rem;
   z-index: -1;
-  width: min(315px, 62%);
-  height: 335px;
+  width: min(340px, 68%);
+  height: 380px;
   opacity: 0;
-  transform: translate(-18px, 28px) scale(0.94);
+  transform: translate(-22px, 36px) scale(0.92);
   transition: opacity 240ms ease, transform 360ms ease, filter 300ms ease;
   background-image: var(--triage-img);
   background-repeat: no-repeat;
@@ -3411,22 +3407,18 @@ body {
 .triage-stage.triage-mistico .triage-main-card::before { background-color: rgba(192,132,252,0.12); }
 
 .triage-main-grid:has(.triage-main-card:hover) .triage-main-card:not(:hover) {
-  opacity: 0.72;
-  transform: scale(0.965);
+  opacity: 0.68;
+  transform: scale(0.94);
 }
 
 .triage-main-card:hover {
   z-index: 4;
-  transform: scale(1.015);
-}
-
-.triage-main-card:hover::after {
-  opacity: 0.98;
+  transform: scale(1.01);
 }
 
 .triage-main-card:hover::before {
   opacity: 0.86;
-  transform: translate(38px, -34px) scale(1.03);
+  transform: translate(42px, -48px) scale(1.05);
   filter:
     grayscale(0)
     saturate(1.1)
@@ -3435,20 +3427,26 @@ body {
 }
 
 @media (max-width: 640px) {
+  .triage-main-grid {
+    padding-top: 3.75rem;
+    row-gap: 4.25rem;
+  }
+
   .triage-main-card::before {
-    top: -2rem;
-    right: -3rem;
-    width: 66%;
+    top: -4rem;
+    right: -3.5rem;
+    width: 72%;
+    height: 315px;
     opacity: 0;
   }
 
   .triage-main-grid:has(.triage-main-card:hover) .triage-main-card:not(:hover) {
-    transform: scale(0.985);
+    transform: scale(0.97);
   }
 
   .triage-main-card:hover::before {
     opacity: 0.82;
-    transform: translate(20px, -22px) scale(1.02);
+    transform: translate(22px, -34px) scale(1.02);
   }
 }
 
