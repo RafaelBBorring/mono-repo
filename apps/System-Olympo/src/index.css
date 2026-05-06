@@ -3353,6 +3353,34 @@ body {
 
 .triage-sub-card {
   overflow: hidden;
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.triage-sub-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 220ms ease, transform 260ms ease;
+  background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.08), transparent 58%);
+  pointer-events: none;
+}
+
+.triage-sub-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.triage-sub-card:not(.cursor-not-allowed):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.24);
+}
+
+.triage-sub-card:not(.cursor-not-allowed):hover::before {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .triage-main-grid {
@@ -3444,6 +3472,10 @@ body {
   transform: translateY(-2px);
 }
 
+.triage-sub-card.is-selected:not(.cursor-not-allowed):hover {
+  transform: translateY(-4px);
+}
+
 .triage-sub-card.is-selected::after {
   content: "";
   position: absolute;
@@ -3455,40 +3487,17 @@ body {
 
 .triage-sub-card.is-selected.is-guerreiro {
   border-color: rgba(248,113,113,0.78) !important;
-  background:
-    linear-gradient(135deg, rgba(248,113,113,0.18), transparent 58%),
-    rgba(16,16,18,0.94);
-  box-shadow: 0 0 22px rgba(248,113,113,0.18);
+  box-shadow: 0 0 0 1px rgba(248,113,113,0.36), 0 0 18px rgba(248,113,113,0.16);
 }
 
 .triage-sub-card.is-selected.is-operativo {
   border-color: rgba(96,165,250,0.78) !important;
-  background:
-    linear-gradient(135deg, rgba(96,165,250,0.18), transparent 58%),
-    rgba(16,16,18,0.94);
-  box-shadow: 0 0 22px rgba(96,165,250,0.18);
+  box-shadow: 0 0 0 1px rgba(96,165,250,0.36), 0 0 18px rgba(96,165,250,0.16);
 }
 
 .triage-sub-card.is-selected.is-mistico {
   border-color: rgba(192,132,252,0.78) !important;
-  background:
-    linear-gradient(135deg, rgba(192,132,252,0.18), transparent 58%),
-    rgba(16,16,18,0.94);
-  box-shadow: 0 0 22px rgba(192,132,252,0.18);
-}
-
-.triage-selected-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  color: rgb(245, 200, 76);
-  font-size: 0.6875rem;
-  line-height: 1;
-  padding: 0.25rem 0.45rem;
-  white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(192,132,252,0.36), 0 0 18px rgba(192,132,252,0.16);
 }
 
 .abilities-stage > div:first-child,

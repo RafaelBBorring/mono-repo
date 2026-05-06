@@ -148,7 +148,7 @@ export default function Step8Triages({ char, update, updateNested }) {
               <p className="text-txt-dim text-sm mb-4">
                 Nível desbloqueado: <span className="text-gold font-mono">{subLevel}</span>
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 {Object.entries(allTriages).map(([classKey, triages]) =>
                   Object.entries(triages).map(([triageKey, triage]) => {
                     const isSameAsPrincipal = triagemPrincipal === triageKey && classe === classKey
@@ -174,15 +174,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                           <h4 className={`font-body text-sm font-semibold ${isSelected ? 'text-gray-300' : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
                             {triage.name}
                           </h4>
-                          <div className="flex items-center gap-1.5">
-                            {isSelected && (
-                              <span className="triage-selected-badge">
-                                <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 500" }}>check_circle</span>
-                                Selecionada
-                              </span>
-                            )}
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${CLASS_COLORS[classKey]?.bg || ''} ${CLASS_COLORS[classKey]?.text || 'text-txt-dim'}`}>{classKey}</span>
-                          </div>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${CLASS_COLORS[classKey]?.bg || ''} ${CLASS_COLORS[classKey]?.text || 'text-txt-dim'}`}>{classKey}</span>
                         </div>
                         <p className="text-txt-dim text-xs mb-2">{triage.desc}</p>
                         <div className="space-y-1">
