@@ -68,6 +68,19 @@ jobs:
         env:
           VITE_BASE: /mono-repo/hades-vfx/
 
+      # ── Morpheus-System (Next.js static export) ──
+      - name: Cache Morpheus-System deps
+        uses: actions/cache@v4
+        with:
+          path: apps/Morpheus-System/node_modules
+          key: morpheus-sys-${{ hashFiles('apps/Morpheus-System/package-lock.json') }}
+
+      - name: Build Morpheus-System
+        run: |
+          npm ci
+          npm run build
+        working-directory: apps/Morpheus-System
+
       # ── Assemble site ──
       - name: Assemble site
         run: |
@@ -96,9 +109,9 @@ jobs:
           mkdir -p _site/hades-vfx
           cp -r apps/Hades-VFX/dist/* _site/hades-vfx/
 
-          # Morpheus → /morpheus/
-          mkdir -p _site/morpheus
-          cp apps/Morpheus-System/Morpheus.html _site/morpheus/index.html
+          # Morpheus-System → /morpheus-system/
+          mkdir -p _site/morpheus-system
+          cp -r apps/Morpheus-System/out/* _site/morpheus-system/
 
           # Codex Arcanum → /codex-arcanum/ (static version)
           mkdir -p _site/codex-arcanum
