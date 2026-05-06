@@ -160,11 +160,13 @@ export default function Step8Triages({ char, update, updateNested }) {
                       <div
                         key={`${classKey}-${triageKey}`}
                         onClick={() => !isSameAsPrincipal && selectSub(classKey, triageKey)}
-                        className={`triage-sub-card is-${String(classKey).toLowerCase()} bg-deep border rounded p-3 transition-all ${
+                        role="button"
+                        aria-pressed={isSelected}
+                        className={`triage-sub-card is-${String(classKey).toLowerCase()} ${isSelected ? 'is-selected' : ''} bg-deep border rounded p-3 transition-all ${
                           isSameAsPrincipal
                             ? 'border-sep/20 opacity-30 cursor-not-allowed'
                             : isSelected
-                              ? 'border-gray-400/40 shadow-[0_0_8px_rgba(160,160,180,0.2)] cursor-pointer'
+                              ? 'cursor-pointer'
                               : 'border-sep hover:border-white/20 cursor-pointer'
                         }`}
                       >
@@ -172,7 +174,15 @@ export default function Step8Triages({ char, update, updateNested }) {
                           <h4 className={`font-body text-sm font-semibold ${isSelected ? 'text-gray-300' : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
                             {triage.name}
                           </h4>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${CLASS_COLORS[classKey]?.bg || ''} ${CLASS_COLORS[classKey]?.text || 'text-txt-dim'}`}>{classKey}</span>
+                          <div className="flex items-center gap-1.5">
+                            {isSelected && (
+                              <span className="triage-selected-badge">
+                                <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 500" }}>check_circle</span>
+                                Selecionada
+                              </span>
+                            )}
+                            <span className={`text-xs px-1.5 py-0.5 rounded ${CLASS_COLORS[classKey]?.bg || ''} ${CLASS_COLORS[classKey]?.text || 'text-txt-dim'}`}>{classKey}</span>
+                          </div>
                         </div>
                         <p className="text-txt-dim text-xs mb-2">{triage.desc}</p>
                         <div className="space-y-1">
