@@ -9,6 +9,7 @@ on:
       - 'apps/Athena-Project/**'
       - 'apps/Cypher-Project/**'
       - 'apps/Hades-VFX/**'
+      - 'apps/Morpheus-System/**'
       - 'apps/codex-arcanum/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
@@ -94,6 +95,10 @@ jobs:
           # Hades-VFX → /hades-vfx/
           mkdir -p _site/hades-vfx
           cp -r apps/Hades-VFX/dist/* _site/hades-vfx/
+
+          # Morpheus → /morpheus/
+          mkdir -p _site/morpheus
+          cp apps/Morpheus-System/Morpheus.html _site/morpheus/index.html
 
           # Codex Arcanum → /codex-arcanum/ (static version)
           mkdir -p _site/codex-arcanum

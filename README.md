@@ -27,3 +27,4 @@ No Dokploy, aponte o "Build Path" para `apps/nome-do-projeto`.
 | Projeto | Pasta | Descrição |
 |---------|-------|-----------|
 | Codex Arcanum | `apps/codex-arcanum` | Gerador de fichas de personagem RPG com IA |
+| Morpheus | `apps/Morpheus` | Plataforma SaaS de gestao clinica para consultorios de psicologia |
