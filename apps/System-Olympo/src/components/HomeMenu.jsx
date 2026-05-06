@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 const LEVEL_TIERS = [
@@ -12,40 +12,10 @@ function getLevelTier(level) {
   return LEVEL_TIERS.find(t => level >= t.min && level <= t.max) || LEVEL_TIERS[0]
 }
 
-function CharacterCard({ sheet, onOpenSheet, onIconChange }) {
+function CharacterCard({ sheet, onOpenSheet }) {
   const level = sheet.data?.nivel || 1
   const tier = getLevelTier(level)
   const [hovering, setHovering] = useState(false)
-  const fileRef = useRef(null)
-
-  const handleIconClick = useCallback((e) => {
-    e.stopPropagation()
-    fileRef.current?.click()
-  }, [])
-
-  const handleFileChange = useCallback((e) => {
-    const file = e.target.files?.[0]
-    if (!file || !onIconChange) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const size = 256
-        canvas.width = size
-        canvas.height = size
-        const ctx = canvas.getContext('2d')
-        const scale = Math.max(size / img.width, size / img.height)
-        const w = img.width * scale
-        const h = img.height * scale
-        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
-        onIconChange(sheet.id, canvas.toDataURL('image/webp', 0.7))
-      }
-      img.src = ev.target.result
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }, [onIconChange, sheet.id])
 
   return (
     <button
@@ -71,15 +41,6 @@ function CharacterCard({ sheet, onOpenSheet, onIconChange }) {
             {getInitial(sheet.name || sheet.data?.nome)}
           </div>
         )}
-        <button
-          type="button"
-          onClick={handleIconClick}
-          className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-surface-container-highest/90 border border-white/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-on-primary z-10"
-          title="Alterar ícone"
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: "'FILL' 0, 'wght' 400" }}>photo_camera</span>
-        </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         <div
           className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded border font-mono text-xs font-bold ${tier.bg} ${tier.text}`}
           style={{ borderColor: tier.color + '40' }}
@@ -290,7 +251,6 @@ export default function HomeMenu({
   onReference,
   onOpenSheet,
   onAdminArea,
-  onIconChange,
   hasDraft,
   isAdmin,
 }) {
@@ -352,7 +312,7 @@ export default function HomeMenu({
         {recentSheets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {recentSheets.map(sheet => (
-              <CharacterCard key={sheet.id} sheet={sheet} onOpenSheet={onOpenSheet} onIconChange={onIconChange} />
+              <CharacterCard key={sheet.id} sheet={sheet} onOpenSheet={onOpenSheet} />
             ))}
             <button type="button" onClick={onNew}
               className="glass-card border-dashed !border-white/10 flex flex-col items-center justify-center p-8 text-outline hover:text-secondary-fixed-dim hover:!border-secondary/50 transition-all cursor-pointer">

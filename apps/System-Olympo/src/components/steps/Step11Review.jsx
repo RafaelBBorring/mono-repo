@@ -23,6 +23,7 @@ import MagicLibrarySection from '../MagicLibrarySection'
 import { getSpellProfile } from '../../utils/spellRules'
 import { getRuneProfile } from '../../utils/runeRules'
 import { getMagicProfile } from '../../utils/magicRules'
+import { calcEquipStats } from '../../data/equipment'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -124,6 +125,7 @@ function HeroMetric({ label, value, tone = 'gold' }) {
 
 function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities }) {
   const sk = char.skeletonPoints || {}
+  const avatarInputRef = useRef(null)
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
   const totalAttr = (a) => adjustedAttrs[a] || 0
   const cls = char.classe
@@ -164,6 +166,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
     .filter((item) => activeEffects[item.effectKey])
   const activeItems = [...activeAbilityItems, ...activeModuleItems]
   const activeBonuses = mergeBonuses(activeItems)
+  const equipmentStats = calcEquipStats(char.equipamentos || [])
 
   const derived = {
     vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
@@ -177,7 +180,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
   if (activeBonuses.dano && derived.danoBase) derived.danoBase = `${derived.danoBase} + ${activeBonuses.dano}`
 
-  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0) + activeBonuses.vida)
+  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0) + activeBonuses.vida + equipmentStats.totalExtraLife)
   const energiaNow = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0) + activeBonuses.energia)
   const peNow = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
@@ -212,6 +215,30 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   function clearOverride(field) {
     if (!update) return
     update({ [field]: null })
+  }
+
+  function handleAvatarFile(e) {
+    const file = e.target.files?.[0]
+    if (!file || !update) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const size = 256
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        const scale = Math.max(size / img.width, size / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+        update({ avatar: canvas.toDataURL('image/webp', 0.78) })
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
   }
 
   function toggleActiveEffect(key) {
@@ -337,6 +364,16 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   <span className="material-symbols-outlined text-4xl text-primary/30">person</span>
                 </div>
               )}
+              {canEdit && (
+                <>
+                  <button type="button" onClick={() => avatarInputRef.current?.click()}
+                    className="absolute -right-2 -bottom-2 w-9 h-9 rounded-full bg-deep/95 border border-primary/30 text-primary grid place-items-center hover:bg-primary hover:text-on-primary transition-colors"
+                    title="Alterar ícone do personagem">
+                    <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                  </button>
+                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} />
+                </>
+              )}
             </div>
             <div className="flex-1 text-center md:text-left space-y-3 min-w-0">
               <h2 className="font-cinzel text-white uppercase tracking-[0.05em] truncate" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', lineHeight: 1.1 }}>
@@ -404,7 +441,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="💎" title="Recursos" color="bg-emerald-400" />
                 <div className="grid grid-cols-3 gap-2.5">
-                  <ResBox label="Vida" icon="❤" current={vidaNow} max={derived.vida}
+                  <ResBox label="Vida" icon="❤" current={vidaNow} max={derived.vida + equipmentStats.totalExtraLife}
                     gradientFrom="from-emerald-500" gradientTo="to-emerald-400"
                     textColor="text-emerald-400" barBg="bg-emerald-500/80"
                     canEdit={canEdit} hasOverride={char.vidaOverride !== null}
@@ -427,6 +464,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
+                  {equipmentStats.totalArmor ? <CombatStat label="Armadura" value={equipmentStats.totalArmor} isGold /> : null}
                   {activeBonuses.ataque ? <CombatStat label="Ataque Ativo" value={`${activeBonuses.ataque > 0 ? '+' : ''}${activeBonuses.ataque}`} isGold /> : null}
                   <div className="text-center">
                     <span className="text-txt-dim/50 text-[10px] uppercase block">Reações</span>
@@ -441,6 +479,16 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                     <span className="text-gold text-xs font-mono block mt-1 leading-tight">{derived.danoBase}</span>
                   </div>
                 </div>
+                {(equipmentStats.totalShield || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeSetBonuses.length > 0) && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {equipmentStats.totalShield ? <span className="text-[10px] px-2 py-1 rounded border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">Escudo {equipmentStats.totalShield}</span> : null}
+                    {equipmentStats.totalCrit ? <span className="text-[10px] px-2 py-1 rounded border border-purple-400/20 bg-purple-400/10 text-purple-300">Crit +{equipmentStats.totalCrit}%</span> : null}
+                    {equipmentStats.totalDamage ? <span className="text-[10px] px-2 py-1 rounded border border-red-400/20 bg-red-400/10 text-red-300">Dano +{equipmentStats.totalDamage}</span> : null}
+                    {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
+                      <span key={type.id} className={`text-[10px] px-2 py-1 rounded border ${type.badgeClass}`}>{type.label} {count}/4: {bonus.label}</span>
+                    ))}
+                  </div>
+                )}
                 {((char.triagemPrincipal === 'ATIRADOR' && (char.triagemPrincipalNivel || 0) >= 0.1) || (char.subTriagem === 'ATIRADOR' && (char.subTriagemNivel || 0) >= 0.1)) && (
                   <div className="mt-2 bg-sky-500/5 border border-sky-500/15 rounded px-2.5 py-1.5 text-[10px] text-sky-400/80 flex items-center gap-1.5">
                     <span className="text-sky-400">★</span>

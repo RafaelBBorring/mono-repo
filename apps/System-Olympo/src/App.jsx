@@ -620,11 +620,6 @@ function AppInner() {
              onReference={() => setView('reference')}
              onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
              onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
-             onIconChange={async (sheetId, avatarData) => {
-               const admin = getSupabaseAdmin()
-               const { error } = await admin.from('characters').update({ data: { ...(sheets.find(s => s.id === sheetId)?.data || {}), avatar: avatarData } }).eq('id', sheetId)
-               if (!error) setSheets(prev => prev.map(s => s.id === sheetId ? { ...s, data: { ...s.data, avatar: avatarData } } : s))
-             }}
              hasDraft={!!char.nome || !!char.classe}
              isAdmin={isAdmin}
             />

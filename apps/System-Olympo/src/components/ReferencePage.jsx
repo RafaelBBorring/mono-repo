@@ -817,6 +817,12 @@ function EquipmentSection() {
         <span className="text-on-surface-variant"> Itens de Utilidade</span>.
       </p>
 
+      <p className="text-txt-dim text-sm mb-4">
+        Na revisão atual, armaduras não inflam CA diretamente: cada peça equipada soma Armadura como absorção de dano,
+        Vida Extra e possíveis bônus de crítico, dano leve ou escudo. Peitoral, Elmo, Calças e Botas podem formar sets
+        Guerreiro, Assassino ou Tecnológico, com bônus progressivos em 2, 3 e 4 peças.
+      </p>
+
       <div className="bg-void rounded-xl border border-primary/20 p-4">
         <h3 className="text-primary text-sm font-semibold mb-3">Tipos de Equipamento</h3>
         <div className="grid gap-3">

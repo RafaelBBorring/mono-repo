@@ -20,6 +20,7 @@ import { getModifier } from '../data/attributes'
 import { buildEvolucaoContext, calcPEHSpent } from '../utils/skillEvolution'
 import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
+import { calcEquipStats, getEquipmentRarity, EQUIPMENT_TYPES, ARMOR_TYPES } from '../data/equipment'
 
 // ─── Infra (Supabase Edge Function com fallback para env key direto) ────────
 
@@ -280,6 +281,7 @@ function computeCharStats(char) {
   const armaRankDef   = (ALL_WEAPON_RANKS || []).find(r => r.rank === char.armaRank) || {}
   const armaDanoBonus = armaRankDef.danoBonusStr || armaRankDef.danoBonus || '+0'
   const armaSlots     = armaRankDef.slots || 0
+  const equipStats    = calcEquipStats(char.equipamentos || [])
 
   return {
     nivel, band: getLevelBand(nivel),
@@ -291,7 +293,7 @@ function computeCharStats(char) {
       APA: totalAttr('APA'), modAPA: mod('APA'),
       AM:  totalAttr('AM'),  modAM:  mod('AM'),
     },
-    vidaTotal, energiaTotal, peTotal, caBase, reacoes,
+    vidaTotal, energiaTotal, peTotal, caBase, reacoes, equipStats,
     danoBase, ataqueBaseNum: ataqueBase, ataqueBase: `d20+${ataqueBase}`,
     armaDanoBonus, armaSlots,
     triagem: `${char.triagemPrincipal || 'N/A'} (Nv ${char.triagemPrincipalNivel || 0}) | Sub: ${char.subTriagem || 'N/A'} (Nv ${char.subTriagemNivel || 0})`,
@@ -331,6 +333,13 @@ Camada 1 (Base): Treino de Perícia + Modificador de Atributo — SEM LIMITE.
 Camada 2 (Tático — Habilidades, Triagens, Módulos): N1-7:+8 | N8-15:+12 | N16-22:+16 | N23-30:+20
 Camada 3 (Épico — Armas, Runas, Artefatos): N1-7:+5 | N8-15:+8 | N16-22:+12 | N23-30:+16
 BÔNUS TOTAL MÁXIMO = Camada 1 (ilimitada) + Camada 2 + Camada 3.
+
+EQUIPAMENTOS E ARMADURA:
+- Armadura de equipamento NAO aumenta CA base. Ela funciona como absorcao/reducao de dano antes da vida, com escudo temporario separado quando existir.
+- Cada peca equipada soma Vida Extra e Armadura conforme peca + rank. Estes valores entram no contexto real de sobrevivencia.
+- Ranks de equipamento concedem habilidades proprias: Comum/Incomum/Raro 0, Epico/Heroico 1 ativa, Ancestral/Mitico 2 ativas, Transcendente 2 ativas + 1 passiva.
+- Sets por tipo (Guerreiro, Assassino, Tecnologico) ativam bonus em 2, 3 e 4 pecas. Considere bonus de set como poder acumulado e evite empilhar efeitos permanentes altos sem custo.
+- Equipamentos podem conceder sobrevida, absorcao, escudo, critico ou dano leve. Dano direto grande continua sendo funcao de armas e habilidades.
 
 TDH — TETO DE DANO POR HABILIDADE (Secao 14.4):
 ATENÇÃO: estes valores são para o dano GERADO PELA HABILIDADE ISOLADAMENTE.
@@ -422,6 +431,8 @@ FICHA CALCULADA REAL DO PERSONAGEM:
 Nome: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nível: ${stats.nivel} | Faixa: ${stats.band} | Raça: ${char.raca || 'N/A'} (${char.racaTipo || 'N/A'})
 Atributos: FOR ${stats.atributos.FOR}(Mod${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(Mod${stats.atributos.modDES}) | CON ${stats.atributos.CON}(Mod${stats.atributos.modCON}) | INT ${stats.atributos.INT}(Mod${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(Mod${stats.atributos.modAM})
 Vida Total: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase} | Reações: ${stats.reacoes}
+Equipamentos equipados: Armadura ${stats.equipStats.totalArmor} | Vida Extra ${stats.equipStats.totalExtraLife} | Escudo ${stats.equipStats.totalShield} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
+Sets ativos: ${stats.equipStats.activeSetBonuses.map(s => `${s.type.label} ${s.count}/4 (${s.bonus.label}: ${s.bonus.bonus})`).join(' | ') || 'Nenhum'}
 Dano Base de Classe: ${stats.danoBase} | Bônus Arma (${char.armaRank}): ${stats.armaDanoBonus} | Ataque Base: ${stats.ataqueBase} (valor numérico: +${stats.ataqueBaseNum})
 DANO TOTAL BASE (sem habilidades): ${stats.danoBase} + ${stats.armaDanoBonus}
 PEH Total disponível: ${pehTotal} | PEH gasto: ${pehSpent} | PEH restante: ${pehTotal - pehSpent}
@@ -967,6 +978,7 @@ export async function chatAboutAbility(char, userMessage, history = []) {
 PERSONAGEM: ${char.nome || 'Sem Nome'} | ${char.raca || 'N/A'} (${char.racaTipo || '?'}) | ${char.classe || '?'} | Nível ${stats.nivel} | Faixa ${stats.band}
 Atributos: FOR ${stats.atributos.FOR}(+${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(+${stats.atributos.modDES}) | CON ${stats.atributos.CON}(+${stats.atributos.modCON}) | INT ${stats.atributos.INT}(+${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(+${stats.atributos.modAM})
 Vida: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase}
+Equipamentos: Armadura ${stats.equipStats.totalArmor} | Vida Extra ${stats.equipStats.totalExtraLife} | Escudo ${stats.equipStats.totalShield} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
 Ataque Base: d20+${stats.ataqueBaseNum} | Dano Base: ${stats.danoBase} | Arma Bônus: ${stats.armaDanoBonus}
 PEH: ${pehSpent}/${pehTotal}
 LCP — Limite cumulativo para ${stats.band}: Ataque total ≤ +${lcp.atk} | Esquiva ≤ +${lcp.def} | CA bônus ≤ +${lcp.ca} | Ataques extras ≤ +${lcp.extra}
@@ -1014,7 +1026,7 @@ Seja direto e objetivo. Cite números e limites quando relevante.`
   return await callAIStream(messages)
 }
 
-export async function generateEquipmentAbilities(char, equipType, equipRank, passiveSlots, userDesc = '') {
+export async function generateEquipmentAbilities(char, equipType, equipRank, activeSlotsOrPassiveSlots, passiveSlotsArg, userDescArg = '', armorTypeArg = '') {
   const nivel = char.nivel || 1
   const attrs = char.atributos || {}
   const sk = char.skeletonPoints || {}
@@ -1027,9 +1039,18 @@ export async function generateEquipmentAbilities(char, equipType, equipRank, pas
 
   const vida = cls ? calcVidaTotal(cls, nivel, attrs, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 100
   const ca = cls ? calcCA(attrs, sk, char.pericias, char) : 10
+  const oldSignature = typeof passiveSlotsArg === 'string' || passiveSlotsArg == null
+  const activeSlots = oldSignature ? 0 : Number(activeSlotsOrPassiveSlots) || 0
+  const passiveSlots = oldSignature ? Number(activeSlotsOrPassiveSlots) || 0 : Number(passiveSlotsArg) || 0
+  const userDesc = oldSignature ? (passiveSlotsArg || '') : (userDescArg || '')
+  const armorType = oldSignature ? '' : armorTypeArg
+  const totalSlots = activeSlots + passiveSlots
+  const typeDef = EQUIPMENT_TYPES.find(t => t.id === equipType)
+  const armorTypeDef = ARMOR_TYPES.find(t => t.id === armorType)
+  const rarity = getEquipmentRarity(equipRank)
 
   const systemPrompt = `Você é um sistema de balanceamento para um RPG chamado Olympo 2.0.
-Sua tarefa é criar passivas para equipamentos (armaduras, coletes, escudos, acessórios).
+Sua tarefa é criar habilidades ativas e passivas para equipamentos (armaduras, coletes, escudos, acessórios).
 
 CONTEXTO DO PERSONAGEM:
 - Classe: ${cls} | Nível: ${nivel}
@@ -1038,9 +1059,12 @@ CONTEXTO DO PERSONAGEM:
 - Triagem: ${char.triagemPrincipal || 'Nenhuma'} (${char.triagemPrincipalNivel || 0})
 
 EQUIPAMENTO:
-- Tipo: ${equipType}
+- Tipo: ${typeDef?.label || equipType}
+- Slot: ${typeDef?.slot || 'utilidade'} | Peso: ${typeDef?.weight || 'n/a'} | Set: ${armorTypeDef?.label || 'sem set'}
 - Rank: ${equipRank}
-- Slots de Passiva disponíveis: ${passiveSlots}
+- Armadura base da peca: ${typeDef?.caBase || 0} | Vida extra base: ${typeDef?.extraLife || 0} | Penalidade: ${typeDef?.penalty || 0}
+- Bonus por rank: Armadura +${rarity.armorBonus} | Vida +${rarity.extraLife} | Escudo ${rarity.shieldAmount} | Crit +${rarity.critBonus}% | Dano +${rarity.damageBonus}
+- Slots disponiveis: ${activeSlots} ativa(s), ${passiveSlots} passiva(s)
 ${userDesc ? `- Descrição do jogador: ${userDesc}` : ''}
 
 REGRAS DE BALANCEAMENTO PARA EQUIPAMENTOS:
@@ -1063,13 +1087,18 @@ LIMITES POR RANK:
 - Epico: efeito forte (redução 2-3, resistência a tipo, +5 Vida temporária)
 - Heroico+: efeitos combinados permitidos
 
+CONCESSAO DE HABILIDADES POR RANK:
+- Gere exatamente ${activeSlots} habilidade(s) Ativa(s) e ${passiveSlots} Passiva(s), total ${totalSlots}.
+- Ativas de equipamento precisam ter gatilho, duracao, custo/recarga e efeito defensivo/utilitario claro.
+- Passivas permanentes devem ser menores que ativas e nao devem somar CA; prefira absorcao, escudo pequeno, critico leve, movimento ou resistencia situacional.
+
 Responda APENAS com JSON:
 {
   "passivas": [
     {
       "nome": "string",
       "descricao": "string detalhada",
-      "tipo": "Passiva",
+      "tipo": "Ativa ou Passiva",
       "efeito": "string resumido do efeito mecânico"
     }
   ]
@@ -1077,13 +1106,13 @@ Responda APENAS com JSON:
 
   const messages = [
     { role: 'system', content: systemPrompt },
-    { role: 'user', content: `Crie ${passiveSlots} passiva(s) para este equipamento tipo "${equipType}" rank ${equipRank}. Seja conciso e balanceado.` },
+    { role: 'user', content: `Crie ${totalSlots} habilidade(s) para este equipamento tipo "${typeDef?.label || equipType}" rank ${equipRank}: ${activeSlots} ativa(s) e ${passiveSlots} passiva(s). Seja conciso e balanceado.` },
   ]
 
   const data = await callAI(messages)
   try {
     const parsed = typeof data === 'string' ? JSON.parse(data) : data
-    return { passivas: (parsed.passivas || []).slice(0, passiveSlots) }
+    return { passivas: (parsed.passivas || []).slice(0, totalSlots) }
   } catch {
     return { passivas: [] }
   }
