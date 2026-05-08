@@ -84,6 +84,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const [showWeaponDrawer, setShowWeaponDrawer] = useState(false)
+  const [viewLegendaryIdx, setViewLegendaryIdx] = useState(null)
   const editImgRef = useRef(null)
 
   useEffect(() => {
@@ -257,7 +258,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                 <EquipCard key={item.id || idx} item={item} onClick={() => openDrawer(idx)} />
               ))}
               {legendaryAssigned.map((item, idx) => (
-                <LegendaryAssignedCard key={item.id || idx} item={item} canRemove={canEdit && isAdmin} onRemove={() => removeLegendary(idx)} />
+                <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
               ))}
             </div>
           )}
@@ -310,6 +311,17 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           onUpdate={updatePrimaryWeapon}
           onDelete={removePrimaryWeapon}
           onClose={() => setShowWeaponDrawer(false)}
+        />,
+        document.body
+      )}
+
+      {viewLegendaryIdx !== null && createPortal(
+        <LegendaryWeaponDrawer
+          item={legendaryAssigned[viewLegendaryIdx]}
+          forgeItem={legendaryForgeItems.find(fi => fi.id === legendaryAssigned[viewLegendaryIdx]?.sourceId) || null}
+          canRemove={canEdit && isAdmin}
+          onRemove={() => { removeLegendary(viewLegendaryIdx); setViewLegendaryIdx(null) }}
+          onClose={() => setViewLegendaryIdx(null)}
         />,
         document.body
       )}
@@ -697,27 +709,122 @@ function EquipCard({ item, onClick }) {
   )
 }
 
-function LegendaryAssignedCard({ item, canRemove, onRemove }) {
-  const rc = RANK_COLORS['Lendária']
+function LegendaryAssignedCard({ item, onClick }) {
   return (
-    <div className={`armory-card group w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left transition-all hover:border-lime-300/60 hover:shadow-lg hover:shadow-lime-300/10`}>
-      <div className="armory-rank-rail" />
-      <div className={`armory-icon ${rc.badge}`}>
+    <button type="button" onClick={onClick}
+      className="armory-card w-full rounded-lg border border-lime-300/25 bg-lime-300/5 p-3 text-left transition-all hover:border-lime-300/50 hover:shadow-lg hover:shadow-lime-300/8">
+      <div className="armory-rank-rail" style={{ background: 'rgba(190, 242, 100, 0.45)' }} />
+      <div className="armory-icon bg-lime-300/10 border-lime-300/20 text-lime-300">
         {item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <span>LEN</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-txt-main text-sm font-semibold truncate">{item.name || 'Arma Lendária'}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge} shrink-0`}>Lendária</span>
-        </div>
-        <div className="text-lime-300/70 text-xs mt-1">{item.tipo || 'Forja Lendária'}</div>
+        <span className="text-lime-100 text-sm font-semibold truncate block">{item.name || 'Arma Lendária'}</span>
+        <span className="text-lime-300/45 text-[11px] mt-0.5 block">{item.tipo || 'Forja Lendária'}</span>
       </div>
-      {canRemove && (
-        <button type="button" onClick={onRemove} title="Remover"
-          className="shrink-0 text-err/30 hover:text-err text-[11px] opacity-0 group-hover:opacity-100 transition-opacity p-0.5 self-center leading-none">
-          ✕
-        </button>
-      )}
+    </button>
+  )
+}
+
+function LegendaryWeaponDrawer({ item, forgeItem, canRemove, onRemove, onClose }) {
+  const habs = forgeItem?.habilidades
+    ? (typeof forgeItem.habilidades === 'string'
+        ? JSON.parse(forgeItem.habilidades || '{}')
+        : forgeItem.habilidades)
+    : { passivas: [], ativas: [], ultimates: [] }
+  const powerLabel = WEAPON_POWER_LEVELS.find(p => p.value === forgeItem?.power_level)?.label || 'Notável'
+
+  return (
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[420px] bg-deep border-l border-lime-300/15 shadow-2xl shadow-black/60 flex flex-col">
+        <div className="px-5 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-lime-300/10 border border-lime-300/20 flex items-center justify-center overflow-hidden">
+              {item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <span className="text-lime-300 text-xs">⚔</span>}
+            </div>
+            <div>
+              <h3 className="text-lime-100 text-sm font-semibold">{item.name || 'Arma Lendária'}</h3>
+              <span className="text-lime-300/50 text-[10px]">{item.tipo || 'Forja Lendária'} · {powerLabel}</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {item.image && (
+            <img src={item.image} alt="" className="w-full aspect-[16/9] rounded-lg object-cover border border-lime-300/15" />
+          )}
+
+          {forgeItem ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {forgeItem.dano && (
+                  <div className="bg-void/50 border border-lime-300/15 rounded-lg px-3 py-2">
+                    <span className="text-txt-dim/50 text-[9px] uppercase">Dano</span>
+                    <p className="text-red-400/90 text-sm font-mono mt-0.5">{forgeItem.dano}</p>
+                  </div>
+                )}
+                {forgeItem.attr && (
+                  <div className="bg-void/50 border border-lime-300/15 rounded-lg px-3 py-2">
+                    <span className="text-txt-dim/50 text-[9px] uppercase">Atributo</span>
+                    <p className="text-lime-200 text-sm font-mono mt-0.5">{forgeItem.attr}</p>
+                  </div>
+                )}
+              </div>
+
+              {forgeItem.effect && (
+                <div className="bg-void/50 border border-lime-300/10 rounded-lg px-3 py-2.5">
+                  <span className="text-lime-300/50 text-[9px] uppercase tracking-wider">Efeito Lendário</span>
+                  <p className="text-txt-dim/80 text-xs mt-1 leading-relaxed whitespace-pre-line">{forgeItem.effect}</p>
+                </div>
+              )}
+
+              {forgeItem.lore && (
+                <div className="bg-void/50 border border-sep/20 rounded-lg px-3 py-2.5">
+                  <span className="text-txt-dim/40 text-[9px] uppercase tracking-wider">História</span>
+                  <p className="text-txt-dim/60 text-[11px] mt-1 leading-relaxed italic">{forgeItem.lore}</p>
+                </div>
+              )}
+
+              {[
+                { key: 'passivas', label: 'Passivas', color: 'emerald' },
+                { key: 'ativas', label: 'Ativas', color: 'sky' },
+                { key: 'ultimates', label: 'Ultimate', color: 'purple' },
+              ].map(({ key, label, color }) => {
+                const skills = habs[key] || []
+                if (skills.length === 0) return null
+                return (
+                  <div key={key}>
+                    <span className={`text-${color}-400/60 text-[9px] uppercase tracking-wider`}>{label}</span>
+                    <div className="space-y-1.5 mt-1.5">
+                      {skills.map((sk, i) => (
+                        <div key={i} className={`bg-void/50 border border-${color}-400/10 rounded-lg px-3 py-2`}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-txt-main text-[11px] font-semibold">{sk.nome}</span>
+                            <span className="text-amber-300/60 text-[9px] font-mono">PE {sk.custoPE ?? 0}</span>
+                          </div>
+                          {sk.descricao && <p className="text-txt-dim/60 text-[10px] mt-1 leading-relaxed">{sk.descricao}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </>
+          ) : (
+            <p className="text-txt-dim/50 text-xs italic">Detalhes completos não disponíveis para esta arma.</p>
+          )}
+        </div>
+
+        <div className="px-5 py-3 border-t border-sep/30 flex justify-end shrink-0">
+          {canRemove && (
+            <button onClick={() => { if (confirm('Remover esta arma lendária do personagem?')) onRemove() }}
+              className="text-[10px] border border-err/25 text-err/80 px-3 py-1.5 rounded-lg hover:bg-err/10 hover:text-err transition-colors">
+              Excluir
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
