@@ -19,6 +19,13 @@ const SKILL_TYPE_META = {
   ultimates: { label: 'Habilidades Ultimate', singular: 'Ultimate', headerClass: 'text-purple-400', borderClass: 'border-purple-400/25', bgClass: 'bg-purple-400/5', btnBorder: 'border-purple-400/30', btnText: 'text-purple-400', btnHover: 'hover:bg-purple-400/10' },
 }
 
+const LEGENDARY_DANO_SUGGEST = {
+  menor: '4d12+5',
+  notavel: '6d12+8',
+  maior: '8d12+10',
+  suprema: '12d12+15',
+}
+
 function emptySkill() {
   return { nome: '', descricao: '', custoPE: 0 }
 }
@@ -299,6 +306,8 @@ export default function MysticWeaponAdminPanel() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [analysisResult, setAnalysisResult] = useState(null)
   const [improveWriting, setImproveWriting] = useState(false)
+  const [expandedIds, setExpandedIds] = useState(new Set())
+  const [oracleOpen, setOracleOpen] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -355,12 +364,25 @@ export default function MysticWeaponAdminPanel() {
     setError('')
   }
 
+  function toggleExpand(id) {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   function selectBase(base) {
+    if (base === 'custom') {
+      setForm(prev => ({ ...prev, base: 'custom' }))
+      return
+    }
     const weapon = WEAPONS.find(w => w.id === base)
     setForm(prev => ({
       ...prev,
       base,
-      dano: weapon?.dano || prev.dano,
+      dano: LEGENDARY_DANO_SUGGEST[prev.power_level] || weapon?.dano || prev.dano,
       attr: weapon?.attr || prev.attr,
       name: prev.name || weapon?.name || '',
     }))
@@ -558,34 +580,62 @@ export default function MysticWeaponAdminPanel() {
             <span>Crie a primeira relíquia ou ajuste o filtro.</span>
           </div>
         ) : (
-          <div className="legendary-weapon-grid">
-            {filteredItems.map(item => (
-              <button key={item.id} type="button" onClick={() => selectItem(item)}
-                className={`legendary-weapon-card ${selectedId === item.id ? 'is-selected' : ''}`}>
-                <div className="legendary-weapon-image">
-                  {item.image ? <img src={item.image} alt="" /> : <span className="font-cinzel">Lendária</span>}
-                </div>
-                <div className="legendary-weapon-body">
-                  <div className="legendary-weapon-title">
-                    <strong className="font-cinzel">{item.name}</strong>
-                    <span className={rankColor.badge}>Lendária</span>
-                    <span className="text-[10px] bg-amber-300/10 text-amber-200 px-1.5 py-0.5 rounded border border-amber-300/25">{powerLabel(item.power_level)}</span>
-                  </div>
-                  <p>{item.effect || 'Sem descrição.'}</p>
-                  <div className="legendary-weapon-meta">
-                    <span>{item.dano || 'Dano ?'}</span>
-                    <span>{item.attr || 'AM'}</span>
-                  </div>
-                  {(item.habilidades.passivas.length + item.habilidades.ativas.length + item.habilidades.ultimates.length) > 0 && (
-                    <div className="legendary-weapon-skill-count">
-                      {item.habilidades.passivas.length > 0 && <span className="text-emerald-400/70 text-[10px]">{item.habilidades.passivas.length} pas.</span>}
-                      {item.habilidades.ativas.length > 0 && <span className="text-sky-400/70 text-[10px]">{item.habilidades.ativas.length} atv.</span>}
-                      {item.habilidades.ultimates.length > 0 && <span className="text-purple-400/70 text-[10px]">{item.habilidades.ultimates.length} ult.</span>}
+          <div className="legendary-weapon-list">
+            {filteredItems.map(item => {
+              const expanded = expandedIds.has(item.id)
+              const totalSkills = item.habilidades.passivas.length + item.habilidades.ativas.length + item.habilidades.ultimates.length
+              return (
+                <div key={item.id} className={`legendary-weapon-collapsible ${selectedId === item.id ? 'is-selected' : ''}`}>
+                  <button type="button" onClick={() => toggleExpand(item.id)}
+                    className="legendary-weapon-collapse-header">
+                    <div className="legendary-weapon-thumb">
+                      {item.image ? <img src={item.image} alt="" /> : <span className="font-cinzel text-[9px]">L</span>}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong className="font-cinzel truncate">{item.name}</strong>
+                        <span className={rankColor.badge}>Lendária</span>
+                        <span className="text-[10px] bg-amber-300/10 text-amber-200 px-1.5 py-0.5 rounded border border-amber-300/25">{powerLabel(item.power_level)}</span>
+                      </div>
+                      <div className="legendary-weapon-meta mt-0.5">
+                        <span>{item.dano || 'Dano ?'}</span>
+                        <span>{item.attr || 'AM'}</span>
+                        {totalSkills > 0 && (
+                          <>
+                            {item.habilidades.passivas.length > 0 && <span className="text-emerald-400/60">{item.habilidades.passivas.length} pas.</span>}
+                            {item.habilidades.ativas.length > 0 && <span className="text-sky-400/60">{item.habilidades.ativas.length} atv.</span>}
+                            {item.habilidades.ultimates.length > 0 && <span className="text-purple-400/60">{item.habilidades.ultimates.length} ult.</span>}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-lime-300/40 text-[10px] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  {expanded && (
+                    <div className="legendary-weapon-collapse-body">
+                      <p className="text-txt-dim text-[12px] leading-relaxed">{item.effect || 'Sem descrição.'}</p>
+                      {totalSkills > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {item.habilidades.passivas.map((s, i) => (
+                            <span key={`p${i}`} className="text-[9px] text-emerald-400/70 bg-emerald-400/5 border border-emerald-400/15 px-1.5 py-0.5 rounded">{s.nome}</span>
+                          ))}
+                          {item.habilidades.ativas.map((s, i) => (
+                            <span key={`a${i}`} className="text-[9px] text-sky-400/70 bg-sky-400/5 border border-sky-400/15 px-1.5 py-0.5 rounded">{s.nome}</span>
+                          ))}
+                          {item.habilidades.ultimates.map((s, i) => (
+                            <span key={`u${i}`} className="text-[9px] text-purple-400/70 bg-purple-400/5 border border-purple-400/15 px-1.5 py-0.5 rounded">{s.nome}</span>
+                          ))}
+                        </div>
+                      )}
+                      <button type="button" onClick={() => selectItem(item)}
+                        className="mt-2 text-[10px] border border-lime-300/25 text-lime-300 px-3 py-1 rounded hover:bg-lime-300/10 transition-colors">
+                        Editar
+                      </button>
                     </div>
                   )}
                 </div>
-              </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
@@ -685,103 +735,16 @@ export default function MysticWeaponAdminPanel() {
           <textarea value={form.effect} onChange={e => setForm(prev => ({ ...prev, effect: e.target.value }))} rows={6} placeholder="Efeito lendário, custo, ativação, riscos — descrição narrativa completa da arma..." />
         </div>
 
-        <div className="bg-indigo-400/5 border border-indigo-400/20 rounded-lg p-4 space-y-2.5 mx-5 mb-3">
-          <div className="flex items-start gap-2">
-            <div className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oraculo — Forja Inteligente</div>
-          </div>
-          <div className="text-txt-dim text-[11px] leading-relaxed">
-            O Oraculo pode <span className="text-indigo-300">GERAR</span> a arma completa a partir de um conceito, ou <span className="text-amber-300">BALANCEAR</span> campos preenchidos. Habilidades e efeitos serao PRESERVADOS — apenas valores numericos sao ajustados, exceto se ativar a opcao abaixo.
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer text-[11px] text-txt-dim select-none">
-            <input type="checkbox" checked={improveWriting} onChange={e => setImproveWriting(e.target.checked)}
-              className="accent-indigo-400 w-3.5 h-3.5" />
-            <span>Melhorar escrita (IA reescreve descricoes com mais riqueza narrativa)</span>
-          </label>
-          <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)}
-            rows={3} placeholder="Ex.: Espada katana Suprema focada em dano eletrico e velocidade. Ou: balanceie os valores desta arma, esta fraca para nivel Maior."
-            className="admin-input resize-y" />
-          <button type="button" onClick={handleAnalyze} disabled={analyzing}
-            className="border border-indigo-400/30 text-indigo-300 px-4 py-2 rounded text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50 font-medium">
-            {analyzing ? 'Consultando o Oraculo...' : 'Consultar o Oraculo'}
+        <div className="mx-5 mb-3">
+          <button type="button" onClick={() => setOracleOpen(true)}
+            className="w-full flex items-center justify-between border border-indigo-400/20 bg-indigo-400/5 text-indigo-300 px-4 py-2.5 rounded-lg hover:bg-indigo-400/10 transition-colors">
+            <div className="flex items-center gap-2">
+              <span className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oráculo — Forja Inteligente</span>
+              {analysisResult && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />}
+            </div>
+            <span className="text-indigo-300/50 text-[10px]">Abrir →</span>
           </button>
         </div>
-
-        {analysisResult && (() => {
-          const { analyzed, original } = analysisResult
-          const danoChanged = analyzed.dano && analyzed.dano !== original.dano
-          const effectChanged = analyzed.effect && analyzed.effect !== original.effect
-          const allHabs = ['passivas', 'ativas', 'ultimates']
-          const hasAnyHab = allHabs.some(t => (analyzed.habilidades?.[t]?.length || 0) > 0)
-          return (
-            <div className="bg-indigo-400/8 border border-indigo-400/30 rounded-lg mx-5 mb-3 overflow-hidden">
-              <div className="bg-indigo-400/10 px-4 py-2.5 flex items-center justify-between border-b border-indigo-400/20">
-                <span className="text-indigo-200 text-xs font-semibold uppercase tracking-wider">Resultado do Oraculo — revise antes de aplicar</span>
-              </div>
-              <div className="p-4 space-y-3 text-[12px]">
-                {analyzed.ai_feedback && (
-                  <div className="bg-indigo-400/5 rounded px-3 py-2 text-txt-dim text-[11px] leading-relaxed whitespace-pre-line">{analyzed.ai_feedback}</div>
-                )}
-                {danoChanged && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-amber-300/60 text-[10px] uppercase tracking-wider font-semibold w-16">Dano</span>
-                    <span className="line-through text-txt-dim/50">{original.dano || '—'}</span>
-                    <span className="text-amber-300">→</span>
-                    <span className="text-amber-200 font-semibold">{analyzed.dano}</span>
-                  </div>
-                )}
-                {effectChanged && (
-                  <div>
-                    <span className="text-indigo-300/60 text-[10px] uppercase tracking-wider font-semibold">Efeito {improveWriting ? '(reescrito)' : '(ajustado)'}</span>
-                    <p className="text-txt-dim mt-1 leading-relaxed bg-surface-2/50 rounded px-3 py-2 whitespace-pre-line">{analyzed.effect}</p>
-                  </div>
-                )}
-                {hasAnyHab && (
-                  <div className="space-y-2">
-                    <span className="text-indigo-300/60 text-[10px] uppercase tracking-wider font-semibold">Habilidades sugeridas</span>
-                    {allHabs.map(type => {
-                      const meta = SKILL_TYPE_META[type]
-                      const skills = analyzed.habilidades?.[type] || []
-                      if (skills.length === 0) return null
-                      return (
-                        <div key={type} className={`border rounded px-3 py-2 ${meta.borderClass} ${meta.bgClass}`}>
-                          <span className={`${meta.headerClass} text-[10px] font-semibold uppercase tracking-wider`}>{meta.label}</span>
-                          {skills.map((sk, i) => {
-                            const oldSkill = original.habilidades[type]?.[i]
-                            const isNew = !oldSkill || !oldSkill.nome?.trim()
-                            const peChanged = oldSkill && sk.custoPE !== oldSkill.custoPE
-                            return (
-                              <div key={i} className="mt-1.5 pl-2 border-l-2 border-white/5">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-txt font-semibold">{sk.nome || '—'}</span>
-                                  <span className="text-amber-300 text-[10px]">PE {sk.custoPE ?? 0}</span>
-                                  {isNew && <span className="text-emerald-400/80 text-[9px] uppercase font-bold">Nova</span>}
-                                  {peChanged && !isNew && (
-                                    <span className="text-amber-400/60 text-[9px]">(era {oldSkill.custoPE ?? 0})</span>
-                                  )}
-                                </div>
-                                {sk.descricao && <p className="text-txt-dim/70 text-[11px] mt-0.5 leading-relaxed">{sk.descricao}</p>}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-                <div className="flex gap-2 pt-1">
-                  <button type="button" onClick={applyAnalysis}
-                    className="bg-indigo-400/20 border border-indigo-400/40 text-indigo-200 px-4 py-2 rounded text-xs hover:bg-indigo-400/30 transition-colors font-semibold">
-                    Aplicar Alteracoes
-                  </button>
-                  <button type="button" onClick={() => setAnalysisResult(null)}
-                    className="border border-white/10 text-txt-dim px-4 py-2 rounded text-xs hover:bg-white/5 transition-colors">
-                    Descartar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
 
         {selectedItem && (
           <div className="legendary-forge-preview">
@@ -798,6 +761,113 @@ export default function MysticWeaponAdminPanel() {
           </button>
         </div>
       </section>
+      )}
+
+      {editorOpen && oracleOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOracleOpen(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-full max-w-[440px] border-l border-indigo-400/20 shadow-2xl shadow-black/60 flex flex-col" style={{ background: 'rgba(14, 14, 15, 0.98)' }}>
+            <div className="px-5 py-4 border-b border-indigo-400/15 flex items-center justify-between shrink-0">
+              <div>
+                <span className="text-indigo-200 text-xs font-semibold uppercase tracking-wider">Oráculo — Forja Inteligente</span>
+                <p className="text-txt-dim/60 text-[10px] mt-0.5">Gere ou balanceie a arma. Habilidades são PRESERVADAS.</p>
+              </div>
+              <button type="button" onClick={() => setOracleOpen(false)} className="text-txt-dim hover:text-err text-sm transition-colors">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <label className="flex items-center gap-2 cursor-pointer text-[11px] text-txt-dim select-none">
+                <input type="checkbox" checked={improveWriting} onChange={e => setImproveWriting(e.target.checked)} className="accent-indigo-400 w-3.5 h-3.5" />
+                <span>Melhorar escrita (IA reescreve descrições)</span>
+              </label>
+              <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)} rows={4}
+                placeholder="Ex.: Katana Suprema focada em dano elétrico e velocidade. Ou: balanceie os valores, está fraca para Maior."
+                className="admin-input resize-y" />
+              <button type="button" onClick={handleAnalyze} disabled={analyzing}
+                className="w-full border border-indigo-400/30 text-indigo-300 px-4 py-2.5 rounded-lg text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50 font-medium">
+                {analyzing ? 'Consultando o Oráculo...' : 'Consultar o Oráculo'}
+              </button>
+
+              {error && !analyzing && (
+                <p className="legendary-forge-error">{error}</p>
+              )}
+
+              {analysisResult && (() => {
+                const { analyzed, original } = analysisResult
+                const danoChanged = analyzed.dano && analyzed.dano !== original.dano
+                const effectChanged = analyzed.effect && analyzed.effect !== original.effect
+                const allHabs = ['passivas', 'ativas', 'ultimates']
+                const hasAnyHab = allHabs.some(t => (analyzed.habilidades?.[t]?.length || 0) > 0)
+                return (
+                  <div className="bg-indigo-400/8 border border-indigo-400/25 rounded-lg overflow-hidden">
+                    <div className="bg-indigo-400/10 px-4 py-2.5 flex items-center justify-between border-b border-indigo-400/15">
+                      <span className="text-indigo-200 text-[11px] font-semibold uppercase tracking-wider">Resultado — revise antes de aplicar</span>
+                    </div>
+                    <div className="p-4 space-y-3 text-[12px]">
+                      {analyzed.ai_feedback && (
+                        <div className="bg-indigo-400/5 rounded px-3 py-2 text-txt-dim text-[11px] leading-relaxed whitespace-pre-line">{analyzed.ai_feedback}</div>
+                      )}
+                      {danoChanged && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-300/60 text-[10px] uppercase tracking-wider font-semibold w-16">Dano</span>
+                          <span className="line-through text-txt-dim/50">{original.dano || '—'}</span>
+                          <span className="text-amber-300">→</span>
+                          <span className="text-amber-200 font-semibold">{analyzed.dano}</span>
+                        </div>
+                      )}
+                      {effectChanged && (
+                        <div>
+                          <span className="text-indigo-300/60 text-[10px] uppercase tracking-wider font-semibold">Efeito {improveWriting ? '(reescrito)' : '(ajustado)'}</span>
+                          <p className="text-txt-dim mt-1 leading-relaxed bg-surface-2/50 rounded px-3 py-2 whitespace-pre-line">{analyzed.effect}</p>
+                        </div>
+                      )}
+                      {hasAnyHab && (
+                        <div className="space-y-2">
+                          <span className="text-indigo-300/60 text-[10px] uppercase tracking-wider font-semibold">Habilidades sugeridas</span>
+                          {allHabs.map(type => {
+                            const meta = SKILL_TYPE_META[type]
+                            const skills = analyzed.habilidades?.[type] || []
+                            if (skills.length === 0) return null
+                            return (
+                              <div key={type} className={`border rounded px-3 py-2 ${meta.borderClass} ${meta.bgClass}`}>
+                                <span className={`${meta.headerClass} text-[10px] font-semibold uppercase tracking-wider`}>{meta.label}</span>
+                                {skills.map((sk, i) => {
+                                  const oldSkill = original.habilidades[type]?.[i]
+                                  const isNew = !oldSkill || !oldSkill.nome?.trim()
+                                  const peChanged = oldSkill && sk.custoPE !== oldSkill.custoPE
+                                  return (
+                                    <div key={i} className="mt-1.5 pl-2 border-l-2 border-white/5">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-txt font-semibold">{sk.nome || '—'}</span>
+                                        <span className="text-amber-300 text-[10px]">PE {sk.custoPE ?? 0}</span>
+                                        {isNew && <span className="text-emerald-400/80 text-[9px] uppercase font-bold">Nova</span>}
+                                        {peChanged && !isNew && <span className="text-amber-400/60 text-[9px]">(era {oldSkill.custoPE ?? 0})</span>}
+                                      </div>
+                                      {sk.descricao && <p className="text-txt-dim/70 text-[11px] mt-0.5 leading-relaxed">{sk.descricao}</p>}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        <button type="button" onClick={() => { applyAnalysis(); setOracleOpen(false) }}
+                          className="bg-indigo-400/20 border border-indigo-400/40 text-indigo-200 px-4 py-2 rounded text-xs hover:bg-indigo-400/30 transition-colors font-semibold">
+                          Aplicar Alterações
+                        </button>
+                        <button type="button" onClick={() => setAnalysisResult(null)}
+                          className="border border-white/10 text-txt-dim px-4 py-2 rounded text-xs hover:bg-white/5 transition-colors">
+                          Descartar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

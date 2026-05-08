@@ -765,7 +765,7 @@ function EquipCard({ item, onClick }) {
 function LegendaryAssignedCard({ item, canRemove, onRemove }) {
   const rc = RANK_COLORS['Lendária']
   return (
-    <div className={`armory-card w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left`}>
+    <div className={`armory-card group w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left relative transition-all hover:border-lime-300/60 hover:shadow-lg hover:shadow-lime-300/10`}>
       <div className="armory-rank-rail" />
       <div className={`armory-icon ${rc.badge}`}>
         {item.image ? <img src={item.image} alt="" className="w-full h-full object-cover" /> : <span>LEN</span>}
@@ -778,9 +778,9 @@ function LegendaryAssignedCard({ item, canRemove, onRemove }) {
         <div className="text-lime-300/70 text-xs mt-1">{item.tipo || 'Forja Lendária'}</div>
       </div>
       {canRemove && (
-        <button type="button" onClick={onRemove}
-          className="text-err/50 hover:text-err text-xs border border-err/20 hover:bg-err/10 rounded px-2 py-1 transition-colors">
-          Remover
+        <button type="button" onClick={onRemove} title="Remover"
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 grid place-items-center rounded-full bg-err/80 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-err shadow-lg shadow-err/30 leading-none">
+          ✕
         </button>
       )}
     </div>
