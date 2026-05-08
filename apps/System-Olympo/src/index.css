@@ -89,39 +89,51 @@ button:active:not(:disabled) {
     border-radius: 0.125rem;
   }
 
-  .level-slider {
+  .level-slider-fill {
+    transition: background-color 500ms ease;
+  }
+
+  .level-slider-label {
+    transition: color 500ms ease;
+  }
+
+  .level-slider-input {
     -webkit-appearance: none;
     appearance: none;
-    height: 6px;
-    border-radius: 999px;
-    background: linear-gradient(to right, var(--fill) var(--pct), rgba(255, 255, 255, 0.08) var(--pct));
-    outline: none;
+    background: transparent;
     cursor: pointer;
-    transition: background 600ms ease;
+    margin: 0;
+    outline: none;
+    z-index: 1;
   }
 
-  .level-slider::-webkit-slider-thumb {
+  .level-slider-input::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #fff;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
     cursor: grab;
   }
 
-  .level-slider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
+  .level-slider-input::-webkit-slider-runnable-track {
+    height: 6px;
+    background: transparent;
+  }
+
+  .level-slider-input::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #fff;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
     cursor: grab;
   }
 
-  .level-slider::-moz-range-track {
+  .level-slider-input::-moz-range-track {
     height: 6px;
     background: transparent;
     border: none;

@@ -1,9 +1,27 @@
+import { useRef, useCallback } from 'react'
 import { ARRAYS } from '../../data/attributes'
 import AvatarCropper from '../AvatarCropper'
 
 export default function Step1Identity({ char, update }) {
+  const fillRef = useRef(null)
   const availableTypes = Object.keys(ARRAYS)
   const currentArray = ARRAYS[char.arrayTipo] || ARRAYS.Balanceado
+
+  const tierColor = useCallback((n) => {
+    if (n <= 8) return '#60a5fa'
+    if (n <= 16) return '#f7bd48'
+    if (n <= 24) return '#c084fc'
+    return '#f87171'
+  }, [])
+
+  const handleSlide = useCallback((e) => {
+    const val = Number(e.target.value)
+    if (fillRef.current) {
+      fillRef.current.style.width = `${((val - 1) / 29) * 100}%`
+      fillRef.current.style.backgroundColor = tierColor(val)
+    }
+    update({ nivel: val })
+  }, [update, tierColor])
 
   return (
     <div className="space-y-6">
@@ -61,17 +79,18 @@ export default function Step1Identity({ char, update }) {
       <div className="codex-card p-5 space-y-4">
         <label className="block text-outline text-sm font-mono uppercase tracking-wider" style={{ fontSize: '11px' }}>Nível da Campanha</label>
         <div className="flex items-center gap-4">
-          <input type="range" min={1} max={30} value={char.nivel} onChange={(e) => update({ nivel: Number(e.target.value) })}
-            className="flex-1 level-slider"
-            style={{
-              '--fill': char.nivel <= 8 ? '#60a5fa' : char.nivel <= 16 ? '#f7bd48' : char.nivel <= 24 ? '#c084fc' : '#f87171',
-              '--pct': `${((char.nivel - 1) / 29) * 100}%`
-            }} />
+          <div className="flex-1 relative h-6 flex items-center">
+            <div className="absolute left-0 right-0 h-[6px] rounded-full bg-white/8" />
+            <div ref={fillRef} className="absolute left-0 h-[6px] rounded-full level-slider-fill"
+              style={{ width: `${((char.nivel - 1) / 29) * 100}%`, backgroundColor: tierColor(char.nivel) }} />
+            <input type="range" min={1} max={30} value={char.nivel} onInput={handleSlide}
+              className="level-slider-input absolute inset-0 w-full" />
+          </div>
           <input type="number" min={1} max={30} value={char.nivel} onChange={(e) => update({ nivel: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })}
             className="w-14 bg-surface-container border border-outline/30 text-on-surface focus:border-primary rounded px-2 py-1.5 text-center font-mono text-sm" />
         </div>
         <p className="text-outline text-xs font-mono">
-          Faixa: <span style={{ color: 'var(--fill)', transition: 'color 600ms ease' }}>
+          Faixa: <span className="level-slider-label" style={{ color: tierColor(char.nivel) }}>
             {char.nivel <= 8 ? 'Novato (1-8)' : char.nivel <= 16 ? 'Veterano (9-16)' : char.nivel <= 24 ? 'Elite (17-24)' : 'Lendário (25-30)'}
           </span>
         </p>
