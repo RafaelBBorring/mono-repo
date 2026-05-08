@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ITEM_COLORS } from '../data/colors'
+import { suggestItemWeight } from '../services/aiService'
+import { calcStartingEconomy } from '../utils/calculator'
 
 function estimateItemWeight(item = {}) {
   if (item.peso !== '' && item.peso != null && !Number.isNaN(Number(item.peso))) return Number(item.peso)
@@ -13,12 +15,20 @@ function estimateItemWeight(item = {}) {
   return 0.5
 }
 
-export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate, maxCarry }) {
+export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate, maxCarry, level = 1, modules = [] }) {
   const [showCreate, setShowCreate] = useState(false)
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const editImgRef = useRef(null)
   const totalWeight = items.reduce((sum, item) => sum + estimateItemWeight(item) * (Number(item.quantidade) || 1), 0)
+
+  const basePoints = calcStartingEconomy(level)
+  const fortunaBonus = modules.filter(m => m.id === 'fortuna_inicial').length * 2000
+  const empreendedorBonus = modules.filter(m => m.id === 'empreendedor').reduce((s, m) => s + (m.boughtCount || 1) * 1500, 0)
+  const maxPoints = basePoints + fortunaBonus + empreendedorBonus
+  const usedDolar = Math.round((wallet.dolares || 0) / 2)
+  const usedDracma = Math.round((wallet.dracmas || 0) / 0.5)
+  const spentPoints = usedDolar + usedDracma
 
   if (!canEdit && items.length === 0) return null
 
@@ -57,14 +67,14 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
     reader.onload = (ev) => {
       const img = new Image()
       img.onload = () => {
-        const size = 160
+        const maxDim = 512
+        const scale = Math.min(maxDim / img.width, maxDim / img.height, 1)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
         const canvas = document.createElement('canvas')
-        canvas.width = size; canvas.height = size
-        const ctx = canvas.getContext('2d')
-        const scale = Math.max(size / img.width, size / img.height)
-        const w = img.width * scale; const h = img.height * scale
-        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
-        updateItem(viewIdx, { imagem: canvas.toDataURL('image/webp', 0.72) })
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        updateItem(viewIdx, { imagem: canvas.toDataURL('image/webp', 0.88) })
       }
       img.src = ev.target.result
     }
@@ -85,6 +95,7 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
           <div className="inventory-currency-strip">
             <label>$ <input type="number" value={wallet.dolares ?? 0} disabled={!canEdit} onChange={e => onWalletUpdate?.({ dolares: Number(e.target.value) || 0 })} /></label>
             <label>Δ <input type="number" value={wallet.dracmas ?? 0} disabled={!canEdit} onChange={e => onWalletUpdate?.({ dracmas: Number(e.target.value) || 0 })} /></label>
+            <span className={`text-[9px] ${spentPoints > maxPoints ? 'text-red-400' : 'text-txt-dim/50'}`}>{spentPoints}/{maxPoints} pts</span>
           </div>
           {canEdit && (
             <button onClick={() => setShowCreate(true)}
@@ -159,6 +170,7 @@ function ItemCreateModal({ onSave, onClose }) {
   const [cor, setCor] = useState('gray')
   const [imagem, setImagem] = useState(null)
   const [preview, setPreview] = useState(null)
+  const [aiLoading, setAiLoading] = useState(false)
   const fileRef = useRef(null)
   const modalRef = useRef(null)
 
@@ -173,20 +185,30 @@ function ItemCreateModal({ onSave, onClose }) {
     reader.onload = (ev) => {
       const img = new Image()
       img.onload = () => {
-        const size = 160
+        const maxDim = 512
+        const scale = Math.min(maxDim / img.width, maxDim / img.height, 1)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
         const canvas = document.createElement('canvas')
-        canvas.width = size; canvas.height = size
-        const ctx = canvas.getContext('2d')
-        const scale = Math.max(size / img.width, size / img.height)
-        const w = img.width * scale; const h = img.height * scale
-        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
-        const dataUrl = canvas.toDataURL('image/webp', 0.72)
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        const dataUrl = canvas.toDataURL('image/webp', 0.88)
         setImagem(dataUrl); setPreview(dataUrl)
       }
       img.src = ev.target.result
     }
     reader.readAsDataURL(file)
     e.target.value = ''
+  }
+
+  async function aiWeight() {
+    if (!nome.trim()) return
+    setAiLoading(true)
+    try {
+      const val = await suggestItemWeight(nome, descricao)
+      if (val != null) setPeso(String(val))
+    } catch {}
+    setAiLoading(false)
   }
 
   function save() {
@@ -212,8 +234,14 @@ function ItemCreateModal({ onSave, onClose }) {
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" autoFocus />
               <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição" rows={2}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
-              <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg (opcional)"
-                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+              <div className="flex gap-1.5">
+                <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg (opcional)"
+                  className="flex-1 min-w-0 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                <button type="button" onClick={aiWeight} disabled={aiLoading || !nome.trim()} title="Sugerir peso com IA"
+                  className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
+                  {aiLoading ? '...' : 'IA'}
+                </button>
+              </div>
             </div>
           </div>
           <div className="flex gap-1.5 mt-1.5">
@@ -243,7 +271,18 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
   const [editDesc, setEditDesc] = useState(item.descricao || '')
   const [editCor, setEditCor] = useState(item.cor || 'gray')
   const [editPeso, setEditPeso] = useState(item.peso ?? '')
+  const [aiLoading, setAiLoading] = useState(false)
   const cc = ITEM_COLORS.find(c => c.id === (item.cor || 'gray')) || ITEM_COLORS[0]
+
+  async function aiWeight() {
+    if (!editNome.trim()) return
+    setAiLoading(true)
+    try {
+      const val = await suggestItemWeight(editNome, editDesc)
+      if (val != null) setEditPeso(String(val))
+    } catch {}
+    setAiLoading(false)
+  }
 
   function handleSave() {
     onSaveEdit({ nome: editNome, descricao: editDesc, cor: editCor, peso: editPeso === '' ? estimateItemWeight({ nome: editNome, descricao: editDesc }) : Number(editPeso) })
@@ -276,8 +315,14 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
               <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Descrição" rows={4}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
-              <input type="number" step="0.1" value={editPeso} onChange={e => setEditPeso(e.target.value)} placeholder="Peso kg"
-                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
+              <div className="flex gap-1.5">
+                <input type="number" step="0.1" value={editPeso} onChange={e => setEditPeso(e.target.value)} placeholder="Peso kg"
+                  className="flex-1 min-w-0 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
+                <button type="button" onClick={aiWeight} disabled={aiLoading || !editNome.trim()} title="Sugerir peso com IA"
+                  className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
+                  {aiLoading ? '...' : 'IA'}
+                </button>
+              </div>
             </>
           ) : (
             <>

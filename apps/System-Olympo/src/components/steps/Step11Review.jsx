@@ -558,6 +558,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                     onWalletUpdate={(patch) => update(patch)}
                     onDrawerToggle={() => {}}
                     maxCarry={calcCarryCapacity(char.atributos, sk, char)}
+                    level={char.nivel || 1}
+                    modules={char.modulosAdquiridos || []}
                   />
                 </div>
               </section>

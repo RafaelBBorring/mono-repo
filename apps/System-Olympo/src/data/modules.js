@@ -10,12 +10,16 @@ export const MODULES_PASSIVE = [
   { id: 'pensamento_agil', name: 'Pensamento Ágil', desc: '+1 teste de Investigação adicional por cena.', req: 'INT 14+' },
   { id: 'ferramentas_misticas', name: 'Ferramentas Místicas', desc: 'Ativa 1 item mágico sem gastar PE. 1×/dia por item.', req: 'AM 12+' },
   { id: 'contatos_influentes', name: 'Contatos Influentes', desc: '1×/Missão — Chama favor de NPC com Recursos.', req: 'APA 12+ ou N6+' },
+  { id: 'fortuna_inicial', name: 'Fortuna Inicial', desc: '+2000 Pontos de Economia para distribuir entre Dólares e Dracmas.', req: 'Nenhum' },
 ]
 
 export const MODULES_SPECIAL = [
   { id: 'treino_intensivo', name: 'Treino Intensivo', desc: '+2 Perícias Treinadas (permanente). Adquirível até 3×.', req: 'Nenhum', maxBuy: 3, bought: 0 },
   { id: 'aumento_poder', name: 'Aumento de Poder', desc: 'Evolui 1 habilidade em 1 nível. Adquirível até 2×.', req: 'N12+, AM 18+', maxBuy: 2, bought: 0 },
   { id: 'conhecimento_amplificado', name: 'Conhecimento Amplificado', desc: 'Aprende 01 Habilidade comum Extra (exceto Ult & Passiva). Até 4×.', req: 'INT 16+, AM 14+', maxBuy: 4, bought: 0 },
+  { id: 'portador_nato', name: 'Portador Nato', desc: '+8 kg de Capacidade de Carga por compra. Adquirível até 3×.', req: 'CON 12+', maxBuy: 3, bought: 0 },
+  { id: 'maestria_armamento', name: 'Maestria em Armamento', desc: 'Permite usar armas de 1 rank acima do permitido pelo nível. Até 2×.', req: 'Nível 10+', maxBuy: 2, bought: 0 },
+  { id: 'empreendedor', name: 'Empreendedor', desc: '+1500 Pontos de Economia por compra. Até 3×.', req: 'Nenhum', maxBuy: 3, bought: 0 },
 ]
 
 export const MODULES_ACTIVE = [

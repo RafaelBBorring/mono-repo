@@ -260,11 +260,19 @@ export function calcCarryCapacity(atributos, skeletonPoints, char) {
     const mods = char.modulosAdquiridos || []
     if (mods.some(m => m.id === 'mochila_avancada')) capacity += 10
     if (mods.some(m => m.id === 'forja_pessoal')) capacity += 5
+    if (mods.some(m => m.id === 'portador_nato')) {
+      const buys = mods.filter(m => m.id === 'portador_nato').reduce((s, m) => s + (m.boughtCount || 1), 0)
+      capacity += buys * 8
+    }
     const eq = Array.isArray(char.equipamentos) ? char.equipamentos : Object.values(char.equipamentos || {})
     if (eq.some(e => /mochila|backpack|bolsa.*refor/i.test(e.nome || ''))) capacity += 8
     if (eq.some(e => /bolsa.*dimens|bag.*holding/i.test(e.nome || ''))) capacity += 20
   }
   return capacity
+}
+
+export function calcStartingEconomy(level) {
+  return 5000 + Math.max(0, level - 1) * 500
 }
 
 export { getProgressionRewards, getClassDef, getAttrValue }

@@ -1230,3 +1230,23 @@ Responda APENAS com JSON:
     return { passivas: [] }
   }
 }
+
+export async function suggestItemWeight(nome, descricao) {
+  const messages = [
+    {
+      role: 'system',
+      content: `Você é um sistema de RPG. Dado o nome e opcionalmente a descrição de um item, estime um peso realista em quilogramas (kg). Responda APENAS com um número de 0 a 999 com até 1 casa decimal. Exemplos: "Espada longa" → 1.5, "Poção de cura" → 0.2, "Baú de tesouro" → 25.0, "Anel de prata" → 0.1, "Escudo de ferro" → 6.0. Não explique, não use unidades, apenas o número.`
+    },
+    {
+      role: 'user',
+      content: `Nome: ${nome || 'Item desconhecido'}${descricao ? `\nDescrição: ${descricao}` : ''}`
+    }
+  ]
+  const data = await callAI(messages, { maxTokens: 16 })
+  const raw = typeof data === 'string' ? data : data?.content || ''
+  const match = raw.match(/[\d]+(?:[.,][\d])?/)
+  if (!match) return null
+  const val = parseFloat(match[0].replace(',', '.'))
+  if (Number.isNaN(val) || val < 0) return null
+  return Math.round(val * 10) / 10
+}
