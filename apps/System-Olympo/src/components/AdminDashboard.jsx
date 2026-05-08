@@ -6,6 +6,7 @@ import { RANK_COLORS } from '../data/colors'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../data/martialArts'
 import { PERICIAS, GRAU_NAMES } from '../data/pericias'
 import { TRIAGES } from '../data/triages'
+import { ALL_MODULES } from '../data/modules'
 import { fetchMysticWeapons } from '../services/alchemyService'
 import AlchemyAdminPanel from './AlchemyAdminPanel'
 import SpellAdminPanel from './SpellAdminPanel'
@@ -70,13 +71,20 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
 
   async function loadData() {
     setLoading(true)
-    const [sheetsRes, profilesRes] = await Promise.all([
-      getSupabaseAdmin().from('characters').select('*').order('updated_at', { ascending: false }),
-      getSupabaseAdmin().from('profiles').select('*'),
-    ])
-    setSheets(sheetsRes.data || [])
-    setUsers(profilesRes.data || [])
-    setLoading(false)
+    try {
+      const [sheetsRes, profilesRes] = await Promise.all([
+        getSupabaseAdmin().from('characters').select('*').order('updated_at', { ascending: false }),
+        getSupabaseAdmin().from('profiles').select('*'),
+      ])
+      setSheets(sheetsRes.data || [])
+      setUsers(profilesRes.data || [])
+    } catch (err) {
+      console.error('AdminDashboard loadData error:', err)
+      setSheets([])
+      setUsers([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filteredSheets = filterUser ? sheets.filter(s => s.user_id === filterUser) : sheets
@@ -819,10 +827,10 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
     })
   }
 
-  function addModulo() {
+  function addModulo(moduleId) {
     setData(prev => ({
       ...prev,
-      modulosAdquiridos: [...(prev.modulosAdquiridos || []), { id: '', boughtCount: 1 }],
+      modulosAdquiridos: [...(prev.modulosAdquiridos || []), { id: moduleId, boughtCount: 1 }],
     }))
   }
 
@@ -1118,16 +1126,39 @@ function FullSheetEditor({ sheet, onSave, onCancel }) {
         </SectionCard>
 
         <SectionCard id="modulos" icon="⚙" title="Módulos" color="bg-yellow-400">
-          {(data.modulosAdquiridos || []).map((m, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <input type="text" value={m.id || ''} onChange={e => updateModulo(i, { id: e.target.value })}
-                placeholder="ID do módulo" className="flex-1 admin-input text-xs" />
-              <input type="number" value={m.boughtCount || 1} onChange={e => updateModulo(i, { boughtCount: Number(e.target.value) || 1 })}
-                className="w-16 admin-input text-xs text-center" />
-              <button onClick={() => removeModulo(i)} className="text-err/60 hover:text-err text-xs px-2 transition-colors">✕</button>
+          {(data.modulosAdquiridos || []).length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              {(data.modulosAdquiridos || []).map((m, i) => {
+                const allMods = [...(ALL_MODULES.passivos || []), ...(ALL_MODULES.especiais || []), ...(ALL_MODULES.ativos || [])]
+                const found = allMods.find(mod => mod.id === m.id)
+                return (
+                  <div key={i} className="flex items-center gap-2 bg-void/50 rounded-lg px-3 py-2 border border-sep/20">
+                    <span className="text-txt-main text-xs font-semibold flex-1">{found?.name || m.id}</span>
+                    {found?.req && <span className="text-[10px] text-txt-dim">{found.req}</span>}
+                    <input type="number" value={m.boughtCount || 1} min={1}
+                      onChange={e => updateModulo(i, { boughtCount: Number(e.target.value) || 1 })}
+                      className="w-14 admin-input text-xs text-center" />
+                    <button onClick={() => removeModulo(i)} className="text-err/60 hover:text-err text-xs px-1 transition-colors">✕</button>
+                  </div>
+                )
+              })}
             </div>
-          ))}
-          <button onClick={addModulo} className="text-gold/60 hover:text-gold text-xs transition-colors">+ Módulo</button>
+          )}
+          <select value="" onChange={e => { if (e.target.value) addModulo(e.target.value) }}
+            className="admin-input text-xs w-full">
+            <option value="">+ Adicionar módulo...</option>
+            {[
+              { group: 'Passivos', items: ALL_MODULES.passivos || [] },
+              { group: 'Especiais', items: ALL_MODULES.especiais || [] },
+              { group: 'Ativos', items: ALL_MODULES.ativos || [] },
+            ].map(cat => (
+              <optgroup key={cat.group} label={cat.group}>
+                {cat.items.map(mod => (
+                  <option key={mod.id} value={mod.id}>{mod.name} ({mod.req})</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </SectionCard>
 
         <SectionCard

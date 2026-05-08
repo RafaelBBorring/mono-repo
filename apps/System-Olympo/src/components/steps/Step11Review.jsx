@@ -858,15 +858,39 @@ function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfi
   )
 }
 
+const CIRCLE_BG = {
+  1: 'bg-emerald-400/8 hover:bg-emerald-400/12 border-emerald-400/15',
+  2: 'bg-sky-400/8 hover:bg-sky-400/12 border-sky-400/15',
+  3: 'bg-purple-400/8 hover:bg-purple-400/12 border-purple-400/15',
+  4: 'bg-amber-300/8 hover:bg-amber-300/12 border-amber-300/15',
+}
+
+const CIRCLE_BORDER_TOP = {
+  1: 'border-t-2 border-t-emerald-400/30',
+  2: 'border-t-2 border-t-sky-400/30',
+  3: 'border-t-2 border-t-purple-400/30',
+  4: 'border-t-2 border-t-amber-300/30',
+}
+
 function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker }) {
   const items = (char[card.field] || []).slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name))
   const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
   const spaceUsed = items.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
+  const [expandedRituals, setExpandedRituals] = useState(() => new Set())
+
+  function toggleRitualExpand(id) {
+    setExpandedRituals(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
 
   function removeRitual(ritual) {
     if (!update) return
     const current = char[card.field] || []
     update({ [card.field]: current.filter(r => r.id !== ritual.id) })
+    setExpandedRituals(prev => { const n = new Set(prev); n.delete(ritual.id); return n })
   }
 
   return (
@@ -879,26 +903,45 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
-        {items.map(ritual => (
-          <div key={ritual.id} className="group relative rounded-lg border border-sep/20 bg-void/50 p-3 hover:border-sep/40 transition-colors">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
-              {ritual.pe_cost != null && <span className="text-[10px] text-amber-300 font-mono">{ritual.pe_cost} PE</span>}
+      <div className="space-y-2">
+        {items.map(ritual => {
+          const isExpanded = expandedRituals.has(ritual.id)
+          return (
+            <div key={ritual.id}
+              className={`rounded-lg border overflow-hidden transition-all duration-200 ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]} ${isExpanded ? CIRCLE_BORDER_TOP[ritual.circle] || '' : ''}`}>
+              <button type="button" onClick={() => toggleRitualExpand(ritual.id)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all duration-150 hover:brightness-110 active:scale-[0.99]">
+                <span className={`text-[10px] border rounded-full px-1.5 py-0.5 shrink-0 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                <span className="text-txt-main text-xs font-semibold truncate flex-1">{ritual.name}</span>
+                {ritual.pe_cost != null && <span className="text-[10px] text-amber-300 font-mono shrink-0">{ritual.pe_cost} PE</span>}
+                {update && (
+                  <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); removeRitual(ritual) } }}
+                    className="text-err/40 hover:text-err text-xs shrink-0 transition-colors">×</span>
+                )}
+                <span className={`text-txt-dim/40 text-[10px] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+              {isExpanded && (
+                <div className="px-3 pb-3 pt-1 border-t border-white/5 space-y-2 animate-fadeIn">
+                  {ritual.short_description && <p className="text-txt-dim text-xs leading-relaxed">{ritual.short_description}</p>}
+                  {ritual.effect && <p className="text-txt-dim/70 text-[11px] leading-relaxed">{ritual.effect}</p>}
+                  <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                    <span className="text-amber-300">{ritual.pe_cost || 0} PE</span>
+                    <span className="text-gold">{SPACE_COST[ritual.circle] || 0} espaços</span>
+                    {ritual.category && <span className="text-txt-dim">{ritual.category}</span>}
+                    {ritual.duration && <span className="text-sky-300">{ritual.duration}</span>}
+                    {ritual.action_cost && <span className="text-purple-300">{ritual.action_cost}</span>}
+                  </div>
+                </div>
+              )}
             </div>
-            <h4 className="text-txt-main text-xs font-semibold leading-tight">{ritual.name}</h4>
-            <p className="text-txt-dim text-[10px] mt-1 leading-relaxed line-clamp-2">{ritual.short_description || ritual.effect || ''}</p>
-            {update && (
-              <button type="button" onClick={() => removeRitual(ritual)}
-                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-err/60 hover:text-err text-[10px] transition-opacity">×</button>
-            )}
-          </div>
-        ))}
+          )
+        })}
 
         {update && (
           <button type="button" onClick={onOpenPicker}
-            className={`rounded-lg border-2 border-dashed border-sep/20 hover:border-sep/40 flex items-center justify-center min-h-[120px] transition-colors`}>
-            <span className="text-txt-dim/40 text-2xl">+</span>
+            className="w-full rounded-lg border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center py-4 transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.99]">
+            <span className="text-txt-dim/30 text-xl">+</span>
           </button>
         )}
       </div>
@@ -994,9 +1037,11 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
                 const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
                 const circleOk = ritual.circle <= profile.maxCircle
                 const disabled = isSelected || wouldExceed || !circleOk
+                const circleBg = CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]
 
                 return (
-                  <article key={ritual.id} className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''}`}>
+                  <article key={ritual.id} className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''} ${circleBg} transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]`}
+                    style={{ '--grimoire-accent': card.accent }}>
                     <div className="grimoire-entry-top">
                       <span className={`border ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
                       <small>{ritual.category || '—'}</small>
@@ -1009,8 +1054,8 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
                     </div>
                     <button type="button" disabled={disabled}
                       onClick={() => addRitual(ritual)}
-                      className={isSelected ? 'opacity-50 cursor-default' : ''}>
-                      {isSelected ? 'Selecionado' : 'Selecionar'}
+                      className={`transition-all duration-150 ${isSelected ? 'opacity-50 cursor-default' : 'hover:brightness-110 active:scale-95'}`}>
+                      {isSelected ? '✓ Selecionado' : 'Selecionar'}
                     </button>
                   </article>
                 )
