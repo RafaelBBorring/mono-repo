@@ -78,6 +78,9 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const equipamentos = char.equipamentos || []
   const equipmentStats = calcEquipStats(equipamentos)
   const legendaryAssigned = char.armasLendarias || []
+  const [showCreate, setShowCreate] = useState(false)
+  const [showLegendaryCatalog, setShowLegendaryCatalog] = useState(false)
+  const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
   const enrichedLegendary = useMemo(() => {
     return legendaryAssigned.map(item => {
       const forge = legendaryForgeItems.find(fi => fi.id === item.sourceId)
@@ -86,9 +89,6 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
         : item
     })
   }, [legendaryAssigned, legendaryForgeItems])
-  const [showCreate, setShowCreate] = useState(false)
-  const [showLegendaryCatalog, setShowLegendaryCatalog] = useState(false)
-  const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const [showWeaponDrawer, setShowWeaponDrawer] = useState(false)
