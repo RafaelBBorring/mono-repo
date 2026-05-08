@@ -859,18 +859,20 @@ function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfi
 }
 
 const CIRCLE_BG = {
-  1: 'bg-emerald-400/8 hover:bg-emerald-400/12 border-emerald-400/15',
-  2: 'bg-sky-400/8 hover:bg-sky-400/12 border-sky-400/15',
-  3: 'bg-purple-400/8 hover:bg-purple-400/12 border-purple-400/15',
-  4: 'bg-amber-300/8 hover:bg-amber-300/12 border-amber-300/15',
+  1: 'bg-emerald-500/15 hover:bg-emerald-500/22 border-emerald-500/25',
+  2: 'bg-sky-500/15 hover:bg-sky-500/22 border-sky-500/25',
+  3: 'bg-purple-500/15 hover:bg-purple-500/22 border-purple-500/25',
+  4: 'bg-amber-400/15 hover:bg-amber-400/22 border-amber-400/25',
 }
 
 const CIRCLE_BORDER_TOP = {
-  1: 'border-t-2 border-t-emerald-400/30',
-  2: 'border-t-2 border-t-sky-400/30',
-  3: 'border-t-2 border-t-purple-400/30',
-  4: 'border-t-2 border-t-amber-300/30',
+  1: 'border-t-2 border-t-emerald-400/40',
+  2: 'border-t-2 border-t-sky-400/40',
+  3: 'border-t-2 border-t-purple-400/40',
+  4: 'border-t-2 border-t-amber-300/40',
 }
+
+const USES_ENERGIA = new Set(['spells', 'magic'])
 
 function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker }) {
   const items = (char[card.field] || []).slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name))
@@ -904,24 +906,30 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
       </div>
 
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 px-4 pb-4">
-        {items.map(ritual => (
-          <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
-            className={`relative aspect-square rounded-xl border flex flex-col items-center justify-between p-2.5 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
-            <div className="w-full flex items-start justify-between">
-              {ritual.circle && <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>}
-              {update && (
-                <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); removeRitual(ritual) } }}
-                  className="text-err/30 hover:text-err text-[10px] transition-colors leading-none">×</span>
+        {items.map(ritual => {
+          const usesEnergia = USES_ENERGIA.has(card.key)
+          return (
+            <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
+              className={`relative aspect-square rounded-xl border flex flex-col items-center justify-between p-2.5 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
+              <div className="w-full flex items-start justify-between">
+                {ritual.circle && <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>}
+                {update && (
+                  <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); removeRitual(ritual) } }}
+                    className="text-err/30 hover:text-err text-[10px] transition-colors leading-none">×</span>
+                )}
+              </div>
+              <span className="text-txt-main text-[11px] font-semibold text-center leading-tight mt-1 line-clamp-2">{ritual.name}</span>
+              <p className="text-txt-dim/60 text-[9px] text-center leading-snug mt-0.5 line-clamp-2">{ritual.short_description || ''}</p>
+              {ritual.pe_cost != null && (
+                <div className="w-full flex items-center justify-between mt-1">
+                  <span className="text-amber-300 text-[10px] font-mono">{ritual.pe_cost} PE</span>
+                  {usesEnergia && <span className="text-sky-300 text-[10px] font-mono">{ritual.pe_cost} ⚡</span>}
+                </div>
               )}
-            </div>
-            <span className="text-txt-main text-[11px] font-semibold text-center leading-tight mt-1 line-clamp-2">{ritual.name}</span>
-            <p className="text-txt-dim/60 text-[9px] text-center leading-snug mt-0.5 line-clamp-2">{ritual.short_description || ''}</p>
-            {ritual.pe_cost != null && (
-              <span className="text-amber-300 text-[10px] font-mono mt-1">{ritual.pe_cost} PE</span>
-            )}
-          </button>
-        ))}
+            </button>
+          )
+        })}
 
         {update && (
           <button type="button" onClick={onOpenPicker}
@@ -949,6 +957,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {items.map(ritual => {
                 const isActive = activeRitualId === ritual.id
+                const usesEnergia = USES_ENERGIA.has(card.key)
                 return (
                   <div key={ritual.id}
                     className={`rounded-lg border overflow-hidden transition-all duration-200 ${isActive ? (CIRCLE_BORDER_TOP[ritual.circle] || '') + ' ' + (CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]) : 'border-sep/15 bg-void/30 hover:bg-void/50'}`}>
@@ -956,7 +965,10 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all duration-150 hover:brightness-110">
                       <span className={`text-[9px] border rounded-full px-1.5 py-0.5 shrink-0 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
                       <span className="text-txt-main text-xs font-semibold truncate flex-1">{ritual.name}</span>
-                      {ritual.pe_cost != null && <span className="text-amber-300 text-[10px] font-mono shrink-0">{ritual.pe_cost} PE</span>}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-amber-300 text-[10px] font-mono">{ritual.pe_cost || 0} PE</span>
+                        {usesEnergia && <span className="text-sky-300 text-[10px] font-mono">⚡</span>}
+                      </div>
                       <span className={`text-txt-dim/30 text-[9px] transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`}>▼</span>
                     </button>
                     {isActive && (
@@ -965,6 +977,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
                         {ritual.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed">{ritual.effect}</p>}
                         <div className="flex flex-wrap gap-2 text-[10px] font-mono">
                           <span className="text-amber-300">{ritual.pe_cost || 0} PE</span>
+                          {usesEnergia && <span className="text-sky-300">{ritual.pe_cost || 0} Energia</span>}
                           <span className="text-gold">{SPACE_COST[ritual.circle] || 0} espaços</span>
                           {ritual.category && <span className="text-txt-dim">{ritual.category}</span>}
                           {ritual.duration && <span className="text-sky-300">{ritual.duration}</span>}
@@ -1000,8 +1013,10 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [circleFilter, setCircleFilter] = useState('all')
+  const [inspectId, setInspectId] = useState(null)
   const deferredSearch = useDeferredValue(search)
   const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
+  const usesEnergia = USES_ENERGIA.has(card.key)
 
   useEffect(() => {
     let active = true
@@ -1029,6 +1044,8 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
     })
   }, [library, deferredSearch, circleFilter])
 
+  const inspectedRitual = library.find(r => r.id === inspectId) || null
+
   function addRitual(ritual) {
     if (!update) return
     if (selected.some(r => r.id === ritual.id)) return
@@ -1042,76 +1059,117 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-4xl max-h-[85vh] bg-[#0a0c14] border border-sep/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      <div className="relative w-full max-w-5xl max-h-[85vh] bg-[#0a0c14] border border-sep/30 rounded-2xl shadow-2xl flex overflow-hidden"
         onClick={e => e.stopPropagation()} style={{ '--grimoire-accent': card.accent }}>
 
-        <div className="flex items-center justify-between px-5 py-4 border-b border-sep/20">
-          <div className="flex items-center gap-3">
-            <span className={`text-xl ${card.accentClass}`}>{card.icon}</span>
-            <h3 className={`font-cinzel text-sm uppercase tracking-wider font-semibold ${card.accentClass}`}>{card.title}</h3>
-          </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <span className="text-txt-dim">Espaços: <span className={spaceUsed >= profile.spaceBudget ? 'text-amber-300' : 'text-emerald-300'}>{spaceUsed}/{profile.spaceBudget}</span></span>
-            <span className="text-txt-dim">Custos: <span className="text-gold">4/6/10/15</span></span>
-          </div>
-          <button type="button" onClick={onClose} className="text-txt-dim hover:text-txt-main text-lg transition-colors">×</button>
-        </div>
-
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-sep/15">
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar ritual..."
-            className="flex-1 bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
-          <div className="flex gap-1">
-            {['all', '1', '2', '3', '4'].map(c => (
-              <button key={c} type="button" onClick={() => setCircleFilter(c)}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                  circleFilter === c ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-void border border-sep/30 text-txt-dim hover:border-sep/50'
-                }`}>
-                {c === 'all' ? 'Todos' : `${c}o`}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5">
-          {loading ? (
-            <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando biblioteca...</p>
-          ) : (
-            <div className="grimoire-card-grid">
-              {filtered.map(ritual => {
-                const isSelected = selected.some(r => r.id === ritual.id)
-                const spaceCost = SPACE_COST[ritual.circle] || 0
-                const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
-                const circleOk = ritual.circle <= profile.maxCircle
-                const disabled = isSelected || wouldExceed || !circleOk
-                const circleBg = CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]
-
-                return (
-                  <article key={ritual.id} className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''} ${circleBg} transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]`}
-                    style={{ '--grimoire-accent': card.accent }}>
-                    <div className="grimoire-entry-top">
-                      <span className={`border ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
-                      <small>{ritual.category || '—'}</small>
-                    </div>
-                    <h4 className="font-cinzel">{ritual.name}</h4>
-                    <p>{ritual.short_description || ritual.effect || '—'}</p>
-                    <div className="grimoire-entry-meta">
-                      <span>{ritual.pe_cost || 0} PE</span>
-                      <span>{spaceCost} espaços</span>
-                    </div>
-                    <button type="button" disabled={disabled}
-                      onClick={() => addRitual(ritual)}
-                      className={`transition-all duration-150 ${isSelected ? 'opacity-50 cursor-default' : 'hover:brightness-110 active:scale-95'}`}>
-                      {isSelected ? '✓ Selecionado' : 'Selecionar'}
-                    </button>
-                  </article>
-                )
-              })}
-              {filtered.length === 0 && (
-                <p className="text-txt-dim text-sm italic col-span-full text-center py-6">Nenhum ritual encontrado.</p>
-              )}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-sep/20">
+            <div className="flex items-center gap-3">
+              <span className={`text-xl ${card.accentClass}`}>{card.icon}</span>
+              <h3 className={`font-cinzel text-sm uppercase tracking-wider font-semibold ${card.accentClass}`}>{card.title}</h3>
             </div>
-          )}
+            <div className="flex items-center gap-4 text-xs font-mono">
+              <span className="text-txt-dim">Espaços: <span className={spaceUsed >= profile.spaceBudget ? 'text-amber-300' : 'text-emerald-300'}>{spaceUsed}/{profile.spaceBudget}</span></span>
+              <span className="text-txt-dim">Custos: <span className="text-gold">4/6/10/15</span></span>
+            </div>
+            <button type="button" onClick={onClose} className="text-txt-dim hover:text-txt-main text-lg transition-colors">×</button>
+          </div>
+
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-sep/15">
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar ritual..."
+              className="flex-1 bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+            <div className="flex gap-1">
+              {['all', '1', '2', '3', '4'].map(c => (
+                <button key={c} type="button" onClick={() => setCircleFilter(c)}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    circleFilter === c ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-void border border-sep/30 text-txt-dim hover:border-sep/50'
+                  }`}>
+                  {c === 'all' ? 'Todos' : `${c}o`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5">
+            {loading ? (
+              <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando biblioteca...</p>
+            ) : (
+              <div className="grimoire-card-grid">
+                {filtered.map(ritual => {
+                  const isSelected = selected.some(r => r.id === ritual.id)
+                  const spaceCost = SPACE_COST[ritual.circle] || 0
+                  const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
+                  const circleOk = ritual.circle <= profile.maxCircle
+                  const disabled = isSelected || wouldExceed || !circleOk
+                  const circleBg = CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]
+
+                  return (
+                    <article key={ritual.id}
+                      className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''} ${circleBg} transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${inspectId === ritual.id ? 'ring-1 ring-white/20' : ''}`}
+                      style={{ '--grimoire-accent': card.accent }}>
+                      <div className="grimoire-entry-top">
+                        <span className={`border ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                        <small>{ritual.category || '—'}</small>
+                      </div>
+                      <h4 className="font-cinzel">{ritual.name}</h4>
+                      <p>{ritual.short_description || ritual.effect || '—'}</p>
+                      <div className="grimoire-entry-meta">
+                        <span>{ritual.pe_cost || 0} PE</span>
+                        {usesEnergia && <span>⚡ Energia</span>}
+                        <span>{spaceCost} espaços</span>
+                      </div>
+                      <div className="flex gap-2 mt-auto">
+                        <button type="button" disabled={disabled}
+                          onClick={() => addRitual(ritual)}
+                          className={`flex-1 transition-all duration-150 ${isSelected ? 'opacity-50 cursor-default' : 'hover:brightness-110 active:scale-95'}`}>
+                          {isSelected ? '✓' : 'Selecionar'}
+                        </button>
+                        <button type="button" onClick={() => setInspectId(inspectId === ritual.id ? null : ritual.id)}
+                          className="transition-all duration-150 hover:brightness-110 active:scale-95">
+                          {inspectId === ritual.id ? '✕' : '…'}
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+                {filtered.length === 0 && (
+                  <p className="text-txt-dim text-sm italic col-span-full text-center py-6">Nenhum ritual encontrado.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {inspectedRitual && (
+          <div className="w-80 shrink-0 border-l border-sep/20 bg-[#080a12] overflow-y-auto">
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[inspectedRitual.circle] || CIRCLE_BADGE[1]}`}>{inspectedRitual.circle}o</span>
+                  <span className="text-txt-dim text-[10px]">{inspectedRitual.category || '—'}</span>
+                </div>
+                <button type="button" onClick={() => setInspectId(null)} className="text-txt-dim/50 hover:text-txt-main text-xs">×</button>
+              </div>
+              <h4 className="text-txt-main font-semibold leading-tight">{inspectedRitual.name}</h4>
+              {inspectedRitual.short_description && <p className="text-txt-dim text-xs leading-relaxed">{inspectedRitual.short_description}</p>}
+              {inspectedRitual.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed">{inspectedRitual.effect}</p>}
+              <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                <span className="text-amber-300">{inspectedRitual.pe_cost || 0} PE</span>
+                {usesEnergia && <span className="text-sky-300">{inspectedRitual.pe_cost || 0} Energia</span>}
+                <span className="text-gold">{SPACE_COST[inspectedRitual.circle] || 0} espaços</span>
+              </div>
+              {inspectedRitual.action_cost && <div className="text-[10px] font-mono text-purple-300">{inspectedRitual.action_cost}</div>}
+              {inspectedRitual.duration && <div className="text-[10px] font-mono text-sky-300">{inspectedRitual.duration}</div>}
+              {inspectedRitual.range && <div className="text-[10px] font-mono text-txt-dim">{inspectedRitual.range}</div>}
+              <button type="button"
+                disabled={selected.some(r => r.id === inspectedRitual.id)}
+                onClick={() => addRitual(inspectedRitual)}
+                className={`w-full grimoire-entry-card button mt-2 ${selected.some(r => r.id === inspectedRitual.id) ? 'opacity-50 cursor-default' : 'hover:brightness-110'}`}>
+                {selected.some(r => r.id === inspectedRitual.id) ? '✓ Selecionado' : 'Selecionar'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
