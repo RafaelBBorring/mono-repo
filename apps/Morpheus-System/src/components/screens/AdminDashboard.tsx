@@ -83,7 +83,22 @@ export default function AdminDashboard() {
               setPrefillData({});
               setShowNewModal(true);
             }}
-            className="!bg-gradient-to-r !from-[var(--accent-lavender)] !to-[var(--accent-sky)] !text-white !border-0 !font-bold !shadow-lg !shadow-[var(--accent-lavender)]/20"
+            className="!text-white !border-0 !font-bold !shadow-lg !shadow-[var(--accent-lavender)]/20"
+            style={{
+              background: isDark
+                ? "linear-gradient(to right, var(--accent-lavender), var(--accent-sky))"
+                : "linear-gradient(to right, #241f1b, #3f342c)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark
+                ? "linear-gradient(to right, var(--accent-lavender), var(--accent-sky))"
+                : "linear-gradient(to right, #15110f, #2d251f)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isDark
+                ? "linear-gradient(to right, var(--accent-lavender), var(--accent-sky))"
+                : "linear-gradient(to right, #241f1b, #3f342c)";
+            }}
           >
             <Plus size={16} />
             Nova Reserva
@@ -129,8 +144,12 @@ export default function AdminDashboard() {
       </div>
 
       <div className="flex-1 px-4 md:px-5 pb-6 overflow-x-auto">
-        <div className="grid gap-px min-w-[750px]" style={{ gridTemplateColumns: "90px repeat(7, minmax(100px, 1fr))" }}>
-          <div />
+        <div className="grid gap-px min-w-[860px]" style={{ gridTemplateColumns: "124px repeat(7, minmax(120px, 1fr))" }}>
+          <div className="p-2 flex items-end">
+            <span className="font-body text-xs text-[var(--text-muted)] tracking-wider uppercase">
+              Salas
+            </span>
+          </div>
           {weekDays.map((dd) => (
             <div key={dd.iso} className="p-2 text-center">
               <p
@@ -160,12 +179,20 @@ export default function AdminDashboard() {
 
             return (
               <Fragment key={room.id}>
-                <div className="flex items-start gap-2 p-2 border-t border-[var(--border-subtle)]">
+                <div
+                  className="sticky left-0 z-10 flex items-center gap-2 p-3 border-t border-[var(--border-subtle)] bg-[var(--bg-primary)]"
+                  style={{
+                    boxShadow: "8px 0 18px rgba(0,0,0,0.08)",
+                  }}
+                >
                   <div
-                    className="w-4 h-4 rounded-full mt-1 flex-shrink-0"
+                    className="w-4 h-4 rounded-full flex-shrink-0"
                     style={{ background: roomColor }}
                   />
-                  <span className="font-body text-sm text-[var(--text-muted)] font-medium">
+                  <span
+                    className="font-body text-sm font-bold"
+                    style={{ color: roomColor }}
+                  >
                     {room.name}
                   </span>
                 </div>
@@ -178,7 +205,7 @@ export default function AdminDashboard() {
                   return (
                     <div
                       key={`${room.id}-${dd.iso}`}
-                      className="border-t border-l border-[var(--border-subtle)] p-2 min-h-[90px] cursor-pointer transition-colors relative group"
+                      className="border-t border-l border-[var(--border-subtle)] p-2 min-h-[112px] cursor-pointer transition-colors relative group"
                       style={{
                         background: dd.isToday
                           ? `rgba(${roomRgb},${isDark ? 0.035 : 0.06})`
@@ -218,7 +245,7 @@ export default function AdminDashboard() {
                               e.stopPropagation();
                               setDetailRes(r);
                             }}
-                            className="w-full mb-1 px-2 py-1.5 rounded-md cursor-pointer text-left transition-all"
+                            className="w-full mb-1.5 p-2 rounded-lg cursor-pointer text-left transition-all grid grid-cols-[48px_1fr] gap-2 items-center"
                             style={{
                               background: `rgba(${psychRgb},${isDark ? 0.17 : 0.09})`,
                               border: `1px solid rgba(${psychRgb},${isDark ? 0.32 : 0.2})`,
@@ -230,20 +257,26 @@ export default function AdminDashboard() {
                               e.currentTarget.style.background = `rgba(${psychRgb},${isDark ? 0.17 : 0.09})`;
                             }}
                           >
-                            <p
-                              className="font-body text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis"
-                              style={{ color: psychColor }}
-                            >
-                              {psych.shortName}
-                            </p>
-                            <p
-                              className="font-body text-[10px]"
+                            <span
+                              className="h-10 rounded-lg flex items-center justify-center font-body text-xs font-bold"
                               style={{
-                                color: `rgba(${psychRgb},${isDark ? 0.62 : 0.78})`,
+                                color: psychColor,
+                                background: `rgba(${psychRgb},${isDark ? 0.16 : 0.08})`,
                               }}
                             >
-                              {r.startTime}-{r.endTime}
-                            </p>
+                              {r.startTime}
+                            </span>
+                            <span className="min-w-0">
+                              <span
+                                className="block font-body text-xs font-bold whitespace-nowrap overflow-hidden text-ellipsis"
+                                style={{ color: psychColor }}
+                              >
+                                {psych.shortName}
+                              </span>
+                              <span className="block font-body text-[11px] text-[var(--text-soft)]">
+                                {r.startTime} - {r.endTime}
+                              </span>
+                            </span>
                           </button>
                         );
                       })}

@@ -152,9 +152,19 @@ export default function PsychDashboard() {
             onClick={() => reserveInContext(selectedRoom ?? undefined, selectedDate)}
             className="!text-white !border-0 !font-bold !shadow-lg"
             style={{
-              backgroundImage: isDark
+              background: isDark
                 ? `linear-gradient(to right, ${psychColor}, var(--accent-sky))`
                 : "linear-gradient(to right, #241f1b, #3f342c)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark
+                ? `linear-gradient(to right, ${psychColor}, var(--accent-sky))`
+                : "linear-gradient(to right, #15110f, #2d251f)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isDark
+                ? `linear-gradient(to right, ${psychColor}, var(--accent-sky))`
+                : "linear-gradient(to right, #241f1b, #3f342c)";
             }}
           >
             <CalendarDays size={16} />
@@ -669,15 +679,18 @@ function ReservationCard({
   onClick: () => void;
 }) {
   const room = ROOMS.find((rm) => rm.id === reservation.roomId);
+  const psych = PSYCHOLOGISTS.find((ps) => ps.id === reservation.psychId);
   if (!room) return null;
 
   const color = themeHex(room, isDark);
   const rgb = themeRgb(room, isDark);
+  const psychColor = psych ? themeHex(psych, isDark) : color;
+  const psychRgb = psych ? themeRgb(psych, isDark) : rgb;
 
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-xl p-3 text-left transition-all hover:translate-y-[-1px]"
+      className="w-full flex items-center gap-3 rounded-xl p-3 text-left transition-all hover:translate-y-[-1px] min-h-[78px]"
       style={{
         background: `rgba(${rgb},${isDark ? 0.08 : 0.055})`,
         border: `1px solid rgba(${rgb},${isDark ? 0.16 : 0.14})`,
@@ -695,13 +708,41 @@ function ReservationCard({
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-body text-base text-[var(--text-primary)] font-semibold">
-          {room.name}
-        </p>
-        <p className="font-body text-sm text-[var(--text-muted)] truncate">
-          {!compact ? `${reservation.startTime} - ${reservation.endTime}` : formatShortDate(reservation.date)}
-          {reservation.notes ? ` · ${reservation.notes}` : ""}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-body text-base text-[var(--text-primary)] font-semibold leading-tight">
+              {room.name}
+            </p>
+            <p className="font-body text-sm text-[var(--text-muted)] leading-tight">
+              {formatShortDate(reservation.date)}
+            </p>
+          </div>
+          <span
+            className="hidden sm:block font-body text-sm font-bold text-right truncate max-w-[45%]"
+            style={{ color: psychColor }}
+          >
+            {psych?.shortName || "Reservado"}
+          </span>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span
+            className="font-body text-sm font-bold"
+            style={{ color: `rgba(${psychRgb},${isDark ? 0.92 : 0.86})` }}
+          >
+            {reservation.startTime} - {reservation.endTime}
+          </span>
+          <span
+            className="sm:hidden font-body text-sm font-semibold truncate"
+            style={{ color: psychColor }}
+          >
+            {psych?.shortName || "Reservado"}
+          </span>
+          {reservation.notes && !compact && (
+            <span className="font-body text-sm text-[var(--text-muted)] truncate">
+              {reservation.notes}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
