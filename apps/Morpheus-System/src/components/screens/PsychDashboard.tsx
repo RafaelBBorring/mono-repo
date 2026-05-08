@@ -152,7 +152,9 @@ export default function PsychDashboard() {
             onClick={() => reserveInContext(selectedRoom ?? undefined, selectedDate)}
             className="!text-white !border-0 !font-bold !shadow-lg"
             style={{
-              backgroundImage: `linear-gradient(to right, ${psychColor}, var(--accent-sky))`,
+              backgroundImage: isDark
+                ? `linear-gradient(to right, ${psychColor}, var(--accent-sky))`
+                : "linear-gradient(to right, #241f1b, #3f342c)",
             }}
           >
             <CalendarDays size={16} />
@@ -314,16 +316,6 @@ export default function PsychDashboard() {
         ) : (
           <div className="flex-1 flex flex-col lg:flex-row min-h-[calc(100vh-86px)]">
             <aside className="lg:w-[390px] border-r border-[var(--border-subtle)] p-4 md:p-5 overflow-y-auto flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedRoom(null)}
-                className="mb-5 w-full !justify-start"
-              >
-                <PanelLeftOpen size={16} />
-                Ver todas as salas
-              </Button>
-
               <div className="flex justify-between items-center mb-4">
                 <button
                   onClick={() => setCalMonth(subMonths(calMonth, 1))}
@@ -416,15 +408,6 @@ export default function PsychDashboard() {
             <section className="flex-1 p-4 md:p-6 overflow-y-auto">
               <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
                 <div className="flex flex-col gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedRoom(null)}
-                    className="w-fit"
-                  >
-                    <PanelLeftOpen size={16} />
-                    Ver salas
-                  </Button>
                   <div className="flex items-center gap-3">
                     <div
                       className="w-12 h-12 rounded-2xl flex items-center justify-center font-body font-bold"
@@ -481,6 +464,23 @@ export default function PsychDashboard() {
                 />
               )}
             </section>
+
+            <button
+              onClick={() => setSelectedRoom(null)}
+              className="fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 rounded-2xl px-4 py-3 font-body text-sm font-bold shadow-2xl transition-all hover:translate-y-[-2px] focus:outline-none focus:ring-2 focus:ring-[var(--accent-lavender)]"
+              style={{
+                color: isDark ? "var(--text-primary)" : "#ffffff",
+                background: isDark
+                  ? "rgba(18,14,35,0.96)"
+                  : "linear-gradient(135deg, #241f1b, #3f342c)",
+                border: isDark
+                  ? "1px solid var(--border-medium)"
+                  : "1px solid rgba(36,31,27,0.2)",
+              }}
+            >
+              <PanelLeftOpen size={18} />
+              Ver salas
+            </button>
           </div>
         )}
       </main>
