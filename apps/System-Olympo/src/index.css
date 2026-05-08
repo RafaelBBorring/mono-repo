@@ -97,48 +97,15 @@ button:active:not(:disabled) {
     transition: color 500ms ease;
   }
 
-  .level-slider-input {
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-    cursor: pointer;
-    margin: 0;
-    outline: none;
-    z-index: 1;
-    height: 6px;
-  }
-
-  .level-slider-input::-webkit-slider-thumb {
-    -webkit-appearance: none;
+  .level-slider-handle {
     width: 16px;
     height: 16px;
     border-radius: 50%;
     background: #fff;
-    border: none;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    top: 50%;
+    transform: translateY(-50%);
     cursor: grab;
-    margin-top: -5px;
-  }
-
-  .level-slider-input::-webkit-slider-runnable-track {
-    height: 6px;
-    background: transparent;
-  }
-
-  .level-slider-input::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #fff;
-    border: none;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-    cursor: grab;
-  }
-
-  .level-slider-input::-moz-range-track {
-    height: 6px;
-    background: transparent;
-    border: none;
   }
 
   .codex-border-accent {

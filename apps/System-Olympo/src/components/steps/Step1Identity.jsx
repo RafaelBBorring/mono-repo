@@ -1,9 +1,11 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import { ARRAYS } from '../../data/attributes'
 import AvatarCropper from '../AvatarCropper'
 
 export default function Step1Identity({ char, update }) {
+  const trackRef = useRef(null)
   const fillRef = useRef(null)
+  const dragging = useRef(false)
   const availableTypes = Object.keys(ARRAYS)
   const currentArray = ARRAYS[char.arrayTipo] || ARRAYS.Balanceado
 
@@ -14,9 +16,16 @@ export default function Step1Identity({ char, update }) {
     return '#f87171'
   }, [])
 
-  const handleSlide = useCallback((e) => {
-    const raw = Number(e.target.value)
-    const val = Math.round(raw)
+  const calcFromX = useCallback((clientX) => {
+    const track = trackRef.current
+    if (!track) return char.nivel
+    const rect = track.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const val = Math.round(pct * 29) + 1
+    return Math.max(1, Math.min(30, val))
+  }, [char.nivel])
+
+  const applyValue = useCallback((val) => {
     const pct = ((val - 1) / 29) * 100
     if (fillRef.current) {
       fillRef.current.style.width = `${pct}%`
@@ -24,6 +33,32 @@ export default function Step1Identity({ char, update }) {
     }
     update({ nivel: val })
   }, [update, tierColor])
+
+  const onPointerDown = useCallback((e) => {
+    e.preventDefault()
+    dragging.current = true
+    e.target.setPointerCapture?.(e.pointerId)
+    const val = calcFromX(e.clientX)
+    applyValue(val)
+  }, [calcFromX, applyValue])
+
+  const onPointerMove = useCallback((e) => {
+    if (!dragging.current) return
+    const val = calcFromX(e.clientX)
+    applyValue(val)
+  }, [calcFromX, applyValue])
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = false
+  }, [])
+
+  useEffect(() => {
+    const onMove = (e) => { if (dragging.current) { const val = calcFromX(e.clientX); applyValue(val) } }
+    const onUp = () => { dragging.current = false }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp) }
+  }, [calcFromX, applyValue])
 
   return (
     <div className="space-y-6">
@@ -81,12 +116,13 @@ export default function Step1Identity({ char, update }) {
       <div className="codex-card p-5 space-y-4">
         <label className="block text-outline text-sm font-mono uppercase tracking-wider" style={{ fontSize: '11px' }}>Nível da Campanha</label>
         <div className="flex items-center gap-4">
-          <div className="flex-1 relative h-6 flex items-center">
+          <div ref={trackRef} className="flex-1 relative h-6 flex items-center cursor-pointer"
+            onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
             <div className="absolute inset-x-0 h-[6px] rounded-full bg-white/[0.08]" />
-            <div ref={fillRef} className="absolute left-0 h-[6px] rounded-full level-slider-fill"
+            <div ref={fillRef} className="absolute left-0 h-[6px] rounded-full level-slider-fill pointer-events-none"
               style={{ width: `${((char.nivel - 1) / 29) * 100}%`, backgroundColor: tierColor(char.nivel) }} />
-            <input type="range" min={1} max={30} step={0.1} value={char.nivel} onInput={handleSlide}
-              className="level-slider-input absolute inset-0 w-full" />
+            <div className="absolute level-slider-handle pointer-events-none"
+              style={{ left: `calc(${((char.nivel - 1) / 29) * 100}% - 8px)` }} />
           </div>
           <input type="number" min={1} max={30} value={char.nivel} onChange={(e) => update({ nivel: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })}
             className="w-14 bg-surface-container border border-outline/30 text-on-surface focus:border-primary rounded px-2 py-1.5 text-center font-mono text-sm" />
