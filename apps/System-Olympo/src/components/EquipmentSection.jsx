@@ -356,21 +356,8 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
         {image ? <img src={image} alt="" className="w-full h-full object-cover" /> : <span>ARM</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-txt-main text-sm font-semibold truncate">{displayName || weapon.name}</span>
-        <div className="flex items-center gap-3 mt-1 text-xs">
-          <span className="text-red-400/90 font-mono">Dano {weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
-          <span className="text-txt-dim/60">{weapon.attr}</span>
-          {habilidades.length > 0 && <span className="text-gold/60">{habilidades.length} hab.</span>}
-        </div>
-        {triagemBonus.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {triagemBonus.map((b, i) => (
-              <span key={i} className={`text-[9px] ${b.color} bg-void/60 px-1.5 py-0.5 rounded border border-current/20 font-mono`}>
-                {b.label}
-              </span>
-            ))}
-          </div>
-        )}
+        <span className="text-txt-main text-sm font-semibold truncate block">{displayName || weapon.name}</span>
+        <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
       </div>
     </button>
   )
@@ -687,25 +674,8 @@ function EquipCard({ item, onClick }) {
         {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span>{isWeapon ? 'ARM' : 'EQP'}</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-txt-main text-sm font-semibold truncate">{item.nome || 'Equipamento'}</span>
-        <div className="flex items-center gap-3 mt-1 text-xs">
-          <span className={isLegendaryItem ? 'text-lime-300/80' : 'text-txt-dim/60'}>{isLegendaryItem ? 'Arma Lendária' : item.categoria || 'Equipamento'}</span>
-          {item.dano && <span className="text-red-400/80 font-mono">{item.dano}</span>}
-          {item.categoria === 'Equipamento' && equipType && rarity && (
-            <span className="text-primary/80 font-mono">ARM {equipType.caBase + rarity.armorBonus}</span>
-          )}
-          {((item.habilidades || []).length > 0 || (item.equipHabilidades || []).length > 0) && (
-            <span className="text-gold/60">{(item.habilidades || []).length + (item.equipHabilidades || []).length} hab.</span>
-          )}
-        </div>
-        {item.categoria === 'Equipamento' && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {item.equipado && <span className="text-[9px] text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-1.5 py-0.5 rounded">equipado</span>}
-            {equipType?.slot && <span className="text-[9px] text-txt-dim/60 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{equipType.slot}</span>}
-            {armorType && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${armorType.badgeClass}`}>{armorType.label}</span>}
-          </div>
-        )}
-        {item.efeitos && <p className="text-txt-dim/55 text-[10px] mt-1 truncate">{item.efeitos}</p>}
+        <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Equipamento'}</span>
+        {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}</span>}
       </div>
     </button>
   )
