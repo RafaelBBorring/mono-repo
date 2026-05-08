@@ -21,6 +21,7 @@ import {
   Eye,
   LayoutList,
   LogOut,
+  PanelLeftOpen,
 } from "lucide-react";
 import {
   addMonths,
@@ -313,12 +314,15 @@ export default function PsychDashboard() {
         ) : (
           <div className="flex-1 flex flex-col lg:flex-row min-h-[calc(100vh-86px)]">
             <aside className="lg:w-[390px] border-r border-[var(--border-subtle)] p-4 md:p-5 overflow-y-auto flex-shrink-0">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setSelectedRoom(null)}
-                className="font-body text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mb-5"
+                className="mb-5 w-full !justify-start"
               >
-                Voltar para salas
-              </button>
+                <PanelLeftOpen size={16} />
+                Ver todas as salas
+              </Button>
 
               <div className="flex justify-between items-center mb-4">
                 <button
@@ -411,27 +415,38 @@ export default function PsychDashboard() {
 
             <section className="flex-1 p-4 md:p-6 overflow-y-auto">
               <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center font-body font-bold"
-                    style={{
-                      color: selectedRoomColor,
-                      background: `rgba(${selectedRoomRgb},${isDark ? 0.14 : 0.08})`,
-                      border: `1px solid rgba(${selectedRoomRgb},${isDark ? 0.24 : 0.16})`,
-                    }}
+                <div className="flex flex-col gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedRoom(null)}
+                    className="w-fit"
                   >
-                    {String(selectedRoomData.id).padStart(2, "0")}
-                  </div>
-                  <div>
-                    <h2
-                      className="font-display text-3xl font-light"
-                      style={{ color: selectedRoomColor }}
+                    <PanelLeftOpen size={16} />
+                    Ver salas
+                  </Button>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center font-body font-bold"
+                      style={{
+                        color: selectedRoomColor,
+                        background: `rgba(${selectedRoomRgb},${isDark ? 0.14 : 0.08})`,
+                        border: `1px solid rgba(${selectedRoomRgb},${isDark ? 0.24 : 0.16})`,
+                      }}
                     >
-                      {selectedRoomData.name}
-                    </h2>
-                    <p className="font-body text-sm text-[var(--text-muted)] capitalize">
-                      {selectedDateFormatted}
-                    </p>
+                      {String(selectedRoomData.id).padStart(2, "0")}
+                    </div>
+                    <div>
+                      <h2
+                        className="font-display text-3xl font-light"
+                        style={{ color: selectedRoomColor }}
+                      >
+                        {selectedRoomData.name}
+                      </h2>
+                      <p className="font-body text-sm text-[var(--text-muted)] capitalize">
+                        {selectedDateFormatted}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
