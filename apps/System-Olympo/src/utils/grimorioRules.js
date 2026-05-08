@@ -1,4 +1,4 @@
-import { GRIMORIO_TIERS } from '../data/grimorios'
+import { GRIMORIO_TIERS, MIN_LEVEL_FOR_CIRCLE } from '../data/grimorios'
 
 export function getGrimorioAccessTier(char, knowledgeKey) {
   const attrs = char.atributos || {}
@@ -62,4 +62,49 @@ export function getScoreForDisplay(char, knowledgeKey) {
   }
   const poderGrade = pericias.Poder || 0
   return Math.floor((am * 1.5) + (int * 1.0) + (poderGrade * 8) + (nivel * 0.5))
+}
+
+export function getGrimorioMaxRituals(grimorio) {
+  if (grimorio.tier === 'custom') return grimorio.maxRituals || 4
+  const tier = GRIMORIO_TIERS.find(t => t.id === grimorio.tier)
+  return tier?.maxRituals || 6
+}
+
+export function getGrimorioMaxCircle(grimorio) {
+  return grimorio.maxCircle || 2
+}
+
+export function canAddRitualToGrimorio(grimorio, currentRituals, ritual) {
+  const maxRituals = getGrimorioMaxRituals(grimorio)
+  const maxCircle = getGrimorioMaxCircle(grimorio)
+  const count = currentRituals.filter(r => (r.grimorioId || null) === grimorio.id).length
+
+  if (count >= maxRituals) {
+    return { allowed: false, reason: `Este grimório comporta no máximo ${maxRituals} rituais.` }
+  }
+  if (ritual.circle > maxCircle) {
+    return { allowed: false, reason: `Este grimório suporta círculos até ${maxCircle}o.` }
+  }
+  return { allowed: true }
+}
+
+export function canCreateRitualAtCircle(char, circle) {
+  const nivel = char.nivel || 1
+  const minLevel = MIN_LEVEL_FOR_CIRCLE[circle] || 1
+  if (nivel < minLevel) {
+    return { allowed: false, reason: `Nível ${minLevel} necessário para rituais de ${circle}o círculo.` }
+  }
+  return { allowed: true }
+}
+
+export function getAvailableCirclesForChar(char, grimorio) {
+  const nivel = char.nivel || 1
+  const maxCircle = getGrimorioMaxCircle(grimorio)
+  const circles = []
+  for (let c = 1; c <= maxCircle; c++) {
+    if (nivel >= (MIN_LEVEL_FOR_CIRCLE[c] || 1)) {
+      circles.push(c)
+    }
+  }
+  return circles
 }

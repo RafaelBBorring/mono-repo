@@ -134,3 +134,28 @@ export async function deleteMysticEntry(id) { return deleteAlchemyRitual(id) }
 export function getFallbackLibraryForType(ritualType) {
   return FALLBACK_BY_TYPE[ritualType] || []
 }
+
+// ─── Grimorios ────────────────────────────────────────────
+export async function fetchGrimorios(characterId) {
+  if (!characterId) return { data: [], source: 'local', error: null }
+  const { data, error } = await supabase
+    .from('grimorios')
+    .select('*')
+    .eq('character_id', characterId)
+    .order('created_at', { ascending: true })
+
+  if (error) return { data: [], source: 'local', error }
+  return { data: data || [], source: 'database', error: null }
+}
+
+export async function saveGrimorio(payload) {
+  return getSupabaseAdmin()
+    .from('grimorios')
+    .upsert(payload)
+    .select()
+    .single()
+}
+
+export async function deleteGrimorio(id) {
+  return getSupabaseAdmin().from('grimorios').delete().eq('id', id)
+}

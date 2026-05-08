@@ -1,7 +1,7 @@
 export const GRIMORIO_TIERS = [
-  { id: 'iniciante', name: 'Grimório de Iniciante', complexity: 1, minCircle: 1, maxCircle: 2 },
-  { id: 'avancado', name: 'Grimório Avançado', complexity: 2, minCircle: 1, maxCircle: 3 },
-  { id: 'mestre', name: 'Grimório de Mestre', complexity: 3, minCircle: 1, maxCircle: 4 },
+  { id: 'iniciante', name: 'Grimório de Iniciante', complexity: 1, minCircle: 1, maxCircle: 2, maxRituals: 6 },
+  { id: 'avancado', name: 'Grimório Avançado', complexity: 2, minCircle: 1, maxCircle: 3, maxRituals: 10 },
+  { id: 'mestre', name: 'Grimório de Mestre', complexity: 3, minCircle: 1, maxCircle: 4, maxRituals: 14 },
 ]
 
 export const GRIMORIO_TYPES = ['alchemy', 'spells', 'runes', 'magic']
@@ -26,3 +26,5 @@ export const GRIMORIO_DEFAULT_IMAGES = {
   runes: '',
   magic: '',
 }
+
+export const MIN_LEVEL_FOR_CIRCLE = { 1: 1, 2: 5, 3: 11, 4: 18 }
