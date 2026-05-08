@@ -2770,11 +2770,30 @@ button:active:not(:disabled) {
   width: 100%;
   padding: 0.7rem 1rem;
   text-align: left;
+  cursor: pointer;
   transition: background 160ms ease;
 }
 
 .legendary-weapon-collapse-header:hover {
   background: rgba(190, 242, 100, 0.04);
+}
+
+.legendary-weapon-expand-btn {
+  flex: 0 0 auto;
+  border: 1px solid rgba(190, 242, 100, 0.15);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(190, 242, 100, 0.4);
+  font-size: 0.7rem;
+  padding: 0.2rem 0.35rem;
+  line-height: 1;
+}
+
+.legendary-weapon-expand-btn:hover {
+  border-color: rgba(190, 242, 100, 0.4);
+  color: rgba(190, 242, 100, 0.7);
+  background: rgba(190, 242, 100, 0.08);
+  transform: none;
 }
 
 .legendary-weapon-thumb {

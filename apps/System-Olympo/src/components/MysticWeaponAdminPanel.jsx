@@ -586,12 +586,12 @@ export default function MysticWeaponAdminPanel() {
               const totalSkills = item.habilidades.passivas.length + item.habilidades.ativas.length + item.habilidades.ultimates.length
               return (
                 <div key={item.id} className={`legendary-weapon-collapsible ${selectedId === item.id ? 'is-selected' : ''}`}>
-                  <button type="button" onClick={() => toggleExpand(item.id)}
+                  <div role="button" tabIndex={0} onClick={() => selectItem(item)}
                     className="legendary-weapon-collapse-header">
                     <div className="legendary-weapon-thumb">
                       {item.image ? <img src={item.image} alt="" /> : <span className="font-cinzel text-[9px]">L</span>}
                     </div>
-                    <div className="flex-1 min-w-0 text-left">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <strong className="font-cinzel truncate">{item.name}</strong>
                         <span className={rankColor.badge}>Lendária</span>
@@ -609,8 +609,11 @@ export default function MysticWeaponAdminPanel() {
                         )}
                       </div>
                     </div>
-                    <span className={`text-lime-300/40 text-[10px] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>▼</span>
-                  </button>
+                    <button type="button" onClick={e => { e.stopPropagation(); toggleExpand(item.id) }}
+                      className="legendary-weapon-expand-btn" title="Detalhes">
+                      <span className={`inline-block transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>▾</span>
+                    </button>
+                  </div>
                   {expanded && (
                     <div className="legendary-weapon-collapse-body">
                       <p className="text-txt-dim text-[12px] leading-relaxed">{item.effect || 'Sem descrição.'}</p>
@@ -627,10 +630,6 @@ export default function MysticWeaponAdminPanel() {
                           ))}
                         </div>
                       )}
-                      <button type="button" onClick={() => selectItem(item)}
-                        className="mt-2 text-[10px] border border-lime-300/25 text-lime-300 px-3 py-1 rounded hover:bg-lime-300/10 transition-colors">
-                        Editar
-                      </button>
                     </div>
                   )}
                 </div>
