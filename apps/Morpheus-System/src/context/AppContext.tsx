@@ -167,6 +167,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useApp() {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used within AppProvider");
+  if (!ctx) {
+    return {
+      view: "splash" as AppView,
+      activePsych: null,
+      reservations: [],
+      setView: () => {},
+      setActivePsych: () => {},
+      addReservation: () => {},
+      updateReservation: () => {},
+      deleteReservation: () => {},
+      removeReservation: () => {},
+      validateAdminPin: (() => false) as (pin: string) => boolean,
+      theme: "dark" as Theme,
+      toggleTheme: () => {},
+      setTheme: (() => {}) as (t: Theme) => void,
+      toasts: [] as Toast[],
+      addToast: () => {},
+      removeToast: () => {},
+    } as unknown as AppContextType;
+  }
   return ctx;
 }
