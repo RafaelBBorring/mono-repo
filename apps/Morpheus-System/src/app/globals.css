@@ -10,12 +10,49 @@
   padding: 0;
 }
 
+:root {
+  /* Dark theme (default) */
+  --bg-primary: #06040f;
+  --bg-surface: rgba(10, 7, 24, 0.98);
+  --text-primary: #f0ede8;
+  --text-muted: rgba(240, 237, 232, 0.4);
+  --border-subtle: rgba(196, 181, 253, 0.04);
+  --border-light: rgba(196, 181, 253, 0.14);
+  --border-medium: rgba(196, 181, 253, 0.2);
+  --scrollbar-thumb: rgba(196, 181, 253, 0.2);
+  --placeholder-text: rgba(240, 237, 232, 0.16);
+  --accent-lavender: #c4b5fd;
+  --accent-sky: #7dd3fc;
+  --accent-rose: #fda4af;
+  --accent-mint: #6ee7b7;
+}
+
+html.light {
+  /* Light theme */
+  --bg-primary: #f5f3f0;
+  --bg-surface: rgba(255, 255, 255, 0.95);
+  --text-primary: #2d2622;
+  --text-muted: rgba(45, 38, 34, 0.5);
+  --border-subtle: rgba(45, 38, 34, 0.04);
+  --border-light: rgba(45, 38, 34, 0.12);
+  --border-medium: rgba(45, 38, 34, 0.18);
+  --scrollbar-thumb: rgba(45, 38, 34, 0.15);
+  --placeholder-text: rgba(45, 38, 34, 0.25);
+  /* Darker versions of psychologist colors for light theme */
+  --accent-lavender: #7c5fb8;
+  --accent-sky: #0284c7;
+  --accent-rose: #be185d;
+  --accent-mint: #059669;
+}
+
 html,
 body {
   width: 100%;
   min-height: 100vh;
-  background: #06040f;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 ::-webkit-scrollbar {
@@ -24,19 +61,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(196, 181, 253, 0.2);
+  background: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(240, 237, 232, 0.16);
+  color: var(--placeholder-text);
 }
 
 input,
 textarea,
 select {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 button {
@@ -45,5 +82,5 @@ button {
 
 ::selection {
   background: rgba(196, 181, 253, 0.3);
-  color: #f0ede8;
+  color: var(--text-primary);
 }

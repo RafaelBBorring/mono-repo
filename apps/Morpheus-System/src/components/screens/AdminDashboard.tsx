@@ -9,6 +9,7 @@ import {
   WEEKDAYS,
 } from "@/lib/data";
 import Button from "@/components/ui/Button";
+import ThemeToggle from "@/components/ThemeToggle";
 import NewReservationModal from "@/components/modals/NewReservationModal";
 import ReservationDetailModal from "@/components/modals/ReservationDetailModal";
 import { useGsapFadeIn } from "@/lib/gsap";
@@ -31,7 +32,7 @@ import {
 } from "date-fns";
 
 export default function AdminDashboard() {
-  const { reservations, setView } = useApp();
+  const { reservations, setView, theme } = useApp();
   const [weekOffset, setWeekOffset] = useState(0);
   const [showNewModal, setShowNewModal] = useState(false);
   const [prefillData, setPrefillData] = useState<Partial<Reservation>>({});
@@ -59,18 +60,20 @@ export default function AdminDashboard() {
     MONTHS[new Date(weekDays[6].iso).getMonth()]
   }`;
 
+  const isDark = theme === "dark";
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Header */}
       <header
         ref={headerRef}
-        className="p-4 md:p-5 flex flex-wrap justify-between items-center gap-4 border-b border-white/[0.04] flex-shrink-0"
+        className="p-4 md:p-5 flex flex-wrap justify-between items-center gap-4 border-b border-[var(--border-subtle)] flex-shrink-0"
       >
         <div>
-          <h1 className="font-display text-xl md:text-2xl text-morpheus-text font-light tracking-wider">
+          <h1 className="font-display text-xl md:text-2xl text-[var(--text-primary)] font-light tracking-wider">
             MORPHEUS
           </h1>
-          <p className="font-body text-sm text-[rgba(196,181,253,0.45)] tracking-wider mt-0.5">
+          <p className="font-body text-sm text-[var(--text-muted)] tracking-wider mt-0.5">
             Painel Administrativo
           </p>
         </div>
@@ -85,10 +88,12 @@ export default function AdminDashboard() {
               setPrefillData({});
               setShowNewModal(true);
             }}
+            className="!bg-gradient-to-r !from-[var(--accent-lavender)] !to-[var(--accent-sky)] !text-white !border-0 !font-bold !shadow-lg !shadow-[var(--accent-lavender)]/20"
           >
             <Plus size={16} />
             Nova Reserva
           </Button>
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="sm"
@@ -101,26 +106,26 @@ export default function AdminDashboard() {
       </header>
 
       {/* Week navigation */}
-      <div className="p-4 md:p-5 flex items-center gap-3 flex-shrink-0">
+      <div className="p-4 md:p-5 flex items-center gap-3 flex-shrink-0 border-b border-[var(--border-subtle)]">
         <button
           onClick={() => setWeekOffset((w) => w - 1)}
-          className="w-9 h-9 rounded-lg flex items-center justify-center border border-[rgba(196,181,253,0.14)] bg-transparent text-[rgba(196,181,253,0.6)] cursor-pointer hover:bg-[rgba(196,181,253,0.1)] transition-colors"
+          className="w-9 h-9 rounded-lg flex items-center justify-center border border-[var(--border-light)] bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-surface)] transition-colors"
         >
           <ChevronLeft size={18} />
         </button>
-        <span className="font-body text-base text-morpheus-text min-w-[180px] text-center font-medium">
+        <span className="font-body text-base text-[var(--text-primary)] min-w-[180px] text-center font-medium">
           {weekLabel}
         </span>
         <button
           onClick={() => setWeekOffset((w) => w + 1)}
-          className="w-9 h-9 rounded-lg flex items-center justify-center border border-[rgba(196,181,253,0.14)] bg-transparent text-[rgba(196,181,253,0.6)] cursor-pointer hover:bg-[rgba(196,181,253,0.1)] transition-colors"
+          className="w-9 h-9 rounded-lg flex items-center justify-center border border-[var(--border-light)] bg-transparent text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-surface)] transition-colors"
         >
           <ChevronRight size={18} />
         </button>
         {weekOffset !== 0 && (
           <button
             onClick={() => setWeekOffset(0)}
-            className="bg-transparent border-none text-[rgba(196,181,253,0.36)] cursor-pointer font-body text-sm px-2 hover:text-[rgba(196,181,253,0.6)] transition-colors"
+            className="bg-transparent border-none text-[var(--text-muted)] cursor-pointer font-body text-sm px-2 hover:text-[var(--text-primary)] transition-colors"
           >
             Hoje
           </button>
@@ -137,7 +142,7 @@ export default function AdminDashboard() {
               <p
                 className="font-body text-xs tracking-wider"
                 style={{
-                  color: dd.isToday ? "#c4b5fd" : "rgba(240,237,232,0.26)",
+                  color: dd.isToday ? "var(--accent-lavender)" : "var(--text-muted)",
                 }}
               >
                 {dd.name}
@@ -146,7 +151,7 @@ export default function AdminDashboard() {
                 className="inline-flex items-center justify-center w-9 h-9 mt-1 rounded-lg font-body text-lg"
                 style={{
                   background: dd.isToday ? "rgba(196,181,253,0.15)" : "none",
-                  color: dd.isToday ? "#c4b5fd" : "rgba(240,237,232,0.7)",
+                  color: dd.isToday ? "var(--accent-lavender)" : "var(--text-primary)",
                   fontWeight: dd.isToday ? 600 : 300,
                 }}
               >
@@ -161,13 +166,16 @@ export default function AdminDashboard() {
               {/* Room label */}
               <div
                 key={`label-${room.id}`}
-                className="flex items-start gap-2 p-2 border-t border-white/[0.04]"
+                className="flex items-start gap-2 p-2 border-t border-[var(--border-subtle)]"
               >
                 <div
                   className="w-4 h-4 rounded-full mt-1 flex-shrink-0"
-                  style={{ background: room.hex }}
+                  style={{
+                    background: isDark ? room.hex : room.hex,
+                    opacity: isDark ? 1 : 0.7,
+                  }}
                 />
-                <span className="font-body text-sm text-morpheus-muted font-medium">
+                <span className="font-body text-sm text-[var(--text-muted)] font-medium">
                   {room.name}
                 </span>
               </div>
@@ -183,19 +191,19 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={`${room.id}-${dd.iso}`}
-                    className="border-t border-l border-white/[0.04] p-2 min-h-[90px] cursor-pointer transition-colors relative"
+                    className="border-t border-l border-[var(--border-subtle)] p-2 min-h-[90px] cursor-pointer transition-colors relative group"
                     style={{
                       background: dd.isToday
-                        ? `rgba(${room.rgb},0.025)`
-                        : "transparent",
+                        ? `rgba(${room.rgb},${isDark ? 0.025 : 0.08})`
+                        : isDark ? "transparent" : "rgba(0,0,0,0.02)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `rgba(${room.rgb},0.07)`;
+                      e.currentTarget.style.background = `rgba(${room.rgb},${isDark ? 0.07 : 0.15})`;
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = dd.isToday
-                        ? `rgba(${room.rgb},0.025)`
-                        : "transparent";
+                        ? `rgba(${room.rgb},${isDark ? 0.025 : 0.08})`
+                        : isDark ? "transparent" : "rgba(0,0,0,0.02)";
                     }}
                     onClick={() => {
                       setPrefillData({
@@ -205,6 +213,10 @@ export default function AdminDashboard() {
                       setShowNewModal(true);
                     }}
                   >
+                    {/* Quick book indicator */}
+                    {dayRes.length === 0 && (
+                      <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--accent-mint)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
                     {dayRes.map((r) => {
                       const psych = PSYCHOLOGISTS.find(
                         (p) => p.id === r.psychId
@@ -219,14 +231,16 @@ export default function AdminDashboard() {
                           }}
                           className="w-full mb-1 px-2 py-1.5 rounded-md cursor-pointer text-left transition-all"
                           style={{
-                            background: `rgba(${psych.rgb},0.17)`,
-                            border: `1px solid rgba(${psych.rgb},0.32)`,
+                            background: `rgba(${psych.rgb},${isDark ? 0.17 : 0.22})`,
+                            border: `1px solid rgba(${psych.rgb},${isDark ? 0.32 : 0.38})`,
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = `rgba(${psych.rgb},0.3)`;
+                            e.currentTarget.style.background = `rgba(${psych.rgb},${isDark ? 0.3 : 0.35})`;
+                            e.currentTarget.style.boxShadow = `0 0 8px rgba(${psych.rgb},0.3)`;
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = `rgba(${psych.rgb},0.17)`;
+                            e.currentTarget.style.background = `rgba(${psych.rgb},${isDark ? 0.17 : 0.22})`;
+                            e.currentTarget.style.boxShadow = "none";
                           }}
                         >
                           <p
@@ -238,7 +252,7 @@ export default function AdminDashboard() {
                           <p
                             className="font-body text-[10px]"
                             style={{
-                              color: `rgba(${psych.rgb},0.62)`,
+                              color: `rgba(${psych.rgb},${isDark ? 0.62 : 0.7})`,
                             }}
                           >
                             {r.startTime}–{r.endTime}

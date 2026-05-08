@@ -19,7 +19,7 @@ export default function NewReservationModal({
   onClose,
   prefill = {},
 }: NewReservationModalProps) {
-  const { addReservation, activePsych, view } = useApp();
+  const { addReservation, activePsych, view, theme } = useApp();
   const [psychId, setPsychId] = useState<number | null>(
     prefill.psychId ?? activePsych?.id ?? null
   );
@@ -33,6 +33,7 @@ export default function NewReservationModal({
 
   const isPsych = view === "psych";
   const availableRooms = isPsych ? ROOMS : ROOMS;
+  const isDark = theme === "dark";
 
   const handleSubmit = () => {
     setError("");
@@ -70,13 +71,13 @@ export default function NewReservationModal({
   };
 
   const inputClass =
-    "w-full bg-white/[0.06] border border-white/[0.1] rounded-lg px-3 py-3 text-morpheus-text font-body text-base outline-none focus:border-[rgba(196,181,253,0.4)] transition-colors";
+    "w-full bg-[var(--bg-primary)] border border-[var(--border-light)] rounded-lg px-3 py-3 text-[var(--text-primary)] font-body text-base outline-none focus:border-[var(--accent-lavender)] transition-colors";
   const labelClass =
-    "block text-sm text-morpheus-muted tracking-wider uppercase mb-1 font-body";
+    "block text-sm text-[var(--text-muted)] tracking-wider uppercase mb-1 font-body";
 
   return (
     <Modal open={open} onClose={onClose}>
-      <h2 className="font-display text-2xl text-morpheus-text font-light mb-6 pr-8">
+      <h2 className="font-display text-2xl text-[var(--text-primary)] font-light mb-6 pr-8">
         Nova Reserva
       </h2>
 
@@ -90,14 +91,14 @@ export default function NewReservationModal({
                 onClick={() => setPsychId(p.id)}
                 className="flex items-center gap-2 p-3 rounded-lg transition-all cursor-pointer"
                 style={{
-                  border: `1px solid rgba(${p.rgb},${psychId === p.id ? 0.44 : 0.14})`,
-                  background: `rgba(${p.rgb},${psychId === p.id ? 0.18 : 0.05})`,
+                  border: `1px solid rgba(${p.rgb},${psychId === p.id ? 0.44 : isDark ? 0.14 : 0.2})`,
+                  background: `rgba(${p.rgb},${psychId === p.id ? isDark ? 0.18 : 0.22 : isDark ? 0.05 : 0.08})`,
                 }}
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{
-                    background: `rgba(${p.rgb},0.2)`,
+                    background: `rgba(${p.rgb},${isDark ? 0.2 : 0.25})`,
                     color: p.hex,
                   }}
                 >
@@ -105,7 +106,7 @@ export default function NewReservationModal({
                 </div>
                 <span
                   className="font-body text-sm truncate"
-                  style={{ color: psychId === p.id ? p.hex : "#f0ede8" }}
+                  style={{ color: psychId === p.id ? p.hex : "var(--text-primary)" }}
                 >
                   {p.shortName}
                 </span>
@@ -124,8 +125,8 @@ export default function NewReservationModal({
               onClick={() => setRoomId(r.id)}
               className="p-3 rounded-lg text-center transition-all cursor-pointer"
               style={{
-                border: `1px solid rgba(${r.rgb},${roomId === r.id ? 0.44 : 0.14})`,
-                background: `rgba(${r.rgb},${roomId === r.id ? 0.18 : 0.05})`,
+                border: `1px solid rgba(${r.rgb},${roomId === r.id ? 0.44 : isDark ? 0.14 : 0.2})`,
+                background: `rgba(${r.rgb},${roomId === r.id ? isDark ? 0.18 : 0.22 : isDark ? 0.05 : 0.08})`,
               }}
             >
               <div
@@ -134,7 +135,7 @@ export default function NewReservationModal({
               />
               <span
                 className="font-body text-xs"
-                style={{ color: roomId === r.id ? r.hex : "rgba(240,237,232,0.5)" }}
+                style={{ color: roomId === r.id ? r.hex : "var(--text-muted)" }}
               >
                 {r.name}
               </span>
@@ -161,7 +162,7 @@ export default function NewReservationModal({
             className={inputClass}
           >
             {HOURS.map((h) => (
-              <option key={h} value={h} className="bg-[#0c0921]">
+              <option key={h} value={h} className="bg-[var(--bg-primary)]">
                 {h}
               </option>
             ))}
@@ -175,7 +176,7 @@ export default function NewReservationModal({
             className={inputClass}
           >
             {HOURS.map((h) => (
-              <option key={h} value={h} className="bg-[#0c0921]">
+              <option key={h} value={h} className="bg-[var(--bg-primary)]">
                 {h}
               </option>
             ))}

@@ -3,11 +3,13 @@ module.exports = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         morpheus: {
-          bg: "#06040f",
+          // Dark theme (default)
+          bg: "rgb(6, 4, 15)",
           surface: "rgba(10, 7, 24, 0.98)",
           text: "#f0ede8",
           muted: "rgba(240, 237, 232, 0.4)",

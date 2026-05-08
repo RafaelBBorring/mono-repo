@@ -5,6 +5,7 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import type {
@@ -24,11 +25,14 @@ interface Toast {
   type: "success" | "error" | "info";
 }
 
+type Theme = "dark" | "light";
+
 interface AppContextType {
   view: AppView;
   activePsych: Psychologist | null;
   reservations: Reservation[];
   toasts: Toast[];
+  theme: Theme;
   setView: (view: AppView) => void;
   setActivePsych: (psych: Psychologist | null) => void;
   addReservation: (data: Omit<Reservation, "id">) => boolean;
@@ -36,6 +40,8 @@ interface AppContextType {
   validateAdminPin: (pin: string) => boolean;
   addToast: (message: string, type: Toast["type"]) => void;
   removeToast: (id: string) => void;
+  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -46,6 +52,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] =
     useState<Reservation[]>(INITIAL_RESERVATIONS);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [theme, setThemeState] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem("theme") as Theme | null;
+    const initialTheme = savedTheme || "dark";
+    setThemeState(initialTheme);
+    applyTheme(initialTheme);
+  }, []);
+
+  const applyTheme = useCallback((newTheme: Theme) => {
+    const html = typeof document !== "undefined" ? document.documentElement : null;
+    if (!html) return;
+
+    if (newTheme === "light") {
+      html.classList.add("light");
+    } else {
+      html.classList.remove("light");
+    }
+    localStorage.setItem("theme", newTheme);
+  }, []);
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+    applyTheme(newTheme);
+  }, [applyTheme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
 
   const addToast = useCallback(
     (message: string, type: Toast["type"]) => {
@@ -99,6 +137,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return pin === ADMIN_PIN;
   }, []);
 
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -106,6 +148,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         activePsych,
         reservations,
         toasts,
+        theme,
         setView,
         setActivePsych,
         addReservation,
@@ -113,6 +156,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         validateAdminPin,
         addToast,
         removeToast,
+        toggleTheme,
+        setTheme,
       }}
     >
       {children}

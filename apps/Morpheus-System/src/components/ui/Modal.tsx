@@ -44,14 +44,14 @@ export default function Modal({
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[500] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-[var(--bg-primary)]"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className="absolute inset-0 bg-[rgba(4,3,12,0.92)] backdrop-blur-lg" />
+      <div className="absolute inset-0 bg-[rgba(4,3,12,0.92)] backdrop-blur-lg dark:bg-[rgba(0,0,0,0.85)]" />
       <div
-        className={`relative bg-[rgba(10,7,24,0.98)] rounded-2xl p-6 md:p-8 max-h-[88vh] overflow-y-auto animate-slide-up ${
+        className={`relative bg-[var(--bg-surface)] rounded-2xl p-6 md:p-8 max-h-[88vh] overflow-y-auto animate-slide-up ${
           wide ? "w-full max-w-[600px]" : "w-full max-w-[480px]"
         }`}
         style={{
