@@ -136,7 +136,7 @@ ALTER TABLE legendary_weapons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "legendary_weapons_select_all" ON legendary_weapons FOR SELECT USING (true);
 
 -- Migrate existing mystic weapons (column mapping)
--- Uses safe casts in case source columns differ in type
+-- Uses safe casts — all json operations use ::jsonb consistently
 INSERT INTO legendary_weapons (name, base, dano, attr, power_level, effect, lore, image, habilidades, created_by, updated_at)
 SELECT
   name,
@@ -152,7 +152,7 @@ SELECT
   ),
   COALESCE(NULLIF(effect, ''), ''),
   CASE
-    WHEN ai_feedback IS NOT NULL AND ai_feedback != '' AND ai_feedback ~ '^\s*\{' THEN COALESCE(ai_feedback::json->>'lore', '')
+    WHEN ai_feedback IS NOT NULL AND ai_feedback != '' AND ai_feedback ~ '^\s*\{' THEN COALESCE(ai_feedback::jsonb->>'lore', '')
     ELSE ''
   END,
   CASE
@@ -164,7 +164,7 @@ SELECT
   END,
   CASE
     WHEN ai_feedback IS NOT NULL AND ai_feedback != '' AND ai_feedback ~ '^\s*\{' THEN
-      COALESCE(ai_feedback::json->'habilidades', '{"passivas":[],"ativas":[],"ultimates":[]}'::jsonb)
+      COALESCE(ai_feedback::jsonb->'habilidades', '{"passivas":[],"ativas":[],"ultimates":[]}'::jsonb)
     ELSE '{"passivas":[],"ativas":[],"ultimates":[]}'::jsonb
   END,
   created_by,
