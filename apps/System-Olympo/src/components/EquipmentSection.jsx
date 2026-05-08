@@ -355,52 +355,7 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
           </div>
         )}
       </div>
-      <span className="armory-open">ver</span>
     </button>
-  )
-  return (
-    <div onClick={onClick} className={`rounded-lg border ${rc.border} ${rc.bg} p-3 ${rc.glow} transition-all hover:brightness-110 cursor-pointer`}>
-      <div className="relative mb-2">
-        {image ? (
-          <img src={image} alt="" className={`w-full aspect-[4/3] rounded-lg object-cover border ${rc.border}`} />
-        ) : (
-          <div className={`w-full aspect-[4/3] rounded-lg ${rc.badge} border flex items-center justify-center text-3xl`}>
-            IMG
-          </div>
-        )}
-        {rank.rank && <span className={`absolute left-2 top-2 text-[8px] px-1 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>}
-      </div>
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg ${rc.badge} border flex items-center justify-center text-lg shrink-0`}>
-          ⚔
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-txt-main text-sm font-semibold">{displayName || weapon.name}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>
-          </div>
-          <div className="flex items-center gap-4 mt-0.5 text-xs">
-            <span className="text-red-400/90 font-mono">Dano {weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
-            <span className="text-txt-dim/60">{weapon.attr}</span>
-          </div>
-          {triagemBonus.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {triagemBonus.map((b, i) => (
-                <span key={i} className={`text-[9px] ${b.color} bg-void/60 px-1.5 py-0.5 rounded border border-current/20 font-mono`}>
-                  {b.label}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="text-right shrink-0">
-          <span className="text-txt-dim/30 text-xs">▶ detalhes</span>
-          {habilidades.length > 0 && (
-            <p className="text-gold/60 text-[10px] mt-0.5">{habilidades.length} hab.</p>
-          )}
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -738,26 +693,6 @@ function EquipCard({ item, onClick }) {
         )}
         {item.efeitos && <p className="text-txt-dim/55 text-[10px] mt-1 truncate">{item.efeitos}</p>}
       </div>
-      <span className="armory-open">abrir</span>
-    </button>
-  )
-  return (
-    <button type="button" onClick={onClick}
-      className={`rounded-lg border ${rc.border} ${rc.bg} p-2.5 text-left hover:brightness-110 transition-all ${rc.glow} overflow-hidden`}>
-      <div className="relative mb-2">
-        {item.imagem ? (
-          <img src={item.imagem} alt="" className={`w-full aspect-[4/3] rounded-lg object-cover border ${rc.border}`} />
-        ) : (
-          <div className={`w-full aspect-[4/3] rounded-lg ${rc.badge} border flex items-center justify-center text-2xl`}>
-            {item.categoria === 'Arma' ? '⚔' : '🛡'}
-          </div>
-        )}
-      </div>
-      <div className="flex items-center justify-center gap-1">
-        <span className="text-txt-main text-[10px] font-semibold leading-tight line-clamp-2">{item.nome || 'Equip'}</span>
-      </div>
-      {item.rank && <span className={`text-[8px] mt-0.5 inline-block px-1 py-0.5 rounded border ${rc.badge}`}>{item.rank}</span>}
-      {item.dano && <p className="text-red-400/60 text-[9px] font-mono mt-0.5">{item.dano}</p>}
     </button>
   )
 }
