@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
-import { PSYCHOLOGISTS, ROOMS } from "@/lib/data";
+import { PSYCHOLOGISTS } from "@/lib/data";
+import { themeHex, themeRgb } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useGsapFadeIn, useGsapStagger } from "@/lib/gsap";
+import { Delete } from "lucide-react";
 
 type SplashStep = "home" | "pin" | "select-psych";
 
@@ -78,7 +80,7 @@ export default function SplashPage() {
                     "1.5px solid rgba(196,181,253,0.35)",
                   boxShadow:
                     i < pinVal.length
-                      ? `0 0 12px ${isDark ? "rgba(196,181,253,0.88)" : "rgba(124,95,184,0.6)"}`
+                      ? `0 0 12px ${isDark ? "rgba(196,181,253,0.88)" : "rgba(109,40,217,0.38)"}`
                       : "none",
                 }}
               />
@@ -86,39 +88,39 @@ export default function SplashPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-2 max-w-[210px] mx-auto">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, "⌫"].map((digit, idx) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, "back"].map((digit, idx) => (
               <button
                 key={idx}
                 disabled={digit === null}
                 onClick={() => {
                   if (digit === null) return;
-                  if (digit === "⌫") handleBackspace();
+                  if (digit === "back") handleBackspace();
                   else pressDigit(String(digit));
                 }}
-                className="h-14 rounded-xl font-body text-xl text-[var(--text-primary)] transition-all duration-150 cursor-pointer"
+                className="h-14 rounded-xl font-body text-xl text-[var(--text-primary)] transition-all duration-150 cursor-pointer inline-flex items-center justify-center"
                 style={{
                   border:
                     digit === null
                       ? "none"
-                      : "1px solid rgba(196,181,253,0.12)",
+                      : "1px solid var(--border-light)",
                   background:
                     digit === null
                       ? "transparent"
-                      : `rgba(196,181,253,${isDark ? 0.07 : 0.1})`,
+                      : `rgba(196,181,253,${isDark ? 0.07 : 0.08})`,
                   cursor: digit === null ? "default" : "pointer",
                 }}
                 onMouseEnter={(e) => {
                   if (digit !== null)
                     e.currentTarget.style.background =
-                      `rgba(196,181,253,${isDark ? 0.19 : 0.25})`;
+                      `rgba(196,181,253,${isDark ? 0.19 : 0.16})`;
                 }}
                 onMouseLeave={(e) => {
                   if (digit !== null)
                     e.currentTarget.style.background =
-                      `rgba(196,181,253,${isDark ? 0.07 : 0.1})`;
+                      `rgba(196,181,253,${isDark ? 0.07 : 0.08})`;
                 }}
               >
-                {digit}
+                {digit === "back" ? <Delete size={20} /> : digit}
               </button>
             ))}
           </div>
@@ -130,7 +132,7 @@ export default function SplashPage() {
             }}
             className="mt-5 bg-transparent border-none text-[var(--text-muted)] cursor-pointer font-body text-sm hover:text-[var(--text-primary)] transition-colors"
           >
-            ← Voltar
+            Voltar
           </button>
         </div>
       </div>
@@ -152,57 +154,62 @@ export default function SplashPage() {
             ref={cardsRef}
             className="grid grid-cols-2 gap-3 w-full max-w-[400px]"
           >
-            {PSYCHOLOGISTS.map((p) => (
-              <button
-                key={p.id}
-                data-psych-card
-                onClick={() => {
-                  setActivePsych(p);
-                  setView("psych");
-                  const prefix = p.name.includes("Dra") ? "a" : "o";
-                  addToast(
-                    `Bem-vind${prefix}, ${p.shortName}!`,
-                    "success"
-                  );
-                }}
-                className="group p-5 rounded-2xl text-center transition-all duration-300 cursor-pointer"
-                style={{
-                  border: `1px solid rgba(${p.rgb},${isDark ? 0.2 : 0.3})`,
-                  background: `rgba(${p.rgb},${isDark ? 0.06 : 0.1})`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = `rgba(${p.rgb},${isDark ? 0.17 : 0.22})`;
-                  e.currentTarget.style.transform = "translateY(-3px)";
-                  e.currentTarget.style.borderColor = `rgba(${p.rgb},${isDark ? 0.4 : 0.5})`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = `rgba(${p.rgb},${isDark ? 0.06 : 0.1})`;
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.borderColor = `rgba(${p.rgb},${isDark ? 0.2 : 0.3})`;
-                }}
-              >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 font-body text-base font-bold"
+            {PSYCHOLOGISTS.map((p) => {
+              const color = themeHex(p, isDark);
+              const rgb = themeRgb(p, isDark);
+
+              return (
+                <button
+                  key={p.id}
+                  data-psych-card
+                  onClick={() => {
+                    setActivePsych(p);
+                    setView("psych");
+                    const prefix = p.name.includes("Dra") ? "a" : "o";
+                    addToast(
+                      `Bem-vind${prefix}, ${p.shortName}!`,
+                      "success"
+                    );
+                  }}
+                  className="group p-5 rounded-2xl text-center transition-all duration-300 cursor-pointer"
                   style={{
-                    background: `rgba(${p.rgb},${isDark ? 0.2 : 0.25})`,
-                    border: `1px solid rgba(${p.rgb},${isDark ? 0.36 : 0.44})`,
-                    color: p.hex,
+                    border: `1px solid rgba(${rgb},${isDark ? 0.2 : 0.24})`,
+                    background: `rgba(${rgb},${isDark ? 0.06 : 0.06})`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `rgba(${rgb},${isDark ? 0.17 : 0.12})`;
+                    e.currentTarget.style.transform = "translateY(-3px)";
+                    e.currentTarget.style.borderColor = `rgba(${rgb},${isDark ? 0.4 : 0.38})`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `rgba(${rgb},${isDark ? 0.06 : 0.06})`;
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.borderColor = `rgba(${rgb},${isDark ? 0.2 : 0.24})`;
                   }}
                 >
-                  {p.initials}
-                </div>
-                <span className="font-body text-base text-[var(--text-primary)] font-medium leading-tight block">
-                  {p.name}
-                </span>
-              </button>
-            ))}
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 font-body text-base font-bold"
+                    style={{
+                      background: `rgba(${rgb},${isDark ? 0.2 : 0.08})`,
+                      border: `1px solid rgba(${rgb},${isDark ? 0.36 : 0.22})`,
+                      color,
+                    }}
+                  >
+                    {p.initials}
+                  </div>
+                  <span className="font-body text-base text-[var(--text-primary)] font-medium leading-tight block">
+                    {p.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <button
             onClick={() => setStep("home")}
             className="mt-5 bg-transparent border-none text-[var(--text-muted)] cursor-pointer font-body text-sm hover:text-[var(--text-primary)] transition-colors"
           >
-            ← Voltar
+            Voltar
           </button>
         </div>
       </div>
@@ -226,26 +233,26 @@ export default function SplashPage() {
             cx="32"
             cy="32"
             r="29"
-            stroke={isDark ? "rgba(196,181,253,0.2)" : "rgba(124,95,184,0.15)"}
+            stroke={isDark ? "rgba(196,181,253,0.2)" : "rgba(109,40,217,0.14)"}
             strokeWidth="1"
           />
           <circle
             cx="32"
             cy="32"
             r="18"
-            stroke={isDark ? "rgba(196,181,253,0.35)" : "rgba(124,95,184,0.3)"}
+            stroke={isDark ? "rgba(196,181,253,0.35)" : "rgba(109,40,217,0.26)"}
             strokeWidth="1"
           />
-          <circle cx="32" cy="32" r="5" fill={isDark ? "rgba(196,181,253,0.6)" : "rgba(124,95,184,0.6)"} />
-          <circle cx="32" cy="14" r="2.5" fill={isDark ? "rgba(125,211,252,0.58)" : "rgba(2,132,199,0.6)"} />
-          <circle cx="50" cy="41" r="2.5" fill={isDark ? "rgba(253,164,175,0.58)" : "rgba(190,24,93,0.6)"} />
-          <circle cx="14" cy="41" r="2.5" fill={isDark ? "rgba(110,231,183,0.58)" : "rgba(5,150,105,0.6)"} />
+          <circle cx="32" cy="32" r="5" fill={isDark ? "rgba(196,181,253,0.6)" : "rgba(109,40,217,0.62)"} />
+          <circle cx="32" cy="14" r="2.5" fill={isDark ? "rgba(125,211,252,0.58)" : "rgba(3,105,161,0.62)"} />
+          <circle cx="50" cy="41" r="2.5" fill={isDark ? "rgba(253,164,175,0.58)" : "rgba(190,18,60,0.62)"} />
+          <circle cx="14" cy="41" r="2.5" fill={isDark ? "rgba(110,231,183,0.58)" : "rgba(4,120,87,0.62)"} />
           <line
             x1="32"
             y1="16.5"
             x2="32"
             y2="27"
-            stroke={isDark ? "rgba(196,181,253,0.18)" : "rgba(124,95,184,0.15)"}
+            stroke={isDark ? "rgba(196,181,253,0.18)" : "rgba(109,40,217,0.14)"}
             strokeWidth="1"
           />
           <line
@@ -253,7 +260,7 @@ export default function SplashPage() {
             y1="39"
             x2="38.5"
             y2="33.5"
-            stroke={isDark ? "rgba(125,211,252,0.18)" : "rgba(2,132,199,0.15)"}
+            stroke={isDark ? "rgba(125,211,252,0.18)" : "rgba(3,105,161,0.14)"}
             strokeWidth="1"
           />
           <line
@@ -261,7 +268,7 @@ export default function SplashPage() {
             y1="39"
             x2="25.5"
             y2="33.5"
-            stroke={isDark ? "rgba(253,164,175,0.18)" : "rgba(190,24,93,0.15)"}
+            stroke={isDark ? "rgba(253,164,175,0.18)" : "rgba(190,18,60,0.14)"}
             strokeWidth="1"
           />
         </svg>
@@ -275,7 +282,7 @@ export default function SplashPage() {
         <p className="font-body text-xs tracking-[0.35em] text-[var(--text-muted)] mt-2">
           GESTÃO DE SALAS & CONSULTAS
         </p>
-        <div className={`w-12 h-px bg-gradient-to-r ${isDark ? "from-transparent via-[rgba(196,181,253,0.3)] to-transparent" : "from-transparent via-[rgba(124,95,184,0.25)] to-transparent"} mx-auto mt-3 mb-10`} />
+        <div className={`w-12 h-px bg-gradient-to-r ${isDark ? "from-transparent via-[rgba(196,181,253,0.3)] to-transparent" : "from-transparent via-[rgba(109,40,217,0.25)] to-transparent"} mx-auto mt-3 mb-10`} />
 
         <div className="flex flex-col gap-3 w-full max-w-[300px] mx-auto">
           <Button

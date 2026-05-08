@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Morpheus — Gestão de Salas",
+  title: "Morpheus - Gestão de Salas",
   description: "Sistema de gestão de salas para clínica de psicologia",
 };
 

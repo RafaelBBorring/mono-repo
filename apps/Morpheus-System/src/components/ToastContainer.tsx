@@ -22,7 +22,7 @@ export default function ToastContainer() {
             key={t.id}
             className={cn(
               "pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl",
-              "font-body text-sm text-morpheus-text min-w-[220px]",
+              "font-body text-sm text-[var(--text-primary)] min-w-[220px]",
               "animate-slide-in-right"
             )}
             style={{

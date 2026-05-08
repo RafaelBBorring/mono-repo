@@ -3,6 +3,8 @@ export interface Room {
   name: string;
   hex: string;
   rgb: string;
+  lightHex: string;
+  lightRgb: string;
 }
 
 export interface Psychologist {
@@ -12,6 +14,8 @@ export interface Psychologist {
   initials: string;
   hex: string;
   rgb: string;
+  lightHex: string;
+  lightRgb: string;
 }
 
 export interface Reservation {

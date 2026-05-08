@@ -9,7 +9,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="w-9 h-9 rounded-lg flex items-center justify-center border border-[var(--border-light)] bg-[var(--bg-surface)] text-[var(--text-muted)] cursor-pointer hover:bg-white/[0.08] transition-colors dark:hover:bg-white/[0.12]"
+      className="w-9 h-9 rounded-lg flex items-center justify-center border border-[var(--border-light)] bg-[var(--bg-surface)] text-[var(--text-muted)] cursor-pointer hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-colors"
       title={`Mudar para tema ${theme === "dark" ? "claro" : "escuro"}`}
     >
       {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}

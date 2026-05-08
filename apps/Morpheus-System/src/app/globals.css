@@ -14,8 +14,10 @@
   /* Dark theme (default) */
   --bg-primary: #06040f;
   --bg-surface: rgba(10, 7, 24, 0.98);
+  --bg-elevated: rgba(18, 14, 35, 0.92);
   --text-primary: #f0ede8;
   --text-muted: rgba(240, 237, 232, 0.4);
+  --text-soft: rgba(240, 237, 232, 0.68);
   --border-subtle: rgba(196, 181, 253, 0.04);
   --border-light: rgba(196, 181, 253, 0.14);
   --border-medium: rgba(196, 181, 253, 0.2);
@@ -29,20 +31,21 @@
 
 html.light {
   /* Light theme */
-  --bg-primary: #f5f3f0;
-  --bg-surface: rgba(255, 255, 255, 0.95);
-  --text-primary: #2d2622;
-  --text-muted: rgba(45, 38, 34, 0.5);
-  --border-subtle: rgba(45, 38, 34, 0.04);
-  --border-light: rgba(45, 38, 34, 0.12);
-  --border-medium: rgba(45, 38, 34, 0.18);
-  --scrollbar-thumb: rgba(45, 38, 34, 0.15);
-  --placeholder-text: rgba(45, 38, 34, 0.25);
-  /* Darker versions of psychologist colors for light theme */
-  --accent-lavender: #7c5fb8;
-  --accent-sky: #0284c7;
-  --accent-rose: #be185d;
-  --accent-mint: #059669;
+  --bg-primary: #f7f4ef;
+  --bg-surface: rgba(255, 252, 247, 0.96);
+  --bg-elevated: rgba(255, 255, 255, 0.98);
+  --text-primary: #241f1b;
+  --text-muted: rgba(36, 31, 27, 0.58);
+  --text-soft: rgba(36, 31, 27, 0.74);
+  --border-subtle: rgba(73, 56, 43, 0.08);
+  --border-light: rgba(73, 56, 43, 0.16);
+  --border-medium: rgba(73, 56, 43, 0.24);
+  --scrollbar-thumb: rgba(73, 56, 43, 0.22);
+  --placeholder-text: rgba(36, 31, 27, 0.34);
+  --accent-lavender: #6d28d9;
+  --accent-sky: #0369a1;
+  --accent-rose: #be123c;
+  --accent-mint: #047857;
 }
 
 html,

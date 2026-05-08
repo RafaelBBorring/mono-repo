@@ -8,15 +8,14 @@ module.exports = {
     extend: {
       colors: {
         morpheus: {
-          // Dark theme (default)
-          bg: "rgb(6, 4, 15)",
-          surface: "rgba(10, 7, 24, 0.98)",
-          text: "#f0ede8",
-          muted: "rgba(240, 237, 232, 0.4)",
-          lavender: "#c4b5fd",
-          sky: "#7dd3fc",
-          rose: "#fda4af",
-          mint: "#6ee7b7",
+          bg: "var(--bg-primary)",
+          surface: "var(--bg-surface)",
+          text: "var(--text-primary)",
+          muted: "var(--text-muted)",
+          lavender: "var(--accent-lavender)",
+          sky: "var(--accent-sky)",
+          rose: "var(--accent-rose)",
+          mint: "var(--accent-mint)",
         },
       },
       fontFamily: {

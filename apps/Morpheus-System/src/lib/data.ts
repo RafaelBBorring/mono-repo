@@ -2,10 +2,10 @@ import type { Room, Psychologist, Reservation } from "@/types";
 import { format, addDays } from "date-fns";
 
 export const ROOMS: Room[] = [
-  { id: 1, name: "Sala 01", hex: "#c4b5fd", rgb: "196,181,253" },
-  { id: 2, name: "Sala 02", hex: "#7dd3fc", rgb: "125,211,252" },
-  { id: 3, name: "Sala 03", hex: "#fda4af", rgb: "253,164,175" },
-  { id: 4, name: "Sala 04", hex: "#6ee7b7", rgb: "110,231,183" },
+  { id: 1, name: "Sala 01", hex: "#c4b5fd", rgb: "196,181,253", lightHex: "#6d28d9", lightRgb: "109,40,217" },
+  { id: 2, name: "Sala 02", hex: "#7dd3fc", rgb: "125,211,252", lightHex: "#0369a1", lightRgb: "3,105,161" },
+  { id: 3, name: "Sala 03", hex: "#fda4af", rgb: "253,164,175", lightHex: "#be123c", lightRgb: "190,18,60" },
+  { id: 4, name: "Sala 04", hex: "#6ee7b7", rgb: "110,231,183", lightHex: "#047857", lightRgb: "4,120,87" },
 ];
 
 export const PSYCHOLOGISTS: Psychologist[] = [
@@ -16,6 +16,8 @@ export const PSYCHOLOGISTS: Psychologist[] = [
     initials: "CA",
     hex: "#c4b5fd",
     rgb: "196,181,253",
+    lightHex: "#6d28d9",
+    lightRgb: "109,40,217",
   },
   {
     id: 2,
@@ -24,6 +26,8 @@ export const PSYCHOLOGISTS: Psychologist[] = [
     initials: "MD",
     hex: "#7dd3fc",
     rgb: "125,211,252",
+    lightHex: "#0369a1",
+    lightRgb: "3,105,161",
   },
   {
     id: 3,
@@ -32,6 +36,8 @@ export const PSYCHOLOGISTS: Psychologist[] = [
     initials: "FC",
     hex: "#fda4af",
     rgb: "253,164,175",
+    lightHex: "#be123c",
+    lightRgb: "190,18,60",
   },
   {
     id: 4,
@@ -40,6 +46,8 @@ export const PSYCHOLOGISTS: Psychologist[] = [
     initials: "JM",
     hex: "#6ee7b7",
     rgb: "110,231,183",
+    lightHex: "#047857",
+    lightRgb: "4,120,87",
   },
 ];
 

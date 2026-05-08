@@ -1,11 +1,12 @@
 "use client";
 
 import { ROOMS, PSYCHOLOGISTS, HOURS } from "@/lib/data";
+import { themeHex, themeRgb } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import type { Reservation, Room, Psychologist } from "@/types";
+import type { Reservation } from "@/types";
 import { AlertTriangle } from "lucide-react";
 
 interface NewReservationModalProps {
@@ -32,8 +33,18 @@ export default function NewReservationModal({
   const [saving, setSaving] = useState(false);
 
   const isPsych = view === "psych";
-  const availableRooms = isPsych ? ROOMS : ROOMS;
   const isDark = theme === "dark";
+
+  useEffect(() => {
+    if (!open) return;
+    setPsychId(prefill.psychId ?? activePsych?.id ?? null);
+    setRoomId(prefill.roomId ?? null);
+    setDate(prefill.date ?? "");
+    setStartTime(prefill.startTime ?? "09:00");
+    setEndTime(prefill.endTime ?? "10:00");
+    setNotes(prefill.notes ?? "");
+    setError("");
+  }, [activePsych?.id, open, prefill.date, prefill.endTime, prefill.notes, prefill.psychId, prefill.roomId, prefill.startTime]);
 
   const handleSubmit = () => {
     setError("");
@@ -85,33 +96,38 @@ export default function NewReservationModal({
         <div className="mb-5">
           <span className={labelClass}>Psicólogo(a)</span>
           <div className="grid grid-cols-2 gap-2">
-            {PSYCHOLOGISTS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setPsychId(p.id)}
-                className="flex items-center gap-2 p-3 rounded-lg transition-all cursor-pointer"
-                style={{
-                  border: `1px solid rgba(${p.rgb},${psychId === p.id ? 0.44 : isDark ? 0.14 : 0.2})`,
-                  background: `rgba(${p.rgb},${psychId === p.id ? isDark ? 0.18 : 0.22 : isDark ? 0.05 : 0.08})`,
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+            {PSYCHOLOGISTS.map((p) => {
+              const color = themeHex(p, isDark);
+              const rgb = themeRgb(p, isDark);
+
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPsychId(p.id)}
+                  className="flex items-center gap-2 p-3 rounded-lg transition-all cursor-pointer"
                   style={{
-                    background: `rgba(${p.rgb},${isDark ? 0.2 : 0.25})`,
-                    color: p.hex,
+                    border: `1px solid rgba(${rgb},${psychId === p.id ? 0.44 : isDark ? 0.14 : 0.22})`,
+                    background: `rgba(${rgb},${psychId === p.id ? isDark ? 0.18 : 0.12 : isDark ? 0.05 : 0.06})`,
                   }}
                 >
-                  {p.initials}
-                </div>
-                <span
-                  className="font-body text-sm truncate"
-                  style={{ color: psychId === p.id ? p.hex : "var(--text-primary)" }}
-                >
-                  {p.shortName}
-                </span>
-              </button>
-            ))}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{
+                      background: `rgba(${rgb},${isDark ? 0.2 : 0.1})`,
+                      color,
+                    }}
+                  >
+                    {p.initials}
+                  </div>
+                  <span
+                    className="font-body text-sm truncate"
+                    style={{ color: psychId === p.id ? color : "var(--text-primary)" }}
+                  >
+                    {p.shortName}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -119,28 +135,33 @@ export default function NewReservationModal({
       <div className="mb-5">
         <span className={labelClass}>Sala</span>
         <div className="grid grid-cols-4 gap-2">
-          {availableRooms.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => setRoomId(r.id)}
-              className="p-3 rounded-lg text-center transition-all cursor-pointer"
-              style={{
-                border: `1px solid rgba(${r.rgb},${roomId === r.id ? 0.44 : isDark ? 0.14 : 0.2})`,
-                background: `rgba(${r.rgb},${roomId === r.id ? isDark ? 0.18 : 0.22 : isDark ? 0.05 : 0.08})`,
-              }}
-            >
-              <div
-                className="w-3 h-3 rounded-full mx-auto mb-1"
-                style={{ background: r.hex }}
-              />
-              <span
-                className="font-body text-xs"
-                style={{ color: roomId === r.id ? r.hex : "var(--text-muted)" }}
+          {ROOMS.map((r) => {
+            const color = themeHex(r, isDark);
+            const rgb = themeRgb(r, isDark);
+
+            return (
+              <button
+                key={r.id}
+                onClick={() => setRoomId(r.id)}
+                className="p-3 rounded-lg text-center transition-all cursor-pointer"
+                style={{
+                  border: `1px solid rgba(${rgb},${roomId === r.id ? 0.44 : isDark ? 0.14 : 0.22})`,
+                  background: `rgba(${rgb},${roomId === r.id ? isDark ? 0.18 : 0.12 : isDark ? 0.05 : 0.06})`,
+                }}
               >
-                {r.name}
-              </span>
-            </button>
-          ))}
+                <div
+                  className="w-3 h-3 rounded-full mx-auto mb-1"
+                  style={{ background: color }}
+                />
+                <span
+                  className="font-body text-xs"
+                  style={{ color: roomId === r.id ? color : "var(--text-muted)" }}
+                >
+                  {r.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -195,7 +216,7 @@ export default function NewReservationModal({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-[rgba(253,164,175,0.08)] border border-[rgba(253,164,175,0.24)] flex items-center gap-2 text-[#fda4af] font-body text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-[rgba(253,164,175,0.08)] border border-[rgba(253,164,175,0.24)] flex items-center gap-2 text-[var(--accent-rose)] font-body text-sm">
           <AlertTriangle size={14} />
           {error}
         </div>

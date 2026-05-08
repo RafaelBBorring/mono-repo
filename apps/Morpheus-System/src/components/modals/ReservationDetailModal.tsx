@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { ROOMS, PSYCHOLOGISTS } from "@/lib/data";
+import { themeHex, themeRgb } from "@/lib/utils";
 import type { Reservation } from "@/types";
 import { Clock, FileText, Trash2 } from "lucide-react";
 
@@ -18,13 +19,19 @@ export default function ReservationDetailModal({
   onClose,
   reservation,
 }: ReservationDetailModalProps) {
-  const { removeReservation, activePsych, view } = useApp();
+  const { removeReservation, activePsych, view, theme } = useApp();
 
   if (!reservation) return null;
 
   const room = ROOMS.find((r) => r.id === reservation.roomId);
   const psych = PSYCHOLOGISTS.find((p) => p.id === reservation.psychId);
   if (!room || !psych) return null;
+
+  const isDark = theme === "dark";
+  const roomColor = themeHex(room, isDark);
+  const roomRgb = themeRgb(room, isDark);
+  const psychColor = themeHex(psych, isDark);
+  const psychRgb = themeRgb(psych, isDark);
 
   const dateFormatted = new Date(reservation.date + "T00:00:00").toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -36,18 +43,18 @@ export default function ReservationDetailModal({
   const canDelete = view === "admin" || activePsych?.id === reservation.psychId;
 
   return (
-    <Modal open={open} onClose={onClose} colorRgb={room.rgb}>
+    <Modal open={open} onClose={onClose} colorRgb={roomRgb}>
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-1">
           <div
             className="w-4 h-4 rounded-full"
-            style={{ background: room.hex }}
+            style={{ background: roomColor }}
           />
-          <h2 className="font-display text-2xl text-morpheus-text font-light">
+          <h2 className="font-display text-2xl text-[var(--text-primary)] font-light">
             {room.name}
           </h2>
         </div>
-        <p className="font-body text-sm text-morpheus-muted capitalize">
+        <p className="font-body text-sm text-[var(--text-muted)] capitalize">
           {dateFormatted}
         </p>
       </div>
@@ -55,37 +62,37 @@ export default function ReservationDetailModal({
       <div
         className="p-4 rounded-xl mb-6"
         style={{
-          background: `rgba(${psych.rgb},0.09)`,
-          border: `1px solid rgba(${psych.rgb},0.2)`,
+          background: `rgba(${psychRgb},${isDark ? 0.09 : 0.07})`,
+          border: `1px solid rgba(${psychRgb},${isDark ? 0.2 : 0.18})`,
         }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-11 h-11 rounded-full flex items-center justify-center font-body text-sm font-bold flex-shrink-0"
             style={{
-              background: `rgba(${psych.rgb},0.22)`,
-              color: psych.hex,
+              background: `rgba(${psychRgb},${isDark ? 0.22 : 0.1})`,
+              color: psychColor,
             }}
           >
             {psych.initials}
           </div>
           <div className="min-w-0">
-            <p className="font-body text-lg text-morpheus-text font-medium">
+            <p className="font-body text-lg text-[var(--text-primary)] font-medium">
               {psych.name}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <Clock size={13} style={{ color: `rgba(${psych.rgb},0.66)` }} />
+              <Clock size={13} style={{ color: `rgba(${psychRgb},${isDark ? 0.66 : 0.8})` }} />
               <span
                 className="font-body text-sm"
-                style={{ color: `rgba(${psych.rgb},0.66)` }}
+                style={{ color: `rgba(${psychRgb},${isDark ? 0.66 : 0.8})` }}
               >
-                {reservation.startTime} – {reservation.endTime}
+                {reservation.startTime} - {reservation.endTime}
               </span>
             </div>
             {reservation.notes && (
-              <div className="flex items-start gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: `rgba(${psych.rgb},0.12)` }}>
-                <FileText size={13} className="text-morpheus-muted mt-0.5" />
-                <span className="font-body text-sm text-morpheus-muted">
+              <div className="flex items-start gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: `rgba(${psychRgb},0.12)` }}>
+                <FileText size={13} className="text-[var(--text-muted)] mt-0.5" />
+                <span className="font-body text-sm text-[var(--text-muted)]">
                   {reservation.notes}
                 </span>
               </div>

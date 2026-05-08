@@ -26,9 +26,9 @@ export default function Button({
     return (
       <button
         className={cn(
-          "rounded-xl border border-white/[0.08] bg-transparent",
-          "text-morpheus-muted font-body cursor-pointer",
-          "transition-all duration-200 hover:bg-white/[0.05]",
+          "rounded-xl border border-[var(--border-light)] bg-transparent",
+          "text-[var(--text-muted)] font-body cursor-pointer",
+          "transition-all duration-200 hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]",
           "inline-flex items-center justify-center gap-2",
           sizeClasses[size],
           className
@@ -61,7 +61,7 @@ export default function Button({
   return (
     <button
       className={cn(
-        "rounded-xl font-body cursor-pointer text-morpheus-text font-medium",
+        "rounded-xl font-body cursor-pointer text-[var(--text-primary)] font-medium",
         "transition-all duration-200",
         "inline-flex items-center justify-center gap-2",
         sizeClasses[size],

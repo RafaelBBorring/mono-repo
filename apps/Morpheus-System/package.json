@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Morpheus System - Gestao de Salas Clinica Psicologia",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

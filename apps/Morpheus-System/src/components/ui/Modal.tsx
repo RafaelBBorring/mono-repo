@@ -49,9 +49,9 @@ export default function Modal({
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className="absolute inset-0 bg-[rgba(4,3,12,0.92)] backdrop-blur-lg dark:bg-[rgba(0,0,0,0.85)]" />
+      <div className="absolute inset-0 bg-[rgba(6,4,15,0.84)] backdrop-blur-lg" />
       <div
-        className={`relative bg-[var(--bg-surface)] rounded-2xl p-6 md:p-8 max-h-[88vh] overflow-y-auto animate-slide-up ${
+        className={`relative bg-[var(--bg-elevated)] rounded-2xl p-6 md:p-8 max-h-[88vh] overflow-y-auto animate-slide-up shadow-2xl ${
           wide ? "w-full max-w-[600px]" : "w-full max-w-[480px]"
         }`}
         style={{
@@ -60,7 +60,7 @@ export default function Modal({
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.09] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-light)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
           <X size={16} />
         </button>

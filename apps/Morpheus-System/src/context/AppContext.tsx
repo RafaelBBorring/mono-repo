@@ -55,15 +55,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
-  // Initialize theme from localStorage
-  useEffect(() => {
-    setMounted(true);
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "dark";
-    setThemeState(initialTheme);
-    applyTheme(initialTheme);
-  }, []);
-
   const applyTheme = useCallback((newTheme: Theme) => {
     const html = typeof document !== "undefined" ? document.documentElement : null;
     if (!html) return;
@@ -75,6 +66,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     localStorage.setItem("theme", newTheme);
   }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem("theme") as Theme | null;
+    const initialTheme = savedTheme || "dark";
+    setThemeState(initialTheme);
+    applyTheme(initialTheme);
+  }, [applyTheme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
