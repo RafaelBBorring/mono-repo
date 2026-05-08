@@ -876,26 +876,26 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
   const items = (char[card.field] || []).slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name))
   const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
   const spaceUsed = items.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
-  const [expandedRituals, setExpandedRituals] = useState(() => new Set())
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeRitualId, setActiveRitualId] = useState(null)
 
-  function toggleRitualExpand(id) {
-    setExpandedRituals(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
+  function openSidebar(ritualId) {
+    setActiveRitualId(ritualId)
+    setSidebarOpen(true)
   }
 
   function removeRitual(ritual) {
     if (!update) return
     const current = char[card.field] || []
     update({ [card.field]: current.filter(r => r.id !== ritual.id) })
-    setExpandedRituals(prev => { const n = new Set(prev); n.delete(ritual.id); return n })
+    if (activeRitualId === ritual.id) setActiveRitualId(null)
   }
 
+  const activeRitual = items.find(r => r.id === activeRitualId) || null
+
   return (
-    <div className={`rounded-xl border ${card.borderClass} bg-void/40 p-4 space-y-3`}>
-      <div className="flex items-center justify-between gap-3">
+    <div className={`rounded-xl border ${card.borderClass} bg-void/40 overflow-hidden`}>
+      <div className="flex items-center justify-between gap-3 p-4 pb-3">
         <div className="flex items-center gap-2">
           <span className={card.accentClass}>{card.icon}</span>
           <span className={`font-semibold text-sm ${card.accentClass}`}>{card.title}</span>
@@ -903,48 +903,94 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
         </div>
       </div>
 
-      <div className="space-y-2">
-        {items.map(ritual => {
-          const isExpanded = expandedRituals.has(ritual.id)
-          return (
-            <div key={ritual.id}
-              className={`rounded-lg border overflow-hidden transition-all duration-200 ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]} ${isExpanded ? CIRCLE_BORDER_TOP[ritual.circle] || '' : ''}`}>
-              <button type="button" onClick={() => toggleRitualExpand(ritual.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all duration-150 hover:brightness-110 active:scale-[0.99]">
-                <span className={`text-[10px] border rounded-full px-1.5 py-0.5 shrink-0 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
-                <span className="text-txt-main text-xs font-semibold truncate flex-1">{ritual.name}</span>
-                {ritual.pe_cost != null && <span className="text-[10px] text-amber-300 font-mono shrink-0">{ritual.pe_cost} PE</span>}
-                {update && (
-                  <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); removeRitual(ritual) } }}
-                    className="text-err/40 hover:text-err text-xs shrink-0 transition-colors">×</span>
-                )}
-                <span className={`text-txt-dim/40 text-[10px] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
-              </button>
-              {isExpanded && (
-                <div className="px-3 pb-3 pt-1 border-t border-white/5 space-y-2 animate-fadeIn">
-                  {ritual.short_description && <p className="text-txt-dim text-xs leading-relaxed">{ritual.short_description}</p>}
-                  {ritual.effect && <p className="text-txt-dim/70 text-[11px] leading-relaxed">{ritual.effect}</p>}
-                  <div className="flex flex-wrap gap-2 text-[10px] font-mono">
-                    <span className="text-amber-300">{ritual.pe_cost || 0} PE</span>
-                    <span className="text-gold">{SPACE_COST[ritual.circle] || 0} espaços</span>
-                    {ritual.category && <span className="text-txt-dim">{ritual.category}</span>}
-                    {ritual.duration && <span className="text-sky-300">{ritual.duration}</span>}
-                    {ritual.action_cost && <span className="text-purple-300">{ritual.action_cost}</span>}
-                  </div>
-                </div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 px-4 pb-4">
+        {items.map(ritual => (
+          <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
+            className={`relative aspect-square rounded-xl border flex flex-col items-center justify-between p-2.5 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
+            <div className="w-full flex items-start justify-between">
+              {ritual.circle && <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>}
+              {update && (
+                <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); removeRitual(ritual) } }}
+                  className="text-err/30 hover:text-err text-[10px] transition-colors leading-none">×</span>
               )}
             </div>
-          )
-        })}
+            <span className="text-txt-main text-[11px] font-semibold text-center leading-tight mt-1 line-clamp-2">{ritual.name}</span>
+            <p className="text-txt-dim/60 text-[9px] text-center leading-snug mt-0.5 line-clamp-2">{ritual.short_description || ''}</p>
+            {ritual.pe_cost != null && (
+              <span className="text-amber-300 text-[10px] font-mono mt-1">{ritual.pe_cost} PE</span>
+            )}
+          </button>
+        ))}
 
         {update && (
           <button type="button" onClick={onOpenPicker}
-            className="w-full rounded-lg border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center py-4 transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.99]">
-            <span className="text-txt-dim/30 text-xl">+</span>
+            className="aspect-square rounded-xl border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.97]">
+            <span className="text-txt-dim/25 text-xl">+</span>
           </button>
         )}
       </div>
+
+      {sidebarOpen && createPortal(
+        <div className="fixed inset-0 z-[60] flex justify-end" onClick={() => setSidebarOpen(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm h-full bg-[#0a0c14]/95 border-l border-sep/20 shadow-2xl flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+
+            <div className="flex items-center justify-between px-4 py-3 border-b border-sep/20">
+              <div className="flex items-center gap-2">
+                <span className={card.accentClass}>{card.icon}</span>
+                <span className={`font-semibold text-sm ${card.accentClass}`}>{card.title}</span>
+                <span className="text-[10px] text-txt-dim font-mono">{items.length}</span>
+              </div>
+              <button type="button" onClick={() => setSidebarOpen(false)} className="text-txt-dim hover:text-txt-main transition-colors">×</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {items.map(ritual => {
+                const isActive = activeRitualId === ritual.id
+                return (
+                  <div key={ritual.id}
+                    className={`rounded-lg border overflow-hidden transition-all duration-200 ${isActive ? (CIRCLE_BORDER_TOP[ritual.circle] || '') + ' ' + (CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]) : 'border-sep/15 bg-void/30 hover:bg-void/50'}`}>
+                    <button type="button" onClick={() => setActiveRitualId(isActive ? null : ritual.id)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all duration-150 hover:brightness-110">
+                      <span className={`text-[9px] border rounded-full px-1.5 py-0.5 shrink-0 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                      <span className="text-txt-main text-xs font-semibold truncate flex-1">{ritual.name}</span>
+                      {ritual.pe_cost != null && <span className="text-amber-300 text-[10px] font-mono shrink-0">{ritual.pe_cost} PE</span>}
+                      <span className={`text-txt-dim/30 text-[9px] transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                    {isActive && (
+                      <div className="px-3 pb-3 pt-1 border-t border-white/5 space-y-2 animate-fadeIn">
+                        {ritual.short_description && <p className="text-txt-dim text-xs leading-relaxed">{ritual.short_description}</p>}
+                        {ritual.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed">{ritual.effect}</p>}
+                        <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                          <span className="text-amber-300">{ritual.pe_cost || 0} PE</span>
+                          <span className="text-gold">{SPACE_COST[ritual.circle] || 0} espaços</span>
+                          {ritual.category && <span className="text-txt-dim">{ritual.category}</span>}
+                          {ritual.duration && <span className="text-sky-300">{ritual.duration}</span>}
+                          {ritual.action_cost && <span className="text-purple-300">{ritual.action_cost}</span>}
+                        </div>
+                        {update && (
+                          <button type="button" onClick={() => removeRitual(ritual)}
+                            className="text-err/60 hover:text-err text-[10px] transition-colors mt-1">Remover</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {update && (
+                <button type="button" onClick={onOpenPicker}
+                  className="w-full rounded-lg border border-dashed border-sep/20 hover:border-sep/40 py-3 text-txt-dim/40 text-xs transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.99]">
+                  + Adicionar {card.title.slice(0, -1)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
