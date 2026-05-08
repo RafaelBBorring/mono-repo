@@ -1,4 +1,4 @@
-import { getSelectedSubrace } from './raceCalculator'
+import { getSelectedSubrace, getRaceAdjustedAttrs } from './raceCalculator'
 import { getTagValue } from './mysticTagHelpers'
 import { SPACE_COST_BY_CIRCLE, normalizeClassKey } from './alchemyRules'
 
@@ -54,6 +54,26 @@ export function getRuneActiveCount(runes = []) {
 export function getRuneProfile(char = {}) {
   const nivel = Math.max(1, Math.min(30, char.nivel || 1))
   const trainingLevel = getRuneTrainingLevel(char)
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, char.skeletonPoints || {}, char)
+  const con = adjustedAttrs.CON || 0
+  const forc = adjustedAttrs.FOR || 0
+  const hasAccess = trainingLevel >= 1 || con >= 14 || forc >= 14
+
+  if (!hasAccess) {
+    return {
+      nivel,
+      trainingLevel,
+      trainingLabel: RUNE_TRAINING_RULES[trainingLevel]?.label || 'Sem Vinculo',
+      maxCircle: 0,
+      spaceBudget: 0,
+      maxByCircle: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      activeSlots: 0,
+      hasAccess: false,
+      accessReason: 'Runas requer pericia Poder treinada (grau 1+) ou CON/FOR >= 14.',
+      notes: [],
+    }
+  }
+
   const base = RUNE_BASE_RULES.find((rule) => nivel <= rule.maxLevel) || RUNE_BASE_RULES[RUNE_BASE_RULES.length - 1]
   const classKey = normalizeClassKey(char.classe)
   const raceKey = char.raca || ''
@@ -91,9 +111,9 @@ export function getRuneProfile(char = {}) {
     spaceBudget,
     maxByCircle,
     activeSlots,
-    notes: [...training.notes, ...classAffinity.notes, ...raceAffinity.notes],
     hasAccess: true,
-    accessReason: 'Qualquer personagem pode usar runas, mas a disciplina continua opcional na ficha.',
+    accessReason: 'Seu personagem atende aos requisitos para portar runas.',
+    notes: [...training.notes, ...classAffinity.notes, ...raceAffinity.notes],
   }
 }
 

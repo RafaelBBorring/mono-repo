@@ -29,14 +29,11 @@ const CLASS_AFFINITY = {
   MISTICO: { budget: 3, circle: 0, circleCaps: { 1: 1, 2: 1, 3: 0, 4: 0 }, notes: ['Misticos com raca apta ampliam o repertorio de feitiços.'] },
 }
 
-const SPELL_ELIGIBLE_RACES = ['BRUXA', 'ELFO', 'HUMANO_MISTICO', 'DEMONIO', 'SEMIDEUS']
+const SPELL_ELIGIBLE_RACES = ['BRUXA', 'HUMANO_MISTICO']
 
 const RACE_AFFINITY = {
-  BRUXA: { budget: 6, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 1 }, notes: ['Bruxas sao a referencia de feitiços rituais e de maldicao.'] },
-  ELFO: { budget: 4, circle: 0, circleCaps: { 1: 1, 2: 1, 3: 0, 4: 0 }, notes: ['Elfos sustentam feitiços com disciplina e heranca ancestral.'] },
-  HUMANO_MISTICO: { budget: 6, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 1 }, notes: ['Guardioes misticos navegam feitiços e sistemas epicos com alta sincronia.'] },
-  DEMONIO: { budget: 2, circle: 0, circleCaps: { 1: 0, 2: 1, 3: 0, 4: 0 }, notes: ['Demonios moldam feitiços brutais com menos fineza que bruxas.'] },
-  SEMIDEUS: { budget: 0, circle: 0, circleCaps: { 1: 0, 2: 0, 3: 0, 4: 0 }, notes: ['Semideuses filhos de Hecate acessam feitiços por linhagem.'] },
+  BRUXA: { budget: 6, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 1 }, notes: ['Bruxas sao a referencia de feiticops rituais e de maldicao.'] },
+  HUMANO_MISTICO: { budget: 6, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 1 }, notes: ['Guardioes misticos navegam feiticops e sistemas epicos com alta sincronia.'] },
 }
 
 export function getSpellTrainingLevel(char = {}) {
@@ -52,29 +49,11 @@ export function getSpellSpaceUsed(spells = []) {
 }
 
 export function getSpellTraditions(char = {}) {
-  const classKey = normalizeClassKey(char.classe)
   const raceKey = char.raca || ''
-  const subrace = getSelectedSubrace(char)
   const traditions = new Set()
 
   if (raceKey === 'BRUXA') traditions.add('bruxaria')
-  if (raceKey === 'ELFO') {
-    traditions.add('bruxaria')
-    if (subrace?.id === 'ARCANISTA') traditions.add('arcana')
-  }
   if (raceKey === 'HUMANO_MISTICO') {
-    traditions.add('bruxaria')
-    traditions.add('arcana')
-  }
-  if (raceKey === 'DEMONIO' && ['SUPERIOR', 'SENHOR_CIRCULO'].includes(subrace?.id)) {
-    traditions.add('bruxaria')
-  }
-  if (raceKey === 'SEMIDEUS' && char.racaDeus === 'HECATE') {
-    traditions.add('bruxaria')
-    traditions.add('arcana')
-  }
-
-  if (classKey === 'MISTICO' && traditions.size > 0) {
     traditions.add('bruxaria')
     traditions.add('arcana')
   }
@@ -97,37 +76,20 @@ export function getSpellProfile(char = {}) {
 
   const hasAccess = traditions.length > 0
   const accessReason = hasAccess
-    ? 'Seu personagem pode estudar feitiços, mas o repertorio continua opcional.'
-    : 'Feitiços requer linhagem apta (Bruxa, Elfo, Humano Mistico, Demonio Superior/Senhor ou Semideus de Hecate). Magos usam Magias, nao feitiços.'
+    ? 'Seu personagem pode estudar feiticops.'
+    : 'Feiticops requer linhagem apta (Bruxa ou Humano Mistico).'
 
   const levelCircleCap = Math.min(4, Math.max(1, base.maxCircle + classAffinity.circle + raceAffinity.circle))
   const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + classAffinity.circle + raceAffinity.circle))
   const maxCircle = hasAccess ? Math.min(levelCircleCap, trainingCircleCap) : 0
 
   let spaceBudget = hasAccess ? Math.max(0, base.spaceBudget + training.budget + classAffinity.budget + raceAffinity.budget) : 0
-  if (raceKey === 'SEMIDEUS' && char.racaDeus === 'HECATE') {
-    spaceBudget = Math.max(4, base.spaceBudget + training.budget + 2)
-  }
-  if (raceKey === 'DEMONIO' && subrace?.id === 'INFERIOR') {
-    spaceBudget = 0
-  }
 
   const baseCircleCaps = base.maxByCircle || { 1: 0, 2: 0, 3: 0, 4: 0 }
   const maxByCircle = {}
   for (const circle of [1, 2, 3, 4]) {
     const rawCap = (baseCircleCaps[circle] || 0) + (classAffinity.circleCaps?.[circle] || 0) + (raceAffinity.circleCaps?.[circle] || 0)
     maxByCircle[circle] = circle <= maxCircle ? Math.max(0, rawCap) : 0
-  }
-
-  if (raceKey === 'VAMPIRO' && classKey === 'MISTICO') {
-    maxByCircle[4] = Math.max(0, maxByCircle[4] - 1)
-  }
-  if (raceKey === 'DEMONIO' && ['SUPERIOR', 'SENHOR_CIRCULO'].includes(subrace?.id)) {
-    maxByCircle[3] += 1
-  }
-  if (raceKey === 'ELFO' && subrace?.id === 'ARCANISTA') {
-    maxByCircle[2] += 1
-    maxByCircle[3] += 1
   }
 
   return {

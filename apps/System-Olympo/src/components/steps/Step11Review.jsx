@@ -23,6 +23,7 @@ import MagicLibrarySection from '../MagicLibrarySection'
 import { getSpellProfile } from '../../utils/spellRules'
 import { getRuneProfile } from '../../utils/runeRules'
 import { getMagicProfile } from '../../utils/magicRules'
+import { getAlchemyProfile } from '../../utils/alchemyRules'
 import { calcEquipStats } from '../../data/equipment'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
@@ -198,12 +199,24 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const systemOptIn = char.systemsOptIn || {}
   const spellProfile = getSpellProfile(char)
   const runeProfile = getRuneProfile(char)
-  const alchemyEnabled = systemOptIn.alchemy || (char.alchemyRituals || []).length > 0
-  const spellsEnabled = systemOptIn.spells || (char.spells || []).length > 0
-  const runesEnabled = systemOptIn.runes || (char.runes || []).length > 0
-  const magicEnabled = systemOptIn.magic || (char.magics || []).length > 0
+  const alchemyProfile = getAlchemyProfile(char)
   const magicProfile = getMagicProfile(char)
+  const alchemyEnabled = alchemyProfile.hasAccess && (systemOptIn.alchemy || (char.alchemyRituals || []).length > 0)
+  const spellsEnabled = spellProfile.hasAccess && (systemOptIn.spells || (char.spells || []).length > 0)
+  const runesEnabled = runeProfile.hasAccess && (systemOptIn.runes || (char.runes || []).length > 0)
+  const magicEnabled = magicProfile.hasAccess && (systemOptIn.magic || (char.magics || []).length > 0)
   const [sheetView, setSheetView] = useState('full')
+
+  function toggleKnowledge(key, currentlyEnabled) {
+    if (!update) return
+    const fieldMap = { alchemy: 'alchemyRituals', spells: 'spells', runes: 'runes', magic: 'magics' }
+    const nextOptIn = { ...systemOptIn, [key]: !currentlyEnabled }
+    const patch = { systemsOptIn: nextOptIn }
+    if (!currentlyEnabled) {
+      patch[fieldMap[key]] = patch[fieldMap[key]] || char[fieldMap[key]] || []
+    }
+    update(patch)
+  }
 
   function handleCopy() {
     navigator.clipboard.writeText(exportSheet(char, derived)).catch(() => {})
@@ -733,47 +746,39 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 )}
               </section>
 
-              {/* RESERVED — FUTURE SECTIONS */}
-              <section className={showAll ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="🔮" title="Em Desenvolvimento" color="bg-gold/60" />
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[
-                    { icon: '⚡', name: 'Condições', desc: 'Condições Especiais' },
-                    { icon: '🗺', name: 'Mapas Táticos', desc: 'Terreno e zonas dinâmicas' },
-                    { icon: '👥', name: 'Companheiros', desc: 'Invocações, aliados e lacaios' },
-                  ].map(s => (
-                    <div key={s.name} className="bg-void/30 border border-sep/20 rounded-lg p-2.5 opacity-50 hover:opacity-70 transition-opacity">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-sm">{s.icon}</span>
-                        <span className="text-txt-dim text-[11px] font-semibold">{s.name}</span>
-                      </div>
-                      <p className="text-txt-dim/50 text-[9px]">{s.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
             </div>
 
           </div>
 
           <div className={`mt-5 border-t border-sep/30 pt-5 ${visible('mystic') ? '' : 'hidden'}`}>
-            <OptionalSystemsSection
-              char={char}
-              update={update}
-              alchemyEnabled={alchemyEnabled}
-              spellsEnabled={spellsEnabled}
-              runesEnabled={runesEnabled}
-              magicEnabled={magicEnabled}
-              spellProfile={spellProfile}
-              runeProfile={runeProfile}
-              magicProfile={magicProfile}
-            />
-
-            <div className="space-y-5 mt-5">
-              {alchemyEnabled && <AlchemyLibrarySection char={char} update={update} wide />}
-              {spellsEnabled && <SpellLibrarySection char={char} update={update} wide />}
-              {runesEnabled && <RuneLibrarySection char={char} update={update} wide />}
-              {magicEnabled && <MagicLibrarySection char={char} update={update} wide />}
+            <div className="space-y-3">
+              {alchemyProfile.hasAccess && (
+                <KnowledgeAccordion title="Alquimia" icon="⚗" accent="text-teal-400" active={alchemyEnabled}
+                  onToggle={() => toggleKnowledge('alchemy', alchemyEnabled)} canEdit={canEdit}>
+                  {alchemyEnabled && <AlchemyLibrarySection char={char} update={update} wide />}
+                </KnowledgeAccordion>
+              )}
+              {spellProfile.hasAccess && (
+                <KnowledgeAccordion title="Feitiços" icon="✨" accent="text-emerald-400" active={spellsEnabled}
+                  onToggle={() => toggleKnowledge('spells', spellsEnabled)} canEdit={canEdit}>
+                  {spellsEnabled && <SpellLibrarySection char={char} update={update} wide />}
+                </KnowledgeAccordion>
+              )}
+              {runeProfile.hasAccess && (
+                <KnowledgeAccordion title="Runas" icon="💎" accent="text-sky-400" active={runesEnabled}
+                  onToggle={() => toggleKnowledge('runes', runesEnabled)} canEdit={canEdit}>
+                  {runesEnabled && <RuneLibrarySection char={char} update={update} wide />}
+                </KnowledgeAccordion>
+              )}
+              {magicProfile.hasAccess && (
+                <KnowledgeAccordion title="Magias" icon="🔥" accent="text-orange-400" active={magicEnabled}
+                  onToggle={() => toggleKnowledge('magic', magicEnabled)} canEdit={canEdit}>
+                  {magicEnabled && <MagicLibrarySection char={char} update={update} wide />}
+                </KnowledgeAccordion>
+              )}
+              {!alchemyProfile.hasAccess && !spellProfile.hasAccess && !runeProfile.hasAccess && !magicProfile.hasAccess && (
+                <p className="text-txt-dim text-xs text-center py-6 italic">Nenhuma disciplina mistica disponivel para este personagem.</p>
+              )}
             </div>
           </div>
         </div>
@@ -791,117 +796,22 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   )
 }
 
-function OptionalSystemsSection({ char, update, alchemyEnabled, spellsEnabled, runesEnabled, magicEnabled, spellProfile, runeProfile, magicProfile }) {
-  const systemOptIn = char.systemsOptIn || {}
-  const cards = [
-    {
-      key: 'alchemy',
-      icon: '⚗',
-      title: 'Alquimia',
-      active: alchemyEnabled,
-      accent: 'border-teal-400/20 bg-teal-400/5',
-      access: 'Livre',
-      summary: 'Qualquer personagem pode estudar, mas o repertorio cresce com nivel, treino em Alquimia, classe e raca.',
-    },
-    {
-      key: 'spells',
-      icon: '✨',
-      title: 'Feitiços',
-      active: spellsEnabled,
-      accent: 'border-emerald-400/20 bg-emerald-400/5',
-      access: spellProfile.hasAccess ? 'Permitido' : 'Bloqueado',
-      summary: spellProfile.hasAccess
-        ? `Tradicoes liberadas: ${spellProfile.traditions.map((item) => item === 'arcana' ? 'Arcana' : 'Bruxaria').join(' / ')}. Ideal para personagens realmente voltados ao arcano.`
-        : 'Seu conjunto atual de raca/classe nao pede feiticops. A ficha pode seguir leve sem essa camada.',
-    },
-    {
-      key: 'runes',
-      icon: '💎',
-      title: 'Runas',
-      active: runesEnabled,
-      accent: 'border-sky-400/20 bg-sky-400/5',
-      access: 'Livre',
-      summary: `Runas sao opcionais para qualquer personagem. Seu vinculo atual sustenta ate ${runeProfile.activeSlots} runa(s) ativa(s) ao mesmo tempo.`,
-    },
-    {
-      key: 'magic',
-      icon: '🔥',
-      title: 'Magias',
-      active: magicEnabled,
-      accent: 'border-orange-400/20 bg-orange-400/5',
-      access: magicProfile.hasAccess ? 'Permitido' : 'Bloqueado',
-      summary: magicProfile.hasAccess
-        ? 'Seu sangue arcano permite canalizar Magias diretamente. Escolha entre escolas de fogo, gelo, eletricidade, arcano, gravidade e mais.'
-        : 'Apenas Magos possuem acesso a Magias. Outras racas usam Feiticops, Rituais ou Runas.',
-    },
-  ]
-
-  function getStoredState(key) {
-    return systemOptIn[key] || false
-  }
-
-  function getCurrentEntries(key) {
-    if (key === 'alchemy') return char.alchemyRituals || []
-    if (key === 'spells') return char.spells || []
-    if (key === 'magic') return char.magics || []
-    return char.runes || []
-  }
-
-  function toggleSystem(key) {
-    if (!update) return
-    const currentEntries = getCurrentEntries(key)
-    const implicitActive = currentEntries.length > 0
-    const nextEnabled = !(getStoredState(key) || implicitActive)
-    const nextOptIn = {
-      ...systemOptIn,
-      [key]: nextEnabled,
-    }
-    const patch = { systemsOptIn: nextOptIn }
-    if (!nextEnabled) {
-      if (key === 'alchemy') patch.alchemyRituals = []
-      if (key === 'spells') patch.spells = []
-      if (key === 'runes') patch.runes = []
-      if (key === 'magic') patch.magics = []
-    }
-    update({
-      ...patch,
-    })
-  }
-
+function KnowledgeAccordion({ title, icon, accent, active, onToggle, canEdit, children }) {
   return (
-    <section className="space-y-4">
-      <SectionHeader icon="🔮" title="Disciplinas Opcionais" color="bg-gold/60" />
-      <div className="bg-void/60 border border-sep/30 rounded-xl p-4">
-        <p className="text-txt-dim text-sm leading-relaxed">
-          Para reduzir sobrecarga, Alquimia, Feiticops, Runas e Magias ficam nas maos do jogador. Quem quer uma ficha direta pode ignorar essas camadas; quem quer explorar o lado mistico ativa so os sistemas que realmente pretende usar.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
-        {cards.map((card) => (
-          <article key={card.key} className={`rounded-xl border p-4 ${card.accent}`}>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{card.icon}</span>
-                <div>
-                  <div className="text-txt-main font-semibold">{card.title}</div>
-                  <div className="text-[11px] text-txt-dim">Acesso: {card.access}</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleSystem(card.key)}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                  card.active ? 'bg-gold text-void' : 'border border-sep/40 text-txt-dim hover:border-gold hover:text-gold'
-                }`}
-              >
-                {card.active ? 'Ativo' : 'Ativar'}
-              </button>
-            </div>
-            <p className="text-txt-dim text-xs mt-3 leading-relaxed">{card.summary}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+    <div className={`rounded-lg border ${active ? 'border-sep/30 bg-void/40' : 'border-sep/15 bg-void/20'}`}>
+      <button type="button" onClick={canEdit ? onToggle : undefined}
+        className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${canEdit ? 'cursor-pointer hover:bg-white/[0.02]' : 'cursor-default'}`}>
+        <span className={`text-lg ${active ? accent : 'text-txt-dim/50'}`}>{icon}</span>
+        <span className={`font-semibold text-sm ${active ? 'text-txt-main' : 'text-txt-dim/70'}`}>{title}</span>
+        {active && <span className="ml-auto text-[10px] text-txt-dim/50 font-mono uppercase tracking-wider">aberto</span>}
+        {!active && canEdit && <span className="ml-auto text-[10px] text-txt-dim/30 font-mono">clique para expandir</span>}
+      </button>
+      {active && (
+        <div className="border-t border-sep/20 px-3 pb-3 pt-3">
+          {children}
+        </div>
+      )}
+    </div>
   )
 }
 

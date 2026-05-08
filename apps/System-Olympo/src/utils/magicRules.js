@@ -35,8 +35,11 @@ const CLASS_AFFINITY = {
 }
 
 const RACE_AFFINITY = {
-  MAGO: { budget: 6, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 1 }, notes: ['Magos sao a unica raca com acesso nativo a Magias. Foco arcano e parte da identidade racial.'] },
-  HUMANO_MISTICO: { budget: 2, circle: 0, circleCaps: { 1: 0, 2: 0, 3: 0, 4: 0 }, notes: ['Guardioes misticos nao acessam magias — usam feitiços e rituais.'] },
+  MAGO: { budget: 6, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 1 }, notes: ['Magos possuem acesso nativo a Magias. Foco arcano e parte da identidade racial.'] },
+  DEMONIO: { budget: 3, circle: 0, circleCaps: { 1: 1, 2: 1, 3: 0, 4: 0 }, notes: ['Demonios canalizam Magias por natureza sobrenatural.'] },
+  SEMIDEUS: { budget: 2, circle: 0, circleCaps: { 1: 1, 2: 0, 3: 0, 4: 0 }, notes: ['Semideuses de Hecate acessam Magias por linhagem divina.'] },
+  HUMANO_MISTICO: { budget: 4, circle: 1, circleCaps: { 1: 1, 2: 1, 3: 1, 4: 0 }, notes: ['Guardioes misticos acessam Magias pelo vinculo arcano.'] },
+  ELFO: { budget: 4, circle: 0, circleCaps: { 1: 1, 2: 1, 3: 0, 4: 0 }, notes: ['Elfos possuem afinidade arcana ancestral.'] },
 }
 
 export function getMagicTrainingLevel(char = {}) {
@@ -59,7 +62,10 @@ export function getMagicProfile(char = {}) {
   const raceKey = char.raca || ''
 
   const raceAffinity = RACE_AFFINITY[raceKey] || null
-  const hasAccess = raceKey === 'MAGO'
+  const subrace = getSelectedSubrace(char)
+  const eligibleRaces = ['MAGO', 'DEMONIO', 'HUMANO_MISTICO', 'ELFO']
+  const isSemideusArcano = raceKey === 'SEMIDEUS' && char.racaDeus === 'HECATE'
+  const hasAccess = eligibleRaces.includes(raceKey) || isSemideusArcano
 
   if (!hasAccess) {
     return {
@@ -70,25 +76,26 @@ export function getMagicProfile(char = {}) {
       spaceBudget: 0,
       maxByCircle: { 1: 0, 2: 0, 3: 0, 4: 0 },
       hasAccess: false,
-      accessReason: 'Apenas Magos possuem acesso a Magias. Outras racas usam Feitiços, Rituais ou Runas.',
+      accessReason: 'Magias requer linhagem apta (Mago, Demonio, Semideus de Hecate, Humano Mistico ou Elfo).',
       complexityLabels: MAGIC_COMPLEXITY,
       notes: [],
     }
   }
 
+  const effectiveRaceAffinity = raceAffinity || { budget: 0, circle: 0, circleCaps: {}, notes: [] }
   const classAffinity = CLASS_AFFINITY[classKey] || { budget: 0, circle: 0, circleCaps: {}, notes: [] }
   const training = MAGIC_TRAINING_RULES[trainingLevel] || MAGIC_TRAINING_RULES[0]
 
-  const levelCircleCap = Math.min(4, Math.max(1, base.maxCircle + raceAffinity.circle + classAffinity.circle))
-  const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + raceAffinity.circle + classAffinity.circle))
+  const levelCircleCap = Math.min(4, Math.max(1, base.maxCircle + effectiveRaceAffinity.circle + classAffinity.circle))
+  const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + effectiveRaceAffinity.circle + classAffinity.circle))
   const maxCircle = Math.min(levelCircleCap, trainingCircleCap)
 
-  const spaceBudget = Math.max(4, base.spaceBudget + training.budget + raceAffinity.budget + classAffinity.budget)
+  const spaceBudget = Math.max(4, base.spaceBudget + training.budget + effectiveRaceAffinity.budget + classAffinity.budget)
 
   const baseCircleCaps = base.maxByCircle || { 1: 0, 2: 0, 3: 0, 4: 0 }
   const maxByCircle = {}
   for (const circle of [1, 2, 3, 4]) {
-    const rawCap = (baseCircleCaps[circle] || 0) + (raceAffinity.circleCaps?.[circle] || 0) + (classAffinity.circleCaps?.[circle] || 0)
+    const rawCap = (baseCircleCaps[circle] || 0) + (effectiveRaceAffinity.circleCaps?.[circle] || 0) + (classAffinity.circleCaps?.[circle] || 0)
     maxByCircle[circle] = circle <= maxCircle ? Math.max(0, rawCap) : 0
   }
 
@@ -104,7 +111,7 @@ export function getMagicProfile(char = {}) {
     hasAccess: true,
     accessReason: 'Seu sangue arcano permite canalizar Magias diretamente.',
     complexityLabels: MAGIC_COMPLEXITY,
-    notes: [...training.notes, ...classAffinity.notes, ...raceAffinity.notes],
+    notes: [...training.notes, ...classAffinity.notes, ...effectiveRaceAffinity.notes],
   }
 }
 

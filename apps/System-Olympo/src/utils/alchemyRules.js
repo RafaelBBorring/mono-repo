@@ -75,6 +75,23 @@ export function getAlchemySpaceUsed(rituals = []) {
 export function getAlchemyProfile(char = {}) {
   const nivel = Math.max(1, Math.min(30, char.nivel || 1))
   const trainingLevel = getAlchemyTrainingLevel(char)
+  const hasAccess = trainingLevel >= 1
+
+  if (!hasAccess) {
+    return {
+      nivel,
+      trainingLevel,
+      trainingLabel: ALCHEMY_TRAINING_RULES[trainingLevel]?.label || 'Nao Treinado',
+      maxCircle: 0,
+      spaceBudget: 0,
+      maxByCircle: { 1: 0, 2: 0, 3: 0, 4: 0 },
+      ritualCosts: SPACE_COST_BY_CIRCLE,
+      hasAccess: false,
+      accessReason: 'Alquimia requer pericia Alquimia treinada (grau 1+).',
+      notes: [],
+    }
+  }
+
   const base = BASE_RULES_BY_LEVEL.find((rule) => nivel <= rule.maxLevel) || BASE_RULES_BY_LEVEL[BASE_RULES_BY_LEVEL.length - 1]
   const classKey = normalizeClassKey(char.classe)
   const raceKey = char.raca || ''
@@ -111,6 +128,8 @@ export function getAlchemyProfile(char = {}) {
     spaceBudget,
     maxByCircle,
     ritualCosts: SPACE_COST_BY_CIRCLE,
+    hasAccess: true,
+    accessReason: 'Pericia Alquimia treinada.',
     notes: [...training.notes, ...classAffinity.notes, ...raceAffinity.notes],
   }
 }
