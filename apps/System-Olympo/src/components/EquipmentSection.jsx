@@ -356,10 +356,7 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
         {image ? <img src={image} alt="" className="w-full h-full object-cover" /> : <span>ARM</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-txt-main text-sm font-semibold truncate">{displayName || weapon.name}</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge} shrink-0`}>{rank.rank}</span>
-        </div>
+        <span className="text-txt-main text-sm font-semibold truncate">{displayName || weapon.name}</span>
         <div className="flex items-center gap-3 mt-1 text-xs">
           <span className="text-red-400/90 font-mono">Dano {weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
           <span className="text-txt-dim/60">{weapon.attr}</span>
@@ -464,7 +461,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
             <div className={`w-8 h-8 rounded-lg ${rc.badge} border flex items-center justify-center text-base`}>⚔</div>
             <div>
               <h3 className="text-on-surface text-sm font-semibold">{char.armaNome || weapon.name}</h3>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{rank.rank}</span>
+              <span className="text-txt-dim text-[10px]">{weapon.attr} · {weapon.dano}{rank.danoBonus ? ` ${rank.danoBonus}` : ''}</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -690,10 +687,7 @@ function EquipCard({ item, onClick }) {
         {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span>{isWeapon ? 'ARM' : 'EQP'}</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-txt-main text-sm font-semibold truncate">{item.nome || 'Equipamento'}</span>
-          {item.rank && <span className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${isLegendaryItem ? 'bg-lime-300/10 text-lime-300 border-lime-300/25' : rc.badge}`}>{isLegendaryItem ? 'Lendária' : item.rank}</span>}
-        </div>
+        <span className="text-txt-main text-sm font-semibold truncate">{item.nome || 'Equipamento'}</span>
         <div className="flex items-center gap-3 mt-1 text-xs">
           <span className={isLegendaryItem ? 'text-lime-300/80' : 'text-txt-dim/60'}>{isLegendaryItem ? 'Arma Lendária' : item.categoria || 'Equipamento'}</span>
           {item.dano && <span className="text-red-400/80 font-mono">{item.dano}</span>}
