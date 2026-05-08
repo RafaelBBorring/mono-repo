@@ -214,7 +214,7 @@ function LegendaryForgeStage() {
     const sparkles = new THREE.Points(sparkleGeom, sparkleMat)
     root.add(sparkles)
 
-    const clock = new THREE.Clock()
+    const clockStart = performance.now()
     let frameId = 0
 
     function resize() {
@@ -227,7 +227,7 @@ function LegendaryForgeStage() {
     }
 
     function animate() {
-      const t = clock.getElapsedTime()
+      const t = (performance.now() - clockStart) / 1000
 
       crystal.rotation.y = t * 0.4
       crystal.rotation.x = Math.sin(t * 0.3) * 0.15
@@ -316,6 +316,8 @@ export default function MysticWeaponAdminPanel() {
   const [analysisNote, setAnalysisNote] = useState('')
   const [query, setQuery] = useState('')
   const [editorOpen, setEditorOpen] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState(null)
+  const [improveWriting, setImproveWriting] = useState(false)
 
   useEffect(() => { load() }, [])
 
@@ -407,6 +409,7 @@ export default function MysticWeaponAdminPanel() {
   async function handleAnalyze() {
     setAnalyzing(true)
     setError('')
+    setAnalysisResult(null)
     try {
       const draft = {
         name: form.name.trim(),
@@ -423,28 +426,45 @@ export default function MysticWeaponAdminPanel() {
           ultimates: form.habilidades.ultimates.filter(h => h.nome.trim()),
         },
       }
-      const analyzed = await analyzeLegendaryWeaponDraft(draft, { analysis_note: analysisNote.trim() })
-      setForm(prev => ({
-        ...prev,
-        name: analyzed.name || prev.name,
-        dano: analyzed.dano || prev.dano,
-        attr: analyzed.attr || prev.attr,
-        effect: analyzed.effect || prev.effect,
-        power_level: analyzed.power_level || prev.power_level,
-        lore: analyzed.lore || prev.lore,
-        habilidades: analyzed.habilidades
-          ? {
-              passivas: analyzed.habilidades.passivas || prev.habilidades.passivas,
-              ativas: analyzed.habilidades.ativas || prev.habilidades.ativas,
-              ultimates: analyzed.habilidades.ultimates || prev.habilidades.ultimates,
-            }
-          : prev.habilidades,
-      }))
+      const timeoutMs = 60000
+      const analyzed = await Promise.race([
+        analyzeLegendaryWeaponDraft(draft, {
+          analysis_note: analysisNote.trim(),
+          improve_writing: improveWriting,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('O Oraculo demorou demais para responder (60s). Tente novamente.')), timeoutMs)
+        ),
+      ])
+      setAnalysisResult({ analyzed, original: { dano: form.dano, effect: form.effect, habilidades: JSON.parse(JSON.stringify(form.habilidades)) } })
     } catch (err) {
       setError(err.message || 'Falha ao analisar arma lendária.')
     } finally {
       setAnalyzing(false)
     }
+  }
+
+  function applyAnalysis() {
+    if (!analysisResult) return
+    const { analyzed } = analysisResult
+    setForm(prev => ({
+      ...prev,
+      name: analyzed.name || prev.name,
+      dano: analyzed.dano || prev.dano,
+      attr: analyzed.attr || prev.attr,
+      effect: analyzed.effect || prev.effect,
+      power_level: analyzed.power_level || prev.power_level,
+      lore: analyzed.lore || prev.lore,
+      habilidades: analyzed.habilidades
+        ? {
+            passivas: analyzed.habilidades.passivas || prev.habilidades.passivas,
+            ativas: analyzed.habilidades.ativas || prev.habilidades.ativas,
+            ultimates: analyzed.habilidades.ultimates || prev.habilidades.ultimates,
+          }
+        : prev.habilidades,
+    }))
+    setAnalysisResult(null)
+    setAnalysisNote('')
   }
 
   function handleImage(e) {
@@ -699,8 +719,13 @@ export default function MysticWeaponAdminPanel() {
             <div className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oraculo — Forja Inteligente</div>
           </div>
           <div className="text-txt-dim text-[11px] leading-relaxed">
-            O Oraculo pode <span className="text-indigo-300">GERAR</span> a arma completa a partir de um conceito (habilidades, dano, efeito), ou <span className="text-amber-300">BALANCEAR</span> os campos ja preenchidos. Descreva o conceito ou ajustes desejados — nivel de poder: <span className="text-amber-300">{powerLabel(form.power_level)}</span>.
+            O Oraculo pode <span className="text-indigo-300">GERAR</span> a arma completa a partir de um conceito (habilidades, dano, efeito), ou <span className="text-amber-300">BALANCEAR</span> os campos ja preenchidos. O efeito lendario sera PRESERVADO — apenas valores numericos sao ajustados, exceto se ativar a opcao abaixo.
           </div>
+          <label className="flex items-center gap-2 cursor-pointer text-[11px] text-txt-dim select-none">
+            <input type="checkbox" checked={improveWriting} onChange={e => setImproveWriting(e.target.checked)}
+              className="accent-indigo-400 w-3.5 h-3.5" />
+            <span>Melhorar escrita do efeito (reescrita sucinta pela IA)</span>
+          </label>
           <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)}
             rows={3} placeholder="Ex.: Espada katana Suprema focada em dano eletrico e velocidade. Ou: balanceie os valores desta arma, esta fraca para nivel Maior."
             className="admin-input resize-y" />
@@ -709,6 +734,83 @@ export default function MysticWeaponAdminPanel() {
             {analyzing ? 'Consultando o Oraculo...' : 'Consultar o Oraculo'}
           </button>
         </div>
+
+        {analysisResult && (() => {
+          const { analyzed, original } = analysisResult
+          const danoChanged = analyzed.dano && analyzed.dano !== original.dano
+          const effectChanged = analyzed.effect && analyzed.effect !== original.effect
+          const allHabs = ['passivas', 'ativas', 'ultimates']
+          const hasAnyHab = allHabs.some(t => (analyzed.habilidades?.[t]?.length || 0) > 0)
+          return (
+            <div className="bg-indigo-400/8 border border-indigo-400/30 rounded-lg mx-5 mb-3 overflow-hidden">
+              <div className="bg-indigo-400/10 px-4 py-2.5 flex items-center justify-between border-b border-indigo-400/20">
+                <span className="text-indigo-200 text-xs font-semibold uppercase tracking-wider">Resultado do Oraculo — revise antes de aplicar</span>
+              </div>
+              <div className="p-4 space-y-3 text-[12px]">
+                {analyzed.ai_feedback && (
+                  <div className="bg-indigo-400/5 rounded px-3 py-2 text-txt-dim text-[11px] leading-relaxed whitespace-pre-line">{analyzed.ai_feedback}</div>
+                )}
+                {danoChanged && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-300/60 text-[10px] uppercase tracking-wider font-semibold w-16">Dano</span>
+                    <span className="line-through text-txt-dim/50">{original.dano || '—'}</span>
+                    <span className="text-amber-300">→</span>
+                    <span className="text-amber-200 font-semibold">{analyzed.dano}</span>
+                  </div>
+                )}
+                {effectChanged && (
+                  <div>
+                    <span className="text-indigo-300/60 text-[10px] uppercase tracking-wider font-semibold">Efeito {improveWriting ? '(reescrito)' : '(ajustado)'}</span>
+                    <p className="text-txt-dim mt-1 leading-relaxed bg-surface-2/50 rounded px-3 py-2 whitespace-pre-line">{analyzed.effect}</p>
+                  </div>
+                )}
+                {hasAnyHab && (
+                  <div className="space-y-2">
+                    <span className="text-indigo-300/60 text-[10px] uppercase tracking-wider font-semibold">Habilidades sugeridas</span>
+                    {allHabs.map(type => {
+                      const meta = SKILL_TYPE_META[type]
+                      const skills = analyzed.habilidades?.[type] || []
+                      if (skills.length === 0) return null
+                      return (
+                        <div key={type} className={`border rounded px-3 py-2 ${meta.borderClass} ${meta.bgClass}`}>
+                          <span className={`${meta.headerClass} text-[10px] font-semibold uppercase tracking-wider`}>{meta.label}</span>
+                          {skills.map((sk, i) => {
+                            const oldSkill = original.habilidades[type]?.[i]
+                            const isNew = !oldSkill || !oldSkill.nome?.trim()
+                            const peChanged = oldSkill && sk.custoPE !== oldSkill.custoPE
+                            return (
+                              <div key={i} className="mt-1.5 pl-2 border-l-2 border-white/5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-txt font-semibold">{sk.nome || '—'}</span>
+                                  <span className="text-amber-300 text-[10px]">PE {sk.custoPE ?? 0}</span>
+                                  {isNew && <span className="text-emerald-400/80 text-[9px] uppercase font-bold">Nova</span>}
+                                  {peChanged && !isNew && (
+                                    <span className="text-amber-400/60 text-[9px]">(era {oldSkill.custoPE ?? 0})</span>
+                                  )}
+                                </div>
+                                {sk.descricao && <p className="text-txt-dim/70 text-[11px] mt-0.5 leading-relaxed">{sk.descricao}</p>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={applyAnalysis}
+                    className="bg-indigo-400/20 border border-indigo-400/40 text-indigo-200 px-4 py-2 rounded text-xs hover:bg-indigo-400/30 transition-colors font-semibold">
+                    Aplicar Alteracoes
+                  </button>
+                  <button type="button" onClick={() => setAnalysisResult(null)}
+                    className="border border-white/10 text-txt-dim px-4 py-2 rounded text-xs hover:bg-white/5 transition-colors">
+                    Descartar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {selectedItem && (
           <div className="legendary-forge-preview">

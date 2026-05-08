@@ -42,11 +42,11 @@ function isRetryable(status) {
   return status === 429 || status === 502 || status === 503 || status === 504
 }
 
-async function callAI(messages) {
+async function callAI(messages, { maxTokens = 4096 } = {}) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const { data, error } = await supabase.functions.invoke('openrouter-chat', {
-        body: { messages, temperature: 0.35, max_tokens: 4096 },
+        body: { messages, temperature: 0.35, max_tokens: maxTokens },
       })
       if (error) {
         const status = error?.context?.status || error?.status || 0
@@ -82,7 +82,7 @@ async function callAI(messages) {
               model: 'google/gemini-2.0-flash-001',
               messages,
               temperature: 0.35,
-              max_tokens: 4096,
+              max_tokens: maxTokens,
             }),
           })
           if (!response.ok) {
@@ -867,6 +867,7 @@ export async function analyzeMagicDraft(draft, context = {}) {
 
 export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
   const analysisNote = typeof context.analysis_note === 'string' ? context.analysis_note.trim() : ''
+  const improveWriting = !!context.improve_writing
   const powerLevel = draft.power_level || 'notavel'
 
   const POWER_LEVEL_GUIDE = {
@@ -910,6 +911,10 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
   const hasEffect = draft.effect && draft.effect.length > 0
   const hasHabilidades = totalHabs > 0
   const isGenerationMode = !hasName && !hasDano && !hasEffect && !hasHabilidades && analysisNote.length > 0
+
+  const EFFECT_INSTRUCTION = improveWriting
+    ? `10. MELHORAR ESCRITA: O Mestre ativou "Melhorar escrita". Voce PODE reescrever o campo "effect" para torna-lo mais conciso, claro e bem escrito. Mantenha a essencia e os valores, mas melhore a redacao. Seja SUCINTO — evite textos longos e exagerados.`
+    : `10. PRESERVAR EFEITO: O campo "effect" deve ser PRESERVADO EXATAMENTE como o Mestre escreveu. Voce so pode ajustar valores NUMERICOS (dados, modificadores, CDs, custos) dentro do texto original. NAO reescreva, NAO rephrase, NAO adicione texto extra. Se o effect estiver vazio, gere um sucinto.`
 
   const prompt = `
 VOCE E O ORACULO — MOTOR DE CRIACAO E BALANCEAMENTO DE ARMAS LENDARIAS DO SISTEMA OLYMPO 2.0.
@@ -974,14 +979,14 @@ REGRAS:
 
 9. Verifique TOTAL de habilidades contra budget (${guide.slotBudget}). Se exceder, NOTIFIQUE no ai_feedback — nao remova (o Mestre tem autoridade final).
 
-10. O campo "effect" deve conter a descricao completa do efeito lendario da arma — narrativa, mecanica, custo de ativacao, riscos, etc.
+${EFFECT_INSTRUCTION}
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "name": "nome refinado ou gerado",
   "dano": "dano base balanceado",
   "attr": "atributo",
-  "effect": "efeito lendario completo com numeros balanceados",
+  "effect": "efeito lendario — ${improveWriting ? 'redacao melhorada, sucinto' : 'PRESERVADO exatamente como o Mestre escreveu, apenas ajustando numeros'}",
   "power_level": "${powerLevel}",
   "lore": "historia e origem mantidas ou geradas",
   "habilidades": {
@@ -995,13 +1000,13 @@ Responda EXCLUSIVAMENTE com JSON:
       { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
     ]
   },
-  "ai_feedback": "explicacao: modo usado, dano base analisado, cada habilidade revisada, total vs budget, decisoes tomadas"
+  "ai_feedback": "explicacao sucinta: dano base, cada habilidade revisada (nome → custoPE), total vs budget, decisoes"
 }`
 
   const response = await callAI([
     { role: 'system', content: buildSystemContext() },
     { role: 'user', content: prompt },
-  ])
+  ], { maxTokens: 8192 })
 
   try {
     const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
