@@ -105,8 +105,7 @@ button:active:not(:disabled) {
   .level-slider-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #60a5fa 0%, #60a5fa 26%, #f7bd48 36%, #f7bd48 53%, #c084fc 63%, #c084fc 80%, #f87171 90%, #f87171 100%);
-    transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 600ms ease;
   }
 
   .level-slider-input {
@@ -127,15 +126,9 @@ button:active:not(:disabled) {
     height: 18px;
     border-radius: 50%;
     background: white;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
     margin-top: -6px;
-    transition: transform 150ms ease, box-shadow 150ms ease;
-  }
-
-  .level-slider-input::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-    box-shadow: 0 2px 12px rgba(255, 255, 255, 0.3);
   }
 
   .level-slider-input::-webkit-slider-runnable-track {
@@ -148,9 +141,8 @@ button:active:not(:disabled) {
     height: 18px;
     border-radius: 50%;
     background: white;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    transition: transform 150ms ease;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
   }
 
   .level-slider-input::-moz-range-track {
