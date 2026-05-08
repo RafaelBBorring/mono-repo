@@ -48,6 +48,9 @@ const initialState = {
   vidaOverride: null,
   energiaOverride: null,
   peOverride: null,
+  vidaAtual: null,
+  energiaAtual: null,
+  peAtual: null,
   habilidades: [
     initialHabilidade('Passiva'),
     initialHabilidade('Ativa'),

@@ -184,6 +184,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const energiaNow = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0) + activeBonuses.energia)
   const peNow = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
+  const vidaAtual = char.vidaAtual ?? vidaNow
+  const energiaAtual = char.energiaAtual ?? energiaNow
+  const peAtual = char.peAtual ?? peNow
+
   const costReduction = calcAbilityCostReduction(char.triagemPrincipal, char.triagemPrincipalNivel || 0, char.subTriagem, char.subTriagemNivel || 0)
 
   const pehTotal = cls ? calcPEHTotal(cls, char.nivel, char.choices, char.modulosAdquiridos) : 0
@@ -395,17 +399,41 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
           </section>
 
           <section className="xl:w-[420px] grid grid-cols-3 border-t xl:border-t-0 xl:border-l border-white/5">
-            <div className="flex flex-col items-center justify-center py-6 bg-resource-vida/5 border-r border-white/5">
-              <span className="font-mono text-resource-vida/70 uppercase tracking-[0.2em] mb-2" style={{ fontSize: '10px' }}>Vida</span>
-              <span className="font-mono text-resource-vida stat-glow-green leading-none" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaNow}</span>
+            <div className="flex flex-col items-center justify-center py-4 bg-resource-vida/5 border-r border-white/5">
+              <span className="font-mono text-resource-vida/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Vida</span>
+              {canEdit ? (
+                <input type="number" value={vidaAtual}
+                  onChange={e => update({ vidaAtual: Number(e.target.value) || 0 })}
+                  className={`font-mono leading-none bg-transparent border-b border-white/10 w-20 text-center outline-none focus:border-gold/50 transition-colors ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}
+                  style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }} />
+              ) : (
+                <span className={`font-mono leading-none ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`} style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaAtual}</span>
+              )}
+              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{vidaNow}</span>
             </div>
-            <div className="flex flex-col items-center justify-center py-6 bg-resource-energia/5 border-r border-white/5">
-              <span className="font-mono text-resource-energia/70 uppercase tracking-[0.2em] mb-2" style={{ fontSize: '10px' }}>Energia</span>
-              <span className="font-mono text-resource-energia stat-glow-gold leading-none" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaNow}</span>
+            <div className="flex flex-col items-center justify-center py-4 bg-resource-energia/5 border-r border-white/5">
+              <span className="font-mono text-resource-energia/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Energia</span>
+              {canEdit ? (
+                <input type="number" value={energiaAtual}
+                  onChange={e => update({ energiaAtual: Number(e.target.value) || 0 })}
+                  className={`font-mono leading-none bg-transparent border-b border-white/10 w-20 text-center outline-none focus:border-gold/50 transition-colors ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}
+                  style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }} />
+              ) : (
+                <span className={`font-mono leading-none ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`} style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaAtual}</span>
+              )}
+              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{energiaNow}</span>
             </div>
-            <div className="flex flex-col items-center justify-center py-6 bg-resource-pe/5">
-              <span className="font-mono text-resource-pe/70 uppercase tracking-[0.2em] mb-2" style={{ fontSize: '10px' }}>P.E.</span>
-              <span className="font-mono text-resource-pe stat-glow-blue leading-none" style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peNow}</span>
+            <div className="flex flex-col items-center justify-center py-4 bg-resource-pe/5">
+              <span className="font-mono text-resource-pe/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>P.E.</span>
+              {canEdit ? (
+                <input type="number" value={peAtual}
+                  onChange={e => update({ peAtual: Number(e.target.value) || 0 })}
+                  className={`font-mono leading-none bg-transparent border-b border-white/10 w-20 text-center outline-none focus:border-gold/50 transition-colors ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}
+                  style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }} />
+              ) : (
+                <span className={`font-mono leading-none ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`} style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peAtual}</span>
+              )}
+              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{peNow}</span>
             </div>
           </section>
         </div>
@@ -441,21 +469,18 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="💎" title="Recursos" color="bg-emerald-400" />
                 <div className="grid grid-cols-3 gap-2.5">
-                  <ResBox label="Vida" icon="❤" current={vidaNow} max={derived.vida + equipmentStats.totalExtraLife}
-                    gradientFrom="from-emerald-500" gradientTo="to-emerald-400"
-                    textColor="text-emerald-400" barBg="bg-emerald-500/80"
-                    canEdit={canEdit} hasOverride={char.vidaOverride !== null}
-                    onChange={v => setOverride('vidaOverride', v)} onReset={() => clearOverride('vidaOverride')} />
-                  <ResBox label="Energia" icon="⚡" current={energiaNow} max={derived.energia}
-                    gradientFrom="from-sky-500" gradientTo="to-sky-400"
-                    textColor="text-sky-400" barBg="bg-sky-500/80"
-                    canEdit={canEdit} hasOverride={char.energiaOverride !== null}
-                    onChange={v => setOverride('energiaOverride', v)} onReset={() => clearOverride('energiaOverride')} />
-                  <ResBox label="PE" icon="✦" current={peNow} max={derived.pe}
-                    gradientFrom="from-amber-500" gradientTo="to-amber-400"
-                    textColor="text-amber-400" barBg="bg-amber-500/80"
-                    canEdit={canEdit} hasOverride={char.peOverride !== null}
-                    onChange={v => setOverride('peOverride', v)} onReset={() => clearOverride('peOverride')} />
+                  <ResBox label="Vida" icon="❤" current={vidaAtual} max={vidaNow}
+                    pctColor={hpColor} pctBarColor={hpBarColor}
+                    canEdit={canEdit}
+                    onChange={v => update({ vidaAtual: Number(v) || 0 })} onReset={() => update({ vidaAtual: null })} />
+                  <ResBox label="Energia" icon="⚡" current={energiaAtual} max={energiaNow}
+                    pctColor={enColor} pctBarColor={enBarColor}
+                    canEdit={canEdit}
+                    onChange={v => update({ energiaAtual: Number(v) || 0 })} onReset={() => update({ energiaAtual: null })} />
+                  <ResBox label="PE" icon="✦" current={peAtual} max={peNow}
+                    pctColor={peColor} pctBarColor={peBarColor}
+                    canEdit={canEdit}
+                    onChange={v => update({ peAtual: Number(v) || 0 })} onReset={() => update({ peAtual: null })} />
                 </div>
               </section>
 
@@ -880,32 +905,75 @@ function OptionalSystemsSection({ char, update, alchemyEnabled, spellsEnabled, r
   )
 }
 
-function ResBox({ label, icon, current, max, textColor, barBg, canEdit, hasOverride, onChange, onReset }) {
+function hpColor(pct) {
+  if (pct > 75) return 'text-emerald-400'
+  if (pct > 50) return 'text-yellow-400'
+  if (pct > 25) return 'text-orange-400'
+  return 'text-red-500'
+}
+
+function hpBarColor(pct) {
+  if (pct > 75) return 'bg-emerald-500/80'
+  if (pct > 50) return 'bg-yellow-500/80'
+  if (pct > 25) return 'bg-orange-500/80'
+  return 'bg-red-500/80'
+}
+
+function enColor(pct) {
+  if (pct > 75) return 'text-sky-400'
+  if (pct > 50) return 'text-yellow-400'
+  if (pct > 25) return 'text-orange-400'
+  return 'text-red-500'
+}
+
+function enBarColor(pct) {
+  if (pct > 75) return 'bg-sky-500/80'
+  if (pct > 50) return 'bg-yellow-500/80'
+  if (pct > 25) return 'bg-orange-500/80'
+  return 'bg-red-500/80'
+}
+
+function peColor(pct) {
+  if (pct > 75) return 'text-amber-400'
+  if (pct > 50) return 'text-yellow-400'
+  if (pct > 25) return 'text-orange-400'
+  return 'text-red-500'
+}
+
+function peBarColor(pct) {
+  if (pct > 75) return 'bg-amber-500/80'
+  if (pct > 50) return 'bg-yellow-500/80'
+  if (pct > 25) return 'bg-orange-500/80'
+  return 'bg-red-500/80'
+}
+
+function ResBox({ label, icon, current, max, pctColor, pctBarColor, canEdit, onChange, onReset }) {
   const pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0
+  const isModified = current !== max
   return (
     <div className="bg-void/60 border border-sep/40 rounded-lg p-3 hover:border-sep/70 transition-colors">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-[11px]">{icon}</span>
         <span className="text-txt-dim text-[11px] font-semibold uppercase tracking-wider">{label}</span>
-        {hasOverride && <span className="text-[9px] text-gold/70 ml-auto">✎ editado</span>}
+        {isModified && <span className="text-[9px] text-gold/70 ml-auto">✎</span>}
       </div>
       {canEdit ? (
         <div className="flex items-baseline gap-1">
           <input type="number" value={current} onChange={e => onChange(e.target.value)}
-            className={`font-mono text-lg bg-transparent border-b border-sep/50 w-14 text-right outline-none focus:border-gold/50 transition-colors ${textColor}`} />
-          <span className="text-txt-dim/50 text-[11px] font-mono">/ {max}</span>
-          {hasOverride && (
+            className={`font-mono text-lg bg-transparent border-b border-sep/50 w-16 text-right outline-none focus:border-gold/50 transition-colors ${pctColor(pct)}`} />
+          <span className="text-txt-dim/40 text-[10px] font-mono">/ {max}</span>
+          {isModified && (
             <button onClick={onReset} className="ml-auto text-[9px] text-gold/50 border border-gold/20 px-1 rounded hover:text-gold hover:border-gold/40 transition-colors">↺</button>
           )}
         </div>
       ) : (
         <div className="flex items-baseline gap-1">
-          <span className={`font-mono text-lg ${textColor}`}>{current}</span>
-          {current !== max && <span className="text-txt-dim/50 text-[11px] font-mono">/ {max}</span>}
+          <span className={`font-mono text-lg ${pctColor(pct)}`}>{current}</span>
+          {isModified && <span className="text-txt-dim/40 text-[10px] font-mono">/ {max}</span>}
         </div>
       )}
       <div className="h-1 bg-deep rounded-full mt-2 overflow-hidden">
-        <div className={`h-full ${barBg} rounded-full transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${pctBarColor(pct)} rounded-full transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
