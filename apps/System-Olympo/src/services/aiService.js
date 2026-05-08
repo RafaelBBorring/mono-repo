@@ -882,7 +882,7 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
     notavel: {
       label: 'Notavel',
       desc: 'Forte e distinta. Vira combates com habilidades unicas.',
-      danoBase: '3d10 a 5d10+MOD — acima do rank Epico (+3d8)',
+      danoBase: '3d10 a 5d10+MOD — acima do rank Heroico (+4d8) e ANCESTRAL (+5d10)',
       danoHabilidade: '3d10+18 a 6d10+25',
       peAtiva: '10-25 PE', peUltimate: '25-50 PE',
       slotBudget: '3-4',
@@ -898,7 +898,7 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
     suprema: {
       label: 'Suprema',
       desc: 'Poder absoluto. Escallibur — molda a historia do mundo.',
-      danoBase: '8d12+MOD a 12d12+MOD — acima do rank Transcendente (+8d12). Uma arma Suprema tem dano ABSURDO.',
+      danoBase: '8d12+8 a 12d12+15 — MUITO acima do rank Transcendente (+8d12). Uma arma Suprema causa dano ABSURDO, superior a QUALQUER arma criada por jogadores.',
       danoHabilidade: '10d12+50 a 16d12+75',
       peAtiva: '20-60 PE', peUltimate: '60-120 PE',
       slotBudget: '5-8',
@@ -990,12 +990,21 @@ Se o Mestre pediu para CRIAR uma nova habilidade — crie com mecanica inovadora
 Se o Mestre NAO pediu para mudar a mecanica — NAO MUDE.
 
 ===
-!!! REGRA #2 — TODA HABILIDADE DO INPUT DEVE ESTAR NO OUTPUT !!!
+!!! REGRA #2 — ANALISE OBRIGATORIA DE CADA HABILIDADE, UMA POR UMA !!!
 ===
 
+Voce DEVE processar CADA habilidade individualmente. O processo OBRIGATORIO para CADA habilidade e:
+1. Ler o conceito/mechanica descrita pelo Mestre
+2. PRESERVAR essa mechanica (Regra #1)
+3. Aplicar valores balanceados (NdN, PE, CD, condicoes)
+4. Colocar a habilidade resultante no array correto (passivas/ativas/ultimates)
+
+NUNCA pule uma habilidade. NUNCA agrupe habilidades. NUNCA ignore uma habilidade porque parece "dificil de balancear".
+Se uma habilidade esta no input, ela DEVE estar no output — ESPECIALMENTE ULTIMATES.
 Se o input tem 1 passiva, 2 ativas e 1 ultimate, o output DEVE ter PELO MENOS 1 passiva, 2 ativas e 1 ultimate.
 Se o Mestre pediu para criar mais, ADICIONE alem das existentes.
-NUNCA omita, pule ou ignore uma habilidade — especialmente ULTIMATES.
+
+No ai_feedback, liste CADA habilidade individualmente com o que voce fez.
 
 ===
 REGRA #3 — FORMATO DE MECANICAS DE JOGO
@@ -1024,12 +1033,13 @@ ${improveWriting ? 'O Mestre ativou melhoria de escrita. Reescreva o campo "effe
 Se o effect esta vazio: crie um efeito lendario com MECANICAS CONCRETAS — um poder passivo significativo que a arma concede ao portador (bonus de acerto, penetracao de armadura, critico aumentado, resistencia a tipo de dano, etc.). NAO crie flavor text vazio.
 
 ===
-REGRA #5 — DANO BASE
+REGRA #5 — DANO BASE (MUITO IMPORTANTE)
 ===
 
-Referencia a tabela de armas. O tipo de arma (base) define o dano comum.
+Referencia a tabela de armas acima. O tipo de arma (campo "base") define o dano comum.
 O dano de uma Lendaria ${guide.label} deve ser: ${guide.danoBase}
-IMPORTANTE: Uma arma lendaria Suprema causa MAIS dano que uma arma comum Transcendente (+8d12). NAO tenha medo de dar dano alto para armas Supremas.
+IMPORTANTE: Uma arma Lendaria e SUPERIOR a QUALQUER arma que jogadores possam criar. A maior rank jogavel e Transcendente (+8d12). Uma Lendaria ${guide.label} causa MAIS dano que isso.
+NAO tenha medo de dar dano alto. Uma arma Suprema com 8d12+15 de dano base esta CORRETA.
 
 ===
 RESPONDA EXCLUSIVAMENTE COM JSON VALIDO

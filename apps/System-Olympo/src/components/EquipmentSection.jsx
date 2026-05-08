@@ -144,10 +144,10 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       sourceId: item.id,
       name: item.name,
       rank: 'Lendária',
-      tipo: item.range || item.law_name || 'Forja Lendária',
-      image: tagValue(item.tags || [], 'image'),
-      descricao: item.short_description || '',
-      power_level: tagValue(item.tags || [], 'power_level') || 'notavel',
+      tipo: item.base || 'Forja Lendária',
+      image: item.image || '',
+      descricao: item.effect || '',
+      power_level: item.power_level || 'notavel',
     })),
   ]
 

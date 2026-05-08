@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
-import { fetchMysticWeapons, saveMysticWeapon, deleteMysticWeapon } from '../services/alchemyService'
+import { fetchLegendaryWeapons, saveLegendaryWeapon, deleteLegendaryWeapon } from '../services/alchemyService'
 import { analyzeLegendaryWeaponDraft } from '../services/aiService'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -17,11 +17,6 @@ const SKILL_TYPE_META = {
   passivas: { label: 'Habilidades Passivas', singular: 'Passiva', headerClass: 'text-emerald-400', borderClass: 'border-emerald-400/25', bgClass: 'bg-emerald-400/5', btnBorder: 'border-emerald-400/30', btnText: 'text-emerald-400', btnHover: 'hover:bg-emerald-400/10' },
   ativas: { label: 'Habilidades Ativas', singular: 'Ativa', headerClass: 'text-sky-400', borderClass: 'border-sky-400/25', bgClass: 'bg-sky-400/5', btnBorder: 'border-sky-400/30', btnText: 'text-sky-400', btnHover: 'hover:bg-sky-400/10' },
   ultimates: { label: 'Habilidades Ultimate', singular: 'Ultimate', headerClass: 'text-purple-400', borderClass: 'border-purple-400/25', bgClass: 'bg-purple-400/5', btnBorder: 'border-purple-400/30', btnText: 'text-purple-400', btnHover: 'hover:bg-purple-400/10' },
-}
-
-function tagValue(tags = [], key) {
-  const found = tags.find(t => t.startsWith(`${key}:`))
-  return found ? found.slice(key.length + 1) : ''
 }
 
 function emptySkill() {
@@ -43,39 +38,25 @@ function emptyForm() {
   }
 }
 
-function parseAiFeedback(raw) {
-  try {
-    const parsed = JSON.parse(raw || '{}')
-    return {
-      lore: parsed.lore || '',
-      habilidades: {
-        passivas: Array.isArray(parsed.habilidades?.passivas) ? parsed.habilidades.passivas : [],
-        ativas: Array.isArray(parsed.habilidades?.ativas) ? parsed.habilidades.ativas : [],
-        ultimates: Array.isArray(parsed.habilidades?.ultimates) ? parsed.habilidades.ultimates : [],
-      },
-    }
-  } catch {
-    return { lore: '', habilidades: { passivas: [], ativas: [], ultimates: [] } }
-  }
-}
-
 function toForgeItem(item) {
-  const tags = item.tags || []
-  const extra = parseAiFeedback(item.ai_feedback)
+  const habs = typeof item.habilidades === 'string'
+    ? JSON.parse(item.habilidades || '{}')
+    : (item.habilidades || { passivas: [], ativas: [], ultimates: [] })
   return {
     id: item.id,
     name: item.name || 'Arma Lendária',
-    rank: tagValue(tags, 'rank') || item.duration || 'Lendária',
-    base: tagValue(tags, 'base') || item.range || item.law_name || 'custom',
-    dano: item.price || '',
-    attr: tagValue(tags, 'attr') || item.action_cost || 'AM',
-    image: tagValue(tags, 'image'),
-    source: item.source_name || 'Forja Lendária',
-    short: item.short_description || '',
+    base: item.base || 'custom',
+    dano: item.dano || '',
+    attr: item.attr || 'AM',
+    image: item.image || '',
     effect: item.effect || '',
-    power_level: tagValue(tags, 'power_level') || 'notavel',
-    lore: extra.lore,
-    habilidades: extra.habilidades,
+    power_level: item.power_level || 'notavel',
+    lore: item.lore || '',
+    habilidades: {
+      passivas: Array.isArray(habs.passivas) ? habs.passivas : [],
+      ativas: Array.isArray(habs.ativas) ? habs.ativas : [],
+      ultimates: Array.isArray(habs.ultimates) ? habs.ultimates : [],
+    },
   }
 }
 
@@ -323,7 +304,7 @@ export default function MysticWeaponAdminPanel() {
 
   async function load(selectId = null) {
     setLoading(true)
-    const res = await fetchMysticWeapons()
+    const res = await fetchLegendaryWeapons()
     setItems(res.data || [])
     setLoading(false)
     if (selectId) {
@@ -339,11 +320,11 @@ export default function MysticWeaponAdminPanel() {
   }, [forgeItems, query])
 
   function selectItem(item) {
-    const view = item.tags ? toForgeItem(item) : item
+    const view = item.habilidades ? item : toForgeItem(item)
     setSelectedId(view.id)
     setForm({
       name: view.name || '',
-      rank: view.rank || 'Lendária',
+      rank: 'Lendária',
       base: view.base || 'custom',
       dano: view.dano || '',
       attr: view.attr || 'AM',
@@ -356,6 +337,7 @@ export default function MysticWeaponAdminPanel() {
     setEditorOpen(true)
     setError('')
     setAnalysisNote('')
+    setAnalysisResult(null)
     setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
@@ -501,32 +483,21 @@ export default function MysticWeaponAdminPanel() {
     }
     const payload = {
       ...(selectedId ? { id: selectedId } : {}),
-      ritual_type: 'mystic_weapon',
       name: form.name.trim(),
-      circle: 4,
-      category: 'Arma Lendária',
-      pe_cost: 0,
-      min_level: 1,
-      action_cost: form.attr.trim(),
-      duration: 'Lendária',
-      range: form.base,
-      short_description: '',
+      base: form.base,
+      dano: form.dano.trim(),
+      attr: form.attr.trim(),
+      power_level: form.power_level,
       effect: form.effect.trim(),
-      source_kind: 'neutro',
-      source_name: 'Forja Lendária',
-      law_name: form.base,
-      price: form.dano.trim(),
-      rupture_risk: 1,
-      protocol_layer: 3,
-      pp_estimate: 0,
-      tags: [`rank:Lendária`, `base:${form.base}`, `attr:${form.attr}`, `power_level:${form.power_level}`, ...(form.image ? [`image:${form.image}`] : [])],
-      ai_feedback: JSON.stringify({ lore: form.lore.trim(), habilidades: habilidadesData }),
+      lore: form.lore.trim(),
+      image: form.image || '',
+      habilidades: habilidadesData,
       created_by: user?.id || null,
       updated_at: new Date().toISOString(),
     }
     setSaving(true)
     setError('')
-    const { data, error: saveError } = await saveMysticWeapon(payload)
+    const { data, error: saveError } = await saveLegendaryWeapon(payload)
     setSaving(false)
     if (saveError) {
       setError(saveError.message || 'Não foi possível salvar a arma lendária.')
@@ -538,7 +509,7 @@ export default function MysticWeaponAdminPanel() {
   async function handleDelete() {
     if (!selectedId) return
     if (!confirm('Excluir esta arma lendária da biblioteca?')) return
-    const { error: deleteError } = await deleteMysticWeapon(selectedId)
+    const { error: deleteError } = await deleteLegendaryWeapon(selectedId)
     if (deleteError) {
       setError(deleteError.message || 'Não foi possível excluir.')
       return
