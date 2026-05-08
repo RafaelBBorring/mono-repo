@@ -78,6 +78,14 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const equipamentos = char.equipamentos || []
   const equipmentStats = calcEquipStats(equipamentos)
   const legendaryAssigned = char.armasLendarias || []
+  const enrichedLegendary = useMemo(() => {
+    return legendaryAssigned.map(item => {
+      const forge = legendaryForgeItems.find(fi => fi.id === item.sourceId)
+      return forge
+        ? { ...item, name: forge.name || item.name, image: forge.image || item.image, tipo: forge.base || item.tipo, power_level: forge.power_level }
+        : item
+    })
+  }, [legendaryAssigned, legendaryForgeItems])
   const [showCreate, setShowCreate] = useState(false)
   const [showLegendaryCatalog, setShowLegendaryCatalog] = useState(false)
   const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
@@ -241,7 +249,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
             </div>
           ) : null}
 
-          {(weapon || equipamentos.length > 0 || legendaryAssigned.length > 0) && (
+          {(weapon || equipamentos.length > 0 || enrichedLegendary.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {weapon && (
                 <WeaponCard
@@ -257,13 +265,13 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
               {equipamentos.map((item, idx) => (
                 <EquipCard key={item.id || idx} item={item} onClick={() => openDrawer(idx)} />
               ))}
-              {legendaryAssigned.map((item, idx) => (
+              {enrichedLegendary.map((item, idx) => (
                 <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
               ))}
             </div>
           )}
 
-          {!weapon && equipamentos.length === 0 && legendaryAssigned.length === 0 && (
+          {!weapon && equipamentos.length === 0 && enrichedLegendary.length === 0 && (
             <p className="text-txt-dim/50 text-[11px] italic">Nenhum equipamento</p>
           )}
         </div>
@@ -277,7 +285,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       {showLegendaryCatalog && createPortal(
         <LegendaryCatalogModal
           items={legendaryCatalog}
-          assigned={legendaryAssigned}
+          assigned={enrichedLegendary}
           isAdmin={isAdmin}
           onAssign={assignLegendary}
           onClose={() => setShowLegendaryCatalog(false)}
@@ -317,8 +325,8 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
 
       {viewLegendaryIdx !== null && createPortal(
         <LegendaryWeaponDrawer
-          item={legendaryAssigned[viewLegendaryIdx]}
-          forgeItem={legendaryForgeItems.find(fi => fi.id === legendaryAssigned[viewLegendaryIdx]?.sourceId) || null}
+          item={enrichedLegendary[viewLegendaryIdx]}
+          forgeItem={legendaryForgeItems.find(fi => fi.id === enrichedLegendary[viewLegendaryIdx]?.sourceId) || null}
           canRemove={canEdit && isAdmin}
           onRemove={() => { removeLegendary(viewLegendaryIdx); setViewLegendaryIdx(null) }}
           onClose={() => setViewLegendaryIdx(null)}

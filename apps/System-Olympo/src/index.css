@@ -2739,89 +2739,58 @@ button:active:not(:disabled) {
   padding: 0.75rem 0.95rem;
 }
 
-.legendary-weapon-list {
+.legendary-forge-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.legendary-forge-grid-card {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.9rem 1.2rem;
-}
-
-.legendary-weapon-collapsible {
-  border: 1px solid rgba(190, 242, 100, 0.18);
-  border-radius: 10px;
-  background: rgba(7, 9, 18, 0.62);
-  overflow: hidden;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
-}
-
-.legendary-weapon-collapsible:hover {
-  border-color: rgba(190, 242, 100, 0.35);
-}
-
-.legendary-weapon-collapsible.is-selected {
-  border-color: rgba(190, 242, 100, 0.58);
-  box-shadow: 0 0 20px rgba(190, 242, 100, 0.08);
-}
-
-.legendary-weapon-collapse-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.7rem 1rem;
   text-align: left;
-  cursor: pointer;
-  transition: background 160ms ease;
-}
-
-.legendary-weapon-collapse-header:hover {
-  background: rgba(190, 242, 100, 0.04);
-}
-
-.legendary-weapon-expand-btn {
-  flex: 0 0 auto;
-  border: 1px solid rgba(190, 242, 100, 0.15);
-  border-radius: 6px;
-  background: transparent;
-  color: rgba(190, 242, 100, 0.4);
-  font-size: 0.7rem;
-  padding: 0.2rem 0.35rem;
-  line-height: 1;
-}
-
-.legendary-weapon-expand-btn:hover {
-  border-color: rgba(190, 242, 100, 0.4);
-  color: rgba(190, 242, 100, 0.7);
-  background: rgba(190, 242, 100, 0.08);
-  transform: none;
-}
-
-.legendary-weapon-thumb {
-  width: 2.8rem;
-  height: 2.8rem;
-  flex: 0 0 auto;
-  border-radius: 8px;
   overflow: hidden;
+  border: 1px solid rgba(190, 242, 100, 0.15);
+  border-radius: 12px;
+  background: rgba(7, 9, 18, 0.62);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.legendary-forge-grid-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(190, 242, 100, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(190, 242, 100, 0.06);
+}
+
+.legendary-forge-grid-card.is-selected {
+  border-color: rgba(190, 242, 100, 0.6);
+  box-shadow: 0 0 28px rgba(190, 242, 100, 0.12);
+}
+
+.legendary-forge-grid-image {
+  aspect-ratio: 4 / 3;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(190, 242, 100, 0.2);
-  background: rgba(190, 242, 100, 0.06);
+  overflow: hidden;
+  border-bottom: 1px solid rgba(190, 242, 100, 0.1);
+  background: radial-gradient(circle at center, rgba(190, 242, 100, 0.08), transparent 60%), rgba(3, 5, 10, 0.8);
 }
 
-.legendary-weapon-thumb img {
+.legendary-forge-grid-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 300ms ease, filter 300ms ease;
 }
 
-.legendary-weapon-thumb span {
-  color: rgba(190, 242, 100, 0.5);
+.legendary-forge-grid-card:hover .legendary-forge-grid-image img {
+  transform: scale(1.05);
+  filter: saturate(1.1) contrast(1.05);
 }
 
-.legendary-weapon-collapse-body {
-  padding: 0 1rem 0.85rem;
-  border-top: 1px solid rgba(190, 242, 100, 0.1);
-  padding-top: 0.65rem;
+.legendary-forge-grid-image span {
+  color: rgba(190, 242, 100, 0.4);
 }
 
 .legendary-weapon-meta {

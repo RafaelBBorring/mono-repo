@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
@@ -293,7 +293,6 @@ function LegendaryForgeStage() {
 export default function MysticWeaponAdminPanel() {
   const { user } = useAuth()
   const fileRef = useRef(null)
-  const editorRef = useRef(null)
   const [items, setItems] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [form, setForm] = useState(emptyForm())
@@ -306,7 +305,6 @@ export default function MysticWeaponAdminPanel() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [analysisResult, setAnalysisResult] = useState(null)
   const [improveWriting, setImproveWriting] = useState(false)
-  const [expandedIds, setExpandedIds] = useState(new Set())
   const [oracleOpen, setOracleOpen] = useState(false)
 
   useEffect(() => { load() }, [])
@@ -347,7 +345,6 @@ export default function MysticWeaponAdminPanel() {
     setError('')
     setAnalysisNote('')
     setAnalysisResult(null)
-    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   function handleNew() {
@@ -356,21 +353,11 @@ export default function MysticWeaponAdminPanel() {
     setEditorOpen(true)
     setError('')
     setAnalysisNote('')
-    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   function closeEditor() {
     setEditorOpen(false)
     setError('')
-  }
-
-  function toggleExpand(id) {
-    setExpandedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
   }
 
   function selectBase(base) {
@@ -580,190 +567,150 @@ export default function MysticWeaponAdminPanel() {
             <span>Crie a primeira relíquia ou ajuste o filtro.</span>
           </div>
         ) : (
-          <div className="legendary-weapon-list">
+          <div className="legendary-forge-card-grid">
             {filteredItems.map(item => {
-              const expanded = expandedIds.has(item.id)
-              const totalSkills = item.habilidades.passivas.length + item.habilidades.ativas.length + item.habilidades.ultimates.length
+              const baseName = item.base !== 'custom' ? WEAPONS.find(w => w.id === item.base)?.name : 'Personalizada'
               return (
-                <div key={item.id} className={`legendary-weapon-collapsible ${selectedId === item.id ? 'is-selected' : ''}`}>
-                  <div role="button" tabIndex={0} onClick={() => selectItem(item)}
-                    className="legendary-weapon-collapse-header">
-                    <div className="legendary-weapon-thumb">
-                      {item.image ? <img src={item.image} alt="" /> : <span className="font-cinzel text-[9px]">L</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <strong className="font-cinzel truncate">{item.name}</strong>
-                        <span className={rankColor.badge}>Lendária</span>
-                        <span className="text-[10px] bg-amber-300/10 text-amber-200 px-1.5 py-0.5 rounded border border-amber-300/25">{powerLabel(item.power_level)}</span>
-                      </div>
-                      <div className="legendary-weapon-meta mt-0.5">
-                        <span>{item.dano || 'Dano ?'}</span>
-                        <span>{item.attr || 'AM'}</span>
-                        {totalSkills > 0 && (
-                          <>
-                            {item.habilidades.passivas.length > 0 && <span className="text-emerald-400/60">{item.habilidades.passivas.length} pas.</span>}
-                            {item.habilidades.ativas.length > 0 && <span className="text-sky-400/60">{item.habilidades.ativas.length} atv.</span>}
-                            {item.habilidades.ultimates.length > 0 && <span className="text-purple-400/60">{item.habilidades.ultimates.length} ult.</span>}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <button type="button" onClick={e => { e.stopPropagation(); toggleExpand(item.id) }}
-                      className="legendary-weapon-expand-btn" title="Detalhes">
-                      <span className={`inline-block transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>▾</span>
-                    </button>
+                <button key={item.id} type="button" onClick={() => selectItem(item)}
+                  className={`legendary-forge-grid-card ${selectedId === item.id ? 'is-selected' : ''}`}>
+                  <div className="legendary-forge-grid-image">
+                    {item.image ? <img src={item.image} alt="" /> : <span className="font-cinzel text-lg">L</span>}
                   </div>
-                  {expanded && (
-                    <div className="legendary-weapon-collapse-body">
-                      <p className="text-txt-dim text-[12px] leading-relaxed">{item.effect || 'Sem descrição.'}</p>
-                      {totalSkills > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {item.habilidades.passivas.map((s, i) => (
-                            <span key={`p${i}`} className="text-[9px] text-emerald-400/70 bg-emerald-400/5 border border-emerald-400/15 px-1.5 py-0.5 rounded">{s.nome}</span>
-                          ))}
-                          {item.habilidades.ativas.map((s, i) => (
-                            <span key={`a${i}`} className="text-[9px] text-sky-400/70 bg-sky-400/5 border border-sky-400/15 px-1.5 py-0.5 rounded">{s.nome}</span>
-                          ))}
-                          {item.habilidades.ultimates.map((s, i) => (
-                            <span key={`u${i}`} className="text-[9px] text-purple-400/70 bg-purple-400/5 border border-purple-400/15 px-1.5 py-0.5 rounded">{s.nome}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  <div className="p-3">
+                    <strong className="font-cinzel text-sm text-lime-100 truncate block leading-tight">{item.name}</strong>
+                    <span className="text-[10px] text-lime-300/40 block mt-0.5">{baseName} · {powerLabel(item.power_level)}</span>
+                  </div>
+                </button>
               )
             })}
           </div>
         )}
       </section>
 
-      {editorOpen && (
-      <section ref={editorRef} className="legendary-forge-editor">
-        <div className="legendary-forge-editor-head">
-          <div>
-            <span className="home-eyebrow">{selectedId ? 'Relíquia selecionada' : 'Nova relíquia'}</span>
-            <h3 className="font-cinzel">{selectedId ? 'Editar Arma Lendária' : 'Criar Arma Lendária'}</h3>
-          </div>
-          {selectedId && (
-            <button type="button" onClick={handleDelete} className="legendary-forge-delete">
-              Excluir
-            </button>
-          )}
-        </div>
-
-        {error && <p className="legendary-forge-error">{error}</p>}
-
-        <div className="legendary-forge-workbench">
-          <button type="button" onClick={() => fileRef.current?.click()} className="legendary-forge-image-picker">
-            {form.image ? <img src={form.image} alt="" /> : <span className="font-cinzel">Imagem da Relíquia</span>}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
-
-          <div className="legendary-forge-fields">
-             <input value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Nome da arma" />
-             <div className="legendary-forge-rank">Classificação: Lendária</div>
-             <select value={form.power_level} onChange={e => setForm(prev => ({ ...prev, power_level: e.target.value }))}>
-               {WEAPON_POWER_LEVELS.map(p => <option key={p.value} value={p.value}>{p.label} — {p.desc}</option>)}
-             </select>
-             <select value={form.base} onChange={e => selectBase(e.target.value)}>
-               <option value="custom">Base personalizada</option>
-               {WEAPONS.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-             </select>
-              <input value={form.dano} onChange={e => setForm(prev => ({ ...prev, dano: e.target.value }))} placeholder="Dano" />
-              <input value={form.attr} onChange={e => setForm(prev => ({ ...prev, attr: e.target.value }))} placeholder="Atributo" />
+      {editorOpen && createPortal(
+        <div className="fixed inset-0 z-50" onClick={closeEditor}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute inset-4 sm:inset-6 md:inset-10 lg:inset-y-8 lg:left-[10%] lg:right-[10%] rounded-xl border border-lime-300/20 shadow-2xl shadow-black/60 flex flex-col overflow-hidden" style={{ background: 'rgba(14, 14, 15, 0.98)' }} onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-lime-300/15 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="home-eyebrow text-lime-300/70">{selectedId ? 'Editar' : 'Nova'}</span>
+                <h3 className="font-cinzel text-lime-200 text-sm">{selectedId ? form.name || 'Arma Lendária' : 'Criar Arma Lendária'}</h3>
+              </div>
+              <button type="button" onClick={closeEditor} className="text-txt-dim hover:text-err text-sm transition-colors">✕</button>
             </div>
-        </div>
 
-        <div className="legendary-forge-textarea-wrap">
-          <label className="legendary-forge-label">Historia e Origem</label>
-          <textarea value={form.lore} onChange={e => setForm(prev => ({ ...prev, lore: e.target.value }))} rows={3} placeholder="Conte a historia da arma — sua origem, lendas, como foi forjada, quem a empunhou..." />
-        </div>
+            {error && <p className="legendary-forge-error">{error}</p>}
 
-        {warnings.length > 0 && (
-          <div className="legendary-forge-warnings">
-            {warnings.map((w, i) => (
-              <div key={i} className="legendary-forge-warning">{w}</div>
-            ))}
-          </div>
-        )}
-
-        {['passivas', 'ativas', 'ultimates'].map(type => {
-          const meta = SKILL_TYPE_META[type]
-          const limit = SKILL_LIMITS[form.power_level]?.[type] ?? 99
-          const skills = form.habilidades[type]
-          return (
-            <div key={type} className={`legendary-forge-skill-section ${meta.borderClass} ${meta.bgClass}`}>
-              <div className="legendary-forge-skill-header">
-                <div className="flex items-center gap-2">
-                  <span className={`${meta.headerClass} text-xs font-semibold uppercase tracking-wider`}>{meta.label}</span>
-                  <span className="text-txt-dim text-[10px]">({skills.length}/{limit === 99 ? '∞' : limit})</span>
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-5 space-y-5">
+                <div className="legendary-forge-workbench">
+                  <button type="button" onClick={() => fileRef.current?.click()} className="legendary-forge-image-picker">
+                    {form.image ? <img src={form.image} alt="" /> : <span className="font-cinzel">Imagem da Relíquia</span>}
+                  </button>
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+                  <div className="legendary-forge-fields">
+                    <input value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Nome da arma" />
+                    <div className="legendary-forge-rank">Classificação: Lendária</div>
+                    <select value={form.power_level} onChange={e => setForm(prev => ({ ...prev, power_level: e.target.value }))}>
+                      {WEAPON_POWER_LEVELS.map(p => <option key={p.value} value={p.value}>{p.label} — {p.desc}</option>)}
+                    </select>
+                    <select value={form.base} onChange={e => selectBase(e.target.value)}>
+                      <option value="custom">Base personalizada</option>
+                      {WEAPONS.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                    <input value={form.dano} onChange={e => setForm(prev => ({ ...prev, dano: e.target.value }))} placeholder="Dano" />
+                    <input value={form.attr} onChange={e => setForm(prev => ({ ...prev, attr: e.target.value }))} placeholder="Atributo" />
+                  </div>
                 </div>
-                <button type="button" onClick={() => addSkill(type)}
-                  className={`text-xs border ${meta.btnBorder} ${meta.btnText} px-2.5 py-1 rounded transition-colors ${meta.btnHover}`}>
-                  + {meta.singular}
+
+                <div className="legendary-forge-textarea-wrap">
+                  <label className="legendary-forge-label">História e Origem</label>
+                  <textarea value={form.lore} onChange={e => setForm(prev => ({ ...prev, lore: e.target.value }))} rows={3} placeholder="Conte a história da arma — sua origem, lendas, como foi forjada..." />
+                </div>
+
+                {warnings.length > 0 && (
+                  <div className="legendary-forge-warnings">
+                    {warnings.map((w, i) => <div key={i} className="legendary-forge-warning">{w}</div>)}
+                  </div>
+                )}
+
+                {['passivas', 'ativas', 'ultimates'].map(type => {
+                  const meta = SKILL_TYPE_META[type]
+                  const limit = SKILL_LIMITS[form.power_level]?.[type] ?? 99
+                  const skills = form.habilidades[type]
+                  return (
+                    <div key={type} className={`legendary-forge-skill-section ${meta.borderClass} ${meta.bgClass}`}>
+                      <div className="legendary-forge-skill-header">
+                        <div className="flex items-center gap-2">
+                          <span className={`${meta.headerClass} text-xs font-semibold uppercase tracking-wider`}>{meta.label}</span>
+                          <span className="text-txt-dim text-[10px]">({skills.length}/{limit === 99 ? '∞' : limit})</span>
+                        </div>
+                        <button type="button" onClick={() => addSkill(type)}
+                          className={`text-xs border ${meta.btnBorder} ${meta.btnText} px-2.5 py-1 rounded transition-colors ${meta.btnHover}`}>
+                          + {meta.singular}
+                        </button>
+                      </div>
+                      {skills.length === 0 && (
+                        <p className="text-txt-dim/40 text-[11px] italic py-1">Nenhuma {meta.singular.toLowerCase()} adicionada.</p>
+                      )}
+                      {skills.map((skill, i) => (
+                        <div key={i} className="legendary-forge-skill-card">
+                          <div className="legendary-forge-skill-row">
+                            <input value={skill.nome} onChange={e => updateSkill(type, i, 'nome', e.target.value)}
+                              placeholder={`Nome da ${meta.singular.toLowerCase()}`} className="flex-1" />
+                            <div className="legendary-forge-pe-wrap">
+                              <span className="text-amber-300/60 text-[10px]">PE</span>
+                              <input type="number" value={skill.custoPE || 0} onChange={e => updateSkill(type, i, 'custoPE', Number(e.target.value) || 0)}
+                                className="w-20 text-center" />
+                            </div>
+                            <button type="button" onClick={() => removeSkill(type, i)}
+                              className="text-err/50 hover:text-err text-sm px-2 transition-colors" title="Remover">✕</button>
+                          </div>
+                          <textarea value={skill.descricao} onChange={e => updateSkill(type, i, 'descricao', e.target.value)}
+                            rows={2} placeholder="Descrição da habilidade — efeito, dano, duração..." className="legendary-forge-skill-desc" />
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
+
+                <div className="legendary-forge-textarea-wrap">
+                  <label className="legendary-forge-label">Efeito lendário completo</label>
+                  <textarea value={form.effect} onChange={e => setForm(prev => ({ ...prev, effect: e.target.value }))} rows={6} placeholder="Efeito lendário, custo, ativação, riscos — descrição narrativa completa..." />
+                </div>
+
+                <div>
+                  <button type="button" onClick={() => setOracleOpen(true)}
+                    className="w-full flex items-center justify-between border border-indigo-400/20 bg-indigo-400/5 text-indigo-300 px-4 py-2.5 rounded-lg hover:bg-indigo-400/10 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <span className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oráculo — Forja Inteligente</span>
+                      {analysisResult && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />}
+                    </div>
+                    <span className="text-indigo-300/50 text-[10px]">Abrir →</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-3 border-t border-lime-300/10 flex items-center justify-between shrink-0">
+              {selectedId ? (
+                <button type="button" onClick={handleDelete} className="text-[10px] border border-err/25 text-err/70 px-3 py-1.5 rounded hover:bg-err/10 hover:text-err transition-colors">Excluir</button>
+              ) : <div />}
+              <div className="flex gap-2">
+                <button type="button" onClick={closeEditor} className="text-xs text-txt-dim hover:text-txt-main px-4 py-1.5 transition-colors">Fechar</button>
+                <button type="button" onClick={handleSave} disabled={saving}
+                  className="text-xs bg-lime-300/15 border border-lime-300/30 text-lime-200 px-4 py-1.5 rounded hover:bg-lime-300/25 transition-colors disabled:opacity-50 font-semibold">
+                  {saving ? 'Salvando...' : 'Salvar Arma Lendária'}
                 </button>
               </div>
-              {skills.length === 0 && (
-                <p className="text-txt-dim/40 text-[11px] italic py-1">Nenhuma {meta.singular.toLowerCase()} adicionada.</p>
-              )}
-              {skills.map((skill, i) => (
-                <div key={i} className="legendary-forge-skill-card">
-                  <div className="legendary-forge-skill-row">
-                    <input value={skill.nome} onChange={e => updateSkill(type, i, 'nome', e.target.value)}
-                      placeholder={`Nome da ${meta.singular.toLowerCase()}`} className="flex-1" />
-                    <div className="legendary-forge-pe-wrap">
-                      <span className="text-amber-300/60 text-[10px]">PE</span>
-                      <input type="number" value={skill.custoPE || 0} onChange={e => updateSkill(type, i, 'custoPE', Number(e.target.value) || 0)}
-                        className="w-20 text-center" />
-                    </div>
-                    <button type="button" onClick={() => removeSkill(type, i)}
-                      className="text-err/50 hover:text-err text-sm px-2 transition-colors" title="Remover">✕</button>
-                  </div>
-                  <textarea value={skill.descricao} onChange={e => updateSkill(type, i, 'descricao', e.target.value)}
-                    rows={2} placeholder="Descrição da habilidade — efeito, dano, duração, condições..." className="legendary-forge-skill-desc" />
-                </div>
-              ))}
             </div>
-          )
-        })}
-
-        <div className="legendary-forge-textarea-wrap">
-          <label className="legendary-forge-label">Efeito lendário completo</label>
-          <textarea value={form.effect} onChange={e => setForm(prev => ({ ...prev, effect: e.target.value }))} rows={6} placeholder="Efeito lendário, custo, ativação, riscos — descrição narrativa completa da arma..." />
-        </div>
-
-        <div className="mx-5 mb-3">
-          <button type="button" onClick={() => setOracleOpen(true)}
-            className="w-full flex items-center justify-between border border-indigo-400/20 bg-indigo-400/5 text-indigo-300 px-4 py-2.5 rounded-lg hover:bg-indigo-400/10 transition-colors">
-            <div className="flex items-center gap-2">
-              <span className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oráculo — Forja Inteligente</span>
-              {analysisResult && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />}
-            </div>
-            <span className="text-indigo-300/50 text-[10px]">Abrir →</span>
-          </button>
-        </div>
-
-        {selectedItem && (
-          <div className="legendary-forge-preview">
-            <span>Previa do catalogo</span>
-            <strong>{selectedItem.name}</strong>
-            <small>{selectedItem.dano || 'Dano ?'} · {powerLabel(selectedItem.power_level)}</small>
           </div>
-        )}
-
-        <div className="legendary-forge-savebar">
-          <button type="button" onClick={closeEditor}>Fechar</button>
-          <button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? 'Salvando...' : 'Salvar Arma Lendária'}
-          </button>
-        </div>
-      </section>
+        </div>,
+        document.body
       )}
 
       {editorOpen && oracleOpen && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[60]">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOracleOpen(false)} />
           <div className="absolute right-0 top-0 bottom-0 w-full max-w-[440px] border-l border-indigo-400/20 shadow-2xl shadow-black/60 flex flex-col" style={{ background: 'rgba(14, 14, 15, 0.98)' }}>
             <div className="px-5 py-4 border-b border-indigo-400/15 flex items-center justify-between shrink-0">
@@ -779,17 +726,13 @@ export default function MysticWeaponAdminPanel() {
                 <span>Melhorar escrita (IA reescreve descrições)</span>
               </label>
               <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)} rows={4}
-                placeholder="Ex.: Katana Suprema focada em dano elétrico e velocidade. Ou: balanceie os valores, está fraca para Maior."
+                placeholder="Ex.: Katana Suprema focada em dano elétrico e velocidade."
                 className="admin-input resize-y" />
               <button type="button" onClick={handleAnalyze} disabled={analyzing}
                 className="w-full border border-indigo-400/30 text-indigo-300 px-4 py-2.5 rounded-lg text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50 font-medium">
                 {analyzing ? 'Consultando o Oráculo...' : 'Consultar o Oráculo'}
               </button>
-
-              {error && !analyzing && (
-                <p className="legendary-forge-error">{error}</p>
-              )}
-
+              {error && !analyzing && <p className="legendary-forge-error">{error}</p>}
               {analysisResult && (() => {
                 const { analyzed, original } = analysisResult
                 const danoChanged = analyzed.dano && analyzed.dano !== original.dano
@@ -798,7 +741,7 @@ export default function MysticWeaponAdminPanel() {
                 const hasAnyHab = allHabs.some(t => (analyzed.habilidades?.[t]?.length || 0) > 0)
                 return (
                   <div className="bg-indigo-400/8 border border-indigo-400/25 rounded-lg overflow-hidden">
-                    <div className="bg-indigo-400/10 px-4 py-2.5 flex items-center justify-between border-b border-indigo-400/15">
+                    <div className="bg-indigo-400/10 px-4 py-2.5 border-b border-indigo-400/15">
                       <span className="text-indigo-200 text-[11px] font-semibold uppercase tracking-wider">Resultado — revise antes de aplicar</span>
                     </div>
                     <div className="p-4 space-y-3 text-[12px]">
