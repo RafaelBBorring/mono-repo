@@ -3,6 +3,12 @@
 -- Run this in Supabase SQL Editor
 -- ============================================================
 
+-- Drop tables if they were created with wrong types from a previous failed run
+DROP TABLE IF EXISTS spells CASCADE;
+DROP TABLE IF EXISTS runes CASCADE;
+DROP TABLE IF EXISTS magics CASCADE;
+DROP TABLE IF EXISTS legendary_weapons CASCADE;
+
 -- 1. SPELLS TABLE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS spells (
@@ -24,7 +30,7 @@ CREATE TABLE IF NOT EXISTS spells (
   rupture_risk INTEGER DEFAULT 1,
   protocol_layer INTEGER DEFAULT 2,
   pp_estimate INTEGER DEFAULT 0,
-  tags TEXT[] DEFAULT '{}',
+  tags JSONB DEFAULT '[]'::jsonb,
   ai_feedback TEXT DEFAULT '',
   created_by UUID,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -59,7 +65,7 @@ CREATE TABLE IF NOT EXISTS runes (
   rupture_risk INTEGER DEFAULT 1,
   protocol_layer INTEGER DEFAULT 2,
   pp_estimate INTEGER DEFAULT 0,
-  tags TEXT[] DEFAULT '{}',
+  tags JSONB DEFAULT '[]'::jsonb,
   ai_feedback TEXT DEFAULT '',
   created_by UUID,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -94,7 +100,7 @@ CREATE TABLE IF NOT EXISTS magics (
   rupture_risk INTEGER DEFAULT 1,
   protocol_layer INTEGER DEFAULT 2,
   pp_estimate INTEGER DEFAULT 0,
-  tags TEXT[] DEFAULT '{}',
+  tags JSONB DEFAULT '[]'::jsonb,
   ai_feedback TEXT DEFAULT '',
   created_by UUID,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -130,28 +136,35 @@ ALTER TABLE legendary_weapons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "legendary_weapons_select_all" ON legendary_weapons FOR SELECT USING (true);
 
 -- Migrate existing mystic weapons (column mapping)
+-- Uses safe casts in case source columns differ in type
 INSERT INTO legendary_weapons (name, base, dano, attr, power_level, effect, lore, image, habilidades, created_by, updated_at)
 SELECT
   name,
-  COALESCE(NULLIF("range", ''), NULLIF(law_name, ''), 'custom'),
+  COALESCE(NULLIF(COALESCE("range", law_name), ''), 'custom'),
   COALESCE(NULLIF(price, ''), ''),
   COALESCE(NULLIF(action_cost, ''), 'AM'),
   COALESCE(
-    (SELECT split_part(t, ':', 2) FROM unnest(tags) AS t WHERE t LIKE 'power_level:%' LIMIT 1),
+    COALESCE(
+      (SELECT split_part(t::text, ':', 2) FROM jsonb_array_elements(COALESCE(tags, '[]'::jsonb)) AS t WHERE t::text LIKE '"power_level:%"' LIMIT 1),
+      (SELECT split_part(t::text, ':', 2) FROM jsonb_array_elements(COALESCE(tags, '[]'::jsonb)) AS t WHERE t::text LIKE '%power_level%' LIMIT 1)
+    ),
     'notavel'
   ),
   COALESCE(NULLIF(effect, ''), ''),
-  COALESCE(
-    CASE WHEN ai_feedback ~ '^\s*\{' THEN ai_feedback::json->>'lore' ELSE '' END,
-    ''
-  ),
-  COALESCE(
-    (SELECT split_part(t, ':', 2) FROM unnest(tags) AS t WHERE t LIKE 'image:%' LIMIT 1),
-    ''
-  ),
   CASE
-    WHEN ai_feedback ~ '^\s*\{' AND (ai_feedback::json->'habilidades') IS NOT NULL THEN
-      (ai_feedback::json->'habilidades')::jsonb
+    WHEN ai_feedback IS NOT NULL AND ai_feedback != '' AND ai_feedback ~ '^\s*\{' THEN COALESCE(ai_feedback::json->>'lore', '')
+    ELSE ''
+  END,
+  CASE
+    WHEN tags IS NOT NULL THEN COALESCE(
+      (SELECT replace(replace(t::text, '"image:', ''), '"', '') FROM jsonb_array_elements(tags) AS t WHERE t::text LIKE '"image:%"' LIMIT 1),
+      ''
+    )
+    ELSE ''
+  END,
+  CASE
+    WHEN ai_feedback IS NOT NULL AND ai_feedback != '' AND ai_feedback ~ '^\s*\{' THEN
+      COALESCE(ai_feedback::json->'habilidades', '{"passivas":[],"ativas":[],"ultimates":[]}'::jsonb)
     ELSE '{"passivas":[],"ativas":[],"ultimates":[]}'::jsonb
   END,
   created_by,
