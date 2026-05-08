@@ -905,8 +905,16 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
   const habs = draft.habilidades || { passivas: [], ativas: [], ultimates: [] }
   const totalHabs = habs.passivas.length + habs.ativas.length + habs.ultimates.length
 
+  const hasName = draft.name && draft.name.length > 0
+  const hasDano = draft.dano && draft.dano.length > 0
+  const hasEffect = draft.effect && draft.effect.length > 0
+  const hasHabilidades = totalHabs > 0
+  const isGenerationMode = !hasName && !hasDano && !hasEffect && !hasHabilidades && analysisNote.length > 0
+
   const prompt = `
-VOCE E O ORACULO — MOTOR DE BALANCEAMENTO DE ARMAS LENDARIAS DO SISTEMA OLYMPO 2.0.
+VOCE E O ORACULO — MOTOR DE CRIACAO E BALANCEAMENTO DE ARMAS LENDARIAS DO SISTEMA OLYMPO 2.0.
+
+MODO: ${isGenerationMode ? 'GERACAO — Criar arma completa do zero baseado no conceito descrito.' : 'BALANCEAMENTO — Analisar, ajustar e balancear os campos ja preenchidos. Preencha campos vazios se necessario.'}
 
 SISTEMA: ARMAS LENDARIAS DA FORJA LENDARIA
 LORE:
@@ -933,62 +941,61 @@ Passivas: ${JSON.stringify(habs.passivas, null, 2)}
 Ativas: ${JSON.stringify(habs.ativas, null, 2)}
 Ultimates: ${JSON.stringify(habs.ultimates, null, 2)}
 
-CONTEXTO OPCIONAL:
-${JSON.stringify(context, null, 2)}
+INSTRUCAO DO MESTRE:
+${analysisNote || 'Nenhuma instrucao extra. Revisar, completar e balancear.'}
 
-INSTRUCAO DIRETA DO ADMIN:
-${analysisNote || 'Nenhuma. Apenas revisar, completar e balancear a arma lendaria atual.'}
-
-REGRAS DE BALANCEAMENTO:
-1. O DANO BASE (campo "dano") deve ser coerente com o tipo de arma e nivel de poder:
+REGRAS:
+1. DANO BASE (campo "dano") — deve ser coerente com tipo de arma e nivel de poder:
    - Menor: 1d6 a 2d6+MOD acima do dano base da arma comum do mesmo tipo
    - Notavel: 2d8 a 3d10+MOD acima do dano base
    - Maior: 3d12 a 5d12+MOD acima do dano base
    - Suprema: 5d12 a 8d12+MOD acima do dano base
-   IMPORTANTE: Uma arma lendária com dano base de 2d6 sem habilidades é TRISTE. O dano base deve ser superior ao de uma arma comum.
+   Uma arma lendária com dano base fraco é TRISTE. O dano base deve ser superior ao de uma arma comum.
 
-2. As HABILIDADES ESTRUTURADAS sao o que tornam a arma lendária. Analise CADA habilidade individualmente:
-   - Passivas: Sem custo de PE. Efeitos permanentes sutis mas uteis. PE sugerido: 0.
-   - Ativas: Custo de PE proporcional ao poder. ${guide.damageScale}
-   - Ultimates: Custo de PE alto. Efeitos poderosos que mudam o combate. ${guide.damageScale}
+2. HABILIDADES — sao o que tornam a arma lendária. Analise CADA habilidade:
+   - Passivas: Sem custo PE. Efeitos permanentes sutis mas uteis. custoPE: 0.
+   - Ativas: Custo PE proporcional ao poder. ${guide.damageScale}
+   - Ultimates: Custo PE alto. Efeitos poderosos que mudam o combate. ${guide.damageScale}
 
-3. NUNCA altere a DESCRICAO NARRATIVA escrita pelo admin. Apenas ajuste valores NUMERICOS (dados, modificadores, custos, CDs, duracoes) dentro das descricoes.
+3. Se o Mestre nao preencheu campos (nome vazio, sem habilidades, sem efeito), GERE conteudo tematico completo baseado na instrucao e no tipo de arma.
 
-4. Custo de PE por tipo e nivel de poder:
-   - Passivas: 0 PE (efeito permanente)
-   - Ativas Menor: 5-15 PE | Notavel: 10-25 PE | Maior: 15-40 PE | Suprema: 20-60 PE
-   - Ultimate Menor: 15-30 PE | Notavel: 25-50 PE | Maior: 40-80 PE | Suprema: 60-120 PE
+4. NUNCA altere DESCRICOES NARRATIVAS ja escritas pelo Mestre. Apenas ajuste valores NUMERICOS.
 
-5. Habilidades passivas devem ser mais sutis que as ativas. Nunca mais fortes.
+5. Custo PE por tipo e nivel:
+   - Passivas: 0 PE
+   - Ativas Menor: 5-15 | Notavel: 10-25 | Maior: 15-40 | Suprema: 20-60
+   - Ultimate Menor: 15-30 | Notavel: 25-50 | Maior: 40-80 | Suprema: 60-120
 
-6. Preserve a IDENTIDADE da arma. Se e uma adaga furtiva, mantenha furtiva. Se e um martelo de guerra, mantenha brutal.
+6. Passivas devem ser mais sutis que ativas. Nunca mais fortes.
 
-7. Se uma habilidade estiver sem descricao, preencha com uma descricao tematica balanceada.
+7. Preserve a IDENTIDADE da arma. Se e uma adaga furtiva, mantenha furtiva. Se e um martelo de guerra, mantenha brutal.
 
-8. Verifique o TOTAL de habilidades contra o budget do nivel (${guide.slotBudget}). Se exceder, apenas NOTIFIQUE no ai_feedback — nao remova habilidades (o Mestre tem autoridade final).
+8. Se uma habilidade estiver sem descricao, preencha com descricao tematica balanceada.
+
+9. Verifique TOTAL de habilidades contra budget (${guide.slotBudget}). Se exceder, NOTIFIQUE no ai_feedback — nao remova (o Mestre tem autoridade final).
+
+10. O campo "effect" deve conter a descricao completa do efeito lendario da arma — narrativa, mecanica, custo de ativacao, riscos, etc.
 
 Responda EXCLUSIVAMENTE com JSON:
 {
-  "name": "nome refinado",
+  "name": "nome refinado ou gerado",
   "dano": "dano base balanceado",
   "attr": "atributo",
-  "short_description": "descricao visual mantida ou refinada",
-  "effect": "efeito final com numeros balanceados — preserve a narrativa do admin, ajuste apenas numeros",
+  "effect": "efeito lendario completo com numeros balanceados",
   "power_level": "${powerLevel}",
-  "source": "origem mantida",
-  "lore": "historia e origem mantidas",
+  "lore": "historia e origem mantidas ou geradas",
   "habilidades": {
     "passivas": [
-      { "nome": "nome mantido", "descricao": "descricao com numeros balanceados", "custoPE": 0 }
+      { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": 0 }
     ],
     "ativas": [
-      { "nome": "nome mantido", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
+      { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
     ],
     "ultimates": [
-      { "nome": "nome mantido", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
+      { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
     ]
   },
-  "ai_feedback": "explicacao de balanceamento: dano base, cada habilidade analizada, total vs budget, decisoes tomadas"
+  "ai_feedback": "explicacao: modo usado, dano base analisado, cada habilidade revisada, total vs budget, decisoes tomadas"
 }`
 
   const response = await callAI([

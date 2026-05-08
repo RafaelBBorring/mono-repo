@@ -35,10 +35,8 @@ function emptyForm() {
     base: 'custom',
     dano: '',
     attr: 'AM',
-    short: '',
     effect: '',
     image: '',
-    source: '',
     power_level: 'notavel',
     lore: '',
     habilidades: { passivas: [], ativas: [], ultimates: [] },
@@ -335,7 +333,7 @@ export default function MysticWeaponAdminPanel() {
   const forgeItems = useMemo(() => items.map(toForgeItem), [items])
   const filteredItems = useMemo(() => {
     const term = query.trim().toLowerCase()
-    return forgeItems.filter(item => !term || `${item.name} ${item.base} ${item.source} ${item.dano}`.toLowerCase().includes(term))
+    return forgeItems.filter(item => !term || `${item.name} ${item.base} ${item.dano}`.toLowerCase().includes(term))
   }, [forgeItems, query])
 
   function selectItem(item) {
@@ -347,10 +345,8 @@ export default function MysticWeaponAdminPanel() {
       base: view.base || 'custom',
       dano: view.dano || '',
       attr: view.attr || 'AM',
-      short: view.short || '',
       effect: view.effect || '',
       image: view.image || '',
-      source: view.source || '',
       power_level: view.power_level || 'notavel',
       lore: view.lore || '',
       habilidades: view.habilidades || { passivas: [], ativas: [], ultimates: [] },
@@ -382,7 +378,6 @@ export default function MysticWeaponAdminPanel() {
       base,
       dano: weapon?.dano || prev.dano,
       attr: weapon?.attr || prev.attr,
-      short: weapon?.mec || prev.short,
       name: prev.name || weapon?.name || '',
     }))
   }
@@ -417,10 +412,8 @@ export default function MysticWeaponAdminPanel() {
         name: form.name.trim(),
         dano: form.dano.trim(),
         attr: form.attr.trim(),
-        short_description: form.short.trim(),
         effect: form.effect.trim(),
         base: form.base,
-        source: form.source.trim() || 'Forja Lendária',
         power_level: form.power_level,
         image: form.image,
         lore: form.lore.trim(),
@@ -436,9 +429,7 @@ export default function MysticWeaponAdminPanel() {
         name: analyzed.name || prev.name,
         dano: analyzed.dano || prev.dano,
         attr: analyzed.attr || prev.attr,
-        short: analyzed.short_description || prev.short,
         effect: analyzed.effect || prev.effect,
-        source: analyzed.source || prev.source,
         power_level: analyzed.power_level || prev.power_level,
         lore: analyzed.lore || prev.lore,
         habilidades: analyzed.habilidades
@@ -499,10 +490,10 @@ export default function MysticWeaponAdminPanel() {
       action_cost: form.attr.trim(),
       duration: 'Lendária',
       range: form.base,
-      short_description: form.short.trim(),
+      short_description: '',
       effect: form.effect.trim(),
       source_kind: 'neutro',
-      source_name: form.source.trim() || 'Forja Lendária',
+      source_name: 'Forja Lendária',
       law_name: form.base,
       price: form.dano.trim(),
       rupture_risk: 1,
@@ -589,11 +580,10 @@ export default function MysticWeaponAdminPanel() {
                     <span className={rankColor.badge}>Lendária</span>
                     <span className="text-[10px] bg-amber-300/10 text-amber-200 px-1.5 py-0.5 rounded border border-amber-300/25">{powerLabel(item.power_level)}</span>
                   </div>
-                  <p>{item.short || item.effect || 'Sem descrição visual.'}</p>
+                  <p>{item.effect || 'Sem descrição.'}</p>
                   <div className="legendary-weapon-meta">
                     <span>{item.dano || 'Dano ?'}</span>
                     <span>{item.attr || 'AM'}</span>
-                    <span>{item.source || 'Forja Lendária'}</span>
                   </div>
                   {(item.habilidades.passivas.length + item.habilidades.ativas.length + item.habilidades.ultimates.length) > 0 && (
                     <div className="legendary-weapon-skill-count">
@@ -641,20 +631,14 @@ export default function MysticWeaponAdminPanel() {
                <option value="custom">Base personalizada</option>
                {WEAPONS.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
              </select>
-             <input value={form.dano} onChange={e => setForm(prev => ({ ...prev, dano: e.target.value }))} placeholder="Dano" />
-             <input value={form.attr} onChange={e => setForm(prev => ({ ...prev, attr: e.target.value }))} placeholder="Atributo" />
-             <input value={form.source} onChange={e => setForm(prev => ({ ...prev, source: e.target.value }))} placeholder="Origem / Forja / Patrono" />
-           </div>
+              <input value={form.dano} onChange={e => setForm(prev => ({ ...prev, dano: e.target.value }))} placeholder="Dano" />
+              <input value={form.attr} onChange={e => setForm(prev => ({ ...prev, attr: e.target.value }))} placeholder="Atributo" />
+            </div>
         </div>
 
         <div className="legendary-forge-textarea-wrap">
           <label className="legendary-forge-label">Historia e Origem</label>
           <textarea value={form.lore} onChange={e => setForm(prev => ({ ...prev, lore: e.target.value }))} rows={3} placeholder="Conte a historia da arma — sua origem, lendas, como foi forjada, quem a empunhou..." />
-        </div>
-
-        <div className="legendary-forge-textarea-wrap">
-          <label className="legendary-forge-label">Descrição visual e conceito</label>
-          <textarea value={form.short} onChange={e => setForm(prev => ({ ...prev, short: e.target.value }))} rows={2} placeholder="Aparência da arma, materiais, brilho, detalhes visuais..." />
         </div>
 
         {warnings.length > 0 && (
@@ -710,19 +694,19 @@ export default function MysticWeaponAdminPanel() {
           <textarea value={form.effect} onChange={e => setForm(prev => ({ ...prev, effect: e.target.value }))} rows={6} placeholder="Efeito lendário, custo, ativação, riscos — descrição narrativa completa da arma..." />
         </div>
 
-        <div className="bg-indigo-400/5 border border-indigo-400/20 rounded-lg p-3 space-y-2 mx-5 mb-3">
+        <div className="bg-indigo-400/5 border border-indigo-400/20 rounded-lg p-4 space-y-2.5 mx-5 mb-3">
           <div className="flex items-start gap-2">
-            <div className="text-indigo-300 text-[11px] font-semibold uppercase tracking-[0.12em]">Oraculo — Analise da IA</div>
+            <div className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oraculo — Forja Inteligente</div>
           </div>
           <div className="text-txt-dim text-[11px] leading-relaxed">
-            Descreva o conceito da arma ou aponte problemas. O Oraculo vai analisar <span className="text-indigo-300">todas as habilidades</span>, dano base e efeitos para aplicar valores balanceados conforme o nivel de poder (<span className="text-amber-300">{powerLabel(form.power_level)}</span>).
+            O Oraculo pode <span className="text-indigo-300">GERAR</span> a arma completa a partir de um conceito (habilidades, dano, efeito), ou <span className="text-amber-300">BALANCEAR</span> os campos ja preenchidos. Descreva o conceito ou ajustes desejados — nivel de poder: <span className="text-amber-300">{powerLabel(form.power_level)}</span>.
           </div>
           <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)}
-            rows={2} placeholder="Ex.: Espada Suprema focada em dano electrico. Ou: esta arma está fraca para nivel Supremo, aumente os valores."
+            rows={3} placeholder="Ex.: Espada katana Suprema focada em dano eletrico e velocidade. Ou: balanceie os valores desta arma, esta fraca para nivel Maior."
             className="admin-input resize-y" />
           <button type="button" onClick={handleAnalyze} disabled={analyzing}
-            className="border border-indigo-400/30 text-indigo-300 px-3 py-1.5 rounded text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50">
-            {analyzing ? 'Analisando com Oraculo...' : 'Analisar com Oraculo'}
+            className="border border-indigo-400/30 text-indigo-300 px-4 py-2 rounded text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50 font-medium">
+            {analyzing ? 'Consultando o Oraculo...' : 'Consultar o Oraculo'}
           </button>
         </div>
 
@@ -730,7 +714,7 @@ export default function MysticWeaponAdminPanel() {
           <div className="legendary-forge-preview">
             <span>Previa do catalogo</span>
             <strong>{selectedItem.name}</strong>
-            <small>{selectedItem.source} · {selectedItem.dano || 'Dano ?'} · {powerLabel(selectedItem.power_level)}</small>
+            <small>{selectedItem.dano || 'Dano ?'} · {powerLabel(selectedItem.power_level)}</small>
           </div>
         )}
 
