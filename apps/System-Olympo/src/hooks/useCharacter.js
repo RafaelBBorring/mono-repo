@@ -68,6 +68,7 @@ const initialState = {
   spells: [],
   runes: [],
   magics: [],
+  grimorios: [],
   notas: '',
   inventario: [],
   equipamentos: [],

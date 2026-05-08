@@ -25,6 +25,9 @@ import { getSpellProfile, canLearnSpell } from '../../utils/spellRules'
 import { getRuneProfile, canLearnRune } from '../../utils/runeRules'
 import { getMagicProfile, canLearnMagic } from '../../utils/magicRules'
 import { getAlchemyProfile, canLearnAlchemyRitual } from '../../utils/alchemyRules'
+import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getScoreForDisplay } from '../../utils/grimorioRules'
+import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS, GRIMORIO_TYPE_ICONS } from '../../data/grimorios'
+import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyzeMagicDraft } from '../../services/aiService'
 import { calcEquipStats } from '../../data/equipment'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
@@ -804,6 +807,7 @@ function normalizeRitual(ritual) {
 function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfile, runeProfile, magicProfile, alchemyEnabled, spellsEnabled, runesEnabled, magicEnabled, systemOptIn }) {
   const [expanded, setExpanded] = useState(null)
   const [pickerOpen, setPickerOpen] = useState(null)
+  const [grimorioPickerOpen, setGrimorioPickerOpen] = useState(null)
   const profiles = { alchemy: alchemyProfile, spells: spellProfile, runes: runeProfile, magic: magicProfile }
   const enabled = { alchemy: alchemyEnabled, spells: spellsEnabled, runes: runesEnabled, magic: magicEnabled }
 
@@ -846,12 +850,19 @@ function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfi
 
       {expanded && enabled[expanded] && (
         <KnowledgeExpandedSection char={char} update={update} card={KNOWLEDGE_CARDS.find(c => c.key === expanded)}
-          profile={profiles[expanded]} onOpenPicker={() => setPickerOpen(expanded)} />
+          profile={profiles[expanded]} onOpenPicker={() => setPickerOpen(expanded)}
+          onOpenGrimorioPicker={() => setGrimorioPickerOpen(expanded)} />
       )}
 
       {pickerOpen && createPortal(
         <RitualPickerModal char={char} update={update} card={KNOWLEDGE_CARDS.find(c => c.key === pickerOpen)}
           profile={profiles[pickerOpen]} onClose={() => setPickerOpen(null)} />,
+        document.body
+      )}
+
+      {grimorioPickerOpen && createPortal(
+        <GrimorioPickerModal char={char} update={update} card={KNOWLEDGE_CARDS.find(c => c.key === grimorioPickerOpen)}
+          onClose={() => setGrimorioPickerOpen(null)} />,
         document.body
       )}
     </div>
@@ -874,12 +885,21 @@ const CIRCLE_BORDER_TOP = {
 
 const USES_ENERGIA = new Set(['spells', 'magic'])
 
-function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker }) {
-  const items = (char[card.field] || []).slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name))
+function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, onOpenGrimorioPicker }) {
+  const allItems = (char[card.field] || []).slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name))
   const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
-  const spaceUsed = items.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
+  const spaceUsed = allItems.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeRitualId, setActiveRitualId] = useState(null)
+  const [grimorioViewId, setGrimorioViewId] = useState(null)
+  const usesEnergia = USES_ENERGIA.has(card.key)
+
+  const grimorios = (char.grimorios || []).filter(g => g.knowledgeKey === card.key)
+  const accessTier = getGrimorioAccessTier(char, card.key)
+  const availableTiers = getAvailableGrimorioTiers(char, card.key)
+  const maxCustom = getMaxCustomRituals(char, card.key)
+  const score = getScoreForDisplay(char, card.key)
+  const nextTierThreshold = accessTier === 'mestre' ? null : accessTier === 'avancado' ? 50 : accessTier === 'iniciante' ? 30 : 14
 
   function openSidebar(ritualId) {
     setActiveRitualId(ritualId)
@@ -893,71 +913,129 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
     if (activeRitualId === ritual.id) setActiveRitualId(null)
   }
 
-  const activeRitual = items.find(r => r.id === activeRitualId) || null
+  function getRitualsForGrimorio(grimorio) {
+    if (grimorio.tier === 'custom') {
+      return allItems.filter(r => (r.grimorioId || null) === grimorio.id)
+    }
+    return allItems.filter(r => {
+      if (r.grimorioId && r.grimorioId !== grimorio.id) return false
+      return r.circle <= grimorio.maxCircle
+    })
+  }
+
+  const viewingGrimorio = grimorios.find(g => g.id === grimorioViewId) || null
 
   return (
     <div className={`rounded-xl border ${card.borderClass} bg-void/40 overflow-hidden`}>
-      <div className="flex items-center justify-between gap-3 p-4 pb-3">
+      <div className="flex items-center justify-between gap-3 p-4 pb-2">
         <div className="flex items-center gap-2">
           <span className={card.accentClass}>{card.icon}</span>
           <span className={`font-semibold text-sm ${card.accentClass}`}>{card.title}</span>
           <span className="text-[11px] text-txt-dim font-mono">{spaceUsed}/{profile.spaceBudget} espaços</span>
         </div>
+        <div className="text-[10px] text-txt-dim font-mono">
+          Afinidade: <span className={accessTier ? 'text-emerald-300' : 'text-txt-dim/40'}>{score}{nextTierThreshold ? `/${nextTierThreshold}` : ''}</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2.5 px-4 pb-4">
-        {items.map(ritual => {
-          const usesEnergia = USES_ENERGIA.has(card.key)
+      {accessTier && (
+        <div className="px-4 pb-2">
+          <span className="text-[10px] text-txt-dim/50">Grimórios disponíveis: {availableTiers.map(t => t.name).join(', ')}</span>
+        </div>
+      )}
+
+      {!accessTier && allItems.length === 0 && (
+        <div className="px-4 pb-4">
+          <p className="text-txt-dim/40 text-xs italic">Afinidade insuficiente para acessar grimórios de {card.title}.</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-4 pb-4">
+        {grimorios.map(grimorio => {
+          const rituals = getRitualsForGrimorio(grimorio)
+          const tier = GRIMORIO_TIERS.find(t => t.id === grimorio.tier)
           return (
-            <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
-              className={`relative aspect-square rounded-xl border flex flex-col items-center justify-between p-2.5 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
-              <div className="w-full flex items-start justify-between">
-                {ritual.circle && <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>}
-                {update && (
-                  <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); removeRitual(ritual) } }}
-                    className="text-err/30 hover:text-err text-[10px] transition-colors leading-none">×</span>
+            <button key={grimorio.id} type="button" onClick={() => setGrimorioViewId(grimorio.id === grimorioViewId ? null : grimorio.id)}
+              className="relative rounded-xl border border-sep/20 bg-void/50 flex flex-col items-center justify-center p-4 aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:border-sep/40">
+              <div className="w-16 h-20 rounded-lg bg-void/80 border border-sep/30 flex items-center justify-center mb-3 overflow-hidden">
+                {grimorio.image ? (
+                  <img src={grimorio.image} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl opacity-30">{card.icon}</span>
                 )}
               </div>
-              <span className="text-txt-main text-[11px] font-semibold text-center leading-tight mt-1 line-clamp-2">{ritual.name}</span>
-              <p className="text-txt-dim/60 text-[9px] text-center leading-snug mt-0.5 line-clamp-2">{ritual.short_description || ''}</p>
-              {ritual.pe_cost != null && (
-                <div className="w-full flex items-center justify-between mt-1">
-                  <span className="text-amber-300 text-[10px] font-mono">{ritual.pe_cost} PE</span>
-                  {usesEnergia && <span className="text-sky-300 text-[10px] font-mono">{ritual.pe_cost} ⚡</span>}
-                </div>
-              )}
+              <span className="text-txt-main text-xs font-semibold text-center leading-tight">{grimorio.name}</span>
+              <span className="text-txt-dim/50 text-[10px] mt-1">{tier?.name || 'Personalizado'}</span>
+              <span className="text-amber-300/60 text-[10px] font-mono mt-1">{rituals.length} ritual(is)</span>
             </button>
           )
         })}
 
-        {update && (
-          <button type="button" onClick={onOpenPicker}
-            className="aspect-square rounded-xl border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.97]">
-            <span className="text-txt-dim/25 text-xl">+</span>
+        {update && accessTier && (
+          <button type="button" onClick={onOpenGrimorioPicker}
+            className="rounded-xl border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center aspect-[3/4] transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.98]">
+            <span className="text-txt-dim/25 text-2xl">+</span>
           </button>
         )}
       </div>
+
+      {viewingGrimorio && (() => {
+        const rituals = getRitualsForGrimorio(viewingGrimorio)
+        return (
+          <div className="border-t border-sep/15 px-4 py-3">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className={card.accentClass}>{card.icon}</span>
+                <span className="text-txt-main text-sm font-semibold">{viewingGrimorio.name}</span>
+                <span className="text-[10px] text-txt-dim font-mono">{rituals.length} rituais</span>
+              </div>
+              <button type="button" onClick={() => setGrimorioViewId(null)} className="text-txt-dim hover:text-txt-main text-xs">×</button>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
+              {rituals.map(ritual => (
+                <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
+                  className={`relative rounded-lg border flex flex-col items-center justify-between p-2 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
+                  <div className="w-full flex items-start justify-between">
+                    <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                    {update && (
+                      <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
+                        className="text-err/30 hover:text-err text-[10px] leading-none">×</span>
+                    )}
+                  </div>
+                  <span className="text-txt-main text-[10px] font-semibold text-center leading-tight mt-0.5 line-clamp-2">{ritual.name}</span>
+                  <div className="w-full flex items-center justify-between mt-0.5">
+                    <span className="text-amber-300 text-[9px] font-mono">{ritual.pe_cost || 0} PE</span>
+                    {usesEnergia && <span className="text-sky-300 text-[9px] font-mono">⚡</span>}
+                  </div>
+                </button>
+              ))}
+              {update && (
+                <button type="button" onClick={onOpenPicker}
+                  className="rounded-lg border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center min-h-[80px] transition-all hover:bg-white/[0.02] active:scale-[0.97]">
+                  <span className="text-txt-dim/25 text-lg">+</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {sidebarOpen && createPortal(
         <div className="fixed inset-0 z-[60] flex justify-end" onClick={() => setSidebarOpen(false)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm h-full bg-[#0a0c14]/95 border-l border-sep/20 shadow-2xl flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}>
-
             <div className="flex items-center justify-between px-4 py-3 border-b border-sep/20">
               <div className="flex items-center gap-2">
                 <span className={card.accentClass}>{card.icon}</span>
                 <span className={`font-semibold text-sm ${card.accentClass}`}>{card.title}</span>
-                <span className="text-[10px] text-txt-dim font-mono">{items.length}</span>
+                <span className="text-[10px] text-txt-dim font-mono">{allItems.length}</span>
               </div>
               <button type="button" onClick={() => setSidebarOpen(false)} className="text-txt-dim hover:text-txt-main transition-colors">×</button>
             </div>
-
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {items.map(ritual => {
+              {allItems.map(ritual => {
                 const isActive = activeRitualId === ritual.id
-                const usesEnergia = USES_ENERGIA.has(card.key)
                 return (
                   <div key={ritual.id}
                     className={`rounded-lg border overflow-hidden transition-all duration-200 ${isActive ? (CIRCLE_BORDER_TOP[ritual.circle] || '') + ' ' + (CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]) : 'border-sep/15 bg-void/30 hover:bg-void/50'}`}>
@@ -992,13 +1070,6 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
                   </div>
                 )
               })}
-
-              {update && (
-                <button type="button" onClick={onOpenPicker}
-                  className="w-full rounded-lg border border-dashed border-sep/20 hover:border-sep/40 py-3 text-txt-dim/40 text-xs transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.99]">
-                  + Adicionar {card.title.slice(0, -1)}
-                </button>
-              )}
             </div>
           </div>
         </div>,
@@ -1009,6 +1080,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker })
 }
 
 function RitualPickerModal({ char, update, card, profile, onClose }) {
+  const [tab, setTab] = useState('library')
   const [library, setLibrary] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -1017,6 +1089,17 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
   const deferredSearch = useDeferredValue(search)
   const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
   const usesEnergia = USES_ENERGIA.has(card.key)
+
+  const [customName, setCustomName] = useState('')
+  const [customDesc, setCustomDesc] = useState('')
+  const [customCircle, setCustomCircle] = useState(1)
+  const [customAnalyzing, setCustomAnalyzing] = useState(false)
+  const [customResult, setCustomResult] = useState(null)
+  const [customError, setCustomError] = useState('')
+
+  const accessTier = getGrimorioAccessTier(char, card.key)
+  const maxCustom = getMaxCustomRituals(char, card.key)
+  const customCount = (char[card.field] || []).filter(r => r.isCustom).length
 
   useEffect(() => {
     let active = true
@@ -1056,6 +1139,64 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
     update({ [card.field]: [...current, normalizeRitual(ritual)] })
   }
 
+  async function analyzeCustomRitual() {
+    if (!customName.trim() || !customDesc.trim()) {
+      setCustomError('Preencha nome e descrição do conceito.')
+      return
+    }
+    if (customCount >= maxCustom) {
+      setCustomError(`Limite de ${maxCustom} rituais personalizados atingido.`)
+      return
+    }
+    setCustomAnalyzing(true)
+    setCustomError('')
+    setCustomResult(null)
+
+    const draft = {
+      name: customName.trim(),
+      description: customDesc.trim(),
+      circle: customCircle,
+      knowledgeType: card.key,
+    }
+    const context = { characterLevel: char.nivel || 1 }
+
+    try {
+      const analyzeFn = { alchemy: analyzeAlchemyRitualDraft, spells: analyzeSpellDraft, runes: analyzeRuneDraft, magic: analyzeMagicDraft }[card.key]
+      if (!analyzeFn) throw new Error('Tipo de conhecimento não suportado.')
+      const result = await analyzeFn(draft, context)
+      setCustomResult(result)
+    } catch (err) {
+      setCustomError(err.message || 'Erro ao analisar ritual.')
+    } finally {
+      setCustomAnalyzing(false)
+    }
+  }
+
+  function addCustomRitual() {
+    if (!customResult || !update) return
+    const ritual = {
+      id: crypto.randomUUID(),
+      name: customResult.name || customName.trim(),
+      circle: customResult.circle || customCircle,
+      category: customResult.category || 'Personalizado',
+      pe_cost: customResult.pe_cost || 5,
+      action_cost: customResult.action_cost || 'Ação Padrão',
+      duration: customResult.duration || 'Instantâneo',
+      range: customResult.range || 'Pessoal',
+      short_description: customResult.short_description || customDesc.trim(),
+      effect: customResult.effect || customDesc.trim(),
+      isCustom: true,
+      grimorioId: null,
+    }
+    const current = char[card.field] || []
+    update({ [card.field]: [...current, ritual] })
+    setCustomName('')
+    setCustomDesc('')
+    setCustomCircle(1)
+    setCustomResult(null)
+    setTab('library')
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
@@ -1075,72 +1216,153 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
             <button type="button" onClick={onClose} className="text-txt-dim hover:text-txt-main text-lg transition-colors">×</button>
           </div>
 
-          <div className="flex items-center gap-2 px-5 py-3 border-b border-sep/15">
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar ritual..."
-              className="flex-1 bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
-            <div className="flex gap-1">
-              {['all', '1', '2', '3', '4'].map(c => (
-                <button key={c} type="button" onClick={() => setCircleFilter(c)}
-                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                    circleFilter === c ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-void border border-sep/30 text-txt-dim hover:border-sep/50'
-                  }`}>
-                  {c === 'all' ? 'Todos' : `${c}o`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-5">
-            {loading ? (
-              <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando biblioteca...</p>
-            ) : (
-              <div className="grimoire-card-grid">
-                {filtered.map(ritual => {
-                  const isSelected = selected.some(r => r.id === ritual.id)
-                  const spaceCost = SPACE_COST[ritual.circle] || 0
-                  const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
-                  const circleOk = ritual.circle <= profile.maxCircle
-                  const disabled = isSelected || wouldExceed || !circleOk
-                  const circleBg = CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]
-
-                  return (
-                    <article key={ritual.id}
-                      className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''} ${circleBg} transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${inspectId === ritual.id ? 'ring-1 ring-white/20' : ''}`}
-                      style={{ '--grimoire-accent': card.accent }}>
-                      <div className="grimoire-entry-top">
-                        <span className={`border ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
-                        <small>{ritual.category || '—'}</small>
-                      </div>
-                      <h4 className="font-cinzel">{ritual.name}</h4>
-                      <p>{ritual.short_description || ritual.effect || '—'}</p>
-                      <div className="grimoire-entry-meta">
-                        <span>{ritual.pe_cost || 0} PE</span>
-                        {usesEnergia && <span>⚡ Energia</span>}
-                        <span>{spaceCost} espaços</span>
-                      </div>
-                      <div className="flex gap-2 mt-auto">
-                        <button type="button" disabled={disabled}
-                          onClick={() => addRitual(ritual)}
-                          className={`flex-1 transition-all duration-150 ${isSelected ? 'opacity-50 cursor-default' : 'hover:brightness-110 active:scale-95'}`}>
-                          {isSelected ? '✓' : 'Selecionar'}
-                        </button>
-                        <button type="button" onClick={() => setInspectId(inspectId === ritual.id ? null : ritual.id)}
-                          className="transition-all duration-150 hover:brightness-110 active:scale-95">
-                          {inspectId === ritual.id ? '✕' : '…'}
-                        </button>
-                      </div>
-                    </article>
-                  )
-                })}
-                {filtered.length === 0 && (
-                  <p className="text-txt-dim text-sm italic col-span-full text-center py-6">Nenhum ritual encontrado.</p>
-                )}
-              </div>
+          <div className="flex items-center gap-1 px-5 py-2 border-b border-sep/15">
+            <button type="button" onClick={() => setTab('library')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'library' ? 'bg-gold/20 text-gold border border-gold/30' : 'text-txt-dim hover:text-txt-main'}`}>
+              Biblioteca
+            </button>
+            {update && accessTier && (
+              <button type="button" onClick={() => setTab('custom')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'custom' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-txt-dim hover:text-txt-main'}`}>
+                Personalizado <span className="text-[9px] font-mono">{customCount}/{maxCustom}</span>
+              </button>
             )}
           </div>
+
+          {tab === 'library' && (
+            <>
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-sep/15">
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar ritual..."
+                  className="flex-1 bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                <div className="flex gap-1">
+                  {['all', '1', '2', '3', '4'].map(c => (
+                    <button key={c} type="button" onClick={() => setCircleFilter(c)}
+                      className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                        circleFilter === c ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-void border border-sep/30 text-txt-dim hover:border-sep/50'
+                      }`}>
+                      {c === 'all' ? 'Todos' : `${c}o`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5">
+                {loading ? (
+                  <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando biblioteca...</p>
+                ) : (
+                  <div className="grimoire-card-grid">
+                    {filtered.map(ritual => {
+                      const isSelected = selected.some(r => r.id === ritual.id)
+                      const spaceCost = SPACE_COST[ritual.circle] || 0
+                      const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
+                      const circleOk = ritual.circle <= profile.maxCircle
+                      const disabled = isSelected || wouldExceed || !circleOk
+                      const circleBg = CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]
+
+                      return (
+                        <article key={ritual.id}
+                          className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''} ${circleBg} transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${inspectId === ritual.id ? 'ring-1 ring-white/20' : ''}`}
+                          style={{ '--grimoire-accent': card.accent }}>
+                          <div className="grimoire-entry-top">
+                            <span className={`border ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                            <small>{ritual.category || '—'}</small>
+                          </div>
+                          <h4 className="font-cinzel">{ritual.name}</h4>
+                          <p>{ritual.short_description || ritual.effect || '—'}</p>
+                          <div className="grimoire-entry-meta">
+                            <span>{ritual.pe_cost || 0} PE</span>
+                            {usesEnergia && <span>⚡ Energia</span>}
+                            <span>{spaceCost} espaços</span>
+                          </div>
+                          <div className="flex gap-2 mt-auto">
+                            <button type="button" disabled={disabled}
+                              onClick={() => addRitual(ritual)}
+                              className={`flex-1 transition-all duration-150 ${isSelected ? 'opacity-50 cursor-default' : 'hover:brightness-110 active:scale-95'}`}>
+                              {isSelected ? '✓' : 'Selecionar'}
+                            </button>
+                            <button type="button" onClick={() => setInspectId(inspectId === ritual.id ? null : ritual.id)}
+                              className="transition-all duration-150 hover:brightness-110 active:scale-95">
+                              {inspectId === ritual.id ? '✕' : '…'}
+                            </button>
+                          </div>
+                        </article>
+                      )
+                    })}
+                    {filtered.length === 0 && (
+                      <p className="text-txt-dim text-sm italic col-span-full text-center py-6">Nenhum ritual encontrado.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {tab === 'custom' && (
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div className="max-w-xl mx-auto space-y-4">
+                <div>
+                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome do Ritual</label>
+                  <input type="text" value={customName} onChange={e => setCustomName(e.target.value)} placeholder="Ex: Chama do Crepúsculo"
+                    className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                </div>
+                <div>
+                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Círculo Desejado</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4].map(c => (
+                      <button key={c} type="button" onClick={() => setCustomCircle(c)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                          customCircle === c ? (CIRCLE_BG[c] || '') + ' ' + (CIRCLE_BADGE[c] || '') : 'bg-void border-sep/30 text-txt-dim hover:border-sep/50'
+                        }`}>
+                        {c}o Círculo
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Conceito / Descrição</label>
+                  <textarea value={customDesc} onChange={e => setCustomDesc(e.target.value)} rows={4}
+                    placeholder="Descreva o conceito do ritual: efeito desejado, mecânicas, limitações, contrapesos narrativos..."
+                    className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none resize-none" />
+                </div>
+                {customError && <p className="text-err text-xs">{customError}</p>}
+                <button type="button" onClick={analyzeCustomRitual} disabled={customAnalyzing || customCount >= maxCustom}
+                  className={`w-full py-2.5 rounded-lg text-xs font-semibold transition-colors active:scale-[0.99] ${
+                    customAnalyzing ? 'bg-purple-500/10 text-purple-300/50 cursor-wait' : 'bg-purple-500/15 text-purple-300 border border-purple-500/25 hover:bg-purple-500/25'
+                  }`}>
+                  {customAnalyzing ? 'Analisando com Oráculo...' : 'Analisar com Oráculo'}
+                </button>
+
+                {customResult && (
+                  <div className="border border-purple-500/20 rounded-xl bg-purple-500/5 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-300 text-xs font-semibold">Resultado do Oráculo</span>
+                      <span className={`text-[9px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[customResult.circle || customCircle] || CIRCLE_BADGE[1]}`}>
+                        {customResult.circle || customCircle}o
+                      </span>
+                    </div>
+                    <h4 className="text-txt-main font-semibold text-sm">{customResult.name || customName}</h4>
+                    {customResult.short_description && <p className="text-txt-dim text-xs leading-relaxed">{customResult.short_description}</p>}
+                    {customResult.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed whitespace-pre-line">{customResult.effect}</p>}
+                    <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                      <span className="text-amber-300">{customResult.pe_cost || 0} PE</span>
+                      {usesEnergia && <span className="text-sky-300">{customResult.pe_cost || 0} Energia</span>}
+                      <span className="text-gold">{SPACE_COST[customResult.circle || customCircle] || 0} espaços</span>
+                      {customResult.action_cost && <span className="text-purple-300">{customResult.action_cost}</span>}
+                      {customResult.duration && <span className="text-sky-300">{customResult.duration}</span>}
+                    </div>
+                    {customResult.ai_notes && <p className="text-txt-dim/40 text-[10px] italic border-t border-sep/10 pt-2">{customResult.ai_notes}</p>}
+                    <button type="button" onClick={addCustomRitual}
+                      className="w-full py-2 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
+                      Adicionar ao Personagem
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {inspectedRitual && (
+        {tab === 'library' && inspectedRitual && (
           <div className="w-80 shrink-0 border-l border-sep/20 bg-[#080a12] overflow-y-auto">
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -1170,6 +1392,138 @@ function RitualPickerModal({ char, update, card, profile, onClose }) {
             </div>
           </div>
         )}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function GrimorioPickerModal({ char, update, card, onClose }) {
+  const availableTiers = getAvailableGrimorioTiers(char, card.key)
+  const accessTier = getGrimorioAccessTier(char, card.key)
+  const existingGrimorios = (char.grimorios || []).filter(g => g.knowledgeKey === card.key)
+
+  const [selectedTier, setSelectedTier] = useState(null)
+  const [name, setName] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+
+  if (!accessTier) return null
+
+  function createGrimorio() {
+    if (!update) return
+    if (!selectedTier) return
+    const tier = GRIMORIO_TIERS.find(t => t.id === selectedTier)
+    if (!tier) return
+    const grimorioName = name.trim() || `${GRIMORIO_TYPE_LABELS[card.key]} — ${tier.name}`
+    const newGrimorio = {
+      id: crypto.randomUUID(),
+      knowledgeKey: card.key,
+      tier: tier.id,
+      name: grimorioName,
+      image: imageUrl.trim() || '',
+      maxCircle: tier.maxCircle,
+      createdAt: new Date().toISOString(),
+    }
+    const current = char.grimorios || []
+    update({ grimorios: [...current, newGrimorio] })
+    setName('')
+    setImageUrl('')
+    setSelectedTier(null)
+    onClose()
+  }
+
+  function removeGrimorio(grimorioId) {
+    if (!update) return
+    update({ grimorios: (char.grimorios || []).filter(g => g.id !== grimorioId) })
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-lg max-h-[80vh] bg-[#0a0c14] border border-sep/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-sep/20">
+          <div className="flex items-center gap-3">
+            <span className={`text-xl ${card.accentClass}`}>{card.icon}</span>
+            <h3 className="font-cinzel text-sm uppercase tracking-wider font-semibold text-txt-main">Grimórios de {card.title}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="text-txt-dim hover:text-txt-main text-lg transition-colors">×</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div>
+            <h4 className="text-txt-dim text-xs font-semibold uppercase tracking-wider mb-3">Grimórios Atuais</h4>
+            {existingGrimorios.length === 0 ? (
+              <p className="text-txt-dim/40 text-xs italic">Nenhum grimório atribuído.</p>
+            ) : (
+              <div className="space-y-2">
+                {existingGrimorios.map(g => {
+                  const tier = GRIMORIO_TIERS.find(t => t.id === g.tier)
+                  return (
+                    <div key={g.id} className="flex items-center gap-3 p-3 rounded-lg border border-sep/15 bg-void/30">
+                      <div className="w-10 h-12 rounded bg-void/50 border border-sep/20 flex items-center justify-center shrink-0 overflow-hidden">
+                        {g.image ? <img src={g.image} alt="" className="w-full h-full object-cover" /> : <span className="opacity-30">{card.icon}</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-txt-main text-xs font-semibold truncate">{g.name}</p>
+                        <p className="text-txt-dim/50 text-[10px]">{tier?.name || 'Personalizado'} — Círculos 1o-{g.maxCircle}o</p>
+                      </div>
+                      {update && (
+                        <button type="button" onClick={() => removeGrimorio(g.id)}
+                          className="text-err/40 hover:text-err text-xs transition-colors shrink-0">Excluir</button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {update && availableTiers.length > 0 && (
+            <div className="border-t border-sep/15 pt-4">
+              <h4 className="text-txt-dim text-xs font-semibold uppercase tracking-wider mb-3">Criar Novo Grimório</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Categoria</label>
+                  <div className="flex gap-2">
+                    {availableTiers.map(tier => (
+                      <button key={tier.id} type="button" onClick={() => setSelectedTier(tier.id)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                          selectedTier === tier.id
+                            ? 'bg-gold/20 text-gold border-gold/30'
+                            : 'bg-void border-sep/30 text-txt-dim hover:border-sep/50'
+                        }`}>
+                        {tier.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedTier && (
+                  <>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome (opcional)</label>
+                      <input type="text" value={name} onChange={e => setName(e.target.value)}
+                        placeholder={`${GRIMORIO_TYPE_LABELS[card.key]} — ${GRIMORIO_TIERS.find(t => t.id === selectedTier)?.name || ''}`}
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Imagem URL (opcional)</label>
+                      <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                    </div>
+                    <button type="button" onClick={createGrimorio}
+                      className="w-full py-2.5 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
+                      Criar Grimório
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>,
     document.body
