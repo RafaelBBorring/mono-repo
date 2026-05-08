@@ -49,6 +49,8 @@ export const MODULES_ACTIVE = [
   { id: 'mira_letal', name: 'Mira Letal', pe: 15, desc: '+100% INT ao próximo ataque ranged && −1 na margem de Crítico.', req: 'INT 14+' },
   { id: 'rajada_automatica', name: 'Rajada Automática', pe: 6, desc: 'Ao acertar ranged, dispara novamente com desvantagem. Máx 2 extras.', req: 'DES 14+' },
   { id: 'punhos_aco', name: 'Punhos de Aço', pe: 6, desc: 'Socos causam +1d8+FOR (cumulativo com Artes Marciais).', req: 'FOR 12+' },
+  { id: 'postura_bastiao', name: 'Postura Bastião', pe: 15, desc: 'Postura por 3 rodadas: -35% dano recebido, -25% dano causado. Alto risco/recompensa.', req: 'CON 16+ ou Nível 15+' },
+  { id: 'postura_berserker', name: 'Postura Berserker', pe: 12, desc: 'Postura por 3 rodadas: +40% dano causado, +30% dano sofrido. Apenas 1 postura ativa por vez.', req: 'FOR 16+ ou Nível 15+' },
 ]
 
 export const ALL_MODULES = {

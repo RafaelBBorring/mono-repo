@@ -62,13 +62,13 @@ export default function Step1Identity({ char, update }) {
         <label className="block text-outline text-sm font-mono uppercase tracking-wider" style={{ fontSize: '11px' }}>Nível da Campanha</label>
         <div className="flex items-center gap-4">
           <input type="range" min={1} max={30} value={char.nivel} onChange={(e) => update({ nivel: Number(e.target.value) })}
-            className="flex-1 accent-primary" />
+            className={`flex-1 ${char.nivel <= 8 ? 'accent-sky-400' : char.nivel <= 16 ? 'accent-amber-400' : char.nivel <= 24 ? 'accent-purple-400' : 'accent-rose-400'}`} />
           <input type="number" min={1} max={30} value={char.nivel} onChange={(e) => update({ nivel: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })}
-            className="w-16 bg-surface-container border border-primary/20 text-on-surface focus:border-primary rounded px-3 py-2 text-center font-mono transition-colors" />
+            className={`w-16 bg-surface-container border rounded px-3 py-2 text-center font-mono transition-colors ${char.nivel <= 8 ? 'border-sky-400/30 text-sky-400' : char.nivel <= 16 ? 'border-amber-400/30 text-amber-400' : char.nivel <= 24 ? 'border-purple-400/30 text-purple-400' : 'border-rose-400/30 text-rose-400'}`} />
         </div>
         <p className="text-outline text-xs font-mono">
-          Faixa: <span className="text-primary">
-            {char.nivel <= 7 ? '1-7 (Iniciante)' : char.nivel <= 13 ? '8-13 (Intermediário)' : char.nivel <= 22 ? '14-22 (Veterano)' : '23-30 (Lendário)'}
+          Faixa: <span className={char.nivel <= 8 ? 'text-sky-400' : char.nivel <= 16 ? 'text-amber-400' : char.nivel <= 24 ? 'text-purple-400' : 'text-rose-400'}>
+            {char.nivel <= 8 ? 'Novato (1-8)' : char.nivel <= 16 ? 'Veterano (9-16)' : char.nivel <= 24 ? 'Elite (17-24)' : 'Lendário (25-30)'}
           </span>
         </p>
       </div>
