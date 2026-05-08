@@ -1,15 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { WEAPONS } from '../data/weapons'
-import { WEAPON_POWER_LEVELS } from '../data/weapons'
+import { WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { fetchMysticWeapons, saveMysticWeapon, deleteMysticWeapon } from '../services/alchemyService'
 import { analyzeLegendaryWeaponDraft } from '../services/aiService'
 import { useAuth } from '../contexts/AuthContext'
 
+const SKILL_LIMITS = {
+  menor: { passivas: 1, ativas: 1, ultimates: 0 },
+  notavel: { passivas: 1, ativas: 2, ultimates: 1 },
+  maior: { passivas: 2, ativas: 2, ultimates: 1 },
+  suprema: { passivas: 2, ativas: 3, ultimates: 1 },
+}
+
+const SKILL_TYPE_META = {
+  passivas: { label: 'Habilidades Passivas', singular: 'Passiva', headerClass: 'text-emerald-400', borderClass: 'border-emerald-400/25', bgClass: 'bg-emerald-400/5', btnBorder: 'border-emerald-400/30', btnText: 'text-emerald-400', btnHover: 'hover:bg-emerald-400/10' },
+  ativas: { label: 'Habilidades Ativas', singular: 'Ativa', headerClass: 'text-sky-400', borderClass: 'border-sky-400/25', bgClass: 'bg-sky-400/5', btnBorder: 'border-sky-400/30', btnText: 'text-sky-400', btnHover: 'hover:bg-sky-400/10' },
+  ultimates: { label: 'Habilidades Ultimate', singular: 'Ultimate', headerClass: 'text-purple-400', borderClass: 'border-purple-400/25', bgClass: 'bg-purple-400/5', btnBorder: 'border-purple-400/30', btnText: 'text-purple-400', btnHover: 'hover:bg-purple-400/10' },
+}
+
 function tagValue(tags = [], key) {
   const found = tags.find(t => t.startsWith(`${key}:`))
   return found ? found.slice(key.length + 1) : ''
+}
+
+function emptySkill() {
+  return { nome: '', descricao: '', custoPE: 0 }
 }
 
 function emptyForm() {
@@ -24,11 +40,30 @@ function emptyForm() {
     image: '',
     source: '',
     power_level: 'notavel',
+    lore: '',
+    habilidades: { passivas: [], ativas: [], ultimates: [] },
+  }
+}
+
+function parseAiFeedback(raw) {
+  try {
+    const parsed = JSON.parse(raw || '{}')
+    return {
+      lore: parsed.lore || '',
+      habilidades: {
+        passivas: Array.isArray(parsed.habilidades?.passivas) ? parsed.habilidades.passivas : [],
+        ativas: Array.isArray(parsed.habilidades?.ativas) ? parsed.habilidades.ativas : [],
+        ultimates: Array.isArray(parsed.habilidades?.ultimates) ? parsed.habilidades.ultimates : [],
+      },
+    }
+  } catch {
+    return { lore: '', habilidades: { passivas: [], ativas: [], ultimates: [] } }
   }
 }
 
 function toForgeItem(item) {
   const tags = item.tags || []
+  const extra = parseAiFeedback(item.ai_feedback)
   return {
     id: item.id,
     name: item.name || 'Arma Lendária',
@@ -41,7 +76,22 @@ function toForgeItem(item) {
     short: item.short_description || '',
     effect: item.effect || '',
     power_level: tagValue(tags, 'power_level') || 'notavel',
+    lore: extra.lore,
+    habilidades: extra.habilidades,
   }
+}
+
+function getSkillWarnings(habilidades, powerLevel) {
+  const limits = SKILL_LIMITS[powerLevel] || SKILL_LIMITS.notavel
+  const warnings = []
+  const label = WEAPON_POWER_LEVELS.find(p => p.value === powerLevel)?.label || powerLevel
+  if (habilidades.passivas.length > limits.passivas)
+    warnings.push(`${label} sugere até ${limits.passivas} passiva(s). Atual: ${habilidades.passivas.length}. O Mestre pode exceder, mas considere balancear.`)
+  if (habilidades.ativas.length > limits.ativas)
+    warnings.push(`${label} sugere até ${limits.ativas} ativa(s). Atual: ${habilidades.ativas.length}. O Mestre pode exceder, mas considere balancear.`)
+  if (habilidades.ultimates.length > limits.ultimates)
+    warnings.push(`${label} sugere até ${limits.ultimates} ultimate(s). Atual: ${habilidades.ultimates.length}. O Mestre pode exceder, mas considere balancear.`)
+  return warnings
 }
 
 function LegendaryForgeStage() {
@@ -52,125 +102,180 @@ function LegendaryForgeStage() {
     if (!canvas) return undefined
 
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 90)
-    camera.position.set(0, 0.4, 9.2)
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
+    camera.position.set(0, 0.2, 5.5)
 
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+
+    const ambient = new THREE.AmbientLight(0x0a0e1a, 0.4)
+    scene.add(ambient)
+
+    const forgeGlow = new THREE.PointLight(0xff6b2b, 2.5, 8, 1.5)
+    forgeGlow.position.set(0.8, -1, 0.5)
+    scene.add(forgeGlow)
+
+    const crystalLight = new THREE.PointLight(0xbef264, 1.8, 6, 1.5)
+    crystalLight.position.set(0, 0.5, 1)
+    scene.add(crystalLight)
+
+    const accentLight = new THREE.PointLight(0xe8c97e, 0.8, 5)
+    accentLight.position.set(-1, 0, 2)
+    scene.add(accentLight)
 
     const root = new THREE.Group()
     scene.add(root)
 
-    const lime = new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false })
-    const gold = new THREE.MeshBasicMaterial({ color: 0xe8c97e, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false })
-    const ember = new THREE.MeshBasicMaterial({ color: 0xff7a3d, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
-    const hotCore = new THREE.MeshBasicMaterial({ color: 0xffd37a, transparent: true, opacity: 0.58, blending: THREE.AdditiveBlending, depthWrite: false })
-    const shadow = new THREE.MeshBasicMaterial({ color: 0x0f1511, transparent: true, opacity: 0.76, depthWrite: false })
+    const crystalGeom = new THREE.OctahedronGeometry(0.38, 0)
+    const crystalMat = new THREE.MeshPhongMaterial({
+      color: 0xbef264,
+      emissive: 0x3a5f1a,
+      emissiveIntensity: 0.8,
+      transparent: true,
+      opacity: 0.85,
+      shininess: 120,
+    })
+    const crystal = new THREE.Mesh(crystalGeom, crystalMat)
+    crystal.position.set(0, 0.3, 0)
+    root.add(crystal)
 
-    const anvil = new THREE.Group()
-    const top = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.24, 0.62), shadow)
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.7, 0.5), shadow)
-    foot.position.y = -0.48
-    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.15, 28), shadow)
-    horn.rotation.z = Math.PI / 2
-    horn.position.set(1.58, 0.02, 0)
-    anvil.add(top, foot, horn)
-    anvil.position.set(-0.55, -1.55, -0.35)
-    anvil.rotation.x = -0.12
-    root.add(anvil)
+    const glowGeom = new THREE.SphereGeometry(0.55, 32, 32)
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false })
+    const glow = new THREE.Mesh(glowGeom, glowMat)
+    glow.position.copy(crystal.position)
+    root.add(glow)
 
-    const forgeMouth = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.08, 12, 84), ember)
-    forgeMouth.position.set(1.1, -0.7, -0.55)
-    forgeMouth.rotation.x = Math.PI / 2.25
-    root.add(forgeMouth)
-
-    const core = new THREE.Mesh(new THREE.CircleGeometry(0.62, 64), hotCore)
-    core.position.set(1.1, -0.7, -0.52)
-    core.rotation.x = -0.42
-    root.add(core)
+    const outerGlowGeom = new THREE.SphereGeometry(0.85, 32, 32)
+    const outerGlowMat = new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.04, blending: THREE.AdditiveBlending, depthWrite: false })
+    const outerGlow = new THREE.Mesh(outerGlowGeom, outerGlowMat)
+    outerGlow.position.copy(crystal.position)
+    root.add(outerGlow)
 
     const ringGroup = new THREE.Group()
-    const ringA = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.01, 8, 150), lime)
-    const ringB = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.008, 8, 170), gold)
-    ringA.rotation.x = Math.PI / 2.3
-    ringB.rotation.x = Math.PI / 2.62
-    ringGroup.position.set(0.15, 0.34, -0.05)
-    ringGroup.add(ringA, ringB)
+    ringGroup.position.copy(crystal.position)
+
+    const ring1 = new THREE.Mesh(
+      new THREE.TorusGeometry(1.2, 0.015, 16, 128),
+      new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false })
+    )
+    ring1.rotation.x = Math.PI / 2.2
+    ringGroup.add(ring1)
+
+    const ring2 = new THREE.Mesh(
+      new THREE.TorusGeometry(1.55, 0.012, 16, 150),
+      new THREE.MeshBasicMaterial({ color: 0xe8c97e, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
+    )
+    ring2.rotation.x = Math.PI / 2.5
+    ring2.rotation.y = 0.3
+    ringGroup.add(ring2)
+
+    const ring3 = new THREE.Mesh(
+      new THREE.TorusGeometry(0.9, 0.01, 16, 100),
+      new THREE.MeshBasicMaterial({ color: 0xff8844, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false })
+    )
+    ring3.rotation.x = Math.PI / 1.8
+    ring3.rotation.z = 0.4
+    ringGroup.add(ring3)
+
     root.add(ringGroup)
 
-    const sparkCount = 190
-    const sparkGeometry = new THREE.BufferGeometry()
-    const positions = new Float32Array(sparkCount * 3)
-    const velocities = new Float32Array(sparkCount * 3)
-    const ages = new Float32Array(sparkCount)
-    for (let i = 0; i < sparkCount; i += 1) {
-      positions[i * 3] = 1.1
-      positions[i * 3 + 1] = -0.7
-      positions[i * 3 + 2] = -0.52
-      ages[i] = 99
+    const shardPool = []
+    for (let i = 0; i < 8; i++) {
+      const shard = new THREE.Mesh(
+        new THREE.TetrahedronGeometry(0.055 + Math.random() * 0.04, 0),
+        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xbef264 : 0xe8c97e, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+      )
+      shard.userData = { angle: (i / 8) * Math.PI * 2, radius: 1.0 + Math.random() * 0.6, yOff: (Math.random() - 0.5) * 0.5, speed: 0.2 + Math.random() * 0.3 }
+      root.add(shard)
+      shardPool.push(shard)
     }
-    sparkGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    const sparks = new THREE.Points(sparkGeometry, new THREE.PointsMaterial({
-      size: 0.055,
-      color: 0xffe7a3,
-      transparent: true,
-      opacity: 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }))
-    root.add(sparks)
+
+    const EMBER_N = 300
+    const emberGeom = new THREE.BufferGeometry()
+    const ePos = new Float32Array(EMBER_N * 3)
+    for (let i = 0; i < EMBER_N; i++) {
+      ePos[i * 3] = (Math.random() - 0.5) * 3
+      ePos[i * 3 + 1] = -2 + Math.random() * -1
+      ePos[i * 3 + 2] = (Math.random() - 0.5) * 2
+    }
+    emberGeom.setAttribute('position', new THREE.BufferAttribute(ePos, 3))
+    const emberMat = new THREE.PointsMaterial({ size: 0.035, color: 0xff9944, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
+    const embers = new THREE.Points(emberGeom, emberMat)
+    root.add(embers)
+
+    const SPARKLE_N = 120
+    const sparkleGeom = new THREE.BufferGeometry()
+    const sPos = new Float32Array(SPARKLE_N * 3)
+    for (let i = 0; i < SPARKLE_N; i++) {
+      sPos[i * 3] = (Math.random() - 0.5) * 6
+      sPos[i * 3 + 1] = (Math.random() - 0.5) * 4
+      sPos[i * 3 + 2] = (Math.random() - 0.5) * 4
+    }
+    sparkleGeom.setAttribute('position', new THREE.BufferAttribute(sPos, 3))
+    const sparkleMat = new THREE.PointsMaterial({ size: 0.02, color: 0xbef264, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
+    const sparkles = new THREE.Points(sparkleGeom, sparkleMat)
+    root.add(sparkles)
 
     const clock = new THREE.Clock()
     let frameId = 0
-    let lastBurst = -10
-
-    function burst(t) {
-      lastBurst = t
-      for (let i = 0; i < sparkCount; i += 1) {
-        const angle = -0.15 + Math.random() * Math.PI * 0.85
-        const force = 0.025 + Math.random() * 0.07
-        positions[i * 3] = 1.1 + (Math.random() - 0.5) * 0.16
-        positions[i * 3 + 1] = -0.7 + (Math.random() - 0.5) * 0.12
-        positions[i * 3 + 2] = -0.52 + (Math.random() - 0.5) * 0.08
-        velocities[i * 3] = Math.cos(angle) * force * (Math.random() > 0.45 ? 1 : -0.6)
-        velocities[i * 3 + 1] = 0.035 + Math.random() * 0.08
-        velocities[i * 3 + 2] = -0.012 - Math.random() * 0.035
-        ages[i] = Math.random() * 0.22
-      }
-      sparkGeometry.getAttribute('position').needsUpdate = true
-    }
 
     function resize() {
       const parent = canvas.parentElement
-      const width = parent?.clientWidth || 900
-      const height = parent?.clientHeight || 360
-      camera.aspect = width / height
+      const w = parent?.clientWidth || 900
+      const h = parent?.clientHeight || 360
+      camera.aspect = w / h
       camera.updateProjectionMatrix()
-      renderer.setSize(width, height, false)
+      renderer.setSize(w, h, false)
     }
 
     function animate() {
       const t = clock.getElapsedTime()
-      root.rotation.y = Math.sin(t * 0.18) * 0.08
-      ringGroup.rotation.y = t * 0.16
-      ringGroup.rotation.z = Math.sin(t * 0.22) * 0.06
-      core.scale.setScalar(1 + Math.sin(t * 4.2) * 0.04)
-      core.material.opacity = 0.5 + Math.sin(t * 3.7) * 0.08
-      forgeMouth.material.opacity = 0.48 + Math.sin(t * 2.8) * 0.08
 
-      if (t - lastBurst > 2.6 + Math.sin(t * 0.7) * 0.45) burst(t)
+      crystal.rotation.y = t * 0.4
+      crystal.rotation.x = Math.sin(t * 0.3) * 0.15
+      crystal.position.y = 0.3 + Math.sin(t * 0.8) * 0.08
 
-      const pos = sparkGeometry.getAttribute('position')
-      for (let i = 0; i < sparkCount; i += 1) {
-        ages[i] += 0.016
-        if (ages[i] > 1.35) continue
-        velocities[i * 3 + 1] -= 0.0014
-        pos.setX(i, pos.getX(i) + velocities[i * 3])
-        pos.setY(i, pos.getY(i) + velocities[i * 3 + 1])
-        pos.setZ(i, pos.getZ(i) + velocities[i * 3 + 2])
+      glow.scale.setScalar(1 + Math.sin(t * 2.5) * 0.15)
+      glow.position.y = crystal.position.y
+      outerGlow.scale.setScalar(1 + Math.sin(t * 1.8) * 0.1)
+      outerGlow.position.y = crystal.position.y
+
+      forgeGlow.intensity = 2.5 + Math.sin(t * 4) * 0.3 + Math.sin(t * 7.3) * 0.15
+      crystalLight.intensity = 1.8 + Math.sin(t * 2.2) * 0.2
+
+      ringGroup.rotation.y = t * 0.15
+      ringGroup.position.y = crystal.position.y
+      ring1.rotation.z = t * 0.1
+      ring2.rotation.z = -t * 0.08
+      ring3.rotation.z = t * 0.12
+      ring1.material.opacity = 0.4 + Math.sin(t * 1.5) * 0.12
+      ring2.material.opacity = 0.28 + Math.sin(t * 1.2 + 1) * 0.08
+      ring3.material.opacity = 0.22 + Math.sin(t * 1.8 + 2) * 0.08
+
+      for (const s of shardPool) {
+        const d = s.userData
+        d.angle += d.speed * 0.016
+        s.position.x = Math.cos(d.angle) * d.radius
+        s.position.z = Math.sin(d.angle) * d.radius * 0.5
+        s.position.y = crystal.position.y + d.yOff + Math.sin(t * 0.5 + d.angle) * 0.1
+        s.rotation.x = t * 0.5
+        s.rotation.z = t * 0.3
       }
-      pos.needsUpdate = true
-      sparks.material.opacity = Math.max(0, 0.68 - (t - lastBurst) * 0.42)
+
+      const ep = emberGeom.getAttribute('position')
+      for (let i = 0; i < EMBER_N; i++) {
+        let y = ep.getY(i) + 0.007 + Math.random() * 0.003
+        if (y > 3) { y = -2 + Math.random() * -0.5; ep.setX(i, (Math.random() - 0.5) * 3); ep.setZ(i, (Math.random() - 0.5) * 2) }
+        ep.setY(i, y)
+        ep.setX(i, ep.getX(i) + Math.sin(t + i) * 0.0008)
+      }
+      ep.needsUpdate = true
+      emberMat.opacity = 0.45 + Math.sin(t * 2) * 0.15
+      sparkleMat.opacity = 0.18 + Math.sin(t * 1.5) * 0.08
+
+      camera.position.x = Math.sin(t * 0.1) * 0.08
+      camera.position.y = 0.2 + Math.sin(t * 0.15) * 0.04
+      camera.lookAt(0, 0.2, 0)
 
       renderer.render(scene, camera)
       frameId = requestAnimationFrame(animate)
@@ -184,20 +289,15 @@ function LegendaryForgeStage() {
       cancelAnimationFrame(frameId)
       window.removeEventListener('resize', resize)
       renderer.dispose()
-      top.geometry.dispose()
-      foot.geometry.dispose()
-      horn.geometry.dispose()
-      forgeMouth.geometry.dispose()
-      core.geometry.dispose()
-      ringA.geometry.dispose()
-      ringB.geometry.dispose()
-      sparkGeometry.dispose()
-      lime.dispose()
-      gold.dispose()
-      ember.dispose()
-      hotCore.dispose()
-      shadow.dispose()
-      sparks.material.dispose()
+      crystalGeom.dispose(); crystalMat.dispose()
+      glowGeom.dispose(); glowMat.dispose()
+      outerGlowGeom.dispose(); outerGlowMat.dispose()
+      ring1.geometry.dispose(); ring1.material.dispose()
+      ring2.geometry.dispose(); ring2.material.dispose()
+      ring3.geometry.dispose(); ring3.material.dispose()
+      emberGeom.dispose(); emberMat.dispose()
+      sparkleGeom.dispose(); sparkleMat.dispose()
+      for (const s of shardPool) { s.geometry.dispose(); s.material.dispose() }
     }
   }, [])
 
@@ -207,6 +307,7 @@ function LegendaryForgeStage() {
 export default function MysticWeaponAdminPanel() {
   const { user } = useAuth()
   const fileRef = useRef(null)
+  const editorRef = useRef(null)
   const [items, setItems] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [form, setForm] = useState(emptyForm())
@@ -251,10 +352,13 @@ export default function MysticWeaponAdminPanel() {
       image: view.image || '',
       source: view.source || '',
       power_level: view.power_level || 'notavel',
+      lore: view.lore || '',
+      habilidades: view.habilidades || { passivas: [], ativas: [], ultimates: [] },
     })
     setEditorOpen(true)
     setError('')
     setAnalysisNote('')
+    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   function handleNew() {
@@ -263,6 +367,7 @@ export default function MysticWeaponAdminPanel() {
     setEditorOpen(true)
     setError('')
     setAnalysisNote('')
+    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   function closeEditor() {
@@ -282,6 +387,28 @@ export default function MysticWeaponAdminPanel() {
     }))
   }
 
+  function addSkill(type) {
+    setForm(prev => ({
+      ...prev,
+      habilidades: { ...prev.habilidades, [type]: [...prev.habilidades[type], emptySkill()] },
+    }))
+  }
+
+  function removeSkill(type, index) {
+    setForm(prev => ({
+      ...prev,
+      habilidades: { ...prev.habilidades, [type]: prev.habilidades[type].filter((_, i) => i !== index) },
+    }))
+  }
+
+  function updateSkill(type, index, field, value) {
+    setForm(prev => {
+      const list = [...prev.habilidades[type]]
+      list[index] = { ...list[index], [field]: value }
+      return { ...prev, habilidades: { ...prev.habilidades, [type]: list } }
+    })
+  }
+
   async function handleAnalyze() {
     setAnalyzing(true)
     setError('')
@@ -296,10 +423,14 @@ export default function MysticWeaponAdminPanel() {
         source: form.source.trim() || 'Forja Lendária',
         power_level: form.power_level,
         image: form.image,
+        lore: form.lore.trim(),
+        habilidades: {
+          passivas: form.habilidades.passivas.filter(h => h.nome.trim()),
+          ativas: form.habilidades.ativas.filter(h => h.nome.trim()),
+          ultimates: form.habilidades.ultimates.filter(h => h.nome.trim()),
+        },
       }
-      const analyzed = await analyzeLegendaryWeaponDraft(draft, {
-        analysis_note: analysisNote.trim(),
-      })
+      const analyzed = await analyzeLegendaryWeaponDraft(draft, { analysis_note: analysisNote.trim() })
       setForm(prev => ({
         ...prev,
         name: analyzed.name || prev.name,
@@ -309,6 +440,14 @@ export default function MysticWeaponAdminPanel() {
         effect: analyzed.effect || prev.effect,
         source: analyzed.source || prev.source,
         power_level: analyzed.power_level || prev.power_level,
+        lore: analyzed.lore || prev.lore,
+        habilidades: analyzed.habilidades
+          ? {
+              passivas: analyzed.habilidades.passivas || prev.habilidades.passivas,
+              ativas: analyzed.habilidades.ativas || prev.habilidades.ativas,
+              ultimates: analyzed.habilidades.ultimates || prev.habilidades.ultimates,
+            }
+          : prev.habilidades,
       }))
     } catch (err) {
       setError(err.message || 'Falha ao analisar arma lendária.')
@@ -325,15 +464,13 @@ export default function MysticWeaponAdminPanel() {
       const img = new Image()
       img.onload = () => {
         const size = 320
-        const canvas = document.createElement('canvas')
-        canvas.width = size
-        canvas.height = size
-        const ctx = canvas.getContext('2d')
+        const cvs = document.createElement('canvas')
+        cvs.width = size; cvs.height = size
+        const ctx = cvs.getContext('2d')
         const scale = Math.max(size / img.width, size / img.height)
-        const w = img.width * scale
-        const h = img.height * scale
+        const w = img.width * scale; const h = img.height * scale
         ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
-        setForm(prev => ({ ...prev, image: canvas.toDataURL('image/webp', 0.78) }))
+        setForm(prev => ({ ...prev, image: cvs.toDataURL('image/webp', 0.78) }))
       }
       img.src = ev.target.result
     }
@@ -345,6 +482,11 @@ export default function MysticWeaponAdminPanel() {
     if (!form.name.trim() || !form.effect.trim()) {
       setError('Preencha ao menos nome e efeito.')
       return
+    }
+    const habilidadesData = {
+      passivas: form.habilidades.passivas.filter(h => h.nome.trim()),
+      ativas: form.habilidades.ativas.filter(h => h.nome.trim()),
+      ultimates: form.habilidades.ultimates.filter(h => h.nome.trim()),
     }
     const payload = {
       ...(selectedId ? { id: selectedId } : {}),
@@ -367,7 +509,7 @@ export default function MysticWeaponAdminPanel() {
       protocol_layer: 3,
       pp_estimate: 0,
       tags: [`rank:Lendária`, `base:${form.base}`, `attr:${form.attr}`, `power_level:${form.power_level}`, ...(form.image ? [`image:${form.image}`] : [])],
-      ai_feedback: '',
+      ai_feedback: JSON.stringify({ lore: form.lore.trim(), habilidades: habilidadesData }),
       created_by: user?.id || null,
       updated_at: new Date().toISOString(),
     }
@@ -398,6 +540,7 @@ export default function MysticWeaponAdminPanel() {
   const selectedItem = forgeItems.find(item => item.id === selectedId)
   const rankColor = RANK_COLORS['Lendária']
   const powerLabel = (lvl) => WEAPON_POWER_LEVELS.find(p => p.value === lvl)?.label || 'Notável'
+  const warnings = getSkillWarnings(form.habilidades, form.power_level)
 
   return (
     <div className="legendary-forge-page">
@@ -406,7 +549,7 @@ export default function MysticWeaponAdminPanel() {
         <div className="legendary-forge-hero-content">
           <span className="home-eyebrow">Mesa do Mestre</span>
           <h2 className="font-cinzel">Forja Lendária</h2>
-          <p>Catalogue relíquias únicas, destaque suas imagens e molde armas que só entram na campanha pela mão do Mestre.</p>
+          <p>Catalogue relíquias únicas, molde armas que alteram o destino de combates. Somente o Mestre cria e atribui estas armas.</p>
         </div>
         <button type="button" onClick={handleNew} className="legendary-forge-action">
           Nova Arma Lendária
@@ -452,6 +595,13 @@ export default function MysticWeaponAdminPanel() {
                     <span>{item.attr || 'AM'}</span>
                     <span>{item.source || 'Forja Lendária'}</span>
                   </div>
+                  {(item.habilidades.passivas.length + item.habilidades.ativas.length + item.habilidades.ultimates.length) > 0 && (
+                    <div className="legendary-weapon-skill-count">
+                      {item.habilidades.passivas.length > 0 && <span className="text-emerald-400/70 text-[10px]">{item.habilidades.passivas.length} pas.</span>}
+                      {item.habilidades.ativas.length > 0 && <span className="text-sky-400/70 text-[10px]">{item.habilidades.ativas.length} atv.</span>}
+                      {item.habilidades.ultimates.length > 0 && <span className="text-purple-400/70 text-[10px]">{item.habilidades.ultimates.length} ult.</span>}
+                    </div>
+                  )}
                 </div>
               </button>
             ))}
@@ -460,7 +610,7 @@ export default function MysticWeaponAdminPanel() {
       </section>
 
       {editorOpen && (
-      <section className="legendary-forge-editor">
+      <section ref={editorRef} className="legendary-forge-editor">
         <div className="legendary-forge-editor-head">
           <div>
             <span className="home-eyebrow">{selectedId ? 'Relíquia selecionada' : 'Nova relíquia'}</span>
@@ -495,36 +645,92 @@ export default function MysticWeaponAdminPanel() {
              <input value={form.attr} onChange={e => setForm(prev => ({ ...prev, attr: e.target.value }))} placeholder="Atributo" />
              <input value={form.source} onChange={e => setForm(prev => ({ ...prev, source: e.target.value }))} placeholder="Origem / Forja / Patrono" />
            </div>
-
-         <div className="bg-indigo-400/5 border border-indigo-400/20 rounded-lg p-3 space-y-2">
-           <div className="flex items-start gap-2">
-             <div className="text-indigo-300 text-[11px] font-semibold uppercase tracking-[0.12em]">Diretriz para IA</div>
-             <div className="text-txt-dim text-[11px] leading-relaxed">
-               Descreva o conceito da arma ou aponte problemas antes de clicar em <span className="text-indigo-300">Analisar</span>. A IA vai balancear números sem alterar a descrição narrativa.
-             </div>
-           </div>
-           <textarea
-             value={analysisNote}
-             onChange={e => setAnalysisNote(e.target.value)}
-             rows={2}
-             placeholder="Ex.: adaga lendária Menor focada em furtividade. Ou: esta arma está fraca demais para nível Supremo."
-             className="admin-input resize-y"
-           />
-           <button type="button" onClick={handleAnalyze} disabled={analyzing}
-             className="border border-indigo-400/30 text-indigo-300 px-3 py-1.5 rounded text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50">
-             {analyzing ? 'Analisando...' : 'Analisar com IA'}
-           </button>
-         </div>
         </div>
 
-        <textarea value={form.short} onChange={e => setForm(prev => ({ ...prev, short: e.target.value }))} rows={2} placeholder="Descrição visual e conceito..." />
-        <textarea value={form.effect} onChange={e => setForm(prev => ({ ...prev, effect: e.target.value }))} rows={6} placeholder="Efeito lendário, custo, ativação, riscos e habilidades..." />
+        <div className="legendary-forge-textarea-wrap">
+          <label className="legendary-forge-label">Historia e Origem</label>
+          <textarea value={form.lore} onChange={e => setForm(prev => ({ ...prev, lore: e.target.value }))} rows={3} placeholder="Conte a historia da arma — sua origem, lendas, como foi forjada, quem a empunhou..." />
+        </div>
+
+        <div className="legendary-forge-textarea-wrap">
+          <label className="legendary-forge-label">Descrição visual e conceito</label>
+          <textarea value={form.short} onChange={e => setForm(prev => ({ ...prev, short: e.target.value }))} rows={2} placeholder="Aparência da arma, materiais, brilho, detalhes visuais..." />
+        </div>
+
+        {warnings.length > 0 && (
+          <div className="legendary-forge-warnings">
+            {warnings.map((w, i) => (
+              <div key={i} className="legendary-forge-warning">{w}</div>
+            ))}
+          </div>
+        )}
+
+        {['passivas', 'ativas', 'ultimates'].map(type => {
+          const meta = SKILL_TYPE_META[type]
+          const limit = SKILL_LIMITS[form.power_level]?.[type] ?? 99
+          const skills = form.habilidades[type]
+          return (
+            <div key={type} className={`legendary-forge-skill-section ${meta.borderClass} ${meta.bgClass}`}>
+              <div className="legendary-forge-skill-header">
+                <div className="flex items-center gap-2">
+                  <span className={`${meta.headerClass} text-xs font-semibold uppercase tracking-wider`}>{meta.label}</span>
+                  <span className="text-txt-dim text-[10px]">({skills.length}/{limit === 99 ? '∞' : limit})</span>
+                </div>
+                <button type="button" onClick={() => addSkill(type)}
+                  className={`text-xs border ${meta.btnBorder} ${meta.btnText} px-2.5 py-1 rounded transition-colors ${meta.btnHover}`}>
+                  + {meta.singular}
+                </button>
+              </div>
+              {skills.length === 0 && (
+                <p className="text-txt-dim/40 text-[11px] italic py-1">Nenhuma {meta.singular.toLowerCase()} adicionada.</p>
+              )}
+              {skills.map((skill, i) => (
+                <div key={i} className="legendary-forge-skill-card">
+                  <div className="legendary-forge-skill-row">
+                    <input value={skill.nome} onChange={e => updateSkill(type, i, 'nome', e.target.value)}
+                      placeholder={`Nome da ${meta.singular.toLowerCase()}`} className="flex-1" />
+                    <div className="legendary-forge-pe-wrap">
+                      <span className="text-amber-300/60 text-[10px]">PE</span>
+                      <input type="number" value={skill.custoPE || 0} onChange={e => updateSkill(type, i, 'custoPE', Number(e.target.value) || 0)}
+                        className="w-20 text-center" />
+                    </div>
+                    <button type="button" onClick={() => removeSkill(type, i)}
+                      className="text-err/50 hover:text-err text-sm px-2 transition-colors" title="Remover">✕</button>
+                  </div>
+                  <textarea value={skill.descricao} onChange={e => updateSkill(type, i, 'descricao', e.target.value)}
+                    rows={2} placeholder="Descrição da habilidade — efeito, dano, duração, condições..." className="legendary-forge-skill-desc" />
+                </div>
+              ))}
+            </div>
+          )
+        })}
+
+        <div className="legendary-forge-textarea-wrap">
+          <label className="legendary-forge-label">Efeito lendário completo</label>
+          <textarea value={form.effect} onChange={e => setForm(prev => ({ ...prev, effect: e.target.value }))} rows={6} placeholder="Efeito lendário, custo, ativação, riscos — descrição narrativa completa da arma..." />
+        </div>
+
+        <div className="bg-indigo-400/5 border border-indigo-400/20 rounded-lg p-3 space-y-2 mx-5 mb-3">
+          <div className="flex items-start gap-2">
+            <div className="text-indigo-300 text-[11px] font-semibold uppercase tracking-[0.12em]">Oraculo — Analise da IA</div>
+          </div>
+          <div className="text-txt-dim text-[11px] leading-relaxed">
+            Descreva o conceito da arma ou aponte problemas. O Oraculo vai analisar <span className="text-indigo-300">todas as habilidades</span>, dano base e efeitos para aplicar valores balanceados conforme o nivel de poder (<span className="text-amber-300">{powerLabel(form.power_level)}</span>).
+          </div>
+          <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)}
+            rows={2} placeholder="Ex.: Espada Suprema focada em dano electrico. Ou: esta arma está fraca para nivel Supremo, aumente os valores."
+            className="admin-input resize-y" />
+          <button type="button" onClick={handleAnalyze} disabled={analyzing}
+            className="border border-indigo-400/30 text-indigo-300 px-3 py-1.5 rounded text-xs hover:bg-indigo-400/10 transition-colors disabled:opacity-50">
+            {analyzing ? 'Analisando com Oraculo...' : 'Analisar com Oraculo'}
+          </button>
+        </div>
 
         {selectedItem && (
           <div className="legendary-forge-preview">
-            <span>Prévia do catálogo</span>
+            <span>Previa do catalogo</span>
             <strong>{selectedItem.name}</strong>
-            <small>{selectedItem.source} · {selectedItem.dano || 'Dano ?'}</small>
+            <small>{selectedItem.source} · {selectedItem.dano || 'Dano ?'} · {powerLabel(selectedItem.power_level)}</small>
           </div>
         )}
 

@@ -2986,6 +2986,124 @@ button:active:not(:disabled) {
   cursor: not-allowed;
 }
 
+.legendary-forge-textarea-wrap {
+  padding: 0 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.legendary-forge-textarea-wrap textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgba(190, 242, 100, 0.22);
+  border-radius: 10px;
+  background: rgba(5, 7, 14, 0.72);
+  color: #e8e8f0;
+  font-size: 0.78rem;
+  padding: 0.75rem 0.85rem;
+  outline: none;
+}
+
+.legendary-forge-textarea-wrap textarea:focus {
+  border-color: rgba(190, 242, 100, 0.56);
+  box-shadow: 0 0 0 2px rgba(190, 242, 100, 0.08);
+}
+
+.legendary-forge-label {
+  display: block;
+  color: #dcff93;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+
+.legendary-forge-warnings {
+  margin: 0 1.2rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.legendary-forge-warning {
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.08);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  padding: 0.5rem 0.7rem;
+  line-height: 1.5;
+}
+
+.legendary-forge-skill-section {
+  margin: 0 1.2rem 0.75rem;
+  border-radius: 12px;
+  border-width: 1px;
+  padding: 0.85rem;
+}
+
+.legendary-forge-skill-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.legendary-forge-skill-card {
+  border: 1px solid rgba(190, 242, 100, 0.15);
+  border-radius: 10px;
+  background: rgba(5, 7, 14, 0.55);
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.legendary-forge-skill-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.legendary-forge-skill-row input,
+.legendary-forge-skill-desc {
+  border: 1px solid rgba(190, 242, 100, 0.18);
+  border-radius: 8px;
+  background: rgba(5, 7, 14, 0.65);
+  color: #e8e8f0;
+  font-size: 0.76rem;
+  padding: 0.55rem 0.65rem;
+  outline: none;
+}
+
+.legendary-forge-skill-row input:focus,
+.legendary-forge-skill-desc:focus {
+  border-color: rgba(190, 242, 100, 0.45);
+}
+
+.legendary-forge-skill-desc {
+  display: block;
+  width: 100%;
+  resize: vertical;
+}
+
+.legendary-forge-pe-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legendary-forge-pe-wrap input {
+  width: 4.5rem;
+  text-align: center;
+}
+
+.legendary-weapon-skill-count {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
 @media (max-width: 900px) {
   .legendary-forge-head,
   .legendary-forge-editor-head {
