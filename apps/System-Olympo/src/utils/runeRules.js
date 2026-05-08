@@ -54,10 +54,8 @@ export function getRuneActiveCount(runes = []) {
 export function getRuneProfile(char = {}) {
   const nivel = Math.max(1, Math.min(30, char.nivel || 1))
   const trainingLevel = getRuneTrainingLevel(char)
-  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, char.skeletonPoints || {}, char)
-  const con = adjustedAttrs.CON || 0
-  const forc = adjustedAttrs.FOR || 0
-  const hasAccess = trainingLevel >= 1 || con >= 14 || forc >= 14
+  const hasModule = (char.modulosAdquiridos || []).some(m => m.id === 'vinculo_runico')
+  const hasAccess = hasModule
 
   if (!hasAccess) {
     return {
@@ -69,11 +67,12 @@ export function getRuneProfile(char = {}) {
       maxByCircle: { 1: 0, 2: 0, 3: 0, 4: 0 },
       activeSlots: 0,
       hasAccess: false,
-      accessReason: 'Runas requer pericia Poder treinada (grau 1+) ou CON/FOR >= 14.',
+      accessReason: 'Runas requer o modulo de evolucao "Vinculo Runico" (CON 14+ ou FOR 14+).',
       notes: [],
     }
   }
 
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, char.skeletonPoints || {}, char)
   const base = RUNE_BASE_RULES.find((rule) => nivel <= rule.maxLevel) || RUNE_BASE_RULES[RUNE_BASE_RULES.length - 1]
   const classKey = normalizeClassKey(char.classe)
   const raceKey = char.raca || ''

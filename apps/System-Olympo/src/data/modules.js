@@ -11,6 +11,8 @@ export const MODULES_PASSIVE = [
   { id: 'ferramentas_misticas', name: 'Ferramentas Místicas', desc: 'Ativa 1 item mágico sem gastar PE. 1×/dia por item.', req: 'AM 12+' },
   { id: 'contatos_influentes', name: 'Contatos Influentes', desc: '1×/Missão — Chama favor de NPC com Recursos.', req: 'APA 12+ ou N6+' },
   { id: 'fortuna_inicial', name: 'Fortuna Inicial', desc: '+2000 Pontos de Economia para distribuir entre Dólares e Dracmas.', req: 'Nenhum' },
+  { id: 'estudos_alquimia', name: 'Estudos de Alquimia', desc: 'Desbloqueia a disciplina de Alquimia. Permite estudar, criar e portar rituais alquímicos.', req: 'INT 14+' },
+  { id: 'vinculo_runico', name: 'Vínculo Rúnico', desc: 'Desbloqueia a disciplina de Runas. Permite inscrever, ativar e manter runas mágicas.', req: 'CON 14+ ou FOR 14+' },
 ]
 
 export const MODULES_SPECIAL = [

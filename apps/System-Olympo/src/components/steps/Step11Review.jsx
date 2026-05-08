@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useDeferredValue, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes, calcCarryCapacity } from '../../utils/calculator'
 import { exportSheet } from '../../utils/exporter'
 import { ATTR_ICONS, getModifier } from '../../data/attributes'
@@ -20,10 +21,10 @@ import AlchemyLibrarySection from '../AlchemyLibrarySection'
 import SpellLibrarySection from '../SpellLibrarySection'
 import RuneLibrarySection from '../RuneLibrarySection'
 import MagicLibrarySection from '../MagicLibrarySection'
-import { getSpellProfile } from '../../utils/spellRules'
-import { getRuneProfile } from '../../utils/runeRules'
-import { getMagicProfile } from '../../utils/magicRules'
-import { getAlchemyProfile } from '../../utils/alchemyRules'
+import { getSpellProfile, canLearnSpell } from '../../utils/spellRules'
+import { getRuneProfile, canLearnRune } from '../../utils/runeRules'
+import { getMagicProfile, canLearnMagic } from '../../utils/magicRules'
+import { getAlchemyProfile, canLearnAlchemyRitual } from '../../utils/alchemyRules'
 import { calcEquipStats } from '../../data/equipment'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
@@ -751,35 +752,14 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
           </div>
 
           <div className={`mt-5 border-t border-sep/30 pt-5 ${visible('mystic') ? '' : 'hidden'}`}>
-            <div className="space-y-3">
-              {alchemyProfile.hasAccess && (
-                <KnowledgeAccordion title="Alquimia" icon="⚗" accent="text-teal-400" active={alchemyEnabled}
-                  onToggle={() => toggleKnowledge('alchemy', alchemyEnabled)} canEdit={canEdit}>
-                  {alchemyEnabled && <AlchemyLibrarySection char={char} update={update} wide />}
-                </KnowledgeAccordion>
-              )}
-              {spellProfile.hasAccess && (
-                <KnowledgeAccordion title="Feitiços" icon="✨" accent="text-emerald-400" active={spellsEnabled}
-                  onToggle={() => toggleKnowledge('spells', spellsEnabled)} canEdit={canEdit}>
-                  {spellsEnabled && <SpellLibrarySection char={char} update={update} wide />}
-                </KnowledgeAccordion>
-              )}
-              {runeProfile.hasAccess && (
-                <KnowledgeAccordion title="Runas" icon="💎" accent="text-sky-400" active={runesEnabled}
-                  onToggle={() => toggleKnowledge('runes', runesEnabled)} canEdit={canEdit}>
-                  {runesEnabled && <RuneLibrarySection char={char} update={update} wide />}
-                </KnowledgeAccordion>
-              )}
-              {magicProfile.hasAccess && (
-                <KnowledgeAccordion title="Magias" icon="🔥" accent="text-orange-400" active={magicEnabled}
-                  onToggle={() => toggleKnowledge('magic', magicEnabled)} canEdit={canEdit}>
-                  {magicEnabled && <MagicLibrarySection char={char} update={update} wide />}
-                </KnowledgeAccordion>
-              )}
-              {!alchemyProfile.hasAccess && !spellProfile.hasAccess && !runeProfile.hasAccess && !magicProfile.hasAccess && (
-                <p className="text-txt-dim text-xs text-center py-6 italic">Nenhuma disciplina mistica disponivel para este personagem.</p>
-              )}
-            </div>
+            <MysticKnowledgeGrid
+              char={char} update={update} canEdit={canEdit}
+              alchemyProfile={alchemyProfile} spellProfile={spellProfile}
+              runeProfile={runeProfile} magicProfile={magicProfile}
+              alchemyEnabled={alchemyEnabled} spellsEnabled={spellsEnabled}
+              runesEnabled={runesEnabled} magicEnabled={magicEnabled}
+              systemOptIn={systemOptIn}
+            />
           </div>
         </div>
       </div>
@@ -796,22 +776,254 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   )
 }
 
-function KnowledgeAccordion({ title, icon, accent, active, onToggle, canEdit, children }) {
+const KNOWLEDGE_CARDS = [
+  { key: 'alchemy', icon: '⚗', title: 'Alquimia', accent: '#2dd4bf', accentClass: 'text-teal-400', borderClass: 'border-teal-400/25', glowClass: 'bg-teal-400/8', field: 'alchemyRituals' },
+  { key: 'spells', icon: '✨', title: 'Feitiços', accent: '#34d399', accentClass: 'text-emerald-400', borderClass: 'border-emerald-400/25', glowClass: 'bg-emerald-400/8', field: 'spells' },
+  { key: 'runes', icon: '💎', title: 'Runas', accent: '#38bdf8', accentClass: 'text-sky-400', borderClass: 'border-sky-400/25', glowClass: 'bg-sky-400/8', field: 'runes' },
+  { key: 'magic', icon: '🔥', title: 'Magias', accent: '#fb923c', accentClass: 'text-orange-400', borderClass: 'border-orange-400/25', glowClass: 'bg-orange-400/8', field: 'magics' },
+]
+
+const CIRCLE_BADGE = {
+  1: 'bg-emerald-400/12 text-emerald-300 border-emerald-400/25',
+  2: 'bg-sky-400/12 text-sky-300 border-sky-400/25',
+  3: 'bg-purple-400/12 text-purple-300 border-purple-400/25',
+  4: 'bg-amber-300/12 text-amber-200 border-amber-300/30',
+}
+
+const RITUAL_FETCH = {
+  alchemy: () => import('../../services/alchemyService').then(m => m.fetchAlchemyRituals()),
+  spells: () => import('../../services/alchemyService').then(m => m.fetchSpellRituals()),
+  runes: () => import('../../services/alchemyService').then(m => m.fetchRuneRituals()),
+  magic: () => import('../../services/alchemyService').then(m => m.fetchMagicRituals()),
+}
+
+function normalizeRitual(ritual) {
+  return { id: ritual.id, name: ritual.name, circle: ritual.circle, category: ritual.category, short_description: ritual.short_description, pe_cost: ritual.pe_cost, effect: ritual.effect }
+}
+
+function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfile, runeProfile, magicProfile, alchemyEnabled, spellsEnabled, runesEnabled, magicEnabled, systemOptIn }) {
+  const [expanded, setExpanded] = useState(null)
+  const [pickerOpen, setPickerOpen] = useState(null)
+  const profiles = { alchemy: alchemyProfile, spells: spellProfile, runes: runeProfile, magic: magicProfile }
+  const enabled = { alchemy: alchemyEnabled, spells: spellsEnabled, runes: runesEnabled, magic: magicEnabled }
+
+  const visibleCards = KNOWLEDGE_CARDS.filter(c => profiles[c.key]?.hasAccess)
+
+  function toggleExpand(key) {
+    if (!canEdit) return
+    const next = expanded === key ? null : key
+    setExpanded(next)
+    if (next && !enabled[next]) {
+      const fieldMap = { alchemy: 'alchemyRituals', spells: 'spells', runes: 'runes', magic: 'magics' }
+      update({ systemsOptIn: { ...systemOptIn, [next]: true }, [fieldMap[next]]: char[fieldMap[next]] || [] })
+    }
+  }
+
+  if (visibleCards.length === 0) {
+    return <p className="text-txt-dim text-xs text-center py-6 italic">Nenhuma disciplina mística disponível para este personagem.</p>
+  }
+
   return (
-    <div className={`rounded-lg border ${active ? 'border-sep/30 bg-void/40' : 'border-sep/15 bg-void/20'}`}>
-      <button type="button" onClick={canEdit ? onToggle : undefined}
-        className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${canEdit ? 'cursor-pointer hover:bg-white/[0.02]' : 'cursor-default'}`}>
-        <span className={`text-lg ${active ? accent : 'text-txt-dim/50'}`}>{icon}</span>
-        <span className={`font-semibold text-sm ${active ? 'text-txt-main' : 'text-txt-dim/70'}`}>{title}</span>
-        {active && <span className="ml-auto text-[10px] text-txt-dim/50 font-mono uppercase tracking-wider">aberto</span>}
-        {!active && canEdit && <span className="ml-auto text-[10px] text-txt-dim/30 font-mono">clique para expandir</span>}
-      </button>
-      {active && (
-        <div className="border-t border-sep/20 px-3 pb-3 pt-3">
-          {children}
-        </div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {visibleCards.map(card => {
+          const isExpanded = expanded === card.key
+          const count = (char[card.field] || []).length
+          return (
+            <button key={card.key} type="button" onClick={() => toggleExpand(card.key)}
+              className={`relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                isExpanded ? `${card.borderClass} ${card.glowClass} ring-1 ring-current ${card.accentClass}` : 'border-sep/20 bg-void/30 hover:border-sep/40'
+              }`}>
+              <span className={`text-3xl ${isExpanded ? card.accentClass : 'text-txt-dim/60'}`}>{card.icon}</span>
+              <span className={`text-sm font-semibold ${isExpanded ? 'text-txt-main' : 'text-txt-dim/70'}`}>{card.title}</span>
+              {count > 0 && (
+                <span className={`absolute top-2 right-2 text-[10px] font-mono px-1.5 py-0.5 rounded-full ${isExpanded ? 'bg-white/10 text-txt-main' : 'bg-sep/20 text-txt-dim'}`}>{count}</span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {expanded && enabled[expanded] && (
+        <KnowledgeExpandedSection char={char} update={update} card={KNOWLEDGE_CARDS.find(c => c.key === expanded)}
+          profile={profiles[expanded]} onOpenPicker={() => setPickerOpen(expanded)} />
+      )}
+
+      {pickerOpen && createPortal(
+        <RitualPickerModal char={char} update={update} card={KNOWLEDGE_CARDS.find(c => c.key === pickerOpen)}
+          profile={profiles[pickerOpen]} onClose={() => setPickerOpen(null)} />,
+        document.body
       )}
     </div>
+  )
+}
+
+function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker }) {
+  const items = (char[card.field] || []).slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name))
+  const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
+  const spaceUsed = items.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
+
+  function removeRitual(ritual) {
+    if (!update) return
+    const current = char[card.field] || []
+    update({ [card.field]: current.filter(r => r.id !== ritual.id) })
+  }
+
+  return (
+    <div className={`rounded-xl border ${card.borderClass} bg-void/40 p-4 space-y-3`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className={card.accentClass}>{card.icon}</span>
+          <span className={`font-semibold text-sm ${card.accentClass}`}>{card.title}</span>
+          <span className="text-[11px] text-txt-dim font-mono">{spaceUsed}/{profile.spaceBudget} espaços</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+        {items.map(ritual => (
+          <div key={ritual.id} className="group relative rounded-lg border border-sep/20 bg-void/50 p-3 hover:border-sep/40 transition-colors">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+              {ritual.pe_cost != null && <span className="text-[10px] text-amber-300 font-mono">{ritual.pe_cost} PE</span>}
+            </div>
+            <h4 className="text-txt-main text-xs font-semibold leading-tight">{ritual.name}</h4>
+            <p className="text-txt-dim text-[10px] mt-1 leading-relaxed line-clamp-2">{ritual.short_description || ritual.effect || ''}</p>
+            {update && (
+              <button type="button" onClick={() => removeRitual(ritual)}
+                className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-err/60 hover:text-err text-[10px] transition-opacity">×</button>
+            )}
+          </div>
+        ))}
+
+        {update && (
+          <button type="button" onClick={onOpenPicker}
+            className={`rounded-lg border-2 border-dashed border-sep/20 hover:border-sep/40 flex items-center justify-center min-h-[120px] transition-colors`}>
+            <span className="text-txt-dim/40 text-2xl">+</span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function RitualPickerModal({ char, update, card, profile, onClose }) {
+  const [library, setLibrary] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [circleFilter, setCircleFilter] = useState('all')
+  const deferredSearch = useDeferredValue(search)
+  const SPACE_COST = { 1: 4, 2: 6, 3: 10, 4: 15 }
+
+  useEffect(() => {
+    let active = true
+    async function load() {
+      setLoading(true)
+      try {
+        const fetchFn = RITUAL_FETCH[card.key]
+        const res = fetchFn ? await fetchFn() : { data: [] }
+        if (active) { setLibrary(res.data || []); setLoading(false) }
+      } catch { if (active) { setLibrary([]); setLoading(false) } }
+    }
+    load()
+    return () => { active = false }
+  }, [card.key])
+
+  const selected = char[card.field] || []
+  const spaceUsed = selected.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
+
+  const filtered = useMemo(() => {
+    return library.filter(r => {
+      const hay = `${r.name} ${r.short_description || ''} ${r.category || ''}`.toLowerCase()
+      const matchSearch = !deferredSearch.trim() || hay.includes(deferredSearch.trim().toLowerCase())
+      const matchCircle = circleFilter === 'all' || Number(circleFilter) === r.circle
+      return matchSearch && matchCircle
+    })
+  }, [library, deferredSearch, circleFilter])
+
+  function addRitual(ritual) {
+    if (!update) return
+    if (selected.some(r => r.id === ritual.id)) return
+    const current = selected
+    const gateFn = { alchemy: canLearnAlchemyRitual, spells: canLearnSpell, runes: canLearnRune, magic: canLearnMagic }[card.key]
+    const gate = gateFn ? gateFn(char, current, ritual) : { allowed: true }
+    if (!gate.allowed) { alert(gate.reason); return }
+    update({ [card.field]: [...current, normalizeRitual(ritual)] })
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-4xl max-h-[85vh] bg-[#0a0c14] border border-sep/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()} style={{ '--grimoire-accent': card.accent }}>
+
+        <div className="flex items-center justify-between px-5 py-4 border-b border-sep/20">
+          <div className="flex items-center gap-3">
+            <span className={`text-xl ${card.accentClass}`}>{card.icon}</span>
+            <h3 className={`font-cinzel text-sm uppercase tracking-wider font-semibold ${card.accentClass}`}>{card.title}</h3>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <span className="text-txt-dim">Espaços: <span className={spaceUsed >= profile.spaceBudget ? 'text-amber-300' : 'text-emerald-300'}>{spaceUsed}/{profile.spaceBudget}</span></span>
+            <span className="text-txt-dim">Custos: <span className="text-gold">4/6/10/15</span></span>
+          </div>
+          <button type="button" onClick={onClose} className="text-txt-dim hover:text-txt-main text-lg transition-colors">×</button>
+        </div>
+
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-sep/15">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar ritual..."
+            className="flex-1 bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+          <div className="flex gap-1">
+            {['all', '1', '2', '3', '4'].map(c => (
+              <button key={c} type="button" onClick={() => setCircleFilter(c)}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  circleFilter === c ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-void border border-sep/30 text-txt-dim hover:border-sep/50'
+                }`}>
+                {c === 'all' ? 'Todos' : `${c}o`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5">
+          {loading ? (
+            <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando biblioteca...</p>
+          ) : (
+            <div className="grimoire-card-grid">
+              {filtered.map(ritual => {
+                const isSelected = selected.some(r => r.id === ritual.id)
+                const spaceCost = SPACE_COST[ritual.circle] || 0
+                const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
+                const circleOk = ritual.circle <= profile.maxCircle
+                const disabled = isSelected || wouldExceed || !circleOk
+
+                return (
+                  <article key={ritual.id} className={`grimoire-entry-card ${disabled ? 'opacity-50' : ''}`}>
+                    <div className="grimoire-entry-top">
+                      <span className={`border ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                      <small>{ritual.category || '—'}</small>
+                    </div>
+                    <h4 className="font-cinzel">{ritual.name}</h4>
+                    <p>{ritual.short_description || ritual.effect || '—'}</p>
+                    <div className="grimoire-entry-meta">
+                      <span>{ritual.pe_cost || 0} PE</span>
+                      <span>{spaceCost} espaços</span>
+                    </div>
+                    <button type="button" disabled={disabled}
+                      onClick={() => addRitual(ritual)}
+                      className={isSelected ? 'opacity-50 cursor-default' : ''}>
+                      {isSelected ? 'Selecionado' : 'Selecionar'}
+                    </button>
+                  </article>
+                )
+              })}
+              {filtered.length === 0 && (
+                <p className="text-txt-dim text-sm italic col-span-full text-center py-6">Nenhum ritual encontrado.</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
 

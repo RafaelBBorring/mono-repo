@@ -75,7 +75,8 @@ export function getAlchemySpaceUsed(rituals = []) {
 export function getAlchemyProfile(char = {}) {
   const nivel = Math.max(1, Math.min(30, char.nivel || 1))
   const trainingLevel = getAlchemyTrainingLevel(char)
-  const hasAccess = trainingLevel >= 1
+  const hasModule = (char.modulosAdquiridos || []).some(m => m.id === 'estudos_alquimia')
+  const hasAccess = hasModule
 
   if (!hasAccess) {
     return {
@@ -87,7 +88,7 @@ export function getAlchemyProfile(char = {}) {
       maxByCircle: { 1: 0, 2: 0, 3: 0, 4: 0 },
       ritualCosts: SPACE_COST_BY_CIRCLE,
       hasAccess: false,
-      accessReason: 'Alquimia requer pericia Alquimia treinada (grau 1+).',
+      accessReason: 'Alquimia requer o modulo de evolucao "Estudos de Alquimia" (INT 14+).',
       notes: [],
     }
   }
