@@ -877,6 +877,7 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
       damageScale: '2d6+8 a 4d8+15 para habilidades ofensivas',
       effectCap: 'Efeitos utilitarios e taticos. Pode conceder vantagem, resistencia elemental, mobilidade limitada. Nunca domina o campo de batalha.',
       slotBudget: '2-3 habilidades no maximo',
+      baseDano: '1d6 a 2d6+MOD acima do dano base da arma comum do mesmo tipo',
     },
     notavel: {
       label: 'Notável',
@@ -884,6 +885,7 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
       damageScale: '3d10+18 a 6d10+25 para habilidades ofensivas',
       effectCap: 'Efeitos de combate significativos. Pode conceder regeneracao parcial, penetracao de armadura, area moderada. Vira combates 1v1.',
       slotBudget: '3-4 habilidades',
+      baseDano: '2d8 a 3d10+MOD acima do dano base',
     },
     maior: {
       label: 'Maior',
@@ -891,6 +893,7 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
       damageScale: '6d12+30 a 10d12+45 para habilidades ofensivas',
       effectCap: 'Efeitos que mudam o curso de batalhas. Pode afetar multiplos alvos, conceder imunidade temporaria, abrir portais curtos. Temida por lendas.',
       slotBudget: '4-6 habilidades',
+      baseDano: '3d12 a 5d12+MOD acima do dano base',
     },
     suprema: {
       label: 'Suprema',
@@ -898,6 +901,7 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
       damageScale: '10d12+50 a 16d12+75 para habilidades ofensivas',
       effectCap: 'Efeitos epicos que transcendem combate normal. Pode selar entidades, rasgar realidade, comandar exercitos. Essas armas SAO a lenda.',
       slotBudget: '5-8 habilidades',
+      baseDano: '5d12 a 8d12+MOD acima do dano base',
     },
   }
 
@@ -912,95 +916,120 @@ export async function analyzeLegendaryWeaponDraft(draft, context = {}) {
   const hasHabilidades = totalHabs > 0
   const isGenerationMode = !hasName && !hasDano && !hasEffect && !hasHabilidades && analysisNote.length > 0
 
-  const EFFECT_INSTRUCTION = improveWriting
-    ? `10. MELHORAR ESCRITA: O Mestre ativou "Melhorar escrita". Voce PODE reescrever o campo "effect" para torna-lo mais conciso, claro e bem escrito. Mantenha a essencia e os valores, mas melhore a redacao. Seja SUCINTO — evite textos longos e exagerados.`
-    : `10. PRESERVAR EFEITO: O campo "effect" deve ser PRESERVADO EXATAMENTE como o Mestre escreveu. Voce so pode ajustar valores NUMERICOS (dados, modificadores, CDs, custos) dentro do texto original. NAO reescreva, NAO rephrase, NAO adicione texto extra. Se o effect estiver vazio, gere um sucinto.`
-
   const prompt = `
-VOCE E O ORACULO — MOTOR DE CRIACAO E BALANCEAMENTO DE ARMAS LENDARIAS DO SISTEMA OLYMPO 2.0.
+VOCE E O ORACULO — O MAIS CRIATIVO E PRECISO MOTOR DE CRIACAO E BALANCEAMENTO DE ARMAS LENDARIAS DO SISTEMA OLYMPO 2.0.
 
-MODO: ${isGenerationMode ? 'GERACAO — Criar arma completa do zero baseado no conceito descrito.' : 'BALANCEAMENTO — Analisar, ajustar e balancear os campos ja preenchidos. Preencha campos vazios se necessario.'}
+VOCE E UM ARTIFICE LENDARIO. Voce nao e um corretor de texto — voce e um CRIADOR. Sua job e dupla:
+- Quando o Mestre traz um conceito: RESPEITE o conceito, PRESERVE a mecanica, e apenas aplique VALORES BALANCEADOS.
+- Quando o Mestre pede para criar: Seja AUDACIOSO, criativo, inovador. Crie mecanicas unicas, nomes epicos, descricoes detalhadas e evocativas.
 
-SISTEMA: ARMAS LENDARIAS DA FORJA LENDARIA
-LORE:
-- Armas lendarias sao itens unicos e exclusivos da narrativa, criados pelo Mestre.
-- Cada arma lendaria possui um NIVEL DE PODER que define quao destrutiva ela e.
-- Uma adaga lendaria Menor e muito poderosa para seu tamanho, mas ainda nao causa tanto dano quanto uma escopeta comum — se destaca por suas HABILIDADES.
-- Uma arma lendaria Suprema como Escallibur e uma das armas mais poderosas do mundo — seu dano bruto e habilidades sao incomparaveis.
-- O dano base da arma e o dano do seu ataque normal. As HABILIDADES da arma e que definem sua verdadeira forca lendaria.
-- O sistema possui diversas fontes de poder: Triagens, Modulos, Habilidades de personagem, Rituais, Runas, Magias e equipamentos. Uma arma lendaria NAO deve ser fraca demais — mesmo sem ativar habilidades, seu dano base deve ser superior ao de uma arma comum do mesmo tipo.
-- Considere que um personagem de nivel alto tem vida 700-1350, CA 30-50, e causa 20d12+ dano com habilidades. A arma lendária deve ser relevante nesse contexto quando for de nivel Maior ou Supremo.
+MODO ATUAL: ${isGenerationMode ? 'GERACAO COMPLETA — Criar arma do zero baseado no conceito do Mestre.' : 'BALANCEAMENTO — Analisar campos preenchidos, preservar conceitos, ajustar valores, completar campos vazios.'}
+
+===
+SISTEMA: ARMAS LENDARIAS
+===
+
+Armas lendarias sao itens unicos e exclusivos da narrativa, criados pelo Mestre.
+- Cada arma possui um NIVEL DE PODER que define sua forca.
+- O dano base e o dano do ataque normal da arma. As HABILIDADES definem a verdadeira forca lendaria.
+- Uma arma lendaria NAO deve ser fraca — mesmo sem ativar habilidades, seu dano base deve ser superior ao de uma arma comum do mesmo tipo.
+- Personagens de nivel alto tem vida 700-1350, CA 30-50, e causam 20d12+ dano com habilidades. Armas Maior/Supremo devem ser relevantes nesse contexto.
 
 NIVEL DE PODER: ${guide.label}
-GUIA DE PODER:
-- Budget: ${guide.powerBudget}
-- Escala de dano para habilidades: ${guide.damageScale}
+- Budget de poder: ${guide.powerBudget}
+- Escala de dano para habilidades ofensivas: ${guide.damageScale}
 - Limite de efeitos: ${guide.effectCap}
-- Quantidade de habilidades: ${guide.slotBudget}
+- Quantidade sugerida de habilidades: ${guide.slotBudget}
+- Dano base para este nivel: ${guide.baseDano}
 
-RASCUNHO DA ARMA:
+===
+RASCUNHO DA ARMA
+===
+
 ${JSON.stringify(draft, null, 2)}
 
 HABILIDADES ESTRUTURADAS (${totalHabs} total):
-Passivas: ${JSON.stringify(habs.passivas, null, 2)}
-Ativas: ${JSON.stringify(habs.ativas, null, 2)}
-Ultimates: ${JSON.stringify(habs.ultimates, null, 2)}
+Passivas (${habs.passivas.length}): ${JSON.stringify(habs.passivas, null, 2)}
+Ativas (${habs.ativas.length}): ${JSON.stringify(habs.ativas, null, 2)}
+Ultimates (${habs.ultimates.length}): ${JSON.stringify(habs.ultimates, null, 2)}
 
-INSTRUCAO DO MESTRE:
+===
+INSTRUCAO DO MESTRE
+===
+
 ${analysisNote || 'Nenhuma instrucao extra. Revisar, completar e balancear.'}
 
-REGRAS:
-1. DANO BASE (campo "dano") — deve ser coerente com tipo de arma e nivel de poder:
-   - Menor: 1d6 a 2d6+MOD acima do dano base da arma comum do mesmo tipo
-   - Notavel: 2d8 a 3d10+MOD acima do dano base
-   - Maior: 3d12 a 5d12+MOD acima do dano base
-   - Suprema: 5d12 a 8d12+MOD acima do dano base
-   Uma arma lendária com dano base fraco é TRISTE. O dano base deve ser superior ao de uma arma comum.
+===
+REGRAS DE BALANCEAMENTO — VALORES NUMERICOS
+===
 
-2. HABILIDADES — sao o que tornam a arma lendária. Analise CADA habilidade:
-   - Passivas: Sem custo PE. Efeitos permanentes sutis mas uteis. custoPE: 0.
-   - Ativas: Custo PE proporcional ao poder. ${guide.damageScale}
-   - Ultimates: Custo PE alto. Efeitos poderosos que mudam o combate. ${guide.damageScale}
+1. DANO BASE (campo "dano"): ${guide.baseDano}. Uma arma lendaria com dano base fraco e ridicula. Deve ser claramente superior a uma arma comum.
 
-3. Se o Mestre nao preencheu campos (nome vazio, sem habilidades, sem efeito), GERE conteudo tematico completo baseado na instrucao e no tipo de arma.
+2. CUSTO DE PE POR TIPO E NIVEL:
+   - Passivas: 0 PE (efeito permanente, sempre ativo)
+   - Ativas Menor: 5-15 PE | Notavel: 10-25 PE | Maior: 15-40 PE | Suprema: 20-60 PE
+   - Ultimate Menor: 15-30 PE | Notavel: 25-50 PE | Maior: 40-80 PE | Suprema: 60-120 PE
 
-4. NUNCA altere DESCRICOES NARRATIVAS ja escritas pelo Mestre. Apenas ajuste valores NUMERICOS.
+3. PASSIVAS devem ser mais sutis que ativas. Nunca mais fortes.
 
-5. Custo PE por tipo e nivel:
-   - Passivas: 0 PE
-   - Ativas Menor: 5-15 | Notavel: 10-25 | Maior: 15-40 | Suprema: 20-60
-   - Ultimate Menor: 15-30 | Notavel: 25-50 | Maior: 40-80 | Suprema: 60-120
+4. Verifique o TOTAL de habilidades contra o budget (${guide.slotBudget}). Se exceder, NOTIFIQUE no ai_feedback — NAO remova habilidades (o Mestre tem autoridade final).
 
-6. Passivas devem ser mais sutis que ativas. Nunca mais fortes.
+===
+REGRAS CRITICAS DE PRESERVACAO VS CRIACAO
+===
 
-7. Preserve a IDENTIDADE da arma. Se e uma adaga furtiva, mantenha furtiva. Se e um martelo de guerra, mantenha brutal.
+!!! REGRA MAIS IMPORTANTE — TODA HABILIDADE DO INPUT DEVE ESTAR NO OUTPUT !!!
+Voce DEVE retornar TODAS as habilidades que o Mestre forneceu no rascunho. Se o input tem 1 passiva, 2 ativas e 1 ultimate, o output DEVE ter PELO MENOS 1 passiva, 2 ativas e 1 ultimate. Se o Mestre pediu para criar mais, ADICIONE-as alem das existentes. NUNCA omita, pule ou ignore uma habilidade.
 
-8. Se uma habilidade estiver sem descricao, preencha com descricao tematica balanceada.
+!!! QUANDO O MESTRE ESCREVEU UMA HABILIDADE (campos preenchidos) !!!
+- O CONCEITO e a MECANICA da habilidade DEVEM ser preservados. Se o Mestre disse que a passiva concede chance de critico, ela concede chance de critico. Se disse que a ativa faz 3 disparos rapidos, faz 3 disparos rapidos.
+- O campo "nome" sera PRESERVADO, a menos que o Mestre pea explicitamente para renomear (ex: "Renomeie as habilidades").
+- O campo "descricao": ${improveWriting ? 'Voce PODE reescrever a descricao com prosa mais RICA, EVOCATIVA e BEM ESCRITA. Mantenha a mesma mecanica e conceito, mas melhore a qualidade narrativa. Descricoes devem ser detalhadas com efeitos mecanicos claros (ativacao, efeito, dano, duracao, condicoes, custos). Seja criativo na escrita!' : 'PRESERVE o texto da descricao do Mestre. Voce so pode INSERIR ou AJUSTAR VALORES NUMERICOS (NdN, +MOD, custos, CDs, duracoes, porcentagens) dentro do texto original. NAO reescreva, NAO mude o conceito, NAO adicione efeitos que o Mestre nao mencionou.'}
+- O custoPE sera balanceado conforme as guidelines acima.
 
-9. Verifique TOTAL de habilidades contra budget (${guide.slotBudget}). Se exceder, NOTIFIQUE no ai_feedback — nao remova (o Mestre tem autoridade final).
+!!! QUANDO O MESTRE FORNECE CONCEITOS NA INSTRUCAO (analysisNote) !!!
+Se o Mestre descreveu habilidades detalhadamente na instrucao (ex: "Passiva: ...", "Ativa 1: ..."), siga essas descricoes FIELMENTE. O Mestre esta descrevendo o CONCEITO de cada habilidade. Transforme isso em mecanicas balanceadas com valores numericos, NAO mude o conceito.
 
-${EFFECT_INSTRUCTION}
+!!! QUANDO O MESTRE Pede PARA CRIAR HABILIDADES DO ZERO !!!
+Seja CRIATIVO e INOVADOR:
+- Crie mecanicas unicas e interessantes que nao sao genericas
+- Nomes devem ser EPICOS e tematicos — imponentes, memoraveis
+- Descricoes devem ser DETALHADAS e RICAS com efeitos mecanicos claros: ativacao, efeito, dano (formato NdN+MOD), duracao, condicoes, testes de resistencia, custos
+- Cada habilidade deve sentir-se UNICA e pertencer a IDENTIDADE da arma
+- Inspire-se em sistemas de RPG, jogos, animes, mitologia — seja ousado nas mecanicas
+- Uma arma lendaria merece habilidades memoraveis, nao genericas
 
-Responda EXCLUSIVAMENTE com JSON:
+===
+CAMPO "EFFECT" (Efeito Lendario Completo)
+===
+
+${improveWriting ? 'O Mestre ativou "Melhorar escrita". Reescreva o campo "effect" com redacao RICA, IMERSIVA e BEM ESCRITA. Mantenha toda a mecanica e valores, mas melhore a qualidade narrativa. O efeito lendario e a descricao principal da arma — deve ser detalhado, evocativo e impressionante.' : 'PRESERVE o campo "effect" EXATAMENTE como o Mestre escreveu. Voce so pode ajustar valores NUMERICOS (NdN, +MOD, custos, CDs). NAO reescreva, NAO rephrase, NAO adicione texto.'}
+Se o effect estiver vazio, crie um efeito lendario completo, detalhado e tematico.
+
+===
+FORMATO DE RESPOSTA
+===
+
+Responda EXCLUSIVAMENTE com JSON valido. NAO inclua texto antes ou depois do JSON:
 {
   "name": "nome refinado ou gerado",
-  "dano": "dano base balanceado",
+  "dano": "dano base balanceado (ex: 3d10+8)",
   "attr": "atributo",
-  "effect": "efeito lendario — ${improveWriting ? 'redacao melhorada, sucinto' : 'PRESERVADO exatamente como o Mestre escreveu, apenas ajustando numeros'}",
+  "effect": "efeito lendario completo — ${improveWriting ? 'redacao rica e evocativa' : 'PRESERVADO do Mestre, apenas numeros ajustados'}",
   "power_level": "${powerLevel}",
-  "lore": "historia e origem mantidas ou geradas",
+  "lore": "historia e origem — preservada do Mestre ou gerada se vazia",
   "habilidades": {
     "passivas": [
-      { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": 0 }
+      { "nome": "nome preservado ou epico", "descricao": "descricao detalhada com valores balanceados", "custoPE": 0 }
     ],
     "ativas": [
-      { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
+      { "nome": "nome preservado ou epico", "descricao": "descricao detalhada com valores balanceados", "custoPE": custo_balanceado }
     ],
     "ultimates": [
-      { "nome": "nome", "descricao": "descricao com numeros balanceados", "custoPE": custo_balanceado }
+      { "nome": "nome preservado ou epico", "descricao": "descricao detalhada com valores balanceados", "custoPE": custo_balanceado }
     ]
   },
-  "ai_feedback": "explicacao sucinta: dano base, cada habilidade revisada (nome → custoPE), total vs budget, decisoes"
+  "ai_feedback": "Resumo detalhado: dano base escolhido e por que. Cada habilidade revisada (nome → custoPE → o que mudou). Total de habilidades vs budget. Pedidos do Mestre atendidos."
 }`
 
   const response = await callAI([

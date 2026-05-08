@@ -719,12 +719,12 @@ export default function MysticWeaponAdminPanel() {
             <div className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.12em]">Oraculo — Forja Inteligente</div>
           </div>
           <div className="text-txt-dim text-[11px] leading-relaxed">
-            O Oraculo pode <span className="text-indigo-300">GERAR</span> a arma completa a partir de um conceito (habilidades, dano, efeito), ou <span className="text-amber-300">BALANCEAR</span> os campos ja preenchidos. O efeito lendario sera PRESERVADO — apenas valores numericos sao ajustados, exceto se ativar a opcao abaixo.
+            O Oraculo pode <span className="text-indigo-300">GERAR</span> a arma completa a partir de um conceito, ou <span className="text-amber-300">BALANCEAR</span> campos preenchidos. Habilidades e efeitos serao PRESERVADOS — apenas valores numericos sao ajustados, exceto se ativar a opcao abaixo.
           </div>
           <label className="flex items-center gap-2 cursor-pointer text-[11px] text-txt-dim select-none">
             <input type="checkbox" checked={improveWriting} onChange={e => setImproveWriting(e.target.checked)}
               className="accent-indigo-400 w-3.5 h-3.5" />
-            <span>Melhorar escrita do efeito (reescrita sucinta pela IA)</span>
+            <span>Melhorar escrita (IA reescreve descricoes com mais riqueza narrativa)</span>
           </label>
           <textarea value={analysisNote} onChange={e => setAnalysisNote(e.target.value)}
             rows={3} placeholder="Ex.: Espada katana Suprema focada em dano eletrico e velocidade. Ou: balanceie os valores desta arma, esta fraca para nivel Maior."
