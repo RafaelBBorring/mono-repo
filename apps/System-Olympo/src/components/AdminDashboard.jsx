@@ -233,7 +233,7 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
                   {isExpanded && (
                     <div className="border-t border-sep/30 p-4 space-y-4">
                       {isEditing ? (
-                        <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} />
+                        <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} forgeWeapons={forgeWeapons} />
                       ) : (
                         <>
                           <AdminSheetView sheet={sheet} onPatch={handlePatch} />
@@ -293,7 +293,7 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
                   {isExpanded && (
                     <div className="border-t border-sep/30 p-4 space-y-4">
                       {isEditing ? (
-                        <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} />
+                        <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} forgeWeapons={forgeWeapons} />
                       ) : (
                         <>
                           <AdminSheetView sheet={sheet} onPatch={handlePatch} />
@@ -712,7 +712,7 @@ function SectionCard({ id, icon, title, color, children, rightSlot }) {
   )
 }
 
-function FullSheetEditor({ sheet, onSave, onCancel }) {
+function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
   const [data, setData] = useState(JSON.parse(JSON.stringify(sheet.data || {})))
   const [activeSection, setActiveSection] = useState('identidade')
 
