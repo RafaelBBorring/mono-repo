@@ -15,9 +15,11 @@ export default function Step1Identity({ char, update }) {
   }, [])
 
   const handleSlide = useCallback((e) => {
-    const val = Number(e.target.value)
+    const raw = Number(e.target.value)
+    const val = Math.round(raw)
+    const pct = ((val - 1) / 29) * 100
     if (fillRef.current) {
-      fillRef.current.style.width = `${((val - 1) / 29) * 100}%`
+      fillRef.current.style.width = `${pct}%`
       fillRef.current.style.backgroundColor = tierColor(val)
     }
     update({ nivel: val })
@@ -80,10 +82,10 @@ export default function Step1Identity({ char, update }) {
         <label className="block text-outline text-sm font-mono uppercase tracking-wider" style={{ fontSize: '11px' }}>Nível da Campanha</label>
         <div className="flex items-center gap-4">
           <div className="flex-1 relative h-6 flex items-center">
-            <div className="absolute left-0 right-0 h-[6px] rounded-full bg-white/8" />
+            <div className="absolute inset-x-0 h-[6px] rounded-full bg-white/[0.08]" />
             <div ref={fillRef} className="absolute left-0 h-[6px] rounded-full level-slider-fill"
               style={{ width: `${((char.nivel - 1) / 29) * 100}%`, backgroundColor: tierColor(char.nivel) }} />
-            <input type="range" min={1} max={30} value={char.nivel} onInput={handleSlide}
+            <input type="range" min={1} max={30} step={0.1} value={char.nivel} onInput={handleSlide}
               className="level-slider-input absolute inset-0 w-full" />
           </div>
           <input type="number" min={1} max={30} value={char.nivel} onChange={(e) => update({ nivel: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })}
