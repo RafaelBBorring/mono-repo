@@ -11,7 +11,7 @@ on:
       - 'apps/Hades-VFX/**'
       - 'apps/Morpheus-System/**'
       - 'apps/codex-arcanum/**'
-      - '.github/workflows/deploy-pages.yml'
+      - '.github/workflows/deploy-olympo.yml'
   workflow_dispatch:
 
 permissions:
