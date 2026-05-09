@@ -805,7 +805,7 @@ const RITUAL_FETCH = {
 }
 
 function normalizeRitual(ritual) {
-  return { id: ritual.id, name: ritual.name, circle: ritual.circle, category: ritual.category, short_description: ritual.short_description, pe_cost: ritual.pe_cost, effect: ritual.effect }
+  return { id: ritual.id, name: ritual.name, circle: ritual.circle, category: ritual.category, short_description: ritual.short_description, pe_cost: ritual.pe_cost, effect: ritual.effect, regent: ritual.regent || null }
 }
 
 function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfile, runeProfile, magicProfile, alchemyEnabled, spellsEnabled, runesEnabled, magicEnabled, systemOptIn }) {
@@ -1114,6 +1114,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
                           {ritual.category && <span className="text-txt-dim">{ritual.category}</span>}
                           {ritual.duration && <span className="text-sky-300">{ritual.duration}</span>}
                           {ritual.action_cost && <span className="text-purple-300">{ritual.action_cost}</span>}
+                          {ritual.regent && <span className="text-emerald-400/70">{ENTIDADES_OUTRO_LADO.find(e => e.id === ritual.regent)?.name || ritual.regent}</span>}
                         </div>
                         {update && (
                           <button type="button" onClick={() => removeRitual(ritual)}
@@ -1680,6 +1681,7 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
               {inspectedRitual.action_cost && <div className="text-[10px] font-mono text-purple-300">{inspectedRitual.action_cost}</div>}
               {inspectedRitual.duration && <div className="text-[10px] font-mono text-sky-300">{inspectedRitual.duration}</div>}
               {inspectedRitual.range && <div className="text-[10px] font-mono text-txt-dim">{inspectedRitual.range}</div>}
+              {inspectedRitual.regent && <div className="text-[10px] font-mono text-emerald-400/70 border-t border-white/5 pt-2 mt-1">{ENTIDADES_OUTRO_LADO.find(e => e.id === inspectedRitual.regent)?.name || inspectedRitual.regent}</div>}
               <button type="button"
                 disabled={selected.some(r => r.id === inspectedRitual.id)}
                 onClick={() => addRitual(inspectedRitual)}
