@@ -4,7 +4,7 @@ function buildDefaultGrimorios(knowledgeKey, label) {
   return GRIMORIO_TIERS.map(tier => ({
     id: `${knowledgeKey}-${tier.id}`,
     name: `${label} — ${tier.name}`,
-    description: `Grimório padrão de ${label} contendo rituais de ${tier.minCircle}o ao ${tier.maxCircle}o círculo.`,
+    description: `Grimório de ${label} para praticantes de nível ${tier.name.toLowerCase()}. Contém rituais adequados a esta etapa de aprendizado.`,
     image: '',
     knowledgeKey,
     tier: tier.id,
@@ -21,14 +21,13 @@ function buildDefaultGrimorios(knowledgeKey, label) {
 const DEFAULT_ALCHEMY = buildDefaultGrimorios('alchemy', 'Alquimia')
 const DEFAULT_SPELLS = buildDefaultGrimorios('spells', 'Feitiços')
 const DEFAULT_MAGIC = buildDefaultGrimorios('magic', 'Magias')
-const DEFAULT_RUNES = buildDefaultGrimorios('runes', 'Runas')
 
 export const NECROMANCY_GRIMORIO = {
   id: 'necromancia',
   name: 'A Arte da Necromancia',
   description: 'Tratado completo sobre a manipulação da morte e dos mortos, outorgado por Morthên, o Guardião do Umbral. Contém desde o pacto inicial até as artes mais profanas de domínio sobre almas.',
   image: '',
-  knowledgeKey: 'magic',
+  knowledgeKey: 'alchemy',
   tier: 'mestre',
   maxCircle: 4,
   isPublic: true,
@@ -526,7 +525,6 @@ export const PUBLIC_GRIMORIOS = [
   ...DEFAULT_ALCHEMY,
   ...DEFAULT_SPELLS,
   ...DEFAULT_MAGIC,
-  ...DEFAULT_RUNES,
   NECROMANCY_GRIMORIO,
 ]
 
@@ -534,5 +532,4 @@ export const DEFAULT_GRIMORIOS = {
   alchemy: DEFAULT_ALCHEMY,
   spells: DEFAULT_SPELLS,
   magic: DEFAULT_MAGIC,
-  runes: DEFAULT_RUNES,
 }

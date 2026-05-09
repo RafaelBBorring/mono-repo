@@ -5,7 +5,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-vigia-ansuz',
     ritual_type: 'rune',
-    name: 'Runa Menor do Vigia',
+    name: 'Runa Menor de Ansuz — O Vigia',
     circle: 1,
     category: 'Utilidade',
     pe_cost: 4,
@@ -28,7 +28,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-raiz-berkana',
     ritual_type: 'rune',
-    name: 'Runa Menor da Raiz Serena',
+    name: 'Runa Menor de Berkana — Raiz Serena',
     circle: 1,
     category: 'Suporte',
     pe_cost: 5,
@@ -51,7 +51,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-impacto-kano',
     ritual_type: 'rune',
-    name: 'Runa Menor do Impacto Unido',
+    name: 'Runa Menor de Kano — Impacto Unido',
     circle: 1,
     category: 'Ataque',
     pe_cost: 6,
@@ -74,7 +74,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-claridade-hagalaz',
     ritual_type: 'rune',
-    name: 'Runa Menor da Calmaria',
+    name: 'Runa Menor de Hagalaz — Calmaria',
     circle: 1,
     category: 'Utilidade',
     pe_cost: 4,
@@ -97,7 +97,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-passo-raido',
     ritual_type: 'rune',
-    name: 'Runa Menor do Passo Curto',
+    name: 'Runa Menor de Raido — Passo Curto',
     circle: 1,
     category: 'Mobilidade',
     pe_cost: 5,
@@ -120,7 +120,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-lumen-sowelu',
     ritual_type: 'rune',
-    name: 'Runa Menor da Luz Franca',
+    name: 'Runa Menor de Sowelu — Luz Franca',
     circle: 1,
     category: 'Suporte',
     pe_cost: 5,
@@ -143,7 +143,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-pulso-thurisaz',
     ritual_type: 'rune',
-    name: 'Runa Menor do Pulso',
+    name: 'Runa Menor de Thurisaz — Pulso',
     circle: 1,
     category: 'Suporte',
     pe_cost: 4,
@@ -166,7 +166,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-cadeado-ehwaz',
     ritual_type: 'rune',
-    name: 'Runa Menor do Cadeado',
+    name: 'Runa Menor de Ehwaz — O Cadeado',
     circle: 1,
     category: 'Controle',
     pe_cost: 6,
@@ -189,7 +189,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-instinto-nauthiz',
     ritual_type: 'rune',
-    name: 'Runa Menor do Instinto Agudo',
+    name: 'Runa Menor de Nauthiz — Instinto Agudo',
     circle: 1,
     category: 'Defesa',
     pe_cost: 5,
@@ -212,7 +212,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-menor-marca-othila',
     ritual_type: 'rune',
-    name: 'Runa Menor da Heranca Viva',
+    name: 'Runa Menor de Othila — Herança Viva',
     circle: 1,
     category: 'Suporte',
     pe_cost: 6,
@@ -235,7 +235,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-selo-grafo-ansuz',
     ritual_type: 'rune',
-    name: 'Runa Comum do Grafo Celeste',
+    name: 'Runa Comum de Ansuz — Grafo Celeste',
     circle: 2,
     category: 'Utilidade',
     pe_cost: 12,
@@ -258,7 +258,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-florescimento-berkana',
     ritual_type: 'rune',
-    name: 'Runa Comum do Florescimento',
+    name: 'Runa Comum de Berkana — Florescimento',
     circle: 2,
     category: 'Suporte',
     pe_cost: 14,
@@ -281,7 +281,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-batismo-kano',
     ritual_type: 'rune',
-    name: 'Runa Comum do Batismo Marcial',
+    name: 'Runa Comum de Kano — Batismo Marcial',
     circle: 2,
     category: 'Ataque',
     pe_cost: 12,
@@ -304,7 +304,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-tear-dagaz',
     ritual_type: 'rune',
-    name: 'Runa Comum do Tear Onirico',
+    name: 'Runa Comum de Dagaz — Tear Onírico',
     circle: 2,
     category: 'Utilidade',
     pe_cost: 15,
@@ -327,7 +327,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-camara-ehwaz',
     ritual_type: 'rune',
-    name: 'Runa Comum da Camara Nula',
+    name: 'Runa Comum de Ehwaz — Câmara Nula',
     circle: 2,
     category: 'Controle',
     pe_cost: 14,
@@ -350,7 +350,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-laco-gebo',
     ritual_type: 'rune',
-    name: 'Runa Comum do Laco Vivo',
+    name: 'Runa Comum de Gebo — Laço Vivo',
     circle: 2,
     category: 'Suporte',
     pe_cost: 12,
@@ -373,7 +373,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-folha-jera',
     ritual_type: 'rune',
-    name: 'Runa Comum da Folha Dominante',
+    name: 'Runa Comum de Jera — Folha Dominante',
     circle: 2,
     category: 'Controle',
     pe_cost: 13,
@@ -396,7 +396,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-portal-raido',
     ritual_type: 'rune',
-    name: 'Runa Comum do Portal Dobravel',
+    name: 'Runa Comum de Raido — Portal Ddobrável',
     circle: 3,
     category: 'Mobilidade',
     pe_cost: 22,
@@ -419,7 +419,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-escama-wunjo',
     ritual_type: 'rune',
-    name: 'Runa Comum da Escama Absorvente',
+    name: 'Runa Comum de Wunjo — Escama Absorvente',
     circle: 3,
     category: 'Defesa',
     pe_cost: 20,
@@ -442,7 +442,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-comum-agulha-inguz',
     ritual_type: 'rune',
-    name: 'Runa Comum da Agulha Mental',
+    name: 'Runa Comum de Inguz — Agulha Mental',
     circle: 3,
     category: 'Controle',
     pe_cost: 21,
@@ -465,7 +465,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-julgamento-ansuz',
     ritual_type: 'rune',
-    name: 'Runa Maior do Julgamento Astral',
+    name: 'Runa Maior de Ansuz — Julgamento Astral',
     circle: 3,
     category: 'Utilidade',
     pe_cost: 26,
@@ -488,7 +488,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-renovacao-berkana',
     ritual_type: 'rune',
-    name: 'Runa Maior da Renovacao',
+    name: 'Runa Maior de Berkana — Renovação',
     circle: 3,
     category: 'Suporte',
     pe_cost: 28,
@@ -511,7 +511,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-coroa-fehu',
     ritual_type: 'rune',
-    name: 'Runa Maior da Coroa de Poder',
+    name: 'Runa Maior de Fehu — Coroa de Poder',
     circle: 4,
     category: 'Suporte',
     pe_cost: 35,
@@ -534,7 +534,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-mar-laguz',
     ritual_type: 'rune',
-    name: 'Runa Maior da Mare Condutora',
+    name: 'Runa Maior de Laguz — Maré Condutora',
     circle: 4,
     category: 'Controle',
     pe_cost: 34,
@@ -557,7 +557,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-trama-mannaz',
     ritual_type: 'rune',
-    name: 'Runa Maior da Trama Construtora',
+    name: 'Runa Maior de Mannaz — Trama Construtora',
     circle: 3,
     category: 'Utilidade',
     pe_cost: 24,
@@ -580,7 +580,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-orbita-raido',
     ritual_type: 'rune',
-    name: 'Runa Maior da Orbita Violenta',
+    name: 'Runa Maior de Raido — Órbita Violenta',
     circle: 4,
     category: 'Mobilidade',
     pe_cost: 32,
@@ -603,7 +603,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-lux-sowelu',
     ritual_type: 'rune',
-    name: 'Runa Maior do Sol Puro',
+    name: 'Runa Maior de Sowelu — Sol Puro',
     circle: 4,
     category: 'Ataque',
     pe_cost: 33,
@@ -626,7 +626,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-pacto-uthila',
     ritual_type: 'rune',
-    name: 'Runa Maior da Heranca Pactuada',
+    name: 'Runa Maior de Othila — Herança Pactuada',
     circle: 3,
     category: 'Suporte',
     pe_cost: 25,
@@ -649,7 +649,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-prisao-algiz',
     ritual_type: 'rune',
-    name: 'Runa Maior da Prisao Perpetua',
+    name: 'Runa Maior de Algiz — Prisão Perpétua',
     circle: 4,
     category: 'Controle',
     pe_cost: 36,
@@ -672,7 +672,7 @@ export const RUNE_FALLBACK_RITUALS = [
   {
     id: 'rune-maior-transe-eihwaz',
     ritual_type: 'rune',
-    name: 'Runa Maior da Transicao Vazia',
+    name: 'Runa Maior de Eihwaz — Transição Vazia',
     circle: 3,
     category: 'Mobilidade',
     pe_cost: 27,
