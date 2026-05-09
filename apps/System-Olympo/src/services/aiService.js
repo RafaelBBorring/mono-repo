@@ -682,105 +682,105 @@ Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habi
 
 function buildMysticDraftPrompt(systemType, draft, context = {}) {
   const analysisNote = typeof context.analysis_note === 'string' ? context.analysis_note.trim() : ''
+
+  const REGENT_LORE = `
+UNIVERSO NARRATIVO — REGENTES E DISTORÇÃO DE LEIS FÍSICAS:
+Todo ritual é uma CHAMADA a um Regente de outra dimensão que DISTORCE sua respectiva lei da física.
+Os 4 Regentes:
+1. Senhor da Anti-Termodinâmica — Distorce calor, frio, energia térmica, entropia, mudanças de fase. Rituais desta linha manipulam temperatura, invertem processos entrópicos, transferem energia térmica entre corpos.
+2. Senhor da Anti-Relatividade — Distorce espaço, tempo, gravidade, velocidade da luz. Rituais desta linha curvam espaço-tempo, deslocam massas, comprimem distâncias, manipulam gravidade.
+3. Senhor da Anti-Inércia — Distorce força, momento, movimento, energia cinética. Rituais desta linha criam barreiras de força, redirecionam impactos, alteram velocidade, aplicam ou removem momento.
+4. Senhor da Biofísica e Entropia Genética — Distorce vida, genética, mutação, decomposição. Rituais desta linha aceleram ou revertem decomposição, manipulam código genético, controlam processos vitais.
+
+REGRA CRUCIAL DE MECÂNICA:
+- NADA no efeito é puramente narrativo. "Empurra o alvo 10m" NÃO é aceitável.
+- Todo efeito DEVE ter um mecânico de jogo: teste de resistência (FOR/DES/CON/INT/AM), CD, vantagem/desvantagem, dano (NdN+MOD), condição (caído, lento, cego, envenenado, etc.), duração em rodadas.
+- Se o ritual empurra, isso é: "Teste FOR vs FOR. Falha: alvo é deslocado 1 espaço e cai caído. Sucesso: alvo permanece."
+- Se o ritual protege, isso é: "Barreira com X PV e CA Y. Absorve dano até ser destruída. Dura X rodadas."
+- Cada efeito deve incluir: o que acontece, como resistir (se aplicável), dano/condição/resultados de sucesso e falha, duração, alcance, contrapeso.
+
+No campo "short_description", inclua UMA frase breve explicando como a lei física do regente é distorcida para alcançar o efeito. Exemplo: "Distorção termodinâmica: o calor do alvo é instantaneamente transferido para o ambiente, causando congelamento superficial."
+`
+
   const blocks = {
     alchemy: {
-      title: 'SISTEMA: ALQUIMIA DO OLYMPO',
+      title: 'SISTEMA: ALQUIMIA DO OLYMPO — RITUAIS DE DISTORÇÃO',
       lore: [
-        '- A Alquimia canaliza leis corrompidas do Abismo atraves de Regentes, ou Pactos com Entidades do Limiar.',
-        '- Todo ritual enfraquece o Veu e pode gerar Ruptura. Quanto maior o circulo, maior o risco.',
-        '- Regentes funcionam como um painel: a lei corrompida e absorvida e descarregada em sigilos.',
-        '- Limiar funciona como pacto: poder maior, mas preco narrativo mais severo.',
-        '- Rituais de circulos diferentes podem repetir a mesma familia de efeito, mas com numeros, area e custo escalados.',
+        '- Alquimia canaliza distorções de leis físicas através de Regentes interdimensionais.',
+        '- Cada ritual é um pedido a um Regente que dobra temporariamente uma lei da física.',
+        '- O efeito do ritual deve refletir a lei distorcida: termodinâmica = calor/frio/energia, relatividade = espaço/tempo/gravidade, inércia = força/movimento, biofísica = vida/morte/mutação.',
+        '- A descrição curta (short_description) deve explicar BREVEMENTE como a lei física é distorcida.',
+        '- Todo ritual enfraquece o Véu. Quanto maior o círculo, maior o risco de Ruptura.',
       ],
       balance: [
-        '- 1o circulo: utilitario ou tatico leve. PE 4-10. DT 13-15. Custo estrutural: 4 espacos.',
-        '- 2o circulo: impacto consistente. PE 10-20. DT 15-17. Custo estrutural: 6 espacos.',
-        '- 3o circulo: poder alto e identidade forte. PE 20-30. DT 18-20. Custo estrutural: 10 espacos.',
-        '- 4o circulo: catastrofico e raro. PE 30-45. DT 21-25. Custo estrutural: 15 espacos.',
+        '- 1o círculo: utilitário ou tático leve. PE 4-10. CD 13-15. Custo estrutural: 4 espaços.',
+        '- 2o círculo: impacto consistente. PE 10-20. CD 15-17. Custo estrutural: 6 espaços.',
+        '- 3o círculo: poder alto e identidade forte. PE 20-30. CD 18-20. Custo estrutural: 10 espaços.',
+        '- 4o círculo: catastrófico e raro. PE 30-45. CD 21-25. Custo estrutural: 15 espaços.',
       ],
       protocol: [
-        '- SCP 2 para rituais taticos e corporais.',
-        '- SCP 3 apenas quando o ritual age como fenomeno epico, catastrofico ou quase artefato.',
-        '- Cura imediata nao passa de 30% da vida maxima esperada da faixa.',
-        '- Controle duro total deve durar no maximo 1 rodada em circulos 3-4; prefira penalidade parcial.',
-        '- Como o sistema usa espacos por circulo, rituais mais caros podem sustentar efeitos mais densos, mas ainda precisam ter contrapeso, custo energetico e risco coerentes.',
-      ],
-      extras: [
-        '- Se houver uma instrucao direta do admin, trate essa instrucao como prioridade editorial: ela pode apontar um problema do ritual atual ou descrever a ideia-base de um ritual novo.',
-        '- Se o rascunho vier incompleto, use a instrucao do admin e o lore para completar nome, fonte, efeito, preco e numeros de modo coerente.',
+        '- SCP 2 para rituais táticos. SCP 3 apenas para fenômenos épicos/catastróficos.',
+        '- Cura imediata: máximo 30% da vida esperada da faixa.',
+        '- Controle total: máximo 1 rodada em círculos 3-4; prefira penalidade parcial.',
+        '- TODO efeito deve ter mecânica de jogo concreta: testes, CD, NdN, condições, durações.',
       ],
     },
     spell: {
-      title: 'SISTEMA: FEITICOS E MAGIA INSTANTANEA DO OLYMPO',
+      title: 'SISTEMA: FEITIÇOS DO OLYMPO — RITUAIS DE DISTORÇÃO',
       lore: [
-        '- Feiticos sao formulas de conjuracao ativas. Alguns nascem da Bruxaria ritual, outros da Arcana instantanea de magos e guardioes.',
-        '- Bruxaria tende a trabalhar vinculos, maldicoes, cura, sacrificio, selos e interferencia narrativa.',
-        '- Arcana instantanea tende a trabalhar rajadas, barreiras, teleporte, leitura estrutural e manipulacao limpa de mana.',
-        '- A tradicao do feitico deve ficar clara no resultado final, inclusive em nome, custo, preco e linguagem visual.',
+        '- Feitiços são conjurações que chamam Regentes para distorcer leis físicas no campo de batalha.',
+        '- Bruxaria tende a rituais de vínculo, maldição, sacrifício — usando biofísica e termodinâmica.',
+        '- Arcana tende a rajadas, barreiras, teleporte — usando relatividade e inércia.',
+        '- A descrição curta deve explicar BREVEMENTE como a lei física é distorcida.',
       ],
       balance: [
-        '- 1o circulo: resposta curta, suporte basico ou ataque simples. PE 8-15. Custo estrutural: 4 espacos.',
-        '- 2o circulo: consistencia de combate e utilidade forte. PE 10-22. Custo estrutural: 6 espacos.',
-        '- 3o circulo: assinatura de escola, impacto alto e mais risco. PE 20-32. Custo estrutural: 10 espacos.',
-        '- 4o circulo: raro, epico e exigente. PE 32-45. Custo estrutural: 15 espacos.',
+        '- 1o círculo: resposta curta, suporte básico. PE 8-15. Custo estrutural: 4 espaços.',
+        '- 2o círculo: consistência de combate. PE 10-22. Custo estrutural: 6 espaços.',
+        '- 3o círculo: assinatura de escola, impacto alto. PE 20-32. Custo estrutural: 10 espaços.',
+        '- 4o círculo: raro, épico. PE 32-45. Custo estrutural: 15 espaços.',
       ],
       protocol: [
-        '- Nao trate feiticos como habilidades raciais permanentes; sao conjuracoes escolhidas e opcionais.',
-        '- Feiticos de Bruxaria podem cobrar componentes, custo narrativo ou exposição. Feiticos de Arcana podem cobrar janela de vulnerabilidade, foco ou concentração.',
-        '- Cura segue o limite de 30% da vida esperada da faixa por uso imediato, salvo efeitos prolongados claramente pagos.',
-        '- Controle total deve ser curto; prefira lentidao, queda de resultado, selos parciais e supressao temporaria.',
-      ],
-      extras: [
-        '- Quando houver tag ou contexto de tradicao, respeite esse estilo: bruxaria nao deve soar como canhao de mana puro; arcana nao deve soar como maldicao de sangue ritual.',
-        '- Se o admin pedir criacao de novo feitico, complete nome, escola, numeros e contrapeso de forma coerente com a tradicao escolhida.',
+        '- Feitiços de Bruxaria podem cobrar componentes ou custo narrativo. Arcana pode cobrar janela de vulnerabilidade.',
+        '- Cura: máximo 30% da vida da faixa por uso imediato.',
+        '- Controle total: máximo 1 rodada; prefira lentidão, queda de resultado, selos parciais.',
+        '- TODO efeito deve ter mecânica de jogo concreta.',
       ],
     },
     rune: {
       title: 'SISTEMA: RUNAS DO OLYMPO',
       lore: [
-        '- Runas sao fragmentos derivados das 24 Runas Primordiais, mas a biblioteca jogavel trabalha apenas suas expressoes menores, comuns e maiores.',
-        '- Toda runa precisa deixar clara sua matriz primordial de origem sem revelar segredos de trama como portadores atuais.',
-        '- Runas funcionam como selos de vinculo: algumas ficam latentes, outras podem ser ativadas simultaneamente dentro de um limite.',
+        '- Runas são fragmentos das Runas Primordiais — selos de vínculo com poder ancestral.',
+        '- Cada runa carrega uma distorção específica de uma lei física, cristalizada em forma de selo.',
       ],
       balance: [
-        '- Runas Menores: entrada versatil, leitura rapida e impacto simples. Normalmente 1o circulo. Custo estrutural: 4 espacos.',
-        '- Runas Comuns: efeito tatico robusto, zona, vinculo ou mobilidade real. Normalmente 2o ou 3o circulo. Custo estrutural: 6 ou 10 espacos.',
-        '- Runas Maiores: proxima da origem primordial, rara e pesada. Normalmente 3o ou 4o circulo. Custo estrutural: 10 ou 15 espacos.',
+        '- Menores: 1o círculo. Custo estrutural: 4 espaços.',
+        '- Comuns: 2o-3o círculo. Custo estrutural: 6 ou 10 espaços.',
+        '- Maiores: 3o-4o círculo. Custo estrutural: 10 ou 15 espaços.',
       ],
       protocol: [
-        '- Toda runa precisa indicar seu grau (menor, comum ou maior) e seu primordial-base.',
-        '- Runas maiores devem ser potentes, mas precisam de custo real e jamais podem parecer passivas gratuitas sem trade-off.',
-        '- Sempre pense em uso opcional pelo jogador: runas devem ser fortes, legiveis e enxutas o bastante para nao sobrecarregar a ficha.',
-      ],
-      extras: [
-        '- Se o admin descrever apenas a fantasia da runa, complete efeito, custo, contrapeso e grau de forma sensata.',
-        '- Se houver conflito entre numero e fantasia, prefira preservar a fantasia e ajustar custo, duracao, dt e contrapeso.',
+        '- Toda runa indica grau (menor, comum, maior) e primordial-base.',
+        '- TODO efeito deve ter mecânica de jogo concreta.',
       ],
     },
     magic: {
-      title: 'SISTEMA: MAGIAS DO OLYMPO — CONJURACAO ARCANA PURA',
+      title: 'SISTEMA: MAGIAS DO OLYMPO — RITUAIS DE DISTORÇÃO',
       lore: [
-        '- Magias sao a forma pura de conjuracao arcana. Apenas Magos possuem acesso nativo a este sistema.',
-        '- Cada escola de magia (Fogo, Gelo, Eletrico, Arcano, Gravidade, Ilusao) tem identidade propria e mecanicas distintas.',
-        '- Magias sao mais densas e exigentes que feiticos. Um mago com 3o circulo de magia pode moldar o campo de batalha inteiro.',
-        '- O Mago investe PEH pesado em magia — os valores devem refletir esse custo de oportunidade.',
+        '- Magias são a forma pura de conjurar Regentes para distorcer leis físicas em escala devastadora.',
+        '- Cada escola reflete o Regente chamado: Fogo/Gelo = termodinâmica, Gravidade = relatividade, Impacto = inércia, Cura/Morte = biofísica.',
+        '- Magias são mais densas e exigentes que feitiços. Investem PEH pesado.',
+        '- A descrição curta deve explicar BREVEMENTE como a lei física é distorcida.',
       ],
       balance: [
-        '- 1o circulo: magia basica e linear. Entrada natural. PE 6-14. Custo estrutural: 4 espacos.',
-        '- 2o circulo: magia de combate e utilidade confiavel. PE 10-22. Custo estrutural: 6 espacos.',
-        '- 3o circulo: magia densa, com risco real e identidade de escola nitida. PE 20-35. Custo estrutural: 10 espacos.',
-        '- 4o circulo: magia suprema, rarissima e exigente. PE 35-50. Custo estrutural: 15 espacos.',
+        '- 1o círculo: magia básica. PE 6-14. Custo estrutural: 4 espaços.',
+        '- 2o círculo: magia de combate confiável. PE 10-22. Custo estrutural: 6 espaços.',
+        '- 3o círculo: magia densa, risco real. PE 20-35. Custo estrutural: 10 espaços.',
+        '- 4o círculo: magia suprema. PE 35-50. Custo estrutural: 15 espaços.',
       ],
       protocol: [
-        '- Magias sao mais poderosas que feiticos de mesmo circulo, pois exigem classe dedicada e PEH mais alto.',
-        '- Cada magia deve refletir a escola escolhida: Fogo = dano em area, Gelo = controle, Eletrico = rajada rapida, Arcano = versatilidade, Gravidade = manipulacao espacial, Ilusao = engano.',
-        '- Cura segue o limite de 30% da vida esperada da faixa por uso imediato, salvo efeitos prolongados.',
-        '- Controle total dura no maximo 1 rodada; prefira lentidao, penalidade e supressao temporaria.',
-      ],
-      extras: [
-        '- Se o admin pedir uma magia de escola especifica, complete nome, efeito, custo e contrapeso coerentes com a escola.',
-        '- Magias de 4o circulo devem ser realmente catastroficas — justify o custo estrutural de 15 espacos.',
-        '- Se houver conflito entre numero e fantasia, preserve a fantasia e ajuste custo, CD, duracao e contrapeso.',
+        '- Magias são mais poderosas que feitiços do mesmo círculo.',
+        '- Cada magia reflete a escola/regente: termodinâmica = dano/controle térmico, relatividade = espaço/gravidade, inércia = força/movimento, biofísica = vida/morte.',
+        '- Cura: máximo 30% da vida da faixa. Controle total: 1 rodada.',
+        '- TODO efeito deve ter mecânica de jogo concreta.',
       ],
     },
   }
@@ -788,15 +788,16 @@ function buildMysticDraftPrompt(systemType, draft, context = {}) {
   const prompt = `
 ${block.title}
 
+${REGENT_LORE}
+
 LORE E LIMITES:
 ${block.lore.join('\n')}
 
-BALANCEAMENTO POR CIRCULO:
+BALANCEAMENTO POR CÍRCULO:
 ${block.balance.join('\n')}
 
 PROTOCOLO:
 ${block.protocol.join('\n')}
-${block.extras.join('\n')}
 
 RASCUNHO:
 ${JSON.stringify(draft, null, 2)}
@@ -804,7 +805,7 @@ ${JSON.stringify(draft, null, 2)}
 CONTEXTO OPCIONAL:
 ${JSON.stringify(context, null, 2)}
 
-INSTRUCAO DIRETA DO ADMIN:
+INSTRUÇÃO DIRETA DO ADMIN:
 ${analysisNote || 'Nenhuma. Apenas revisar, completar e balancear o ritual atual.'}
 
 Responda EXCLUSIVAMENTE com JSON:
@@ -814,20 +815,20 @@ Responda EXCLUSIVAMENTE com JSON:
   "category": "Ataque",
   "pe_cost": 0,
   "min_level": 1,
-  "action_cost": "Acao Padrao",
-  "duration": "Instantaneo",
+  "action_cost": "Ação Padrão",
+  "duration": "Instantâneo",
   "range": "18m",
-  "short_description": "resumo curto",
-  "effect": "efeito final com numeros concretos",
+  "short_description": "Distorção [REGENTE]: breve explicação de como a lei física é distorcida + resumo do efeito.",
+  "effect": "efeito final com mecânicas concretas: testes, CD, NdN+MOD, condições, durações, contrapesos",
   "source_kind": "regente|limiar|neutro",
-  "source_name": "nome da entidade ou fonte",
-  "law_name": "lei ou eixo metafisico",
-  "price": "preco ou custo narrativo",
+  "source_name": "nome do Regente ou fonte",
+  "law_name": "lei física distorcida",
+  "price": "custo narrativo ou contrapeso",
   "rupture_risk": 1,
   "protocol_layer": 2,
   "pp_estimate": 0,
   "tags": ["tag1", "tag2"],
-  "ai_feedback": "explicacao curta de balanceamento"
+  "ai_feedback": "explicação curta de balanceamento"
 }`
 
   return prompt

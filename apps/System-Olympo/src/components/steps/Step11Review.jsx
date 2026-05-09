@@ -818,6 +818,22 @@ function MysticKnowledgeGrid({ char, update, canEdit, alchemyProfile, spellProfi
 
   const visibleCards = KNOWLEDGE_CARDS.filter(c => profiles[c.key]?.hasAccess)
 
+  useEffect(() => {
+    if (!update) return
+    const grimorios = char.grimorios || []
+    const tierOrder = ['iniciante', 'avancado', 'mestre']
+    const changed = []
+    for (const g of grimorios) {
+      const maxTier = getGrimorioAccessTier(char, g.knowledgeKey)
+      const maxIdx = tierOrder.indexOf(maxTier)
+      const gIdx = tierOrder.indexOf(g.tier)
+      if (maxTier && gIdx > maxIdx) changed.push(g.id)
+    }
+    if (changed.length > 0) {
+      update({ grimorios: grimorios.filter(g => !changed.includes(g.id)) })
+    }
+  }, [])
+
   function toggleExpand(key) {
     if (!canEdit) return
     const next = expanded === key ? null : key
@@ -1546,12 +1562,12 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
                       </div>
                     </div>
                     <div>
-                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Entidade / Fonte</label>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Regente</label>
                       <select value={customEntity} onChange={e => setCustomEntity(e.target.value)}
                         className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none">
-                        <option value="">Nenhuma</option>
+                        <option value="">Nenhum</option>
                         {ENTIDADES_OUTRO_LADO.map(ent => (
-                          <option key={ent.id} value={ent.name}>{ent.name} — {ent.domain}</option>
+                          <option key={ent.id} value={ent.name}>{ent.name}</option>
                         ))}
                       </select>
                     </div>
@@ -1686,14 +1702,14 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
   const allRituals = char[card.field] || []
 
   const [mode, setMode] = useState('list')
-  const [selectedTier, setSelectedTier] = useState(null)
-  const [name, setName] = useState('')
+  const [name, setName] = useState('Grimório em Branco')
   const [imageUrl, setImageUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editImage, setEditImage] = useState('')
   const [editUploading, setEditUploading] = useState(false)
+  const [selectedRegent, setSelectedRegent] = useState('')
 
   if (!accessTier) return null
 
@@ -1717,10 +1733,10 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
 
   function createGrimorio() {
     if (!update) return
-    if (!selectedTier) return
-    const tier = GRIMORIO_TIERS.find(t => t.id === selectedTier)
+    if (!accessTier) return
+    const tier = GRIMORIO_TIERS.find(t => t.id === accessTier)
     if (!tier) return
-    const grimorioName = name.trim() || `Grimório de ${char.nome || 'Desconhecido'}`
+    const grimorioName = name.trim() || 'Grimório em Branco'
     const newGrimorio = {
       id: crypto.randomUUID(),
       knowledgeKey: card.key,
@@ -1730,13 +1746,14 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
       maxCircle: tier.maxCircle,
       maxRituals: 30,
       isPersonal: true,
+      regent: selectedRegent || null,
       createdAt: new Date().toISOString(),
     }
     const currentGrimorios = char.grimorios || []
     update({ grimorios: [...currentGrimorios, newGrimorio] })
-    setName('')
+    setName('Grimório em Branco')
     setImageUrl('')
-    setSelectedTier(null)
+    setSelectedRegent('')
     setMode('list')
   }
 
@@ -1801,7 +1818,7 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                 )}
               </div>
               {update && availableTiers.length > 0 && (
-                <button type="button" onClick={() => { setMode('create'); setSelectedTier(null); setName(''); setImageUrl('') }}
+                <button type="button" onClick={() => { setMode('create'); setName('Grimório em Branco'); setImageUrl(''); setSelectedRegent('') }}
                   className="w-full py-2.5 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
                   + Criar Novo Grimório
                 </button>
@@ -1811,35 +1828,42 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
 
           {mode === 'create' && (
             <div className="space-y-3">
-              <div>
-                <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Categoria</label>
-                <div className="flex gap-2">
-                  {availableTiers.map(tier => (
-                    <button key={tier.id} type="button" onClick={() => setSelectedTier(tier.id)}
-                      className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
-                        selectedTier === tier.id
-                          ? 'bg-gold/20 text-gold border-gold/30'
-                          : 'bg-void border-sep/30 text-txt-dim hover:border-sep/50'
-                      }`}>
-                      {tier.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {selectedTier && (() => {
-                const tier = GRIMORIO_TIERS.find(t => t.id === selectedTier)
+              {(() => {
+                const tier = GRIMORIO_TIERS.find(t => t.id === accessTier)
                 return (
                   <>
-                    <div className="text-txt-dim/40 text-[10px] font-mono">Círculos 1o-{tier?.maxCircle}o — Máx. {tier?.maxRituals} rituais</div>
+                    <div className="bg-gold/5 border border-gold/15 rounded-lg p-3 text-center">
+                      <span className="text-gold text-xs font-semibold">{tier?.name || 'Grimório Pessoal'}</span>
+                      <span className="text-txt-dim text-[10px] font-mono block mt-0.5">Círculos 1o–{tier?.maxCircle || 2}o — Máx. 30 rituais — Afinidade atual: {getScoreForDisplay(char, card.key)}</span>
+                    </div>
                     <div>
-                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome (opcional)</label>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Regente *</label>
+                      <div className="space-y-2">
+                        {ENTIDADES_OUTRO_LADO.map(reg => (
+                          <button key={reg.id} type="button" onClick={() => setSelectedRegent(reg.id)}
+                            className={`w-full text-left p-3 rounded-lg border transition-all ${
+                              selectedRegent === reg.id
+                                ? 'border-gold/40 bg-gold/10'
+                                : 'border-sep/20 bg-void/30 hover:border-sep/40'
+                            }`}>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-semibold ${selectedRegent === reg.id ? 'text-gold' : 'text-txt-main'}`}>{reg.name}</span>
+                            </div>
+                            <p className="text-txt-dim/50 text-[10px] mt-0.5">{reg.domain}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome do Grimório</label>
                       <input type="text" value={name} onChange={e => setName(e.target.value)}
-                        placeholder={`${GRIMORIO_TYPE_LABELS[card.key]} — ${tier?.name || ''}`}
+                        placeholder="Grimório em Branco"
                         className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
                     </div>
-                    <ImageUploadField value={imageUrl} onChange={setImageUrl} uploading={uploading} onUploadError={() => {}} />
-                    <button type="button" onClick={createGrimorio}
-                      className="w-full py-2.5 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
+                    <button type="button" onClick={createGrimorio} disabled={!selectedRegent}
+                      className={`w-full py-2.5 rounded-lg text-xs font-semibold transition-colors active:scale-[0.99] ${
+                        selectedRegent ? 'bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25' : 'bg-void/30 text-txt-dim/30 border border-sep/10 cursor-not-allowed'
+                      }`}>
                       Criar Grimório
                     </button>
                   </>

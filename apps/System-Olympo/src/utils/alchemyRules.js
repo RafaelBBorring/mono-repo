@@ -14,12 +14,12 @@ export const ALCHEMY_TRAINING_RULES = {
 }
 
 export const BASE_RULES_BY_LEVEL = [
-  { maxLevel: 4, spaceBudget: 8, maxCircle: 1, maxByCircle: { 1: 2, 2: 0, 3: 0, 4: 0 } },
-  { maxLevel: 9, spaceBudget: 12, maxCircle: 2, maxByCircle: { 1: 3, 2: 1, 3: 0, 4: 0 } },
-  { maxLevel: 14, spaceBudget: 16, maxCircle: 3, maxByCircle: { 1: 4, 2: 2, 3: 1, 4: 0 } },
-  { maxLevel: 19, spaceBudget: 20, maxCircle: 4, maxByCircle: { 1: 4, 2: 3, 3: 2, 4: 1 } },
-  { maxLevel: 24, spaceBudget: 24, maxCircle: 4, maxByCircle: { 1: 5, 2: 3, 3: 2, 4: 1 } },
-  { maxLevel: 30, spaceBudget: 28, maxCircle: 4, maxByCircle: { 1: 6, 2: 4, 3: 3, 4: 2 } },
+  { maxLevel: 4, spaceBudget: 12, maxCircle: 1, maxByCircle: { 1: 3, 2: 0, 3: 0, 4: 0 } },
+  { maxLevel: 9, spaceBudget: 18, maxCircle: 2, maxByCircle: { 1: 4, 2: 2, 3: 0, 4: 0 } },
+  { maxLevel: 14, spaceBudget: 24, maxCircle: 3, maxByCircle: { 1: 5, 2: 3, 3: 1, 4: 0 } },
+  { maxLevel: 19, spaceBudget: 30, maxCircle: 4, maxByCircle: { 1: 5, 2: 4, 3: 2, 4: 1 } },
+  { maxLevel: 24, spaceBudget: 36, maxCircle: 4, maxByCircle: { 1: 6, 2: 4, 3: 3, 4: 1 } },
+  { maxLevel: 30, spaceBudget: 42, maxCircle: 4, maxByCircle: { 1: 7, 2: 5, 3: 3, 4: 2 } },
 ]
 
 export const CLASS_AFFINITY = {
@@ -105,7 +105,7 @@ export function getAlchemyProfile(char = {}) {
   const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + classAffinity.circle + raceAffinity.circle))
   const maxCircle = Math.min(levelCircleCap, trainingCircleCap)
 
-  const spaceBudget = Math.max(4, base.spaceBudget + training.budget + classAffinity.budget + raceAffinity.budget)
+  const spaceBudget = Math.max(4, base.spaceBudget + training.budget + classAffinity.budget + raceAffinity.budget + Math.floor(int / 5) + Math.floor(am / 5))
   const baseCircleCaps = base.maxByCircle || { 1: 0, 2: 0, 3: 0, 4: 0 }
   const maxByCircle = {}
 

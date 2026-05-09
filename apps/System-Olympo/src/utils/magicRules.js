@@ -20,12 +20,12 @@ export const MAGIC_TRAINING_RULES = {
 }
 
 const MAGIC_BASE_RULES = [
-  { maxLevel: 4, spaceBudget: 8, maxCircle: 1, maxByCircle: { 1: 2, 2: 0, 3: 0, 4: 0 } },
-  { maxLevel: 9, spaceBudget: 12, maxCircle: 2, maxByCircle: { 1: 3, 2: 2, 3: 0, 4: 0 } },
-  { maxLevel: 14, spaceBudget: 18, maxCircle: 3, maxByCircle: { 1: 4, 2: 3, 3: 1, 4: 0 } },
-  { maxLevel: 19, spaceBudget: 22, maxCircle: 4, maxByCircle: { 1: 4, 2: 3, 3: 2, 4: 1 } },
-  { maxLevel: 24, spaceBudget: 26, maxCircle: 4, maxByCircle: { 1: 5, 2: 4, 3: 2, 4: 1 } },
-  { maxLevel: 30, spaceBudget: 30, maxCircle: 4, maxByCircle: { 1: 6, 2: 4, 3: 3, 4: 2 } },
+  { maxLevel: 4, spaceBudget: 12, maxCircle: 1, maxByCircle: { 1: 3, 2: 0, 3: 0, 4: 0 } },
+  { maxLevel: 9, spaceBudget: 18, maxCircle: 2, maxByCircle: { 1: 4, 2: 2, 3: 0, 4: 0 } },
+  { maxLevel: 14, spaceBudget: 26, maxCircle: 3, maxByCircle: { 1: 5, 2: 3, 3: 2, 4: 0 } },
+  { maxLevel: 19, spaceBudget: 32, maxCircle: 4, maxByCircle: { 1: 5, 2: 4, 3: 2, 4: 1 } },
+  { maxLevel: 24, spaceBudget: 38, maxCircle: 4, maxByCircle: { 1: 6, 2: 5, 3: 3, 4: 1 } },
+  { maxLevel: 30, spaceBudget: 44, maxCircle: 4, maxByCircle: { 1: 7, 2: 5, 3: 4, 4: 2 } },
 ]
 
 const CLASS_AFFINITY = {
@@ -90,7 +90,9 @@ export function getMagicProfile(char = {}) {
   const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + effectiveRaceAffinity.circle + classAffinity.circle))
   const maxCircle = Math.min(levelCircleCap, trainingCircleCap)
 
-  const spaceBudget = Math.max(4, base.spaceBudget + training.budget + effectiveRaceAffinity.budget + classAffinity.budget)
+  const int = Math.max(0, (char.atributos?.INT || 0) + (char.skeletonPoints?.INT || 0))
+  const am = Math.max(0, (char.atributos?.AM || 0) + (char.skeletonPoints?.AM || 0))
+  const spaceBudget = Math.max(4, base.spaceBudget + training.budget + effectiveRaceAffinity.budget + classAffinity.budget + Math.floor(am / 5) + Math.floor(int / 5))
 
   const baseCircleCaps = base.maxByCircle || { 1: 0, 2: 0, 3: 0, 4: 0 }
   const maxByCircle = {}

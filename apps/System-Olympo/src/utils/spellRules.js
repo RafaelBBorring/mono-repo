@@ -12,14 +12,14 @@ export const SPELL_TRAINING_RULES = {
 
 const SPELL_BASE_RULES = BASE_RULES_BY_LEVEL.map((rule, index) => ({
   ...rule,
-  spaceBudget: [6, 10, 14, 18, 22, 26][index] || rule.spaceBudget,
+  spaceBudget: [10, 16, 22, 28, 34, 40][index] || rule.spaceBudget,
   maxByCircle: [
-    { 1: 2, 2: 0, 3: 0, 4: 0 },
-    { 1: 3, 2: 1, 3: 0, 4: 0 },
-    { 1: 4, 2: 2, 3: 1, 4: 0 },
-    { 1: 4, 2: 3, 3: 2, 4: 1 },
-    { 1: 5, 2: 3, 3: 2, 4: 1 },
-    { 1: 6, 2: 4, 3: 3, 4: 2 },
+    { 1: 3, 2: 0, 3: 0, 4: 0 },
+    { 1: 4, 2: 2, 3: 0, 4: 0 },
+    { 1: 5, 2: 3, 3: 1, 4: 0 },
+    { 1: 5, 2: 4, 3: 2, 4: 1 },
+    { 1: 6, 2: 4, 3: 3, 4: 1 },
+    { 1: 7, 2: 5, 3: 3, 4: 2 },
   ][index],
 }))
 
@@ -83,7 +83,9 @@ export function getSpellProfile(char = {}) {
   const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + classAffinity.circle + raceAffinity.circle))
   const maxCircle = hasAccess ? Math.min(levelCircleCap, trainingCircleCap) : 0
 
-  let spaceBudget = hasAccess ? Math.max(0, base.spaceBudget + training.budget + classAffinity.budget + raceAffinity.budget) : 0
+  const int = Math.max(0, (char.atributos?.INT || 0) + (char.skeletonPoints?.INT || 0))
+  const am = Math.max(0, (char.atributos?.AM || 0) + (char.skeletonPoints?.AM || 0))
+  let spaceBudget = hasAccess ? Math.max(0, base.spaceBudget + training.budget + classAffinity.budget + raceAffinity.budget + Math.floor(am / 5) + Math.floor(int / 5)) : 0
 
   const baseCircleCaps = base.maxByCircle || { 1: 0, 2: 0, 3: 0, 4: 0 }
   const maxByCircle = {}

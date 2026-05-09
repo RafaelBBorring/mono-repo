@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import {
   ROOMS,
   PSYCHOLOGISTS,
+  HOURS,
   MONTHS,
   WEEKDAYS,
 } from "@/lib/data";
@@ -33,6 +34,46 @@ import {
 } from "date-fns";
 
 type AdminScheduleView = "grid" | "map";
+
+const SLOT_HEIGHT = 42;
+const BODY_HEIGHT = (HOURS.length - 1) * SLOT_HEIGHT;
+const ROOM_LANE_MIN_WIDTH = 58;
+
+function timeToMinutes(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function getReservationPosition(reservation: Reservation) {
+  const dayStart = timeToMinutes(HOURS[0]);
+  const dayEnd = timeToMinutes(HOURS[HOURS.length - 1]);
+  const start = Math.max(timeToMinutes(reservation.startTime), dayStart);
+  const end = Math.min(timeToMinutes(reservation.endTime), dayEnd);
+  const top = ((start - dayStart) / 30) * SLOT_HEIGHT;
+  const height = Math.max(((end - start) / 30) * SLOT_HEIGHT - 8, 34);
+
+  return { top, height };
+}
+
+function getNearestSlotTime(clientY: number, element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  const offset = Math.max(0, Math.min(clientY - rect.top, BODY_HEIGHT - SLOT_HEIGHT));
+  const slot = Math.floor(offset / SLOT_HEIGHT);
+  const dayStart = timeToMinutes(HOURS[0]);
+  const startMinutes = dayStart + slot * 30;
+  const endMinutes = Math.min(startMinutes + 60, timeToMinutes(HOURS[HOURS.length - 1]));
+
+  return {
+    startTime: minutesToTime(startMinutes),
+    endTime: minutesToTime(endMinutes),
+  };
+}
 
 export default function AdminDashboard() {
   const { reservations, setView, theme } = useApp();
@@ -163,12 +204,12 @@ export default function AdminDashboard() {
       </div>
 
       {scheduleView === "grid" ? (
-        <AdminRoomGrid
+        <AdminManagedSchedule
           weekDays={weekDays}
           reservations={reservations}
           isDark={isDark}
-          onBook={(roomId, date) => {
-            setPrefillData({ roomId, date });
+          onBook={(prefill) => {
+            setPrefillData(prefill);
             setShowNewModal(true);
           }}
           onDetail={setDetailRes}
@@ -207,7 +248,7 @@ type WeekDay = {
   isToday: boolean;
 };
 
-function AdminRoomGrid({
+function AdminManagedSchedule({
   weekDays,
   reservations,
   isDark,
@@ -217,66 +258,186 @@ function AdminRoomGrid({
   weekDays: WeekDay[];
   reservations: Reservation[];
   isDark: boolean;
-  onBook: (roomId: number, date: string) => void;
+  onBook: (prefill: Partial<Reservation>) => void;
   onDetail: (reservation: Reservation) => void;
 }) {
+  const dayMinWidth = Math.max(ROOMS.length * ROOM_LANE_MIN_WIDTH, 244);
+
   return (
-    <div className="flex-1 px-4 md:px-5 pb-6 overflow-x-auto">
-      <div className="grid gap-px min-w-[860px]" style={{ gridTemplateColumns: "124px repeat(7, minmax(120px, 1fr))" }}>
-        <div className="p-2 flex items-end">
+    <div className="flex-1 px-4 md:px-5 pb-6 overflow-auto">
+      <div
+        className="grid min-w-[1180px]"
+        style={{
+          gridTemplateColumns: `124px 72px repeat(7, minmax(${dayMinWidth}px, 1fr))`,
+          gridTemplateRows: "104px auto",
+        }}
+      >
+        <RoomScheduleLegend isDark={isDark} />
+
+        <div className="sticky left-[124px] z-30 flex items-end justify-center border-b border-r border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 pb-5">
           <span className="font-body text-xs text-[var(--text-muted)] tracking-wider uppercase">
-            Salas
+            Horario
           </span>
         </div>
+
         <WeekHeader weekDays={weekDays} />
 
+        <TimeRuler />
+
+        {weekDays.map((dd) => (
+          <DayRoomColumn
+            key={dd.iso}
+            day={dd}
+            reservations={reservations.filter((r) => r.date === dd.iso)}
+            isDark={isDark}
+            onBook={onBook}
+            onDetail={onDetail}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoomScheduleLegend({ isDark }: { isDark: boolean }) {
+  return (
+    <aside
+      className="sticky left-0 z-40 row-span-2 border-r border-[var(--border-subtle)] bg-[var(--bg-primary)]"
+      style={{
+        boxShadow: "10px 0 22px rgba(0,0,0,0.12)",
+      }}
+    >
+      <div className="h-[104px] flex items-end px-3 pb-5 border-b border-[var(--border-subtle)]">
+        <span className="font-body text-xs text-[var(--text-muted)] tracking-wider uppercase">
+          Salas
+        </span>
+      </div>
+      <div className="divide-y divide-[var(--border-subtle)]">
         {ROOMS.map((room) => {
-          const roomColor = themeHex(room, isDark);
+          const color = themeHex(room, isDark);
+          return (
+            <div key={room.id} className="flex items-center gap-2 px-3 h-[88px]">
+              <div
+                className="w-4 h-4 rounded-full flex-shrink-0"
+                style={{ background: color }}
+              />
+              <span className="font-body text-sm font-bold" style={{ color }}>
+                {room.name}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+function TimeRuler() {
+  return (
+    <div
+      className="sticky left-[124px] z-30 relative border-r border-[var(--border-subtle)] bg-[var(--bg-primary)]"
+      style={{ height: BODY_HEIGHT }}
+    >
+      {HOURS.map((hour, index) => {
+        const isHalfHour = hour.endsWith(":30");
+        return (
+          <div
+            key={hour}
+            className="absolute left-0 right-0 -translate-y-1/2 px-2 text-right font-body"
+            style={{ top: index * SLOT_HEIGHT }}
+          >
+            <span
+              className={isHalfHour ? "text-[10px] text-[var(--text-muted)] opacity-50" : "text-xs text-[var(--text-soft)]"}
+            >
+              {hour}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DayRoomColumn({
+  day,
+  reservations,
+  isDark,
+  onBook,
+  onDetail,
+}: {
+  day: WeekDay;
+  reservations: Reservation[];
+  isDark: boolean;
+  onBook: (prefill: Partial<Reservation>) => void;
+  onDetail: (reservation: Reservation) => void;
+}) {
+  const background = day.isToday
+    ? isDark
+      ? "rgba(196,181,253,0.035)"
+      : "rgba(109,40,217,0.045)"
+    : isDark
+      ? "transparent"
+      : "rgba(255,255,255,0.36)";
+
+  return (
+    <div
+      className="relative border-r border-[var(--border-subtle)]"
+      style={{
+        height: BODY_HEIGHT,
+        background,
+      }}
+    >
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(to bottom, transparent 0, transparent 41px, var(--border-subtle) 41px, var(--border-subtle) 42px)",
+        }}
+      />
+      <div
+        className="relative grid h-full"
+        style={{
+          gridTemplateColumns: `repeat(${ROOMS.length}, minmax(${ROOM_LANE_MIN_WIDTH}px, 1fr))`,
+        }}
+      >
+        {ROOMS.map((room) => {
+          const roomReservations = reservations
+            .filter((reservation) => reservation.roomId === room.id)
+            .sort((a, b) => a.startTime.localeCompare(b.startTime));
           const roomRgb = themeRgb(room, isDark);
 
           return (
-            <Fragment key={room.id}>
-              <RoomLabel roomName={room.name} color={roomColor} />
-
-              {weekDays.map((dd) => {
-                const dayRes = reservations
-                  .filter((r) => r.roomId === room.id && r.date === dd.iso)
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-                return (
-                  <div
-                    key={`${room.id}-${dd.iso}`}
-                    className="border-t border-l border-[var(--border-subtle)] p-2 min-h-[112px] cursor-pointer transition-colors relative group"
-                    style={{
-                      background: dd.isToday
-                        ? `rgba(${roomRgb},${isDark ? 0.035 : 0.06})`
-                        : isDark ? "transparent" : "rgba(255,255,255,0.42)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `rgba(${roomRgb},${isDark ? 0.07 : 0.1})`;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = dd.isToday
-                        ? `rgba(${roomRgb},${isDark ? 0.035 : 0.06})`
-                        : isDark ? "transparent" : "rgba(255,255,255,0.42)";
-                    }}
-                    onClick={() => onBook(room.id, dd.iso)}
-                  >
-                    {dayRes.length === 0 && (
-                      <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--accent-mint)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                    )}
-                    {dayRes.map((r) => (
-                      <AdminReservationBlock
-                        key={r.id}
-                        reservation={r}
-                        isDark={isDark}
-                        onClick={() => onDetail(r)}
-                      />
-                    ))}
-                  </div>
-                );
-              })}
-            </Fragment>
+            <div
+              key={`${day.iso}-${room.id}`}
+              className="relative h-full border-l border-[var(--border-subtle)] cursor-pointer group transition-colors"
+              style={{
+                background: `rgba(${roomRgb},${isDark ? 0.012 : 0.018})`,
+              }}
+              onClick={(event) => {
+                const slot = getNearestSlotTime(event.clientY, event.currentTarget);
+                onBook({
+                  roomId: room.id,
+                  date: day.iso,
+                  startTime: slot.startTime,
+                  endTime: slot.endTime,
+                });
+              }}
+            >
+              <div
+                className="absolute inset-x-1 top-1 h-5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{
+                  border: `1px dashed rgba(${roomRgb},${isDark ? 0.22 : 0.26})`,
+                }}
+              />
+              {roomReservations.map((reservation) => (
+                <ManagedReservationMarker
+                  key={reservation.id}
+                  reservation={reservation}
+                  isDark={isDark}
+                  onClick={() => onDetail(reservation)}
+                />
+              ))}
+            </div>
           );
         })}
       </div>
@@ -389,7 +550,10 @@ function WeekHeader({ weekDays }: { weekDays: WeekDay[] }) {
   return (
     <>
       {weekDays.map((dd) => (
-        <div key={dd.iso} className="p-2 text-center">
+        <div
+          key={dd.iso}
+          className="p-2 text-center border-b border-r border-[var(--border-subtle)] bg-[var(--bg-primary)]"
+        >
           <p
             className="font-body text-xs tracking-wider"
             style={{
@@ -407,6 +571,23 @@ function WeekHeader({ weekDays }: { weekDays: WeekDay[] }) {
             }}
           >
             {dd.num}
+          </div>
+          <div
+            className="mt-2 grid gap-1 px-1"
+            style={{
+              gridTemplateColumns: `repeat(${ROOMS.length}, minmax(0, 1fr))`,
+            }}
+          >
+            {ROOMS.map((room) => (
+              <span
+                key={`${dd.iso}-${room.id}`}
+                className="mx-auto block h-1.5 w-1.5 rounded-full"
+                style={{
+                  background: themeHex(room, true),
+                  opacity: dd.isToday ? 0.95 : 0.42,
+                }}
+              />
+            ))}
           </div>
         </div>
       ))}
@@ -487,6 +668,49 @@ function AdminReservationBlock({
         <span className="block font-body text-[11px] text-[var(--text-soft)]">
           {reservation.startTime} - {reservation.endTime}
         </span>
+      </span>
+    </button>
+  );
+}
+
+function ManagedReservationMarker({
+  reservation,
+  isDark,
+  onClick,
+}: {
+  reservation: Reservation;
+  isDark: boolean;
+  onClick: () => void;
+}) {
+  const psych = PSYCHOLOGISTS.find((p) => p.id === reservation.psychId);
+  if (!psych) return null;
+
+  const psychColor = themeHex(psych, isDark);
+  const psychRgb = themeRgb(psych, isDark);
+  const { top, height } = getReservationPosition(reservation);
+
+  return (
+    <button
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      className="absolute left-1 right-1 rounded-lg p-1.5 text-left overflow-hidden transition-all hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[var(--accent-lavender)]"
+      style={{
+        top,
+        height,
+        color: psychColor,
+        background: `rgba(${psychRgb},${isDark ? 0.22 : 0.13})`,
+        border: `1px solid rgba(${psychRgb},${isDark ? 0.48 : 0.26})`,
+        boxShadow: `0 8px 20px rgba(${psychRgb},${isDark ? 0.1 : 0.08})`,
+      }}
+      title={`${psych.name} - ${reservation.startTime} as ${reservation.endTime}`}
+    >
+      <span className="block font-body text-[11px] font-bold leading-tight truncate">
+        {psych.initials}
+      </span>
+      <span className="block font-body text-[10px] leading-tight text-[var(--text-soft)] truncate">
+        {reservation.startTime}
       </span>
     </button>
   );
