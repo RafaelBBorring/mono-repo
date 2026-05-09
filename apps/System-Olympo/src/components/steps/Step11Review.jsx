@@ -31,6 +31,8 @@ import { DEFAULT_GRIMORIOS, PUBLIC_GRIMORIOS } from '../../data/publicGrimorios'
 import { ENTIDADES_OUTRO_LADO } from '../../data/entidades'
 import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyzeMagicDraft } from '../../services/aiService'
 import { calcEquipStats } from '../../data/equipment'
+import { uploadGrimorioImage } from '../../services/uploadService'
+import ImageUploadField from '../ImageUploadField'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -1684,9 +1686,11 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
   const [selectedTier, setSelectedTier] = useState(null)
   const [name, setName] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editImage, setEditImage] = useState('')
+  const [editUploading, setEditUploading] = useState(false)
 
   if (!accessTier) return null
 
@@ -1830,17 +1834,7 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                         placeholder={`${GRIMORIO_TYPE_LABELS[card.key]} — ${tier?.name || ''}`}
                         className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
                     </div>
-                    <div>
-                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Imagem URL (opcional)</label>
-                      <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
-                    </div>
-                    {imageUrl.trim() && (
-                      <div className="w-24 h-30 rounded-lg border border-sep/20 bg-void/50 overflow-hidden mx-auto">
-                        <img src={imageUrl.trim()} alt="Preview" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
-                      </div>
-                    )}
+                    <ImageUploadField value={imageUrl} onChange={setImageUrl} uploading={uploading} onUploadError={() => {}} />
                     <button type="button" onClick={createGrimorio}
                       className="w-full py-2.5 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
                       Criar Grimório
@@ -1863,17 +1857,7 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                   <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
                     className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
                 </div>
-                <div>
-                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Imagem URL</label>
-                  <input type="text" value={editImage} onChange={e => setEditImage(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
-                </div>
-                {editImage.trim() && (
-                  <div className="w-24 h-30 rounded-lg border border-sep/20 bg-void/50 overflow-hidden mx-auto">
-                    <img src={editImage.trim()} alt="Preview" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
-                  </div>
-                )}
+                <ImageUploadField value={editImage} onChange={setEditImage} uploading={editUploading} onUploadError={() => {}} />
                 <button type="button" onClick={saveEdit}
                   className="w-full py-2.5 rounded-lg bg-sky-500/15 text-sky-300 text-xs font-semibold border border-sky-500/25 hover:bg-sky-500/25 transition-colors active:scale-[0.99]">
                   Salvar Alterações

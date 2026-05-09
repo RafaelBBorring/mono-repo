@@ -1,5 +1,20 @@
 import { GRIMORIO_TIERS } from './grimorios'
 
+const IMG_BASE = 'https://wmkswavqtqyfcjuiwtbw.supabase.co/storage/v1/object/public/grimorios/grimorios'
+
+const GRIMORIO_IMAGES = {
+  'alchemy-iniciante': `${IMG_BASE}/alquimia-iniciante.png`,
+  'alchemy-avancado': `${IMG_BASE}/alquimia-avancado.png`,
+  'alchemy-mestre': `${IMG_BASE}/alquimia-mestre.png`,
+  'spells-iniciante': `${IMG_BASE}/feiticos-iniciante.png`,
+  'spells-avancado': `${IMG_BASE}/feiticos-avancado.png`,
+  'spells-mestre': `${IMG_BASE}/feiticos-mestre.png`,
+  'magic-iniciante': `${IMG_BASE}/magia-iniciante.png`,
+  'magic-avancado': `${IMG_BASE}/magia-avancado.png`,
+  'magic-mestre': `${IMG_BASE}/magia-mestre.png`,
+  'necromancia': `${IMG_BASE}/necromancia-alastor.png`,
+}
+
 function makeGrimorio(knowledgeKey, tier, overrides = {}) {
   const tierData = GRIMORIO_TIERS.find(t => t.id === tier)
   return {
@@ -22,7 +37,8 @@ function makeGrimorio(knowledgeKey, tier, overrides = {}) {
 
 const DEFAULT_ALCHEMY = [
   makeGrimorio('alchemy', 'iniciante', {
-    name: 'Alquimia — Grimório de Iniciante',
+    name: 'Alquimia — Grimorio de Iniciante',
+    image: GRIMORIO_IMAGES['alchemy-iniciante'],
     description: 'Fundamentos da transmutação e preparo alquímico. Rituais simples de baixo custo e efeitos modestos, ideais para quem inicia o caminho da alquimia.',
     sourceKind: 'neutro',
     sourceName: 'Irmandade do Chumbo',
@@ -127,8 +143,9 @@ const DEFAULT_ALCHEMY = [
     ],
   }),
   makeGrimorio('alchemy', 'avancado', {
-    name: 'Alquimia — Grimório Avançado',
-    description: 'Técnicas intermediárias de transmutação e síntese. Rituais de complexidade moderada com efeitos mais potentes e versáteis.',
+    name: 'Alquimia — Grimorio Avancado',
+    image: GRIMORIO_IMAGES['alchemy-avancado'],
+    description: 'Tecnicas intermediarias de transmutacao e sintese. Rituais de complexidade moderada com efeitos mais potentes e versateis.',
     sourceKind: 'neutro',
     sourceName: 'Irmandade do Chumbo',
     category: 'Alquimia',
@@ -296,8 +313,9 @@ const DEFAULT_ALCHEMY = [
     ],
   }),
   makeGrimorio('alchemy', 'mestre', {
-    name: 'Alquimia — Grimório de Mestre',
-    description: 'Auge da alquimia: transmutação superior, elixires lendários e manipulação de matéria e vida em escala dramática. Rituais de altíssima complexidade e potência.',
+    name: 'Alquimia — Grimorio de Mestre',
+    image: GRIMORIO_IMAGES['alchemy-mestre'],
+    description: 'Auge da alquimia: transmutacao superior, elixires lendarios e manipulacao de materia e vida em escala dramatica. Rituais de altissima complexidade e potencia.',
     sourceKind: 'neutro',
     sourceName: 'Irmandade do Chumbo',
     category: 'Alquimia',
@@ -436,8 +454,9 @@ const DEFAULT_ALCHEMY = [
 
 const DEFAULT_SPELLS = [
   makeGrimorio('spells', 'iniciante', {
-    name: 'Feitiços — Grimório de Iniciante',
-    description: 'Feitiços simples e diretos, de baixo custo energético. Ideal para bruxas e místicos iniciantes.',
+    name: 'Feiticos — Grimorio de Iniciante',
+    image: GRIMORIO_IMAGES['spells-iniciante'],
+    description: 'Feiticos simples e diretos, de baixo custo energetico. Ideal para bruxas e misticos iniciantes.',
     sourceKind: 'neutro',
     sourceName: 'Covens da Meia-Noite',
     category: 'Feitiços',
@@ -541,8 +560,9 @@ const DEFAULT_SPELLS = [
     ],
   }),
   makeGrimorio('spells', 'avancado', {
-    name: 'Feitiços — Grimório Avançado',
-    description: 'Feitiços de complexidade intermediária, com maior potência e alcance. Exige domínio sobre o fluxo de Energia.',
+    name: 'Feiticos — Grimorio Avancado',
+    image: GRIMORIO_IMAGES['spells-avancado'],
+    description: 'Feiticos de complexidade intermediaria, com maior potencia e alcance. Exige dominio sobre o fluxo de Energia.',
     sourceKind: 'neutro',
     sourceName: 'Covens da Meia-Noite',
     category: 'Feitiços',
@@ -710,8 +730,9 @@ const DEFAULT_SPELLS = [
     ],
   }),
   makeGrimorio('spells', 'mestre', {
-    name: 'Feitiços — Grimório de Mestre',
-    description: 'Feitiços de poder supremo. Manipulação da realidade, controle sobre vida e morte, e devastação arcan absoluta.',
+    name: 'Feiticos — Grimorio de Mestre',
+    image: GRIMORIO_IMAGES['spells-mestre'],
+    description: 'Feiticos de poder supremo. Manipulacao da realidade, controle sobre vida e morte, e devastacao arcan absoluta.',
     sourceKind: 'neutro',
     sourceName: 'Covens da Meia-Noite',
     category: 'Feitiços',
@@ -850,8 +871,9 @@ const DEFAULT_SPELLS = [
 
 const DEFAULT_MAGIC = [
   makeGrimorio('magic', 'iniciante', {
-    name: 'Magias — Grimório de Iniciante',
-    description: 'Magias elementais e básicas de conjuração. Ideais para magos, demônios e semideuses em formação.',
+    name: 'Magias — Grimorio de Iniciante',
+    image: GRIMORIO_IMAGES['magic-iniciante'],
+    description: 'Magias elementais e basicas de conjuracao. Ideais para magos, demonios e semideuses em formacao.',
     sourceKind: 'neutro',
     sourceName: 'Arcanum Elementale',
     category: 'Magias',
@@ -955,8 +977,9 @@ const DEFAULT_MAGIC = [
     ],
   }),
   makeGrimorio('magic', 'avancado', {
-    name: 'Magias — Grimório Avançado',
-    description: 'Magias de potência moderada com efeitos mais sofisticados. Combos elementais, invocações e manipulação de área.',
+    name: 'Magias — Grimorio Avancado',
+    image: GRIMORIO_IMAGES['magic-avancado'],
+    description: 'Magias de potencia moderada com efeitos mais sofisticados. Combos elementais, invocacoes e manipulacao de area.',
     sourceKind: 'neutro',
     sourceName: 'Arcanum Elementale',
     category: 'Magias',
@@ -1092,8 +1115,9 @@ const DEFAULT_MAGIC = [
     ],
   }),
   makeGrimorio('magic', 'mestre', {
-    name: 'Magias — Grimório de Mestre',
-    description: 'Magias de poder devastador. Manipulação de elementos em escala colossal, invocações superiores e domínio sobre a realidade.',
+    name: 'Magias — Grimorio de Mestre',
+    image: GRIMORIO_IMAGES['magic-mestre'],
+    description: 'Magias de poder devastador. Manipulacao de elementos em escala colossal, invocacoes superiores e dominio sobre a realidade.',
     sourceKind: 'neutro',
     sourceName: 'Arcanum Elementale',
     category: 'Magias',
@@ -1234,7 +1258,7 @@ export const NECROMANCY_GRIMORIO = {
   id: 'necromancia',
   name: 'A Arte da Necromancia',
   description: 'Tratado completo sobre a manipulação da morte e dos mortos, outorgado por Morthên, o Guardião do Umbral. Contém desde o pacto inicial até as artes mais profanas de domínio sobre almas.',
-  image: '',
+  image: GRIMORIO_IMAGES['necromancia'],
   knowledgeKey: 'alchemy',
   tier: 'mestre',
   maxCircle: 4,

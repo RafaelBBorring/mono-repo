@@ -9,6 +9,7 @@ import {
 } from '../services/alchemyService'
 import { PUBLIC_GRIMORIOS, DEFAULT_GRIMORIOS } from '../data/publicGrimorios'
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS } from '../data/grimorios'
+import ImageUploadField from './ImageUploadField'
 
 const CIRCLE_BADGE = {
   1: 'bg-emerald-400/12 text-emerald-300 border-emerald-400/25',
@@ -555,14 +556,9 @@ function GrimorioEditModal({ grimorio, onClose, onSave }) {
         {error && <p className="grimoire-error">{error}</p>}
         <div className="grimoire-form-grid">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome" className="span-2" />
-          <input value={image} onChange={e => setImage(e.target.value)} placeholder="URL da imagem" className="span-2" />
-          {image.trim() && (
-            <div className="span-2 flex justify-center">
-              <div className="w-24 h-32 rounded-xl border border-sep/20 overflow-hidden">
-                <img src={image.trim()} alt="" className="w-full h-full object-cover" />
-              </div>
-            </div>
-          )}
+          <div className="span-2">
+            <ImageUploadField value={image} onChange={setImage} uploading={false} onUploadError={() => {}} />
+          </div>
         </div>
         <div className="grimoire-modal-actions">
           <button type="button" onClick={handleDelete} disabled={saving} className="text-err/60 hover:text-err">Excluir</button>
@@ -616,8 +612,10 @@ function GrimorioCreateModal({ knowledgeKey, onClose, onSave }) {
             {GRIMORIO_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} (até {t.maxCircle}o círculo)</option>)}
           </select>
           <input value={sourceName} onChange={e => setSourceName(e.target.value)} placeholder="Entidade / Fonte (opcional)" className="span-2" />
-          <input value={image} onChange={e => setImage(e.target.value)} placeholder="URL da imagem" className="span-2" />
-          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Descrição" className="span-2" />
+          <div className="span-2">
+            <ImageUploadField value={image} onChange={setImage} uploading={false} onUploadError={() => {}} />
+          </div>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Descricao" className="span-2" />
         </div>
         <div className="grimoire-modal-actions">
           <button type="button" onClick={onClose}>Cancelar</button>
