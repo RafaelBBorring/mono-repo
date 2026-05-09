@@ -202,9 +202,9 @@ export default function GrimoireAdminPage() {
 
   const grimorioRituals = useMemo(() => {
     if (!activeGrimorio) return []
-    if (activeGrimorio.isDefault) return allRituals.filter(r => r.circle <= (activeGrimorio.maxCircle || 2))
-    return activeGrimorio.rituals || []
-  }, [activeGrimorio, allRituals])
+    if (activeGrimorio.rituals?.length > 0) return activeGrimorio.rituals
+    return []
+  }, [activeGrimorio])
 
   const inspectedRitual = allRituals.find(r => r.id === inspectId) || grimorioRituals.find(r => r.id === inspectId) || null
 
@@ -296,7 +296,7 @@ export default function GrimoireAdminPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {knowledgeGrimorios.map(g => {
                   const tier = GRIMORIO_TIERS.find(t => t.id === g.tier)
-                  const ritualCount = g.isDefault ? allRituals.filter(r => r.circle <= (g.maxCircle || 2)).length : (g.rituals || []).length
+                  const ritualCount = (g.rituals || []).length
                   return (
                     <div key={g.id} className="relative group">
                       <button type="button" onClick={() => { setActiveGrimorioId(g.id); setView('grimorio-detail') }}
