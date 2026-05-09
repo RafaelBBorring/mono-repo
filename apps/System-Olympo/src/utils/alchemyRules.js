@@ -105,6 +105,8 @@ export function getAlchemyProfile(char = {}) {
   const trainingCircleCap = Math.min(4, Math.max(1, training.maxCircle + classAffinity.circle + raceAffinity.circle))
   const maxCircle = Math.min(levelCircleCap, trainingCircleCap)
 
+  const int = Math.max(0, (char.atributos?.INT || 0) + (char.skeletonPoints?.INT || 0))
+  const am = Math.max(0, (char.atributos?.AM || 0) + (char.skeletonPoints?.AM || 0))
   const spaceBudget = Math.max(4, base.spaceBudget + training.budget + classAffinity.budget + raceAffinity.budget + Math.floor(int / 5) + Math.floor(am / 5))
   const baseCircleCaps = base.maxByCircle || { 1: 0, 2: 0, 3: 0, 4: 0 }
   const maxByCircle = {}
