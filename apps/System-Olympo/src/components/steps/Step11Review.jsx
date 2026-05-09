@@ -27,6 +27,7 @@ import { getMagicProfile, canLearnMagic } from '../../utils/magicRules'
 import { getAlchemyProfile, canLearnAlchemyRitual } from '../../utils/alchemyRules'
 import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getScoreForDisplay, getGrimorioMaxRituals, getGrimorioMaxCircle, canAddRitualToGrimorio, canCreateRitualAtCircle, getAvailableCirclesForChar } from '../../utils/grimorioRules'
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS, GRIMORIO_TYPE_ICONS } from '../../data/grimorios'
+import { DEFAULT_GRIMORIOS } from '../../data/publicGrimorios'
 import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyzeMagicDraft } from '../../services/aiService'
 import { calcEquipStats } from '../../data/equipment'
 
@@ -915,13 +916,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
   }
 
   function getRitualsForGrimorio(grimorio) {
-    if (grimorio.tier === 'custom') {
-      return allItems.filter(r => (r.grimorioId || null) === grimorio.id)
-    }
-    return allItems.filter(r => {
-      if (r.grimorioId && r.grimorioId !== grimorio.id) return false
-      return r.circle <= grimorio.maxCircle
-    })
+    return allItems.filter(r => (r.grimorioId || null) === grimorio.id)
   }
 
   const viewingGrimorio = grimorios.find(g => g.id === grimorioViewId) || null
@@ -1124,7 +1119,7 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
   const grimorioMaxCircle = activeGrimorio ? getGrimorioMaxCircle(activeGrimorio) : 4
   const grimorioMaxRituals = activeGrimorio ? getGrimorioMaxRituals(activeGrimorio) : Infinity
   const grimorioRitualCount = activeGrimorio
-    ? (char[card.field] || []).filter(r => !r.grimorioId || r.grimorioId === activeGrimorio.id).length
+    ? (char[card.field] || []).filter(r => r.grimorioId === activeGrimorio.id).length
     : 0
   const grimorioSlotsLeft = grimorioMaxRituals - grimorioRitualCount
 
@@ -1492,8 +1487,9 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
     const tier = GRIMORIO_TIERS.find(t => t.id === selectedTier)
     if (!tier) return
     const grimorioName = name.trim() || `${GRIMORIO_TYPE_LABELS[card.key]} — ${tier.name}`
+    const newId = crypto.randomUUID()
     const newGrimorio = {
-      id: crypto.randomUUID(),
+      id: newId,
       knowledgeKey: card.key,
       tier: tier.id,
       name: grimorioName,
@@ -1501,8 +1497,24 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
       maxCircle: tier.maxCircle,
       createdAt: new Date().toISOString(),
     }
-    const current = char.grimorios || []
-    update({ grimorios: [...current, newGrimorio] })
+    const currentGrimorios = char.grimorios || []
+    const templateGrimorio = (DEFAULT_GRIMORIOS[card.key] || []).find(g => g.tier === selectedTier)
+    const templateRituals = templateGrimorio?.rituals || []
+    const normalized = templateRituals.map(r => {
+      const copy = { ...r }
+      copy.id = crypto.randomUUID()
+      copy.grimorioId = newId
+      delete copy.source_kind
+      delete copy.source_name
+      delete copy.tags
+      delete copy.ai_feedback
+      return copy
+    })
+    const currentRituals = char[card.field] || []
+    update({
+      grimorios: [...currentGrimorios, newGrimorio],
+      [card.field]: [...currentRituals, ...normalized],
+    })
     setName('')
     setImageUrl('')
     setSelectedTier(null)
@@ -1543,7 +1555,7 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                     {existingGrimorios.map(g => {
                       const tier = GRIMORIO_TIERS.find(t => t.id === g.tier)
                       const maxRituals = getGrimorioMaxRituals(g)
-                      const ritualCount = allRituals.filter(r => !r.grimorioId || r.grimorioId === g.id).length
+                      const ritualCount = allRituals.filter(r => r.grimorioId === g.id).length
                       return (
                         <div key={g.id} className="flex items-center gap-3 p-3 rounded-lg border border-sep/15 bg-void/30">
                           <div className="w-10 h-12 rounded bg-void/50 border border-sep/20 flex items-center justify-center shrink-0 overflow-hidden">
