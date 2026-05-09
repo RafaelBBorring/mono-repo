@@ -27,6 +27,8 @@ import { getMagicProfile, canLearnMagic } from '../../utils/magicRules'
 import { getAlchemyProfile, canLearnAlchemyRitual } from '../../utils/alchemyRules'
 import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getMaxCreationShots, getScoreForDisplay, getGrimorioMaxRituals, getGrimorioMaxCircle, canAddRitualToGrimorio, canCreateRitualAtCircle, getAvailableCirclesForChar } from '../../utils/grimorioRules'
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS, GRIMORIO_TYPE_ICONS } from '../../data/grimorios'
+import { DEFAULT_GRIMORIOS, PUBLIC_GRIMORIOS } from '../../data/publicGrimorios'
+import { ENTIDADES_OUTRO_LADO } from '../../data/entidades'
 import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyzeMagicDraft } from '../../services/aiService'
 import { calcEquipStats } from '../../data/equipment'
 
@@ -895,7 +897,18 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
   const [grimorioViewId, setGrimorioViewId] = useState(null)
   const usesEnergia = USES_ENERGIA.has(card.key)
 
-  const grimorios = (char.grimorios || []).filter(g => g.knowledgeKey === card.key)
+  const personalGrimorios = (char.grimorios || []).filter(g => g.knowledgeKey === card.key)
+  const publicTemplates = (DEFAULT_GRIMORIOS[card.key] || []).filter(g => {
+    if (!accessTier) return false
+    const tierOrder = ['iniciante', 'avancado', 'mestre']
+    const maxIdx = tierOrder.indexOf(accessTier)
+    const gIdx = tierOrder.indexOf(g.tier)
+    return gIdx <= maxIdx
+  })
+  const grimorios = [
+    ...publicTemplates.map(g => ({ ...g, isPublic: true, id: `public-${g.id}` })),
+    ...personalGrimorios,
+  ]
   const accessTier = getGrimorioAccessTier(char, card.key)
   const availableTiers = getAvailableGrimorioTiers(char, card.key)
   const maxCustom = getMaxCustomRituals(char, card.key)
@@ -915,6 +928,10 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
   }
 
   function getRitualsForGrimorio(grimorio) {
+    if (grimorio.isPublic) {
+      const realId = grimorio.id.replace('public-', '')
+      return allItems.filter(r => r.grimorioId === realId || r.grimorioId === grimorio.id)
+    }
     return allItems.filter(r => (r.grimorioId || null) === grimorio.id)
   }
 
@@ -958,11 +975,14 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
         {grimorios.map(grimorio => {
           const rituals = getRitualsForGrimorio(grimorio)
           const tier = GRIMORIO_TIERS.find(t => t.id === grimorio.tier)
-          const maxRituals = getGrimorioMaxRituals(grimorio)
-          const isFull = rituals.length >= maxRituals
+          const maxRituals = grimorio.isPublic ? (grimorio.rituals?.length || 0) : getGrimorioMaxRituals(grimorio)
+          const isFull = rituals.length >= maxRituals && maxRituals > 0
           return (
             <button key={grimorio.id} type="button" onClick={() => setGrimorioViewId(grimorio.id === grimorioViewId ? null : grimorio.id)}
-              className="relative rounded-xl border border-sep/20 bg-void/50 flex flex-col items-center justify-center p-4 aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:border-sep/40">
+              className={`relative rounded-xl border bg-void/50 flex flex-col items-center justify-center p-4 aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                grimorio.isPublic ? 'border-gold/15 hover:border-gold/30' : 'border-sep/20 hover:border-sep/40'
+              }`}>
+              {grimorio.isPublic && <span className="absolute top-2 right-2 text-[8px] text-gold/40 font-mono">PUBLICO</span>}
               <div className="w-16 h-20 rounded-lg bg-void/80 border border-sep/30 flex items-center justify-center mb-3 overflow-hidden">
                 {grimorio.image ? (
                   <img src={grimorio.image} alt="" className="w-full h-full object-cover" />
@@ -971,8 +991,8 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
                 )}
               </div>
               <span className="text-txt-main text-xs font-semibold text-center leading-tight">{grimorio.name}</span>
-              <span className="text-txt-dim/50 text-[10px] mt-1">{tier?.name || 'Personalizado'}</span>
-              <span className={`text-[10px] font-mono mt-1 ${isFull ? 'text-amber-300/80' : 'text-amber-300/60'}`}>{rituals.length}/{maxRituals}</span>
+              <span className="text-txt-dim/50 text-[10px] mt-1">{tier?.name || 'Autoral'}</span>
+              <span className={`text-[10px] font-mono mt-1 ${isFull ? 'text-amber-300/80' : 'text-amber-300/60'}`}>{rituals.length}/{maxRituals || '—'}</span>
             </button>
           )
         })}
@@ -987,7 +1007,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
 
       {viewingGrimorio && (() => {
         const rituals = getRitualsForGrimorio(viewingGrimorio)
-        const maxRituals = getGrimorioMaxRituals(viewingGrimorio)
+        const maxRituals = viewingGrimorio.isPublic ? (viewingGrimorio.rituals?.length || 0) : getGrimorioMaxRituals(viewingGrimorio)
         const isFull = rituals.length >= maxRituals
         return (
           <div className="border-t border-sep/15 px-4 py-3">
@@ -1125,14 +1145,33 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
   const shotsLeft = maxShots - customCount
 
   const activeGrimorio = (char.grimorios || []).find(g => g.id === grimorioId) || null
-  const grimorioMaxCircle = activeGrimorio ? getGrimorioMaxCircle(activeGrimorio) : 4
-  const grimorioMaxRituals = activeGrimorio ? getGrimorioMaxRituals(activeGrimorio) : Infinity
+  const publicGrimorio = !activeGrimorio && grimorioId
+    ? (DEFAULT_GRIMORIOS[card.key] || []).find(g => `public-${g.id}` === grimorioId || g.id === grimorioId)
+    : null
+  const isPublicGrimorio = !!publicGrimorio
+  const isPersonalGrimorio = !!activeGrimorio
+  const effectiveGrimorio = activeGrimorio || publicGrimorio
+  const grimorioMaxCircle = effectiveGrimorio ? getGrimorioMaxCircle(effectiveGrimorio) : 4
+  const grimorioMaxRituals = isPublicGrimorio
+    ? (publicGrimorio?.rituals?.length || 0)
+    : effectiveGrimorio ? getGrimorioMaxRituals(effectiveGrimorio) : Infinity
   const grimorioRitualCount = activeGrimorio
     ? (char[card.field] || []).filter(r => r.grimorioId === activeGrimorio.id).length
     : 0
   const grimorioSlotsLeft = grimorioMaxRituals - grimorioRitualCount
 
   useEffect(() => {
+    if (isPublicGrimorio) {
+      setLibrary(publicGrimorio?.rituals || [])
+      setLoading(false)
+      return
+    }
+    if (isPersonalGrimorio) {
+      const created = (char[card.field] || []).filter(r => r.grimorioId === activeGrimorio.id)
+      setLibrary(created)
+      setLoading(false)
+      return
+    }
     let active = true
     async function load() {
       setLoading(true)
@@ -1144,7 +1183,7 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
     }
     load()
     return () => { active = false }
-  }, [card.key])
+  }, [card.key, grimorioId, isPublicGrimorio, isPersonalGrimorio])
 
   const selected = char[card.field] || []
   const spaceUsed = selected.reduce((s, r) => s + (SPACE_COST[r.circle] || 0), 0)
@@ -1163,13 +1202,14 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
   function addRitual(ritual) {
     if (!update) return
     if (selected.some(r => r.id === ritual.id)) return
-    if (activeGrimorio) {
+    const targetGrimorioId = isPublicGrimorio ? publicGrimorio.id : (activeGrimorio?.id || null)
+    if (targetGrimorioId) {
       if (ritual.circle > grimorioMaxCircle) {
-        alert(`Este grimório suporta apenas círculos até ${grimorioMaxCircle}o.`)
+        alert(`Este grimorio suporta apenas circulos ate ${grimorioMaxCircle}o.`)
         return
       }
       if (grimorioSlotsLeft <= 0) {
-        alert(`Este grimório está cheio (${grimorioRitualCount}/${grimorioMaxRituals}).`)
+        alert(`Este grimorio esta cheio (${grimorioRitualCount}/${grimorioMaxRituals}).`)
         return
       }
     }
@@ -1178,7 +1218,7 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
     const gate = gateFn ? gateFn(char, current, ritual) : { allowed: true }
     if (!gate.allowed) { alert(gate.reason); return }
     const normalized = normalizeRitual(ritual)
-    if (activeGrimorio) normalized.grimorioId = activeGrimorio.id
+    if (targetGrimorioId) normalized.grimorioId = targetGrimorioId
     update({ [card.field]: [...current, normalized] })
   }
 
@@ -1305,7 +1345,9 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
               <span className={`text-xl ${card.accentClass}`}>{card.icon}</span>
               <div>
                 <h3 className={`font-cinzel text-sm uppercase tracking-wider font-semibold ${card.accentClass}`}>{card.title}</h3>
-                {activeGrimorio && <span className="text-[10px] text-txt-dim font-mono">{activeGrimorio.name} — {grimorioRitualCount}/{grimorioMaxRituals} rituais — Círculos 1o-{grimorioMaxCircle}o</span>}
+                {effectiveGrimorio && <span className="text-[10px] text-txt-dim font-mono">
+                  {effectiveGrimorio.name} {isPublicGrimorio ? '(Publico)' : '(Autoral)'} — {grimorioRitualCount}/{grimorioMaxRituals} rituais — Circulos 1o-{grimorioMaxCircle}o
+                </span>}
               </div>
             </div>
             <div className="flex items-center gap-4 text-xs font-mono">
@@ -1318,12 +1360,12 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
           <div className="flex items-center gap-1 px-5 py-2 border-b border-sep/15">
             <button type="button" onClick={() => setTab('library')}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'library' ? 'bg-gold/20 text-gold border border-gold/30' : 'text-txt-dim hover:text-txt-main'}`}>
-              Biblioteca
+              {isPersonalGrimorio ? 'Meus Rituais' : 'Biblioteca'}
             </button>
-            {update && accessTier && (
+            {update && isPersonalGrimorio && (
               <button type="button" onClick={() => setTab('custom')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'custom' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-txt-dim hover:text-txt-main'}`}>
-                Personalizado <span className="text-[9px] font-mono">{shotsLeft}/{maxShots}</span>
+                Criar Ritual <span className="text-[9px] font-mono">{shotsLeft}/{maxShots}</span>
               </button>
             )}
           </div>
@@ -1347,15 +1389,28 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
 
               <div className="flex-1 overflow-y-auto p-5">
                 {loading ? (
-                  <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando biblioteca...</p>
+                  <p className="text-txt-dim text-sm animate-pulse text-center py-8">Carregando...</p>
+                ) : isPersonalGrimorio && library.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                    <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-purple-500/20 flex items-center justify-center">
+                      <span className="text-purple-300/30 text-3xl">+</span>
+                    </div>
+                    <p className="text-txt-dim/50 text-sm text-center">Nenhum ritual criado neste grimorio.</p>
+                    {update && shotsLeft > 0 && (
+                      <button type="button" onClick={() => setTab('custom')}
+                        className="px-6 py-2.5 rounded-lg bg-purple-500/15 text-purple-300 text-xs font-semibold border border-purple-500/25 hover:bg-purple-500/25 transition-colors active:scale-[0.99]">
+                        Criar Primeiro Ritual
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="grimoire-card-grid">
                     {filtered.map(ritual => {
                       const isSelected = selected.some(r => r.id === ritual.id)
                       const spaceCost = SPACE_COST[ritual.circle] || 0
                       const wouldExceed = !isSelected && (spaceUsed + spaceCost) > profile.spaceBudget
-                      const circleOk = ritual.circle <= (activeGrimorio ? grimorioMaxCircle : profile.maxCircle)
-                      const slotsOk = !activeGrimorio || grimorioSlotsLeft > 0 || isSelected
+                      const circleOk = ritual.circle <= grimorioMaxCircle
+                      const slotsOk = grimorioSlotsLeft > 0 || isSelected
                       const disabled = isSelected || wouldExceed || !circleOk || !slotsOk
                       const circleBg = CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]
 
@@ -1371,18 +1426,18 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
                           <p>{ritual.short_description || ritual.effect || '—'}</p>
                           <div className="grimoire-entry-meta">
                             <span>{ritual.pe_cost || 0} PE</span>
-                            {usesEnergia && <span>⚡ Energia</span>}
-                            <span>{spaceCost} espaços</span>
+                            {usesEnergia && <span>Energia</span>}
+                            <span>{spaceCost} espacos</span>
                           </div>
                           <div className="flex gap-2 mt-auto">
                             <button type="button" disabled={disabled}
                               onClick={() => addRitual(ritual)}
                               className={`flex-1 transition-all duration-150 ${isSelected ? 'opacity-50 cursor-default' : 'hover:brightness-110 active:scale-95'}`}>
-                              {isSelected ? '✓' : 'Selecionar'}
+                              {isSelected ? 'ok' : 'Selecionar'}
                             </button>
                             <button type="button" onClick={() => setInspectId(inspectId === ritual.id ? null : ritual.id)}
                               className="transition-all duration-150 hover:brightness-110 active:scale-95">
-                              {inspectId === ritual.id ? '✕' : '…'}
+                              {inspectId === ritual.id ? 'x' : '...'}
                             </button>
                           </div>
                         </article>
@@ -1486,9 +1541,14 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
                       </div>
                     </div>
                     <div>
-                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Entidade / Fonte (opcional)</label>
-                      <input type="text" value={customEntity} onChange={e => setCustomEntity(e.target.value)} placeholder="Ex: Morthên, Fogo Primordial..."
-                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Entidade / Fonte</label>
+                      <select value={customEntity} onChange={e => setCustomEntity(e.target.value)}
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none">
+                        <option value="">Nenhuma</option>
+                        {ENTIDADES_OUTRO_LADO.map(ent => (
+                          <option key={ent.id} value={ent.name}>{ent.name} — {ent.domain}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Categoria (opcional)</label>
