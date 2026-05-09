@@ -939,16 +939,25 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
         </div>
       </div>
 
-      {accessTier && (
+      {accessTier && nextTierThreshold && (
         <div className="px-4 pb-2">
-          <span className="text-[10px] text-txt-dim/50">Grimórios disponíveis: {availableTiers.map(t => t.name).join(', ')}</span>
+          <span className="text-[10px] text-amber-300/50">
+            Faltam <span className="text-amber-300">{nextTierThreshold - score}</span> pontos para {accessTier === 'iniciante' ? 'Avançado' : accessTier === 'avancado' ? 'Mestre' : ''}
+          </span>
         </div>
       )}
-
-      {!accessTier && allItems.length === 0 && (
-        <div className="px-4 pb-4">
-          <p className="text-txt-dim/40 text-xs italic">Afinidade insuficiente para acessar grimórios de {card.title}.</p>
+      {accessTier && !nextTierThreshold && (
+        <div className="px-4 pb-2">
+          <span className="text-[10px] text-emerald-300/50">Afinidade máxima alcançada</span>
         </div>
+      )}
+      {!accessTier && (
+        <div className="px-4 pb-2">
+          <span className="text-[10px] text-amber-300/50">
+            Faltam <span className="text-amber-300">{14 - score}</span> pontos para Iniciante
+          </span>
+        </div>
+      )}
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-4 pb-4">

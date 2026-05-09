@@ -16,6 +16,8 @@ import { ALCHEMY_CATEGORIES } from '../data/alchemyFallbackRituals'
 import { SPELL_CATEGORIES } from '../data/spellFallbackRituals'
 import { RUNE_CATEGORIES } from '../data/runeFallbackRituals'
 import { MAGIC_CATEGORIES } from '../data/magicFallbackRituals'
+import { PUBLIC_GRIMORIOS } from '../data/publicGrimorios'
+import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS } from '../data/grimorios'
 
 const CIRCLE_BADGE = {
   1: 'bg-emerald-400/12 text-emerald-300 border-emerald-400/25',
@@ -281,6 +283,8 @@ export default function GrimoireAdminPage() {
   const [modalState, setModalState] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [grimorioModalOpen, setGrimorioModalOpen] = useState(false)
+  const [grimorioViewId, setGrimorioViewId] = useState(null)
 
   const activeConfig = LIBRARIES.find((item) => item.id === activeId) || LIBRARIES[0]
   const activeItems = libraries[activeId] || []
@@ -408,6 +412,90 @@ export default function GrimoireAdminPage() {
         })}
       </div>
 
+      <section className="px-6 py-8 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <span className="home-eyebrow">Coleção</span>
+            <h3 className="font-cinzel text-txt-main text-lg">Grimórios</h3>
+          </div>
+          <button type="button" onClick={() => setGrimorioModalOpen(true)}
+            className="px-4 py-2 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
+            + Novo Grimório
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {PUBLIC_GRIMORIOS.map(g => (
+            <button key={g.id} type="button" onClick={() => setGrimorioViewId(grimorioViewId === g.id ? null : g.id)}
+              className="relative rounded-2xl border border-sep/20 bg-void/40 flex flex-col items-center p-4 aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:border-sep/40 text-left">
+              <div className="w-full flex-1 rounded-xl bg-void/60 border border-sep/15 flex items-center justify-center overflow-hidden mb-3">
+                {g.image ? (
+                  <img src={g.image} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl opacity-20">📖</span>
+                )}
+              </div>
+              <span className="text-txt-main text-xs font-semibold text-center leading-tight">{g.name}</span>
+              <span className="text-txt-dim/50 text-[10px] mt-1">{GRIMORIO_TYPE_LABELS[g.knowledgeKey] || g.knowledgeKey}</span>
+              <span className="text-amber-300/60 text-[10px] font-mono mt-0.5">{g.rituals.length} rituais</span>
+              {g.sourceName && <span className="text-purple-300/40 text-[9px] mt-0.5 italic truncate w-full text-center">{g.sourceName}</span>}
+            </button>
+          ))}
+
+          <button type="button" onClick={() => setGrimorioModalOpen(true)}
+            className="rounded-2xl border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center aspect-[3/4] transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.98]">
+            <span className="text-txt-dim/25 text-2xl">+</span>
+          </button>
+        </div>
+
+        {grimorioViewId && (() => {
+          const g = PUBLIC_GRIMORIOS.find(x => x.id === grimorioViewId)
+          if (!g) return null
+          const tier = GRIMORIO_TIERS.find(t => t.id === g.tier)
+          const circles = [1, 2, 3, 4]
+          return (
+            <div className="mt-4 border border-sep/15 rounded-xl bg-void/30 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-sep/15">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-10 rounded bg-void/50 border border-sep/15 flex items-center justify-center overflow-hidden">
+                    {g.image ? <img src={g.image} alt="" className="w-full h-full object-cover" /> : <span className="text-sm opacity-30">📖</span>}
+                  </div>
+                  <div>
+                    <span className="text-txt-main text-sm font-semibold">{g.name}</span>
+                    <div className="text-[10px] text-txt-dim/50 font-mono">{tier?.name || '—'} · {g.rituals.length} rituais · {g.sourceName}</div>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setGrimorioViewId(null)} className="text-txt-dim hover:text-txt-main text-sm">×</button>
+              </div>
+              {g.description && <p className="text-txt-dim/50 text-xs px-4 py-2 border-b border-sep/10">{g.description}</p>}
+              <div className="p-4">
+                {circles.map(c => {
+                  const rituals = g.rituals.filter(r => r.circle === c)
+                  if (rituals.length === 0) return null
+                  return (
+                    <div key={c} className="mb-4 last:mb-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-[9px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[c] || CIRCLE_BADGE[1]}`}>{c}o Círculo</span>
+                        <span className="text-txt-dim/30 text-[10px]">{rituals.length} rituais</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                        {rituals.map(r => (
+                          <div key={r.id} className="rounded-lg border border-sep/10 bg-void/30 p-2">
+                            <span className="text-txt-main text-[10px] font-semibold line-clamp-1">{r.name}</span>
+                            <p className="text-txt-dim/40 text-[9px] line-clamp-2 mt-0.5">{r.short_description}</p>
+                            <span className="text-amber-300/50 text-[9px] font-mono">{r.pe_cost} PE</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
+      </section>
+
       <section className="grimoire-shelf">
         <div className="grimoire-shelf-head">
           <div>
@@ -465,6 +553,83 @@ export default function GrimoireAdminPage() {
         />,
         document.body
       )}
+
+      {grimorioModalOpen && createPortal(
+        <GrimorioCreateModal onClose={() => setGrimorioModalOpen(false)} />,
+        document.body
+      )}
+    </div>
+  )
+}
+
+function GrimorioCreateModal({ onClose }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [image, setImage] = useState('')
+  const [knowledgeKey, setKnowledgeKey] = useState('magic')
+  const [tier, setTier] = useState('iniciante')
+  const [sourceName, setSourceName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave() {
+    if (!name.trim()) { setError('Nome é obrigatório.'); return }
+    setSaving(true)
+    setError('')
+    const tierData = GRIMORIO_TIERS.find(t => t.id === tier)
+    const payload = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      description: description.trim(),
+      image: image.trim(),
+      knowledgeKey,
+      tier,
+      maxCircle: tierData?.maxCircle || 2,
+      isPublic: true,
+      sourceKind: 'limiar',
+      sourceName: sourceName.trim(),
+      created_at: new Date().toISOString(),
+    }
+    try {
+      const { saveGrimorio } = await import('../services/alchemyService')
+      const { error: saveError } = await saveGrimorio(payload)
+      if (saveError) throw saveError
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar grimório.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[120] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="grimoire-modal modal-content" onClick={e => e.stopPropagation()}>
+        <div className="grimoire-modal-head">
+          <div>
+            <span className="home-eyebrow">Coleção</span>
+            <h3 className="font-cinzel">Novo Grimório</h3>
+          </div>
+          <button type="button" onClick={onClose}>×</button>
+        </div>
+        {error && <p className="grimoire-error">{error}</p>}
+        <div className="grimoire-form-grid">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome do Grimório" className="span-2" />
+          <select value={knowledgeKey} onChange={e => setKnowledgeKey(e.target.value)}>
+            {Object.entries(GRIMORIO_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={tier} onChange={e => setTier(e.target.value)}>
+            {GRIMORIO_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} (1o-{t.maxCircle}o)</option>)}
+          </select>
+          <input value={sourceName} onChange={e => setSourceName(e.target.value)} placeholder="Entidade / Fonte" className="span-2" />
+          <input value={image} onChange={e => setImage(e.target.value)} placeholder="URL da imagem" className="span-2" />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Descrição do grimório" className="span-2" />
+        </div>
+        <div className="grimoire-modal-actions">
+          <button type="button" onClick={onClose}>Cancelar</button>
+          <button type="button" onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Criar Grimório'}</button>
+        </div>
+      </div>
     </div>
   )
 }
