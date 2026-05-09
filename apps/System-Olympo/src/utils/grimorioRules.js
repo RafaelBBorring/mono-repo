@@ -36,6 +36,19 @@ export function getMaxCustomRituals(char, knowledgeKey) {
   return 2
 }
 
+export function getMaxCreationShots(char, knowledgeKey) {
+  const tier = getGrimorioAccessTier(char, knowledgeKey)
+  const nivel = char.nivel || 1
+  const attrs = char.atributos || {}
+  const sk = char.skeletonPoints || {}
+  const am = (attrs.AM || 0) + (sk.AM || 0)
+  if (!tier) return 0
+  const base = { iniciante: 3, avancado: 5, mestre: 8 }[tier] || 3
+  const levelBonus = Math.floor(nivel / 5)
+  const amBonus = Math.floor((am - 10) / 4)
+  return Math.max(base + levelBonus + amBonus, base)
+}
+
 export function getAvailableGrimorioTiers(char, knowledgeKey) {
   const maxTier = getGrimorioAccessTier(char, knowledgeKey)
   if (!maxTier) return []
@@ -65,7 +78,8 @@ export function getScoreForDisplay(char, knowledgeKey) {
 }
 
 export function getGrimorioMaxRituals(grimorio) {
-  if (grimorio.tier === 'custom') return grimorio.maxRituals || 4
+  if (grimorio.maxRituals) return grimorio.maxRituals
+  if (grimorio.isPersonal) return 30
   const tier = GRIMORIO_TIERS.find(t => t.id === grimorio.tier)
   return tier?.maxRituals || 6
 }

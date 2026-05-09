@@ -25,9 +25,8 @@ import { getSpellProfile, canLearnSpell } from '../../utils/spellRules'
 import { getRuneProfile, canLearnRune } from '../../utils/runeRules'
 import { getMagicProfile, canLearnMagic } from '../../utils/magicRules'
 import { getAlchemyProfile, canLearnAlchemyRitual } from '../../utils/alchemyRules'
-import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getScoreForDisplay, getGrimorioMaxRituals, getGrimorioMaxCircle, canAddRitualToGrimorio, canCreateRitualAtCircle, getAvailableCirclesForChar } from '../../utils/grimorioRules'
+import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getMaxCreationShots, getScoreForDisplay, getGrimorioMaxRituals, getGrimorioMaxCircle, canAddRitualToGrimorio, canCreateRitualAtCircle, getAvailableCirclesForChar } from '../../utils/grimorioRules'
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS, GRIMORIO_TYPE_ICONS } from '../../data/grimorios'
-import { DEFAULT_GRIMORIOS } from '../../data/publicGrimorios'
 import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyzeMagicDraft } from '../../services/aiService'
 import { calcEquipStats } from '../../data/equipment'
 
@@ -1107,13 +1106,23 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
   const [customName, setCustomName] = useState('')
   const [customDesc, setCustomDesc] = useState('')
   const [customCircle, setCustomCircle] = useState(1)
+  const [customPeCost, setCustomPeCost] = useState(5)
+  const [customAction, setCustomAction] = useState('Acao Padrao')
+  const [customDuration, setCustomDuration] = useState('Instantaneo')
+  const [customRange, setCustomRange] = useState('Pessoal')
+  const [customEntity, setCustomEntity] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
+  const [customEffect, setCustomEffect] = useState('')
   const [customAnalyzing, setCustomAnalyzing] = useState(false)
   const [customResult, setCustomResult] = useState(null)
   const [customError, setCustomError] = useState('')
+  const [customMode, setCustomMode] = useState('form')
 
   const accessTier = getGrimorioAccessTier(char, card.key)
   const maxCustom = getMaxCustomRituals(char, card.key)
+  const maxShots = getMaxCreationShots(char, card.key)
   const customCount = (char[card.field] || []).filter(r => r.isCustom).length
+  const shotsLeft = maxShots - customCount
 
   const activeGrimorio = (char.grimorios || []).find(g => g.id === grimorioId) || null
   const grimorioMaxCircle = activeGrimorio ? getGrimorioMaxCircle(activeGrimorio) : 4
@@ -1174,12 +1183,12 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
   }
 
   async function analyzeCustomRitual() {
-    if (!customName.trim() || !customDesc.trim()) {
-      setCustomError('Preencha nome e descrição do conceito.')
+    if (!customName.trim()) {
+      setCustomError('Preencha pelo menos o nome do ritual.')
       return
     }
-    if (customCount >= maxCustom) {
-      setCustomError(`Limite de ${maxCustom} rituais personalizados atingido.`)
+    if (shotsLeft <= 0) {
+      setCustomError(`Limite de ${maxShots} criações atingido para este conhecimento.`)
       return
     }
     setCustomAnalyzing(true)
@@ -1188,17 +1197,25 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
 
     const draft = {
       name: customName.trim(),
-      description: customDesc.trim(),
+      description: customDesc.trim() || customEffect.trim(),
       circle: customCircle,
       knowledgeType: card.key,
+      pe_cost: customPeCost,
+      action_cost: customAction,
+      duration: customDuration,
+      range: customRange,
+      source_name: customEntity.trim(),
+      category: customCategory.trim(),
+      effect: customEffect.trim(),
     }
     const context = { characterLevel: char.nivel || 1 }
 
     try {
       const analyzeFn = { alchemy: analyzeAlchemyRitualDraft, spells: analyzeSpellDraft, runes: analyzeRuneDraft, magic: analyzeMagicDraft }[card.key]
-      if (!analyzeFn) throw new Error('Tipo de conhecimento não suportado.')
+      if (!analyzeFn) throw new Error('Tipo de conhecimento nao suportado.')
       const result = await analyzeFn(draft, context)
       setCustomResult(result)
+      setCustomMode('feedback')
     } catch (err) {
       setCustomError(err.message || 'Erro ao analisar ritual.')
     } finally {
@@ -1206,33 +1223,74 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
     }
   }
 
-  function addCustomRitual() {
+  function confirmCustomRitual() {
     if (!customResult || !update) return
     if (activeGrimorio && grimorioSlotsLeft <= 0) {
-      setCustomError('Este grimório está cheio.')
+      setCustomError('Este grimorio esta cheio.')
       return
     }
     const ritual = {
       id: crypto.randomUUID(),
       name: customResult.name || customName.trim(),
       circle: customResult.circle || customCircle,
-      category: customResult.category || 'Personalizado',
-      pe_cost: customResult.pe_cost || 5,
-      action_cost: customResult.action_cost || 'Ação Padrão',
-      duration: customResult.duration || 'Instantâneo',
-      range: customResult.range || 'Pessoal',
+      category: customResult.category || customCategory || 'Personalizado',
+      pe_cost: customResult.pe_cost || customPeCost,
+      action_cost: customResult.action_cost || customAction,
+      duration: customResult.duration || customDuration,
+      range: customResult.range || customRange,
       short_description: customResult.short_description || customDesc.trim(),
-      effect: customResult.effect || customDesc.trim(),
+      effect: customResult.effect || customEffect.trim(),
+      source_name: customResult.source_name || customEntity.trim(),
       isCustom: true,
       grimorioId: activeGrimorio ? activeGrimorio.id : null,
     }
     const current = char[card.field] || []
     update({ [card.field]: [...current, ritual] })
+    resetCustomForm()
+    setTab('library')
+  }
+
+  function keepOriginalRitual() {
+    if (!update) return
+    if (activeGrimorio && grimorioSlotsLeft <= 0) {
+      setCustomError('Este grimorio esta cheio.')
+      return
+    }
+    const ritual = {
+      id: crypto.randomUUID(),
+      name: customName.trim(),
+      circle: customCircle,
+      category: customCategory.trim() || 'Personalizado',
+      pe_cost: customPeCost,
+      action_cost: customAction,
+      duration: customDuration,
+      range: customRange,
+      short_description: customDesc.trim(),
+      effect: customEffect.trim(),
+      source_name: customEntity.trim(),
+      isCustom: true,
+      grimorioId: activeGrimorio ? activeGrimorio.id : null,
+    }
+    const current = char[card.field] || []
+    update({ [card.field]: [...current, ritual] })
+    resetCustomForm()
+    setTab('library')
+  }
+
+  function resetCustomForm() {
     setCustomName('')
     setCustomDesc('')
     setCustomCircle(1)
+    setCustomPeCost(5)
+    setCustomAction('Acao Padrao')
+    setCustomDuration('Instantaneo')
+    setCustomRange('Pessoal')
+    setCustomEntity('')
+    setCustomCategory('')
+    setCustomEffect('')
     setCustomResult(null)
-    setTab('library')
+    setCustomError('')
+    setCustomMode('form')
   }
 
   return createPortal(
@@ -1265,7 +1323,7 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
             {update && accessTier && (
               <button type="button" onClick={() => setTab('custom')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${tab === 'custom' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'text-txt-dim hover:text-txt-main'}`}>
-                Personalizado <span className="text-[9px] font-mono">{customCount}/{maxCustom}</span>
+                Personalizado <span className="text-[9px] font-mono">{shotsLeft}/{maxShots}</span>
               </button>
             )}
           </div>
@@ -1342,70 +1400,179 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
           {tab === 'custom' && (
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="max-w-xl mx-auto space-y-4">
-                <div>
-                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome do Ritual</label>
-                  <input type="text" value={customName} onChange={e => setCustomName(e.target.value)} placeholder="Ex: Chama do Crepúsculo"
-                    className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                <div className="flex items-center justify-between">
+                  <span className="text-purple-300 text-xs font-semibold">Criar Ritual</span>
+                  <span className="text-txt-dim text-[10px] font-mono">Tiros: <span className={shotsLeft > 0 ? 'text-emerald-300' : 'text-err'}>{shotsLeft}/{maxShots}</span></span>
                 </div>
-                <div>
-                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Círculo Desejado</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4].filter(c => !activeGrimorio || c <= grimorioMaxCircle).map(c => {
-                      const lvlOk = canCreateRitualAtCircle(char, c)
-                      return (
-                        <button key={c} type="button" onClick={() => lvlOk.allowed && setCustomCircle(c)}
-                          disabled={!lvlOk.allowed}
-                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
-                            customCircle === c ? (CIRCLE_BG[c] || '') + ' ' + (CIRCLE_BADGE[c] || '')
-                              : !lvlOk.allowed ? 'bg-void/30 border-sep/15 text-txt-dim/30 cursor-not-allowed'
-                              : 'bg-void border-sep/30 text-txt-dim hover:border-sep/50'
-                          }`}
-                          title={!lvlOk.allowed ? lvlOk.reason : ''}>
-                          {c}o Círculo
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Conceito / Descrição</label>
-                  <textarea value={customDesc} onChange={e => setCustomDesc(e.target.value)} rows={4}
-                    placeholder="Descreva o conceito do ritual: efeito desejado, mecânicas, limitações, contrapesos narrativos..."
-                    className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none resize-none" />
-                </div>
-                {customError && <p className="text-err text-xs">{customError}</p>}
-                <button type="button" onClick={analyzeCustomRitual} disabled={customAnalyzing || customCount >= maxCustom || grimorioSlotsLeft <= 0}
-                  className={`w-full py-2.5 rounded-lg text-xs font-semibold transition-colors active:scale-[0.99] ${
-                    customAnalyzing ? 'bg-purple-500/10 text-purple-300/50 cursor-wait' : 'bg-purple-500/15 text-purple-300 border border-purple-500/25 hover:bg-purple-500/25'
-                  }`}>
-                  {customAnalyzing ? 'Analisando com Oráculo...' : grimorioSlotsLeft <= 0 ? 'Grimório Cheio' : 'Analisar com Oráculo'}
-                </button>
 
-                {customResult && (
-                  <div className="border border-purple-500/20 rounded-xl bg-purple-500/5 p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-300 text-xs font-semibold">Resultado do Oráculo</span>
-                      <span className={`text-[9px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[customResult.circle || customCircle] || CIRCLE_BADGE[1]}`}>
-                        {customResult.circle || customCircle}o
-                      </span>
+                {customMode === 'form' ? (
+                  <>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome do Ritual *</label>
+                      <input type="text" value={customName} onChange={e => setCustomName(e.target.value)} placeholder="Ex: Chama do Crepusculo"
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
                     </div>
-                    <h4 className="text-txt-main font-semibold text-sm">{customResult.name || customName}</h4>
-                    {customResult.short_description && <p className="text-txt-dim text-xs leading-relaxed">{customResult.short_description}</p>}
-                    {customResult.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed whitespace-pre-line">{customResult.effect}</p>}
-                    <div className="flex flex-wrap gap-2 text-[10px] font-mono">
-                      <span className="text-amber-300">{customResult.pe_cost || 0} PE</span>
-                      {usesEnergia && <span className="text-sky-300">{customResult.pe_cost || 0} Energia</span>}
-                      <span className="text-gold">{SPACE_COST[customResult.circle || customCircle] || 0} espaços</span>
-                      {customResult.action_cost && <span className="text-purple-300">{customResult.action_cost}</span>}
-                      {customResult.duration && <span className="text-sky-300">{customResult.duration}</span>}
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Circulo</label>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4].filter(c => !activeGrimorio || c <= grimorioMaxCircle).map(c => {
+                          const lvlOk = canCreateRitualAtCircle(char, c)
+                          return (
+                            <button key={c} type="button" onClick={() => lvlOk.allowed && setCustomCircle(c)}
+                              disabled={!lvlOk.allowed}
+                              className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                                customCircle === c ? (CIRCLE_BG[c] || '') + ' ' + (CIRCLE_BADGE[c] || '')
+                                  : !lvlOk.allowed ? 'bg-void/30 border-sep/15 text-txt-dim/30 cursor-not-allowed'
+                                  : 'bg-void border-sep/30 text-txt-dim hover:border-sep/50'
+                              }`}
+                              title={!lvlOk.allowed ? lvlOk.reason : ''}>
+                              {c}o
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
-                    {customResult.ai_notes && <p className="text-txt-dim/40 text-[10px] italic border-t border-sep/10 pt-2">{customResult.ai_notes}</p>}
-                    <button type="button" onClick={addCustomRitual}
-                      className="w-full py-2 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
-                      Adicionar ao Personagem
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Custo PE</label>
+                        <input type="number" min={1} max={99} value={customPeCost} onChange={e => setCustomPeCost(Number(e.target.value) || 1)}
+                          className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Acao</label>
+                        <select value={customAction} onChange={e => setCustomAction(e.target.value)}
+                          className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none">
+                          <option value="Acao Padrao">Acao Padrao</option>
+                          <option value="Acao Bonus">Acao Bonus</option>
+                          <option value="Acao Completa">Acao Completa</option>
+                          <option value="Reacao">Reacao</option>
+                          <option value="1 minuto">1 minuto</option>
+                          <option value="10 minutos">10 minutos</option>
+                          <option value="1 hora">1 hora</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Duracao</label>
+                        <select value={customDuration} onChange={e => setCustomDuration(e.target.value)}
+                          className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none">
+                          <option value="Instantaneo">Instantaneo</option>
+                          <option value="1 rodada">1 rodada</option>
+                          <option value="2 rodadas">2 rodadas</option>
+                          <option value="3 rodadas">3 rodadas</option>
+                          <option value="1 minuto">1 minuto</option>
+                          <option value="10 minutos">10 minutos</option>
+                          <option value="1 hora">1 hora</option>
+                          <option value="Cena">Cena</option>
+                          <option value="Permanente">Permanente</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Alcance</label>
+                        <select value={customRange} onChange={e => setCustomRange(e.target.value)}
+                          className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none">
+                          <option value="Pessoal">Pessoal</option>
+                          <option value="Toque">Toque</option>
+                          <option value="3m">3m</option>
+                          <option value="6m">6m</option>
+                          <option value="9m">9m</option>
+                          <option value="12m">12m</option>
+                          <option value="18m">18m</option>
+                          <option value="Cone 6m">Cone 6m</option>
+                          <option value="Cone 9m">Cone 9m</option>
+                          <option value="Area 6m">Area 6m</option>
+                          <option value="Area 12m">Area 12m</option>
+                          <option value="Linha 18m">Linha 18m</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Entidade / Fonte (opcional)</label>
+                      <input type="text" value={customEntity} onChange={e => setCustomEntity(e.target.value)} placeholder="Ex: Morthên, Fogo Primordial..."
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Categoria (opcional)</label>
+                      <input type="text" value={customCategory} onChange={e => setCustomCategory(e.target.value)} placeholder="Ex: Ofensiva, Defensiva, Suporte..."
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Conceito / Descricao curta</label>
+                      <textarea value={customDesc} onChange={e => setCustomDesc(e.target.value)} rows={2}
+                        placeholder="Uma frase descrevendo a essencia do ritual..."
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none resize-none" />
+                    </div>
+                    <div>
+                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Efeito completo</label>
+                      <textarea value={customEffect} onChange={e => setCustomEffect(e.target.value)} rows={4}
+                        placeholder="Descreva o efeito mecanico detalhado: dados, CD, condicoes, duracoes, contrapesos..."
+                        className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none resize-none" />
+                    </div>
+
+                    {customError && <p className="text-err text-xs">{customError}</p>}
+
+                    <button type="button" onClick={analyzeCustomRitual} disabled={customAnalyzing || shotsLeft <= 0 || grimorioSlotsLeft <= 0}
+                      className={`w-full py-2.5 rounded-lg text-xs font-semibold transition-colors active:scale-[0.99] ${
+                        customAnalyzing ? 'bg-purple-500/10 text-purple-300/50 cursor-wait' : 'bg-purple-500/15 text-purple-300 border border-purple-500/25 hover:bg-purple-500/25'
+                      }`}>
+                      {customAnalyzing ? 'Analisando com Oraculo...' : shotsLeft <= 0 ? 'Sem tiros de criacao' : grimorioSlotsLeft <= 0 ? 'Grimorio Cheio' : 'Analisar com Oraculo'}
                     </button>
-                  </div>
-                )}
+                  </>
+                ) : customMode === 'feedback' && customResult ? (
+                  <>
+                    <div className="border border-purple-500/20 rounded-xl bg-purple-500/5 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-purple-300 text-xs font-semibold">Feedback do Oraculo</span>
+                        <span className={`text-[9px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[customResult.circle || customCircle] || CIRCLE_BADGE[1]}`}>
+                          {customResult.circle || customCircle}o
+                        </span>
+                      </div>
+
+                      <div className="border border-sep/15 rounded-lg p-3 space-y-2">
+                        <h4 className="text-txt-dim/60 text-[10px] uppercase tracking-wider">Original</h4>
+                        <p className="text-txt-main text-sm font-semibold">{customName}</p>
+                        <p className="text-txt-dim text-xs">{customDesc || customEffect}</p>
+                        <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                          <span className="text-amber-300">{customPeCost} PE</span>
+                          <span className="text-purple-300">{customAction}</span>
+                          <span className="text-sky-300">{customDuration}</span>
+                          <span className="text-txt-dim">{customRange}</span>
+                        </div>
+                      </div>
+
+                      <div className="border border-gold/20 rounded-lg bg-gold/5 p-3 space-y-2">
+                        <h4 className="text-gold text-[10px] uppercase tracking-wider">Versao do Oraculo</h4>
+                        <h4 className="text-txt-main font-semibold text-sm">{customResult.name || customName}</h4>
+                        {customResult.short_description && <p className="text-txt-dim text-xs leading-relaxed">{customResult.short_description}</p>}
+                        {customResult.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed whitespace-pre-line">{customResult.effect}</p>}
+                        <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+                          <span className="text-amber-300">{customResult.pe_cost || customPeCost} PE</span>
+                          {usesEnergia && <span className="text-sky-300">{customResult.pe_cost || customPeCost} Energia</span>}
+                          {customResult.action_cost && <span className="text-purple-300">{customResult.action_cost}</span>}
+                          {customResult.duration && <span className="text-sky-300">{customResult.duration}</span>}
+                          {customResult.range && <span className="text-txt-dim">{customResult.range}</span>}
+                        </div>
+                        {customResult.ai_notes && <p className="text-txt-dim/40 text-[10px] italic border-t border-sep/10 pt-2">{customResult.ai_notes}</p>}
+                      </div>
+
+                      {customError && <p className="text-err text-xs">{customError}</p>}
+
+                      <div className="flex gap-2">
+                        <button type="button" onClick={keepOriginalRitual}
+                          className="flex-1 py-2 rounded-lg bg-white/5 text-txt-dim text-xs font-semibold border border-sep/20 hover:bg-white/10 transition-colors active:scale-[0.99]">
+                          Manter Original
+                        </button>
+                        <button type="button" onClick={confirmCustomRitual}
+                          className="flex-1 py-2 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
+                          Usar Versao IA
+                        </button>
+                      </div>
+                      <button type="button" onClick={resetCustomForm}
+                        className="w-full py-2 rounded-lg text-txt-dim/50 text-xs hover:text-txt-dim transition-colors">
+                        Cancelar e refazer
+                      </button>
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           )}
@@ -1486,35 +1653,20 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
     if (!selectedTier) return
     const tier = GRIMORIO_TIERS.find(t => t.id === selectedTier)
     if (!tier) return
-    const grimorioName = name.trim() || `${GRIMORIO_TYPE_LABELS[card.key]} — ${tier.name}`
-    const newId = crypto.randomUUID()
+    const grimorioName = name.trim() || `Grimório de ${char.nome || 'Desconhecido'}`
     const newGrimorio = {
-      id: newId,
+      id: crypto.randomUUID(),
       knowledgeKey: card.key,
       tier: tier.id,
       name: grimorioName,
       image: imageUrl.trim() || '',
       maxCircle: tier.maxCircle,
+      maxRituals: 30,
+      isPersonal: true,
       createdAt: new Date().toISOString(),
     }
     const currentGrimorios = char.grimorios || []
-    const templateGrimorio = (DEFAULT_GRIMORIOS[card.key] || []).find(g => g.tier === selectedTier)
-    const templateRituals = templateGrimorio?.rituals || []
-    const normalized = templateRituals.map(r => {
-      const copy = { ...r }
-      copy.id = crypto.randomUUID()
-      copy.grimorioId = newId
-      delete copy.source_kind
-      delete copy.source_name
-      delete copy.tags
-      delete copy.ai_feedback
-      return copy
-    })
-    const currentRituals = char[card.field] || []
-    update({
-      grimorios: [...currentGrimorios, newGrimorio],
-      [card.field]: [...currentRituals, ...normalized],
-    })
+    update({ grimorios: [...currentGrimorios, newGrimorio] })
     setName('')
     setImageUrl('')
     setSelectedTier(null)
