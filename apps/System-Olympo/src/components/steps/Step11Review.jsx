@@ -981,20 +981,24 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
           const isFull = rituals.length >= maxRituals && maxRituals > 0
           return (
             <button key={grimorio.id} type="button" onClick={() => setGrimorioViewId(grimorio.id === grimorioViewId ? null : grimorio.id)}
-              className={`relative rounded-xl border bg-void/50 flex flex-col items-center justify-center p-4 aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
-                grimorio.isPublic ? 'border-gold/15 hover:border-gold/30' : 'border-sep/20 hover:border-sep/40'
+              className={`relative rounded-xl overflow-hidden aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] border ${
+                grimorio.isPublic ? 'border-gold/15 hover:border-gold/35' : 'border-sep/20 hover:border-sep/40'
               }`}>
-              {grimorio.isPublic && <span className="absolute top-2 right-2 text-[8px] text-gold/40 font-mono">PUBLICO</span>}
-              <div className="w-16 h-20 rounded-lg bg-void/80 border border-sep/30 flex items-center justify-center mb-3 overflow-hidden">
-                {grimorio.image ? (
-                  <img src={grimorio.image} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-3xl opacity-30">{card.icon}</span>
-                )}
+              {grimorio.isPublic && <span className="absolute top-2 right-2 text-[7px] text-gold/50 font-mono bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5 z-10">PUBLICO</span>}
+              {grimorio.image ? (
+                <img src={grimorio.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-void/80 flex items-center justify-center">
+                  <span className="text-6xl opacity-15">{card.icon}</span>
+                </div>
+              )}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-10 pb-3 px-3">
+                <span className="text-white text-[11px] font-semibold leading-tight block drop-shadow-lg">{grimorio.name}</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-white/45 text-[9px]">{tier?.name || 'Autoral'}</span>
+                  <span className={`text-[9px] font-mono ${isFull ? 'text-amber-300' : 'text-amber-300/60'}`}>{rituals.length}/{maxRituals || '—'}</span>
+                </div>
               </div>
-              <span className="text-txt-main text-xs font-semibold text-center leading-tight">{grimorio.name}</span>
-              <span className="text-txt-dim/50 text-[10px] mt-1">{tier?.name || 'Autoral'}</span>
-              <span className={`text-[10px] font-mono mt-1 ${isFull ? 'text-amber-300/80' : 'text-amber-300/60'}`}>{rituals.length}/{maxRituals || '—'}</span>
             </button>
           )
         })}

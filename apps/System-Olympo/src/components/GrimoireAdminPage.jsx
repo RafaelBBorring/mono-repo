@@ -300,25 +300,29 @@ export default function GrimoireAdminPage() {
                   const ritualCount = (g.rituals || []).length
                   return (
                     <div key={g.id} className="relative group">
-                      <button type="button" onClick={() => { setActiveGrimorioId(g.id); setView('grimorio-detail') }}
-                        className="w-full rounded-2xl border border-sep/20 bg-void/40 flex flex-col items-center p-6 aspect-[2/3] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:border-sep/50 hover:shadow-xl hover:shadow-white/[0.02] text-left">
-                        <div className="w-full flex-[3] rounded-xl bg-void/60 border border-sep/15 flex items-center justify-center overflow-hidden mb-4">
-                          {g.image ? (
-                            <img src={g.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-6xl opacity-10">{tab.icon}</span>
-                          )}
-                        </div>
-                        <span className="text-txt-main text-sm font-semibold text-center leading-tight">{g.name}</span>
-                        <span className="text-txt-dim/40 text-[11px] mt-1">{tier?.name || 'Personalizado'}</span>
-                        <span className="text-amber-300/50 text-[11px] font-mono mt-1">{ritualCount} rituais</span>
-                        {g.sourceName && <span className="text-purple-300/30 text-[10px] mt-1 italic truncate w-full text-center">{g.sourceName}</span>}
-                      </button>
-                      <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <button type="button" onClick={e => { e.stopPropagation(); setEditGrimorio(g) }}
-                          className="w-7 h-7 rounded-lg bg-void/80 border border-sep/30 flex items-center justify-center text-sky-400/60 hover:text-sky-400 text-[10px] transition-colors">✎</button>
-                      </div>
-                    </div>
+                       <button type="button" onClick={() => { setActiveGrimorioId(g.id); setView('grimorio-detail') }}
+                         className="w-full rounded-2xl overflow-hidden aspect-[2/3] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl hover:shadow-white/[0.03] text-left border border-sep/20 hover:border-sep/40">
+                         {g.image ? (
+                           <img src={g.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                         ) : (
+                           <div className="absolute inset-0 bg-void/80 flex items-center justify-center">
+                             <span className="text-7xl opacity-10">{tab.icon}</span>
+                           </div>
+                         )}
+                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent pt-12 pb-4 px-4">
+                           <span className="text-white text-sm font-semibold leading-tight block drop-shadow-lg">{g.name}</span>
+                           <div className="flex items-center justify-between mt-1.5">
+                             <span className="text-white/40 text-[11px]">{tier?.name || 'Personalizado'}</span>
+                             <span className="text-amber-300/50 text-[11px] font-mono">{ritualCount} rituais</span>
+                           </div>
+                           {g.sourceName && <span className="text-white/25 text-[10px] mt-1 italic truncate block">{g.sourceName}</span>}
+                         </div>
+                       </button>
+                       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                         <button type="button" onClick={e => { e.stopPropagation(); setEditGrimorio(g) }}
+                           className="w-7 h-7 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/50 hover:text-white text-[10px] transition-colors">✎</button>
+                       </div>
+                     </div>
                   )
                 })}
               </div>
@@ -326,7 +330,7 @@ export default function GrimoireAdminPage() {
           </>
         ) : view === 'grimorio-detail' && activeGrimorio ? (
           <>
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-4">
               <button type="button" onClick={() => { setView('grimorios'); setActiveGrimorioId(null) }}
                 className="px-4 py-2 rounded-lg bg-white/5 text-txt-dim text-xs font-semibold border border-sep/20 hover:bg-white/10 hover:text-txt-main transition-colors">
                 ← Grimórios
@@ -337,7 +341,16 @@ export default function GrimoireAdminPage() {
               </div>
               <span className="text-txt-dim/40 text-[10px] font-mono">{grimorioRituals.length} rituais</span>
             </div>
-            {activeGrimorio.description && <p className="text-txt-dim/50 text-xs mb-6 max-w-2xl">{activeGrimorio.description}</p>}
+            {activeGrimorio.image && (
+              <div className="relative w-full max-w-md mx-auto rounded-2xl overflow-hidden aspect-[2/3] mb-6 border border-sep/15">
+                <img src={activeGrimorio.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pt-8 pb-4 px-5">
+                  <p className="text-white/70 text-xs">{activeGrimorio.description}</p>
+                  {activeGrimorio.sourceName && <p className="text-white/30 text-[10px] mt-1 italic">{activeGrimorio.sourceName}</p>}
+                </div>
+              </div>
+            )}
+            {!activeGrimorio.image && activeGrimorio.description && <p className="text-txt-dim/50 text-xs mb-6 max-w-2xl">{activeGrimorio.description}</p>}
             {grimorioRituals.length === 0 ? (
               <p className="text-txt-dim/40 text-sm italic text-center py-12">Nenhum ritual encontrado neste grimório.</p>
             ) : (

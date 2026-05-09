@@ -20,7 +20,7 @@ import { useState } from 'react'
 const sections = [
   'Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias',
   'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
-  'Armas', 'Ranks de Arma', 'Limites de Equipamento', 'Equipamentos', 'Armas Lendárias', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Criação de Personagem', 'Balanceamento',
+  'Armas', 'Ranks de Arma', 'Limites de Equipamento', 'Equipamentos', 'Armas Lendárias', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Grimórios', 'Criação de Personagem', 'Balanceamento',
 ]
 
 export default function ReferencePage() {
@@ -59,6 +59,7 @@ export default function ReferencePage() {
         {section === 'Alquimia' && <AlchemySection />}
         {section === 'Feitiços' && <SpellsSection />}
         {section === 'Runas' && <RunesSection />}
+        {section === 'Grimórios' && <GrimoriosSection />}
         {section === 'Criação de Personagem' && <CreationGuideSection />}
         {section === 'Balanceamento' && <BalanceProtocolSection />}
       </div>
@@ -1401,6 +1402,183 @@ function RunesSection() {
         setExpanded={setExpanded}
         badgeGetter={getRuneGradeBadge}
       />
+    </div>
+  )
+}
+
+function GrimoriosSection() {
+  const tiers = [
+    { id: 'iniciante', name: 'Grimório de Iniciante', maxCircle: 2, maxRituals: 6, color: 'emerald' },
+    { id: 'avancado', name: 'Grimório Avançado', maxCircle: 3, maxRituals: 10, color: 'sky' },
+    { id: 'mestre', name: 'Grimório de Mestre', maxCircle: 4, maxRituals: 14, color: 'amber' },
+  ]
+  const tiersColor = {
+    emerald: 'border-emerald-400/25 bg-emerald-400/5',
+    sky: 'border-sky-400/25 bg-sky-400/5',
+    amber: 'border-amber-300/25 bg-amber-300/5',
+  }
+  const tiersText = {
+    emerald: 'text-emerald-400',
+    sky: 'text-sky-400',
+    amber: 'text-amber-300',
+  }
+  return (
+    <div>
+      <SectionTitle>Grimórios</SectionTitle>
+      <p className="text-txt-dim text-sm mb-6">
+        Grimórios são tomos de conhecimento que organizam rituais por escola e complexidade. Cada conhecimento místico
+        (Alquimia, Feitiços, Magias) possui três tiers de grimórios públicos, e personagens também podem criar grimórios
+        pessoais. Runas <strong className="text-txt-main">não usam grimórios</strong>.
+      </p>
+
+      <div className="text-gold text-sm font-semibold mb-3">Como funciona o acesso</div>
+      <p className="text-txt-dim text-sm mb-4">
+        O acesso a cada tier é determinado por uma <strong className="text-txt-main">pontuação de afinidade</strong> calculada
+        a partir dos atributos do personagem, seu nível e seu grau de treinamento. Grimórios são <strong className="text-txt-main">evolutivos</strong>:
+        ao desbloquear Avançado, você também acessa Iniciante; ao desbloquear Mestre, acessa todos.
+      </p>
+
+      <div className="bg-void rounded-xl border border-sep p-4 mb-6">
+        <div className="text-gold text-sm font-semibold mb-3">Fórmula de Afinidade</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-deep rounded-lg border border-teal-400/20 p-3">
+            <div className="text-teal-300 text-xs font-semibold mb-2">Alquimia</div>
+            <p className="text-gold font-mono text-sm text-center py-2">
+              INT × 1,5 + AM × 1,0 + Alquimia × 8 + Nível × 0,5
+            </p>
+            <p className="text-txt-dim text-[10px] mt-1">
+              <strong className="text-txt-main">Alquimia</strong> = grau treinado na perícia Alquimia (0–4).
+              INT e AM incluem pontos de esqueleto.
+            </p>
+          </div>
+          <div className="bg-deep rounded-lg border border-orange-400/20 p-3">
+            <div className="text-orange-300 text-xs font-semibold mb-2">Feitiços e Magias</div>
+            <p className="text-gold font-mono text-sm text-center py-2">
+              AM × 1,5 + INT × 1,0 + Poder × 8 + Nível × 0,5
+            </p>
+            <p className="text-txt-dim text-[10px] mt-1">
+              <strong className="text-txt-main">Poder</strong> = grau treinado na perícia Poder (0–4).
+              AM e INT incluem pontos de esqueleto.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4 mb-6">
+        <div className="text-gold text-sm font-semibold mb-3">Thresholds de Acesso</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Tier</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Afinidade necessária</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Círculos</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Rituais máx.</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Tiros de Criação</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Rituais Autorais</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-sep/20">
+                <td className={`py-2 px-3 font-semibold ${tiersText.emerald}`}>Iniciante</td>
+                <td className="py-2 px-3 font-mono text-gold">≥ 14</td>
+                <td className="py-2 px-3 font-mono">1o–2o</td>
+                <td className="py-2 px-3 font-mono">6</td>
+                <td className="py-2 px-3 font-mono text-gold">3 + ⌊N/5⌋ + ⌊(AM−10)/4⌋</td>
+                <td className="py-2 px-3 font-mono">2</td>
+              </tr>
+              <tr className="border-b border-sep/20">
+                <td className={`py-2 px-3 font-semibold ${tiersText.sky}`}>Avançado</td>
+                <td className="py-2 px-3 font-mono text-gold">≥ 30</td>
+                <td className="py-2 px-3 font-mono">1o–3o</td>
+                <td className="py-2 px-3 font-mono">10</td>
+                <td className="py-2 px-3 font-mono text-gold">5 + ⌊N/5⌋ + ⌊(AM−10)/4⌋</td>
+                <td className="py-2 px-3 font-mono">4</td>
+              </tr>
+              <tr className="border-b border-sep/20">
+                <td className={`py-2 px-3 font-semibold ${tiersText.amber}`}>Mestre</td>
+                <td className="py-2 px-3 font-mono text-gold">≥ 50</td>
+                <td className="py-2 px-3 font-mono">1o–4o</td>
+                <td className="py-2 px-3 font-mono">14</td>
+                <td className="py-2 px-3 font-mono text-gold">8 + ⌊N/5⌋ + ⌊(AM−10)/4⌋</td>
+                <td className="py-2 px-3 font-mono">6</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="text-gold text-sm font-semibold mb-3">Os três Tiers</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {tiers.map(t => (
+          <div key={t.id} className={`rounded-xl border p-4 ${tiersColor[t.color]}`}>
+            <div className={`font-cinzel text-lg font-bold mb-2 ${tiersText[t.color]}`}>{t.name}</div>
+            <div className="space-y-1 text-xs text-txt-dim">
+              <p><strong className="text-txt-main">Círculos:</strong> até {t.maxCircle}o círculo</p>
+              <p><strong className="text-txt-main">Rituais máximos:</strong> {t.maxRituals} por grimório</p>
+              <p><strong className="text-txt-main">Descrição:</strong> {
+                t.id === 'iniciante'
+                  ? 'Fundamentos e rituais de baixo custo. Ideal para quem inicia o caminho místico.'
+                  : t.id === 'avancado'
+                  ? 'Ferramentas táticas robustas. Combate real com efeitos de maior complexidade.'
+                  : 'Rituais de poder máximo. Acesso ao 4o círculo e efeitos catastróficos.'
+              }</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-gold text-sm font-semibold mb-3">Grimórios Públicos vs Pessoais</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-void rounded-xl border border-gold/20 p-4">
+          <div className="text-gold text-sm font-semibold mb-2">Grimórios Públicos</div>
+          <ul className="space-y-1 text-xs text-txt-dim">
+            <li>• Templates predefinidos com rituais prontos para escolha</li>
+            <li>• Desbloqueados conforme o tier de afinidade do personagem</li>
+            <li>• Cada conhecimento tem 3 grimórios públicos (Iniciante, Avançado, Mestre)</li>
+            <li>• O jogador escolhe rituais do grimório para compor sua biblioteca</li>
+            <li>• Não é possível adicionar rituais customizados a grimórios públicos</li>
+          </ul>
+        </div>
+        <div className="bg-void rounded-xl border border-purple-400/20 p-4">
+          <div className="text-purple-300 text-sm font-semibold mb-2">Grimórios Pessoais</div>
+          <ul className="space-y-1 text-xs text-txt-dim">
+            <li>• Criados pelo jogador — começam <strong className="text-txt-main">vazios</strong></li>
+            <li>• Máximo de 30 rituais por grimório pessoal</li>
+            <li>• Rituais criados gastam <strong className="text-amber-300">Tiros de Criação</strong></li>
+            <li>• A IA Oráculo revisa e balanceia cada ritual criado</li>
+            <li>• Limite de rituais autorais varia por tier (2 / 4 / 6)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sep p-4 mb-6">
+        <div className="text-gold text-sm font-semibold mb-3">Nível mínimo por Círculo</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { circle: 1, min: 1, color: 'emerald' },
+            { circle: 2, min: 5, color: 'sky' },
+            { circle: 3, min: 11, color: 'purple' },
+            { circle: 4, min: 18, color: 'amber' },
+          ].map(c => (
+            <div key={c.circle} className="bg-deep rounded-lg border border-sep/30 p-3 text-center">
+              <div className={`text-lg font-bold font-mono ${c.color === 'emerald' ? 'text-emerald-400' : c.color === 'sky' ? 'text-sky-400' : c.color === 'purple' ? 'text-purple-400' : 'text-amber-300'}`}>
+                {c.circle}o Círculo
+              </div>
+              <div className="text-txt-dim text-xs mt-1">Nível {c.min}+</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
+        <p className="text-gold font-semibold text-sm mb-1">Observações</p>
+        <p>• Grimórios são evolutivos: acessar Avançado inclui Iniciante; acessar Mestre inclui todos.</p>
+        <p>• Runas <strong className="text-txt-main">não possuem grimórios</strong> — são gerenciadas separadamente por grau (Menor, Comum, Maior).</p>
+        <p>• A afinidade é calculada automaticamente na ficha. O card de conhecimento mostra a pontuação atual e o próximo threshold.</p>
+        <p>• Tiros de Criação = base do tier + ⌊Nível/5⌋ + ⌊(AM−10)/4⌋. Cada ritual criado consome 1 tiro.</p>
+        <p>• Necromancia é classificada como Alquimia para cálculo de acesso.</p>
+      </div>
     </div>
   )
 }
