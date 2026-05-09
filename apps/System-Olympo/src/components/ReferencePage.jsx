@@ -1466,21 +1466,21 @@ function GrimoriosSection() {
           <div className="bg-deep rounded-lg border border-teal-400/20 p-3">
             <div className="text-teal-300 text-xs font-semibold mb-2">Alquimia</div>
             <p className="text-gold font-mono text-sm text-center py-2">
-              INT × 1,5 + AM × 1,0 + Alquimia × 8 + Nível × 0,5
+              INT × 0,5 + AM × 0,3 + Alquimia × 4 + Nível
             </p>
             <p className="text-txt-dim text-[10px] mt-1">
               <strong className="text-txt-main">Alquimia</strong> = grau treinado na perícia Alquimia (0–4).
-              INT e AM incluem pontos de esqueleto.
+              INT e AM incluem pontos de esqueleto. <strong className="text-teal-300">Nível é o principal fator.</strong>
             </p>
           </div>
           <div className="bg-deep rounded-lg border border-orange-400/20 p-3">
             <div className="text-orange-300 text-xs font-semibold mb-2">Feitiços e Magias</div>
             <p className="text-gold font-mono text-sm text-center py-2">
-              AM × 1,5 + INT × 1,0 + Poder × 8 + Nível × 0,5
+              AM × 0,5 + INT × 0,3 + Poder × 4 + Nível
             </p>
             <p className="text-txt-dim text-[10px] mt-1">
               <strong className="text-txt-main">Poder</strong> = grau treinado na perícia Poder (0–4).
-              AM e INT incluem pontos de esqueleto.
+              AM e INT incluem pontos de esqueleto. <strong className="text-orange-300">Nível é o principal fator.</strong>
             </p>
           </div>
         </div>
@@ -1503,7 +1503,7 @@ function GrimoriosSection() {
             <tbody>
               <tr className="border-b border-sep/20">
                 <td className={`py-2 px-3 font-semibold ${tiersText.emerald}`}>Iniciante</td>
-                <td className="py-2 px-3 font-mono text-gold">≥ 14</td>
+                <td className="py-2 px-3 font-mono text-gold">≥ 15</td>
                 <td className="py-2 px-3 font-mono">1o–2o</td>
                 <td className="py-2 px-3 font-mono">6</td>
                 <td className="py-2 px-3 font-mono text-gold">3 + ⌊N/5⌋ + ⌊(AM−10)/4⌋</td>

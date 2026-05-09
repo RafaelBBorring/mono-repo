@@ -915,7 +915,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
     ...personalGrimorios,
   ]
   const score = getScoreForDisplay(char, card.key)
-  const nextTierThreshold = accessTier === 'mestre' ? null : accessTier === 'avancado' ? 50 : accessTier === 'iniciante' ? 30 : 14
+  const nextTierThreshold = accessTier === 'mestre' ? null : accessTier === 'avancado' ? 50 : accessTier === 'iniciante' ? 30 : 15
 
   function openSidebar(ritualId) {
     setActiveRitualId(ritualId)
@@ -967,7 +967,7 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
       {!accessTier && (
         <div className="px-4 pb-2">
           <span className="text-[10px] text-amber-300/50">
-            Faltam <span className="text-amber-300">{14 - score}</span> pontos para Iniciante
+            Faltam <span className="text-amber-300">{15 - score}</span> pontos para Iniciante
           </span>
         </div>
       )}

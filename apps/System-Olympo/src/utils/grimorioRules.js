@@ -16,15 +16,15 @@ export function getGrimorioAccessTier(char, knowledgeKey) {
   let score = 0
   if (knowledgeKey === 'alchemy') {
     const alquimiaGrade = pericias.Alquimia || 0
-    score = (int * 1.5) + (am * 1.0) + (alquimiaGrade * 8) + (nivel * 0.5)
+    score = (int * 0.5) + (am * 0.3) + (alquimiaGrade * 4) + (nivel * 1.0)
   } else {
     const poderGrade = pericias.Poder || 0
-    score = (am * 1.5) + (int * 1.0) + (poderGrade * 8) + (nivel * 0.5)
+    score = (am * 0.5) + (int * 0.3) + (poderGrade * 4) + (nivel * 1.0)
   }
 
   if (score >= 50) return 'mestre'
   if (score >= 30) return 'avancado'
-  if (score >= 14) return 'iniciante'
+  if (score >= 15) return 'iniciante'
   return null
 }
 
@@ -71,10 +71,10 @@ export function getScoreForDisplay(char, knowledgeKey) {
 
   if (knowledgeKey === 'alchemy') {
     const alquimiaGrade = pericias.Alquimia || 0
-    return Math.floor((int * 1.5) + (am * 1.0) + (alquimiaGrade * 8) + (nivel * 0.5))
+    return Math.floor((int * 0.5) + (am * 0.3) + (alquimiaGrade * 4) + (nivel * 1.0))
   }
   const poderGrade = pericias.Poder || 0
-  return Math.floor((am * 1.5) + (int * 1.0) + (poderGrade * 8) + (nivel * 0.5))
+  return Math.floor((am * 0.5) + (int * 0.3) + (poderGrade * 4) + (nivel * 1.0))
 }
 
 export function getGrimorioMaxRituals(grimorio) {
