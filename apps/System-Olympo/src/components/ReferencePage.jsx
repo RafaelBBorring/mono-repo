@@ -1113,8 +1113,19 @@ function AlchemySection() {
         </div>
       </div>
 
+      <div className="bg-void rounded-xl border border-gold/25 p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Fórmula de Espaços</div>
+        <p className="text-gold font-mono text-sm text-center py-2">
+          Total = Base por Nível + Treinamento + Classe + Raça
+        </p>
+        <p className="text-txt-dim text-xs mt-2 text-center">
+          O <strong className="text-teal-300">Nível</strong> é o maior contribuidor individual (8 espaços no N1 até 28 no N30).
+          Treinamento em Alquimia, classe e raça adicionam ou subtraem modificadores.
+        </p>
+      </div>
+
       <div className="bg-void rounded-xl border border-sep p-4">
-        <div className="text-gold text-sm font-semibold mb-3">Base por nivel</div>
+        <div className="text-gold text-sm font-semibold mb-3">Contribuição do Nível (Base)</div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -1268,6 +1279,17 @@ function SpellsSection() {
         <SectionTitle>Feitiços</SectionTitle>
         <p className="text-txt-dim text-sm">
           Feitiços são repertórios opcionais de conjuração. Na prática, o sistema diferencia <span className="text-emerald-300">Bruxaria</span> e <span className="text-sky-300">Arcana</span>, mantendo a mesma economia de espaços por círculo usada na Alquimia para evitar explosão de complexidade.
+        </p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-gold/25 p-4">
+        <div className="text-gold text-sm font-semibold mb-3">Fórmula de Espaços</div>
+        <p className="text-gold font-mono text-sm text-center py-2">
+          Total = Base por Nível + Treinamento + Classe + Raça
+        </p>
+        <p className="text-txt-dim text-xs mt-2 text-center">
+          A mesma economia de espaços da Alquimia se aplica. O <strong className="text-teal-300">Nível</strong> dita a base
+          (6 espaços no N1 até 26 no N30). Treinamento em Poder, classe e raça modificam o total.
         </p>
       </div>
 
