@@ -899,6 +899,9 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
   const [grimorioViewId, setGrimorioViewId] = useState(null)
   const usesEnergia = USES_ENERGIA.has(card.key)
 
+  const accessTier = getGrimorioAccessTier(char, card.key)
+  const availableTiers = getAvailableGrimorioTiers(char, card.key)
+  const maxCustom = getMaxCustomRituals(char, card.key)
   const personalGrimorios = (char.grimorios || []).filter(g => g.knowledgeKey === card.key)
   const publicTemplates = (DEFAULT_GRIMORIOS[card.key] || []).filter(g => {
     if (!accessTier) return false
@@ -911,9 +914,6 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
     ...publicTemplates.map(g => ({ ...g, isPublic: true, id: `public-${g.id}` })),
     ...personalGrimorios,
   ]
-  const accessTier = getGrimorioAccessTier(char, card.key)
-  const availableTiers = getAvailableGrimorioTiers(char, card.key)
-  const maxCustom = getMaxCustomRituals(char, card.key)
   const score = getScoreForDisplay(char, card.key)
   const nextTierThreshold = accessTier === 'mestre' ? null : accessTier === 'avancado' ? 50 : accessTier === 'iniciante' ? 30 : 14
 
