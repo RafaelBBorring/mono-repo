@@ -1,3 +1,28 @@
+import { GRIMORIO_TIERS } from './grimorios'
+
+function buildDefaultGrimorios(knowledgeKey, label) {
+  return GRIMORIO_TIERS.map(tier => ({
+    id: `${knowledgeKey}-${tier.id}`,
+    name: `${label} — ${tier.name}`,
+    description: `Grimório padrão de ${label} contendo rituais de ${tier.minCircle}o ao ${tier.maxCircle}o círculo.`,
+    image: '',
+    knowledgeKey,
+    tier: tier.id,
+    maxCircle: tier.maxCircle,
+    isPublic: true,
+    isDefault: true,
+    sourceKind: 'neutro',
+    sourceName: '',
+    category: label,
+    rituals: [],
+  }))
+}
+
+const DEFAULT_ALCHEMY = buildDefaultGrimorios('alchemy', 'Alquimia')
+const DEFAULT_SPELLS = buildDefaultGrimorios('spells', 'Feitiços')
+const DEFAULT_MAGIC = buildDefaultGrimorios('magic', 'Magias')
+const DEFAULT_RUNES = buildDefaultGrimorios('runes', 'Runas')
+
 export const NECROMANCY_GRIMORIO = {
   id: 'necromancia',
   name: 'A Arte da Necromancia',
@@ -497,4 +522,17 @@ export const NECROMANCY_GRIMORIO = {
   ],
 }
 
-export const PUBLIC_GRIMORIOS = [NECROMANCY_GRIMORIO]
+export const PUBLIC_GRIMORIOS = [
+  ...DEFAULT_ALCHEMY,
+  ...DEFAULT_SPELLS,
+  ...DEFAULT_MAGIC,
+  ...DEFAULT_RUNES,
+  NECROMANCY_GRIMORIO,
+]
+
+export const DEFAULT_GRIMORIOS = {
+  alchemy: DEFAULT_ALCHEMY,
+  spells: DEFAULT_SPELLS,
+  magic: DEFAULT_MAGIC,
+  runes: DEFAULT_RUNES,
+}
