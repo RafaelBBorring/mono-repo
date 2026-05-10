@@ -9,6 +9,7 @@ import {
 } from '../services/alchemyService'
 import { PUBLIC_GRIMORIOS, DEFAULT_GRIMORIOS } from '../data/publicGrimorios'
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS } from '../data/grimorios'
+import { getRegenteId, getRegenteById } from '../data/regentes'
 import ImageUploadField from './ImageUploadField'
 
 const CIRCLE_BADGE = {
@@ -355,20 +356,27 @@ export default function GrimoireAdminPage() {
               <p className="text-txt-dim/40 text-sm italic text-center py-12">Nenhum ritual encontrado neste grimório.</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {grimorioRituals.slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name)).map(r => (
+                {grimorioRituals.slice().sort((a, b) => a.circle - b.circle || a.name.localeCompare(b.name)).map(r => {
+                  const ritualRegent = getRegenteById(getRegenteId(r))
+                  return (
                   <button key={r.id} type="button" onClick={() => setInspectId(r.id)}
                     className={`rounded-xl border p-3 text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] aspect-square flex flex-col justify-between ${CIRCLE_BG[r.circle] || CIRCLE_BG[1]}`}>
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[r.circle] || CIRCLE_BADGE[1]}`}>{r.circle}o</span>
-                        {r.source_name && <span className="text-txt-dim/30 text-[8px] truncate ml-1 max-w-[50%]">{r.source_name}</span>}
+                        {ritualRegent ? (
+                          <span className={`text-[8px] border rounded-full px-1 py-0.5 ${ritualRegent.badge}`}>{ritualRegent.shortName}</span>
+                        ) : r.source_name ? (
+                          <span className="text-txt-dim/30 text-[8px] truncate ml-1 max-w-[50%]">{r.source_name}</span>
+                        ) : null}
                       </div>
                       <span className="text-txt-main text-[11px] font-semibold leading-tight line-clamp-2">{r.name}</span>
                       <p className="text-txt-dim/40 text-[9px] line-clamp-2 mt-1">{r.short_description || '—'}</p>
                     </div>
                     <span className="text-amber-300/50 text-[10px] font-mono mt-auto">{r.pe_cost || 0} PE</span>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>
@@ -442,7 +450,12 @@ export default function GrimoireAdminPage() {
                           <div>
                             <div className="flex items-center justify-between mb-1">
                               <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[r.circle] || CIRCLE_BADGE[1]}`}>{r.circle}o</span>
-                              {r.source_name && <span className="text-txt-dim/30 text-[8px] truncate ml-1">{r.source_name}</span>}
+                              {(() => {
+                                const reg = getRegenteById(getRegenteId(r))
+                                return reg
+                                  ? <span className={`text-[8px] border rounded-full px-1 py-0.5 ${reg.badge}`}>{reg.shortName}</span>
+                                  : r.source_name ? <span className="text-txt-dim/30 text-[8px] truncate ml-1">{r.source_name}</span> : null
+                              })()}
                             </div>
                             <span className="text-txt-main text-[11px] font-semibold leading-tight line-clamp-2">{r.name}</span>
                             <p className="text-txt-dim/40 text-[9px] line-clamp-2 mt-1">{r.short_description || '—'}</p>
@@ -480,6 +493,15 @@ export default function GrimoireAdminPage() {
                   {inspectedRitual.duration && <div className="text-[10px] font-mono text-sky-300">{inspectedRitual.duration}</div>}
                   {inspectedRitual.range && <div className="text-[10px] font-mono text-txt-dim">{inspectedRitual.range}</div>}
                   {inspectedRitual.source_name && <div className="text-[10px] font-mono text-purple-300/60 border-t border-sep/10 pt-2">{inspectedRitual.source_name}</div>}
+                  {(() => {
+                    const iReg = getRegenteById(getRegenteId(inspectedRitual))
+                    return iReg ? (
+                      <div className="flex items-center gap-1.5 border-t border-sep/10 pt-2">
+                        <span className={`text-[10px] ${iReg.color}`}>{iReg.icon}</span>
+                        <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${iReg.badge}`}>{iReg.shortName}</span>
+                      </div>
+                    ) : null
+                  })()}
                 </div>
               </div>
             )}
@@ -510,6 +532,15 @@ export default function GrimoireAdminPage() {
               {inspectedRitual.duration && <div className="text-[10px] font-mono text-sky-300">{inspectedRitual.duration}</div>}
               {inspectedRitual.range && <div className="text-[10px] font-mono text-txt-dim">{inspectedRitual.range}</div>}
               {inspectedRitual.source_name && <div className="text-[10px] font-mono text-purple-300/60 border-t border-sep/10 pt-2">Fonte: {inspectedRitual.source_name}</div>}
+              {(() => {
+                const dReg = getRegenteById(getRegenteId(inspectedRitual))
+                return dReg ? (
+                  <div className="flex items-center gap-1.5 border-t border-sep/10 pt-2">
+                    <span className={`text-[10px] ${dReg.color}`}>{dReg.icon}</span>
+                    <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${dReg.badge}`}>{dReg.shortName}</span>
+                  </div>
+                ) : null
+              })()}
             </div>
           </div>
         </div>,
@@ -589,7 +620,6 @@ function GrimorioCreateModal({ knowledgeKey, onClose, onSave }) {
   const [description, setDescription] = useState('')
   const [image, setImage] = useState('')
   const [tier, setTier] = useState('iniciante')
-  const [sourceName, setSourceName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -599,8 +629,8 @@ function GrimorioCreateModal({ knowledgeKey, onClose, onSave }) {
     const tierData = GRIMORIO_TIERS.find(t => t.id === tier)
     const payload = {
       id: crypto.randomUUID(), name: name.trim(), description: description.trim(), image: image.trim(),
-      knowledgeKey, tier, maxCircle: tierData?.maxCircle || 2, isPublic: true, sourceKind: sourceName.trim() ? 'limiar' : 'neutro',
-      sourceName: sourceName.trim(), created_at: new Date().toISOString(), rituals: [],
+      knowledgeKey, tier, maxCircle: tierData?.maxCircle || 2, isPublic: true, sourceKind: 'neutro',
+      sourceName: '', created_at: new Date().toISOString(), rituals: [],
     }
     try {
       const { saveGrimorio } = await import('../services/alchemyService')
@@ -618,13 +648,13 @@ function GrimorioCreateModal({ knowledgeKey, onClose, onSave }) {
           <div><span className="home-eyebrow">Coleção</span><h3 className="font-cinzel">Novo Grimório</h3></div>
           <button type="button" onClick={onClose}>×</button>
         </div>
+        <p className="text-txt-dim text-xs mb-4 px-1">O grimório pode conter rituais de qualquer Regente. A escolha do Regente é feita individualmente em cada ritual.</p>
         {error && <p className="grimoire-error">{error}</p>}
         <div className="grimoire-form-grid">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome do Grimório" className="span-2" />
           <select value={tier} onChange={e => setTier(e.target.value)}>
             {GRIMORIO_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} (até {t.maxCircle}o círculo)</option>)}
           </select>
-          <input value={sourceName} onChange={e => setSourceName(e.target.value)} placeholder="Entidade / Fonte (opcional)" className="span-2" />
           <div className="span-2">
             <ImageUploadField value={image} onChange={setImage} uploading={false} onUploadError={() => {}} />
           </div>

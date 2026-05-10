@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { fetchAlchemyRituals } from '../services/alchemyService'
 import { ALCHEMY_CATEGORIES } from '../data/alchemyFallbackRituals'
+import { REGENTES, getRegenteId, getRegenteById, getRegenteAffinity, REGENTE_AFFINITY_TIERS } from '../data/regentes'
 import {
   SPACE_COST_BY_CIRCLE,
   canLearnAlchemyRitual,
@@ -72,6 +73,16 @@ export default function AlchemyLibrarySection({ char, update, compact = false, w
   const profile = getAlchemyProfile(char)
   const spaceUsed = getAlchemySpaceUsed(selectedRituals)
   const spaceRemaining = Math.max(0, profile.spaceBudget - spaceUsed)
+  const regenteAffinities = useMemo(() => getRegenteAffinity(selectedRituals), [selectedRituals])
+  const regenteCounts = useMemo(() => {
+    const counts = {}
+    for (const r of REGENTES) counts[r.id] = { regente: r, count: 0 }
+    for (const ritual of selectedRituals) {
+      const rid = getRegenteId(ritual)
+      if (rid && counts[rid]) counts[rid].count++
+    }
+    return counts
+  }, [selectedRituals])
 
   useEffect(() => {
     let active = true
@@ -165,6 +176,53 @@ export default function AlchemyLibrarySection({ char, update, compact = false, w
         <RuleBadge label="Custos" value="4 / 6 / 10 / 15" tone="gold" />
       </div>
 
+      {regenteAffinities.length > 0 && (
+        <div className="bg-void/60 border border-gold/20 rounded-lg p-3 space-y-2">
+          <div className="text-[11px] uppercase tracking-[0.12em] text-gold font-semibold">Afinidade de Regente</div>
+          <p className="text-txt-dim text-xs">Acumular rituais do mesmo regente concede afinidade e bonus permanentes.</p>
+          {regenteAffinities.map(a => (
+            <div key={a.regentId} className="flex items-center gap-3 bg-gold/5 border border-gold/15 rounded-lg px-3 py-2">
+              <span className={`text-sm ${a.regente.color}`}>{a.regente.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-gold text-xs font-semibold">{a.tier.name}</span>
+                  <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${a.regente.badge}`}>{a.regente.shortName}</span>
+                  <span className="text-txt-dim text-[10px]">{a.ritualCount} rituais</span>
+                </div>
+                <div className="flex gap-3 mt-1 text-[10px]">
+                  <span className="text-amber-300">-{a.tier.peDiscount} PE em rituais deste regente</span>
+                  <span className="text-emerald-300">{a.tier.effectBonus}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedRituals.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-[11px] uppercase tracking-[0.12em] text-txt-dim font-semibold">Contagem por Regente</div>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+            {Object.values(regenteCounts).filter(rc => rc.count > 0).map(rc => {
+              const nextTier = REGENTE_AFFINITY_TIERS.find(t => t.minRituals > rc.count)
+              return (
+                <div key={rc.regente.id} className={`rounded-lg border px-3 py-2 ${rc.regente.badge.replace('text-', 'bg-').split(' ').find(c => c.startsWith('bg-')) || 'bg-void/40'} border-opacity-40`}
+                  style={{ background: 'rgba(0,0,0,0.3)' }}>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs ${rc.regente.color}`}>{rc.regente.icon}</span>
+                    <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${rc.regente.badge}`}>{rc.regente.shortName}</span>
+                  </div>
+                  <div className="text-txt-main text-sm font-semibold mt-1">{rc.count} rituais</div>
+                  {nextTier && (
+                    <div className="text-txt-dim text-[9px] mt-0.5">Próx. afinidade: {nextTier.minRituals - rc.count} rituais</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_280px] gap-3">
         <div className="bg-teal-400/5 border border-teal-400/15 rounded-lg px-3 py-3">
           <div className="text-[11px] uppercase tracking-[0.12em] text-teal-300 font-semibold mb-1">Como seu limite e calculado</div>
@@ -221,8 +279,12 @@ export default function AlchemyLibrarySection({ char, update, compact = false, w
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-txt-main font-semibold text-sm">{ritual.name}</span>
-                          <CircleBadge circle={ritual.circle} />
-                          <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{ritual.category}</span>
+                           <CircleBadge circle={ritual.circle} />
+                           <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{ritual.category}</span>
+                           {(() => {
+                             const r = getRegenteById(getRegenteId(ritual))
+                             return r ? <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${r.badge}`}>{r.shortName}</span> : null
+                           })()}
                         </div>
                         <p className="text-txt-dim text-xs mt-1">{ritual.short_description}</p>
                       </div>
@@ -321,10 +383,14 @@ export default function AlchemyLibrarySection({ char, update, compact = false, w
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-txt-main text-sm font-semibold">{ritual.name}</h4>
-                          <CircleBadge circle={ritual.circle} />
-                          <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{ritual.category}</span>
-                          <SourceChip ritual={ritual} />
+                           <h4 className="text-txt-main text-sm font-semibold">{ritual.name}</h4>
+                            <CircleBadge circle={ritual.circle} />
+                            <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">{ritual.category}</span>
+                            {(() => {
+                              const r = getRegenteById(getRegenteId(ritual))
+                              return r ? <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${r.badge}`}>{r.shortName}</span> : null
+                            })()}
+                            <SourceChip ritual={ritual} />
                         </div>
                         <p className="text-txt-dim text-xs mt-1 leading-relaxed">{ritual.short_description}</p>
                       </div>
@@ -444,6 +510,15 @@ function RitualInspector({ ritual, selected, update, onToggle, char, selectedRit
       <div className="space-y-2 text-xs">
         <MetaLine label="Origem" value={`${SOURCE_LABELS[ritual.source_kind] || ritual.source_kind} • ${ritual.source_name || 'Sem entidade'}`} />
         <MetaLine label="Lei / eixo" value={ritual.law_name || 'Nao informada'} />
+        {(() => {
+          const ir = getRegenteById(getRegenteId(ritual))
+          return ir ? (
+            <div className="flex items-center gap-1.5 pt-1">
+              <span className={`text-xs ${ir.color}`}>{ir.icon}</span>
+              <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${ir.badge}`}>{ir.name}</span>
+            </div>
+          ) : null
+        })()}
       </div>
 
       <div className="bg-void/60 border border-sep/30 rounded-lg p-3">

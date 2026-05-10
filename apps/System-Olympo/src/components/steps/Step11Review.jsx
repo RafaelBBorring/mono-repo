@@ -2273,7 +2273,7 @@ function WeaponMartialPanel({ char, update, canEdit }) {
                         <span className="text-[10px] text-txt-dim/50">({RANK_LEVEL_BAND[char.armaRank] || '?'})</span>
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs">
-                        <span className="text-red-400/90 font-mono">{selectedWeapon.dano}{selectedRank.danoBonus ? `+${selectedRank.danoBonus}` : ''}</span>
+                        <span className="text-red-400/90 font-mono">{selectedWeapon.dano}{selectedRank.danoBonus ? ` ${selectedRank.danoBonus}` : ''}</span>
                         <span className="text-txt-dim/60">{selectedWeapon.attr}</span>
                         <span className="text-sky-400/70">+{selectedRank.caBonus} CA</span>
                         <span className="text-gold/60">{availableSlots} slots</span>
@@ -2571,7 +2571,7 @@ function WeaponMartialPanel({ char, update, canEdit }) {
             <span className={`text-[10px] px-1.5 py-0.5 rounded border ${rc.badge}`}>{char.armaRank}</span>
           </div>
           <div className="flex gap-3 mt-0.5 text-xs">
-            <span className="text-red-400/90 font-mono">{selectedWeapon.dano}{selectedRank.danoBonus ? `+${selectedRank.danoBonus}` : ''}</span>
+             <span className="text-red-400/90 font-mono">{selectedWeapon.dano}{selectedRank.danoBonus ? ` ${selectedRank.danoBonus}` : ''}</span>
             <span className="text-txt-dim/60">{selectedWeapon.attr}</span>
           </div>
         </div>

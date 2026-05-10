@@ -357,7 +357,7 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
       </div>
       <div className="flex-1 min-w-0">
         <span className="text-txt-main text-sm font-semibold truncate block">{displayName || weapon.name}</span>
-        <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{weapon.dano}{rank.danoBonus ? `+${rank.danoBonus}` : ''}</span>
+        <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{weapon.dano}{rank.danoBonus ? ` ${rank.danoBonus}` : ''}</span>
       </div>
     </button>
   )
