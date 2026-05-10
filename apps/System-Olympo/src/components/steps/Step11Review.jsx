@@ -2271,7 +2271,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               {activePreview.dano ? <span className="effect-bonus-pill">Dano {activePreview.dano > 0 ? '+' : ''}{activePreview.dano}</span> : null}
             </div>
           ) : null}
-          {!canEdit ? (
+           {!canEdit ? (
             <>
               {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
                 <div className="text-txt-dim/90 text-sm pt-4 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
@@ -2298,30 +2298,29 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
             </>
           ) : (
             <>
-              <div className="pt-4">
-                <select value={h.status} onChange={e => updateHabilidade(i, { status: e.target.value })}
-                  className={`text-xs bg-void border border-sep/50 rounded px-2 py-1 mb-3 ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>
-                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <input type="text" value={h.nome || ''} onChange={e => updateHabilidade(i, { nome: e.target.value })} placeholder="Nome"
-                  className="w-full bg-void border border-sep/50 rounded px-3 py-2 text-sm text-txt-main mb-2 focus:border-gold/40 focus:outline-none transition-colors" />
-                <AutoResizeTextarea value={h.descricao || ''} onChange={e => updateHabilidade(i, { descricao: e.target.value })} placeholder="Descrição..."
-                  className="w-full bg-void border border-sep/50 rounded px-3 py-2 text-sm text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors leading-relaxed overflow-hidden" />
+              {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
+                <div className="text-txt-dim/90 text-sm pt-4 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
+              ) : (
+                <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+              )}
+              <div className="flex flex-wrap gap-2.5">
+                {h.custoEnergia > 0 && (
+                  <span className="bg-sky-500/10 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-sm font-mono">
+                    ⚡ Energia: {h.custoEnergia}
+                  </span>
+                )}
+                {h.dano && (
+                  <span className="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-sm font-mono">
+                    ⚔ Dano: {h.dano}
+                  </span>
+                )}
+                {h.duracao && (
+                  <span className="bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-sm">
+                    ⏱ Duração: {h.duracao}
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-sky-400 text-xs font-semibold block mb-1">Energia</label>
-                  <input type="number" value={h.custoEnergia || 0} onChange={e => updateHabilidade(i, { custoEnergia: Number(e.target.value) || 0 })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-red-400 text-xs font-semibold block mb-1">Dano</label>
-                  <input type="text" value={h.dano || ''} onChange={e => updateHabilidade(i, { dano: e.target.value })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-amber-400 text-xs font-semibold block mb-1">Duração</label>
-                  <input type="text" value={h.duracao || ''} onChange={e => updateHabilidade(i, { duracao: e.target.value })} className="w-full bg-void border border-sep/50 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
-                </div>
-              </div>
+              <p className="text-txt-dim/30 text-[10px] pt-2">Clique em ✎ para editar</p>
             </>
           )}
         </div>

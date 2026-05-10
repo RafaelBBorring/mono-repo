@@ -22,12 +22,11 @@ function extractTipoBadge(tipo) {
   return key ? TYPE_BADGE[key] : 'text-txt-dim bg-white/5'
 }
 
-function AbilityCard({ ability, original, onApplySingle, onRefine }) {
+function AbilityCard({ ability, original, onApplySingle, onRefine, onGmRequest }) {
   const [showDesc, setShowDesc] = useState(false)
   const [gmDialogOpen, setGmDialogOpen] = useState(false)
   const [gmNote, setGmNote] = useState('')
   const [gmLoading, setGmLoading] = useState(false)
-  const [gmResult, setGmResult] = useState(null)
   const { isAdmin } = useAuth()
   const changed =
     ability.custoEnergia !== (original?.custoEnergia || 0) ||
@@ -35,7 +34,6 @@ function AbilityCard({ ability, original, onApplySingle, onRefine }) {
     ability.duracao !== (original?.duracao || '')
   const descChanged = ability.descricaoBalanceada && ability.descricaoBalanceada !== (original?.descricao || ability.descricao)
   const isIrbalanceavel = ability.status === 'irbalanceavel'
-  const activeAbility = gmResult || ability
 
   async function handleGmSubmit() {
     if (!gmNote.trim()) return
@@ -43,29 +41,18 @@ function AbilityCard({ ability, original, onApplySingle, onRefine }) {
     try {
       const tipo = original?.tipo || ability.tipo || ''
       const nome = ability.nome || 'habilidade'
-      const resp = await chatAboutAbility(
-        { ...window.__oracleChar, _gmOverride: true },
-        `[DESEJO DO MESTRE — Prioridade elevada] Sobre a ${tipo} "${nome}":\n${gmNote}\n\nRetorne OBRIGATORIAMENTE um JSON com: { "custoEnergia": numero, "dano": "string", "duracao": "string", "descricaoBalanceada": "texto ajustado", "feedback": "explicação" }. Se a alteração é plausível, aplique. Se prejudica o jogador injustamente, sugira alternativa.`
-      )
-      try {
-        const cleaned = resp.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-        const parsed = JSON.parse(cleaned)
-        if (parsed.custoEnergia !== undefined || parsed.descricaoBalanceada) {
-          setGmResult({ ...ability, ...parsed })
-        }
-      } catch {
-        setGmResult({ ...ability, _gmResponse: resp })
-      }
-    } catch (err) {
-      setGmResult({ ...ability, _gmError: err.message })
+      await onGmRequest?.({
+        ability,
+        original,
+        gmNote,
+        tipo,
+        nome,
+      })
     } finally {
       setGmLoading(false)
+      setGmDialogOpen(false)
+      setGmNote('')
     }
-  }
-
-  function applyFinal() {
-    const toApply = gmResult || ability
-    onApplySingle?.(toApply)
   }
 
   return (
@@ -168,7 +155,7 @@ function AbilityCard({ ability, original, onApplySingle, onRefine }) {
               </button>
             )}
           </div>
-          {isAdmin && gmDialogOpen && !gmResult && (
+          {isAdmin && gmDialogOpen && (
             <div className="bg-void/50 border border-amber-400/15 rounded-lg p-3 space-y-2.5">
               <label className="text-[10px] text-amber-400/70 uppercase tracking-wider block">O que deseja ajustar?</label>
               <textarea
@@ -184,40 +171,7 @@ function AbilityCard({ ability, original, onApplySingle, onRefine }) {
               </button>
             </div>
           )}
-          {gmResult && (
-            <div className="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3 space-y-2.5">
-              <span className="text-[10px] text-amber-400/70 uppercase tracking-wider block">Resultado do Ajuste do Mestre</span>
-              {gmResult.feedback && (
-                <p className="text-txt-main text-[11px] leading-relaxed whitespace-pre-wrap">{gmResult.feedback}</p>
-              )}
-              {gmResult._gmResponse && (
-                <p className="text-txt-main text-[11px] leading-relaxed whitespace-pre-wrap">{gmResult._gmResponse}</p>
-              )}
-              {gmResult._gmError && (
-                <p className="text-red-400 text-[11px]">{gmResult._gmError}</p>
-              )}
-              {(gmResult.custoEnergia !== undefined || gmResult.descricaoBalanceada) && (
-                <div className="grid grid-cols-3 gap-2 text-[11px]">
-                  {gmResult.custoEnergia !== undefined && (
-                    <div><span className="text-txt-dim/50 text-[10px] uppercase block">Energia</span><span className="text-amber-300 font-semibold">{gmResult.custoEnergia}</span></div>
-                  )}
-                  {gmResult.dano && (
-                    <div><span className="text-txt-dim/50 text-[10px] uppercase block">Dano</span><span className="text-amber-300 font-semibold">{gmResult.dano}</span></div>
-                  )}
-                  {gmResult.duracao && (
-                    <div><span className="text-txt-dim/50 text-[10px] uppercase block">Duração</span><span className="text-amber-300 font-semibold">{gmResult.duracao}</span></div>
-                  )}
-                </div>
-              )}
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setGmResult(null); setGmNote('') }}
-                  className="text-[10px] px-2 py-1 rounded border border-sep/20 text-txt-dim/50 hover:text-txt-dim transition-colors">
-                  Refazer
-                </button>
-              </div>
-            </div>
-          )}
-          <button onClick={applyFinal}
+          <button onClick={() => onApplySingle?.(ability)}
             className="text-[11px] text-gold/70 hover:text-gold border border-gold/20 hover:border-gold/40 px-3 py-1 rounded-lg transition-colors">
             Aplicar esta
           </button>
@@ -307,7 +261,7 @@ function RefinementCard({ parsedAbility, originalAbility, onApplySingle }) {
   )
 }
 
-function MessageBubble({ msg, char, onApplySingle, onRefine }) {
+function MessageBubble({ msg, char, onApplySingle, onRefine, onGmRequest }) {
   if (msg.role === 'system') {
     return (
       <div className="flex justify-center">
@@ -333,7 +287,7 @@ function MessageBubble({ msg, char, onApplySingle, onRefine }) {
           {msg.type === 'analysis' && msg.data && (
             <div className="space-y-2">
               {(msg.data.habilidades || []).map((h, i) => (
-                <AbilityCard key={`h${i}`} ability={h} original={char?.habilidades?.[h.index]} onApplySingle={onApplySingle} onRefine={onRefine} />
+                <AbilityCard key={`h${i}`} ability={h} original={char?.habilidades?.[h.index]} onApplySingle={onApplySingle} onRefine={onRefine} onGmRequest={onGmRequest} />
               ))}
               {(msg.data.armaHabilidades || []).map((h, i) => (
                 <WeaponAbilityCard key={`w${i}`} ability={h} />
@@ -427,6 +381,56 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
     const nome = ability.nome || 'habilidade'
     setInput(`Sobre a ${tipo} "${nome}": `)
     setTimeout(() => inputRef.current?.focus(), 100)
+  }
+
+  async function handleGmRequest({ ability, original, gmNote, tipo, nome }) {
+    setLoading(true)
+    addMessage({
+      role: 'user',
+      content: `[Ajuste do Mestre] Sobre a ${tipo} "${nome}":\n${gmNote}`,
+    })
+    addMessage({ role: 'system', content: 'Oráculo avaliando pedido do mestre...' })
+
+    try {
+      const resp = await chatAboutAbility(
+        char,
+        `[DESEJO DO MESTRE — Prioridade elevada] Sobre a ${tipo} "${nome}":\n${gmNote}\n\nRetorne OBRIGATORIAMENTE um JSON com: { "custoEnergia": numero, "dano": "string", "duracao": "string", "descricaoBalanceada": "texto ajustado", "feedback": "explicação" }. Se a alteração é plausível, aplique. Se prejudica o jogador injustamente, sugira alternativa.`,
+        messages.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6)
+      )
+      const adjusted = { ...ability }
+      let feedbackText = ''
+      let parsed = null
+      try {
+        const cleaned = resp.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        parsed = JSON.parse(cleaned)
+        if (parsed.custoEnergia !== undefined || parsed.descricaoBalanceada) {
+          if (parsed.custoEnergia !== undefined) adjusted.custoEnergia = parsed.custoEnergia
+          if (parsed.dano !== undefined) adjusted.dano = parsed.dano
+          if (parsed.duracao !== undefined) adjusted.duracao = parsed.duracao
+          if (parsed.descricaoBalanceada) adjusted.descricaoBalanceada = parsed.descricaoBalanceada
+          if (parsed.feedback) feedbackText = parsed.feedback
+        }
+      } catch {
+        feedbackText = resp
+      }
+
+      const gmData = {
+        habilidades: [adjusted],
+        armaHabilidades: [],
+      }
+      setLastResult(prev => prev ? { ...prev, habilidades: [...(prev.habilidades || []), adjusted] } : gmData)
+
+      addMessage({
+        role: 'assistant',
+        content: feedbackText ? `💡 ${feedbackText}` : 'Ajuste do mestre avaliado. Revise o card abaixo.',
+        type: 'analysis',
+        data: gmData,
+      })
+    } catch (err) {
+      addMessage({ role: 'assistant', content: `Erro ao processar ajuste: ${err.message}` })
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function runAnalysis(userMessage) {
@@ -605,7 +609,7 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
 
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-void/30 via-deep/10 to-void/30">
               {messages.map(msg => (
-                <MessageBubble key={msg.id} msg={msg} char={char} onApplySingle={handleApplySingle} onRefine={handleRefine} />
+                <MessageBubble key={msg.id} msg={msg} char={char} onApplySingle={handleApplySingle} onRefine={handleRefine} onGmRequest={handleGmRequest} />
               ))}
               {loading && <LoadingDots />}
               <div ref={chatEndRef} />
