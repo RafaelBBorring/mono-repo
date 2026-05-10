@@ -29,6 +29,7 @@ import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, 
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS, GRIMORIO_TYPE_ICONS } from '../../data/grimorios'
 import { DEFAULT_GRIMORIOS, PUBLIC_GRIMORIOS } from '../../data/publicGrimorios'
 import { ENTIDADES_OUTRO_LADO } from '../../data/entidades'
+import { getRegenteId, getRegenteById, getRegenteAffinity, REGENTES as REGENTE_DEFS } from '../../data/regentes'
 import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyzeMagicDraft } from '../../services/aiService'
 import { calcEquipStats } from '../../data/equipment'
 import { uploadGrimorioImage } from '../../services/uploadService'
@@ -988,6 +989,26 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
         </div>
       )}
 
+      {(() => {
+        const affinities = getRegenteAffinity(allItems)
+        if (affinities.length === 0) return null
+        return (
+          <div className="mx-4 mb-3 bg-gold/5 border border-gold/15 rounded-lg p-2.5 space-y-1.5">
+            <div className="text-[10px] uppercase tracking-[0.1em] text-gold font-semibold">Afinidade de Regente</div>
+            {affinities.map(a => (
+              <div key={a.regentId} className="flex items-center gap-2">
+                <span className={`text-xs ${a.regente.color}`}>{a.regente.icon}</span>
+                <span className="text-gold text-[10px] font-semibold">{a.tier.name}</span>
+                <span className={`text-[9px] border rounded-full px-1 py-0.5 ${a.regente.badge}`}>{a.regente.shortName}</span>
+                <span className="text-txt-dim text-[9px]">{a.ritualCount} rituais</span>
+                <span className="text-amber-300 text-[9px]">-{a.tier.peDiscount} PE</span>
+                <span className="text-emerald-300 text-[9px]">{a.tier.effectBonus}</span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-4 pb-4">
         {grimorios.map(grimorio => {
           const rituals = getRitualsForGrimorio(grimorio)
@@ -1041,11 +1062,14 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
               <button type="button" onClick={() => setGrimorioViewId(null)} className="text-txt-dim hover:text-txt-main text-xs">×</button>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
-              {rituals.map(ritual => (
-                <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
-                  className={`relative rounded-lg border flex flex-col items-center justify-between p-2 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
+              {rituals.map(ritual => {
+                    const ritualRegent = getRegenteById(getRegenteId(ritual))
+                    return (
+                  <button key={ritual.id} type="button" onClick={() => openSidebar(ritual.id)}
+                    className={`relative rounded-lg border flex flex-col items-center justify-between p-2 text-left transition-all duration-200 hover:scale-[1.04] active:scale-[0.97] ${CIRCLE_BG[ritual.circle] || CIRCLE_BG[1]}`}>
                   <div className="w-full flex items-start justify-between">
                     <span className={`text-[9px] border rounded-full px-1 py-0.5 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
+                    {ritualRegent && <span className={`text-[7px] border rounded-full px-1 py-0.5 ${ritualRegent.badge}`}>{ritualRegent.shortName}</span>}
                     {update && (
                       <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); removeRitual(ritual) }}
                         className="text-err/30 hover:text-err text-[10px] leading-none">×</span>
@@ -1057,7 +1081,8 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
                     {usesEnergia && <span className="text-sky-300 text-[9px] font-mono">⚡</span>}
                   </div>
                 </button>
-              ))}
+                    )
+                  })}
               {update && !isFull && (
                 <button type="button" onClick={() => onOpenPicker(viewingGrimorio.id)}
                   className="rounded-lg border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center min-h-[80px] transition-all hover:bg-white/[0.02] active:scale-[0.97]">
@@ -1096,7 +1121,8 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
                     <button type="button" onClick={() => setActiveRitualId(isActive ? null : ritual.id)}
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all duration-150 hover:brightness-110">
                       <span className={`text-[9px] border rounded-full px-1.5 py-0.5 shrink-0 ${CIRCLE_BADGE[ritual.circle] || CIRCLE_BADGE[1]}`}>{ritual.circle}o</span>
-                      <span className="text-txt-main text-xs font-semibold truncate flex-1">{ritual.name}</span>
+                       <span className="text-txt-main text-xs font-semibold truncate flex-1">{ritual.name}</span>
+                       {(() => { const lr = getRegenteById(getRegenteId(ritual)); return lr ? <span className={`text-[8px] border rounded-full px-1 py-0.5 ${lr.badge}`}>{lr.shortName}</span> : null })()}
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-amber-300 text-[10px] font-mono">{ritual.pe_cost || 0} PE</span>
                         {usesEnergia && <span className="text-sky-300 text-[10px] font-mono">⚡</span>}
@@ -1114,7 +1140,11 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
                           {ritual.category && <span className="text-txt-dim">{ritual.category}</span>}
                           {ritual.duration && <span className="text-sky-300">{ritual.duration}</span>}
                           {ritual.action_cost && <span className="text-purple-300">{ritual.action_cost}</span>}
-                          {ritual.regent && <span className="text-emerald-400/70">{ENTIDADES_OUTRO_LADO.find(e => e.id === ritual.regent)?.name || ritual.regent}</span>}
+                          {(() => {
+                            const sr = getRegenteById(getRegenteId(ritual))
+                            return sr ? <span className={`text-[10px] border rounded-full px-1.5 py-0.5 ${sr.badge}`}>{sr.icon} {sr.shortName}</span> : null
+                          })()}
+                          {ritual.regent && !getRegenteById(getRegenteId(ritual)) && <span className="text-emerald-400/70">{ENTIDADES_OUTRO_LADO.find(e => e.id === ritual.regent)?.name || ritual.regent}</span>}
                         </div>
                         {update && (
                           <button type="button" onClick={() => removeRitual(ritual)}
