@@ -28,6 +28,14 @@ export function getGrimorioAccessTier(char, knowledgeKey) {
   return null
 }
 
+export function getMaxGrimorios(char, knowledgeKey) {
+  const tier = getGrimorioAccessTier(char, knowledgeKey)
+  if (!tier) return 0
+  if (tier === 'mestre') return 3
+  if (tier === 'avancado') return 2
+  return 1
+}
+
 export function getMaxCustomRituals(char, knowledgeKey) {
   const tier = getGrimorioAccessTier(char, knowledgeKey)
   if (!tier) return 0

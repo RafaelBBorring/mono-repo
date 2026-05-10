@@ -25,7 +25,7 @@ import { getSpellProfile, canLearnSpell } from '../../utils/spellRules'
 import { getRuneProfile, canLearnRune } from '../../utils/runeRules'
 import { getMagicProfile, canLearnMagic } from '../../utils/magicRules'
 import { getAlchemyProfile, canLearnAlchemyRitual } from '../../utils/alchemyRules'
-import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getMaxCreationShots, getScoreForDisplay, getGrimorioMaxRituals, getGrimorioMaxCircle, canAddRitualToGrimorio, canCreateRitualAtCircle, getAvailableCirclesForChar } from '../../utils/grimorioRules'
+import { getGrimorioAccessTier, getAvailableGrimorioTiers, getMaxCustomRituals, getMaxCreationShots, getMaxGrimorios, getScoreForDisplay, getGrimorioMaxRituals, getGrimorioMaxCircle, canAddRitualToGrimorio, canCreateRitualAtCircle, getAvailableCirclesForChar } from '../../utils/grimorioRules'
 import { GRIMORIO_TIERS, GRIMORIO_TYPE_LABELS, GRIMORIO_TYPE_ICONS } from '../../data/grimorios'
 import { DEFAULT_GRIMORIOS, PUBLIC_GRIMORIOS } from '../../data/publicGrimorios'
 import { ENTIDADES_OUTRO_LADO } from '../../data/entidades'
@@ -1016,33 +1016,40 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
           const maxRituals = grimorio.isPublic ? (grimorio.rituals?.length || 0) : getGrimorioMaxRituals(grimorio)
           const isFull = rituals.length >= maxRituals && maxRituals > 0
           return (
-            <button key={grimorio.id} type="button" onClick={() => setGrimorioViewId(grimorio.id === grimorioViewId ? null : grimorio.id)}
-              className={`relative rounded-xl overflow-hidden aspect-[3/4] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] border ${
+            <div key={grimorio.id} className={`relative rounded-xl overflow-hidden aspect-[3/4] transition-all duration-200 border ${
                 grimorio.isPublic ? 'border-gold/15 hover:border-gold/35' : 'border-sep/20 hover:border-sep/40'
               }`}>
               {grimorio.isPublic && <span className="absolute top-2 right-2 text-[7px] text-gold/50 font-mono bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5 z-10">PUBLICO</span>}
-              {grimorio.image ? (
-                <img src={grimorio.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              ) : (
-                <div className="absolute inset-0 bg-void/80 flex items-center justify-center">
-                  <span className="text-6xl opacity-15">{card.icon}</span>
-                </div>
+              {!grimorio.isPublic && update && (
+                <button type="button" onClick={e => { e.stopPropagation(); onOpenGrimorioPicker() }}
+                  className="absolute top-2 left-2 z-10 w-6 h-6 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold/40 transition-colors text-xs">✎</button>
               )}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-10 pb-3 px-3">
-                <span className="text-white text-[11px] font-semibold leading-tight block drop-shadow-lg">{grimorio.name}</span>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-white/45 text-[9px]">{tier?.name || 'Autoral'}</span>
-                  <span className={`text-[9px] font-mono ${isFull ? 'text-amber-300' : 'text-amber-300/60'}`}>{rituals.length}/{maxRituals || '—'}</span>
+              <button type="button" onClick={() => setGrimorioViewId(grimorio.id === grimorioViewId ? null : grimorio.id)}
+                className="w-full h-full text-left hover:scale-[1.02] active:scale-[0.98] transition-transform">
+                {grimorio.image ? (
+                  <img src={grimorio.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-void/80 flex items-center justify-center">
+                    <span className="text-6xl opacity-15">{card.icon}</span>
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent pt-10 pb-3 px-3">
+                  <span className="text-white text-[11px] font-semibold leading-tight block drop-shadow-lg">{grimorio.name}</span>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-white/45 text-[9px]">{tier?.name || 'Autoral'}</span>
+                    <span className={`text-[9px] font-mono ${isFull ? 'text-amber-300' : 'text-amber-300/60'}`}>{rituals.length}/{maxRituals || '—'}</span>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            </div>
           )
         })}
 
         {update && accessTier && (
           <button type="button" onClick={onOpenGrimorioPicker}
-            className="rounded-xl border-2 border-dashed border-sep/15 hover:border-sep/30 flex items-center justify-center aspect-[3/4] transition-all duration-200 hover:bg-white/[0.02] active:scale-[0.98]">
-            <span className="text-txt-dim/25 text-2xl">+</span>
+            className="rounded-xl border-2 border-dashed border-sep/15 hover:border-gold/25 flex flex-col items-center justify-center aspect-[3/4] transition-all duration-200 hover:bg-gold/[0.03] active:scale-[0.98] gap-1">
+            <span className="text-gold/40 text-lg">⚙</span>
+            <span className="text-txt-dim/40 text-[9px]">Gerenciar</span>
           </button>
         )}
       </div>
@@ -1687,6 +1694,8 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
   const accessTier = getGrimorioAccessTier(char, card.key)
   const existingGrimorios = (char.grimorios || []).filter(g => g.knowledgeKey === card.key)
   const allRituals = char[card.field] || []
+  const maxGrimorios = getMaxGrimorios(char, card.key)
+  const grimoriosLeft = Math.max(0, maxGrimorios - existingGrimorios.length)
 
   const [mode, setMode] = useState('list')
   const [name, setName] = useState('Grimório em Branco')
@@ -1767,7 +1776,7 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
           {mode === 'list' && (
             <>
               <div>
-                <h4 className="text-txt-dim text-xs font-semibold uppercase tracking-wider mb-3">Grimórios Atuais</h4>
+                <h4 className="text-txt-dim text-xs font-semibold uppercase tracking-wider mb-3">Grimórios Atuais <span className="text-gold/60 font-mono">{existingGrimorios.length}/{maxGrimorios}</span></h4>
                 {existingGrimorios.length === 0 ? (
                   <p className="text-txt-dim/40 text-xs italic">Nenhum grimório criado.</p>
                 ) : (
@@ -1801,11 +1810,14 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                   </div>
                 )}
               </div>
-              {update && availableTiers.length > 0 && (
+              {update && availableTiers.length > 0 && grimoriosLeft > 0 && (
                 <button type="button" onClick={() => { setMode('create'); setName('Grimório em Branco'); setImageUrl('') }}
                   className="w-full py-2.5 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
-                  + Criar Novo Grimório
+                  + Criar Novo Grimório ({grimoriosLeft} restante{grimoriosLeft !== 1 ? 's' : ''})
                 </button>
+              )}
+              {existingGrimorios.length > 0 && existingGrimorios.length >= maxGrimorios && (
+                <p className="text-txt-dim/40 text-[10px] text-center italic">Limite de {maxGrimorios} grimório{maxGrimorios !== 1 ? 's' : ''} atingido</p>
               )}
             </>
           )}
