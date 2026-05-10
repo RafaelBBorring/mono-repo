@@ -307,12 +307,13 @@ function computeCharStats(char) {
 
 function buildCrossClassContext(nivel) {
   const refAttrs = { FOR: 10, DES: 14, CON: 14, INT: 12, APA: 10, AM: 16 }
+  const sk = {}
+  const choices = {}
   const results = {}
-  for (const cls of CLASSES) {
-    const c = { classe: cls.id, nivel, atributos: { ...refAttrs }, skeletonPoints: {}, progressionRewards: {}, raca: 'Humano', racaTipo: 'humanoide', choices: {}, triagens: [], modulosAdquiridos: [], pericias: {} }
-    const hp = calcVidaTotal(c.classe, c.nivel, refAttrs.CON, c.skeletonPoints, c.progressionRewards, c.racaTipo, cls.id)
-    const en = calcEnergiaTotal(c.classe, c.nivel, refAttrs.AM, c.skeletonPoints, c.progressionRewards, c.triagens)
-    results[cls.id] = { hp, energia: en }
+  for (const [id, cls] of Object.entries(CLASSES)) {
+    const hp = calcVidaTotal(id, nivel, refAttrs, sk, choices, null, 0, null)
+    const en = calcEnergiaTotal(id, nivel, refAttrs, sk, choices, null, 0, null, 0, null)
+    results[id] = { hp, energia: en, name: cls.name }
   }
   return results
 }
@@ -438,10 +439,10 @@ Perícias: ${Object.entries(char.pericias || {}).filter(([,v]) => v > 0).map(([k
 
 ═══ REFERÊNCIA CROSS-CLASS (Nível ${stats.nivel}) ═══
 Use estes valores como âncora para julgar se danos/bônus são excessivos:
-${(() => { const cc = buildCrossClassContext(stats.nivel); return CLASSES.map(c => `${c.id}: HP~${cc[c.id].hp} | Energia~${cc[c.id].energia}`).join('\n') })()}
+${(() => { const cc = buildCrossClassContext(stats.nivel); return Object.entries(cc).map(([, c]) => `${c.name}: HP~${c.hp} | Energia~${c.energia}`).join('\n') })()}
 
 ═══ ANÁLISE DE IMPACTO ═══
-- Se uma habilidade causa dano > ${Math.round((() => { const cc = buildCrossClassContext(stats.nivel); return cc.Guerreiro.hp * 0.4 })())} (40% HP Guerreiro), REQUER limitações severas.
+- Se uma habilidade causa dano > ${Math.round((() => { const cc = buildCrossClassContext(stats.nivel); return (cc.GUERREIRO?.hp || 600) * 0.4 })())} (40% HP Guerreiro), REQUER limitações severas.
 - Energia Total do personagem: ${stats.energiaTotal}. Custo de ${Math.round(stats.energiaTotal * 0.4)}E = 40% da energia total.
 
 VALORES BASE PARA CÁLCULO LCP:

@@ -28,74 +28,95 @@ function AbilityCard({ ability, original, onApplySingle }) {
     ability.dano !== (original?.dano || '') ||
     ability.duracao !== (original?.duracao || '')
   const descChanged = ability.descricaoBalanceada && ability.descricaoBalanceada !== (original?.descricao || ability.descricao)
+  const isIrbalanceavel = ability.status === 'irbalanceavel'
 
   return (
-    <div className="bg-void/60 border border-sep/30 rounded-lg p-3 space-y-2">
+    <div className={`rounded-xl p-4 space-y-3 ${isIrbalanceavel ? 'bg-red-500/5 border-2 border-red-400/30' : 'bg-void/60 border border-sep/30'}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-txt-main text-xs font-semibold">{ability.nome}</span>
-        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${extractTipoBadge(original?.tipo || ability.tipo)}`}>
+        <span className="text-txt-main text-sm font-semibold">{ability.nome}</span>
+        <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${extractTipoBadge(original?.tipo || ability.tipo)}`}>
           {original?.tipo || ability.tipo || '?'}
         </span>
         {(original?.evolucaoNivel || 0) > 0 && (
-          <span className="text-[9px] bg-gold/10 text-gold px-1.5 py-0.5 rounded">★ Evo {original.evolucaoNivel}</span>
+          <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded">★ Evo {original.evolucaoNivel}</span>
         )}
-        {(changed || descChanged) && (
-          <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded ml-auto">balanceado</span>
+        {isIrbalanceavel && (
+          <span className="text-[10px] bg-red-500/15 text-red-400 px-2 py-0.5 rounded font-semibold ml-auto">IRBALANCEÁVEL</span>
+        )}
+        {!isIrbalanceavel && (changed || descChanged) && (
+          <span className="text-[10px] bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded ml-auto">balanceado</span>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-2 text-[10px]">
-        <div className="space-y-0.5">
-          <span className="text-txt-dim/60 block">Energia</span>
-          <div className="flex items-center gap-1">
-            <span className="text-txt-dim/50">{original?.custoEnergia || 0}</span>
-            <span className="text-txt-dim/30">→</span>
-            <span className={changed ? 'text-amber-300 font-medium' : 'text-txt-main'}>{ability.custoEnergia || 0}</span>
+
+      {isIrbalanceavel ? (
+        <div className="bg-red-500/8 border border-red-400/20 rounded-lg p-3 space-y-2">
+          <p className="text-red-300 text-xs font-semibold">Esta habilidade não pode ser balanceada mantendo o conceito original.</p>
+          {ability.feedback && (
+            <p className="text-txt-dim/80 text-[11px] leading-relaxed">{ability.feedback}</p>
+          )}
+          <div className="bg-void/40 border border-sep/20 rounded-lg p-2.5">
+            <span className="text-[10px] text-gold/60 uppercase tracking-wider block mb-1">Descrição original (referência para reescrita)</span>
+            <p className="text-txt-dim/60 text-[11px] leading-relaxed line-clamp-3">{original?.descricao || ability.descricao}</p>
           </div>
+          <p className="text-amber-300/70 text-[11px]">💡 Reescreva a habilidade com conceito mais específico ou restrito, depois analise novamente.</p>
         </div>
-        <div className="space-y-0.5">
-          <span className="text-txt-dim/60 block">Dano</span>
-          <div className="flex items-center gap-1">
-            <span className="text-txt-dim/50 truncate max-w-[60px]">{original?.dano || '—'}</span>
-            <span className="text-txt-dim/30">→</span>
-            <span className={changed ? 'text-amber-300 font-medium truncate max-w-[60px]' : 'text-txt-main truncate max-w-[60px]'}>{ability.dano || '—'}</span>
-          </div>
-        </div>
-        <div className="space-y-0.5">
-          <span className="text-txt-dim/60 block">Duração</span>
-          <div className="flex items-center gap-1">
-            <span className="text-txt-dim/50 truncate max-w-[60px]">{original?.duracao || '—'}</span>
-            <span className="text-txt-dim/30">→</span>
-            <span className={changed ? 'text-amber-300 font-medium truncate max-w-[60px]' : 'text-txt-main truncate max-w-[60px]'}>{ability.duracao || '—'}</span>
-          </div>
-        </div>
-      </div>
-      {descChanged && (
-        <div className="space-y-1">
-          <button onClick={() => setShowDesc(v => !v)}
-            className="text-[10px] text-amber-400/70 hover:text-amber-400 flex items-center gap-1 transition-colors">
-            <span className={`transition-transform ${showDesc ? 'rotate-90' : ''}`}>▸</span>
-            Descrição balanceada (valores numéricos ajustados)
-          </button>
-          {showDesc && (
-            <div className="space-y-1.5 pl-2">
-              <div className="bg-red-400/5 border border-red-400/10 rounded p-2">
-                <span className="text-[9px] text-red-400/50 block mb-1">Original</span>
-                <p className="text-txt-dim/60 text-[10px] leading-relaxed whitespace-pre-wrap line-through decoration-red-400/30">{original?.descricao || ability.descricao}</p>
-              </div>
-              <div className="bg-emerald-400/5 border border-emerald-400/10 rounded p-2">
-                <span className="text-[9px] text-emerald-400/50 block mb-1">Balanceado</span>
-                <p className="text-txt-main text-[10px] leading-relaxed whitespace-pre-wrap">{ability.descricaoBalanceada}</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-3 text-[11px]">
+            <div className="space-y-1">
+              <span className="text-txt-dim/50 block text-[10px] uppercase">Energia</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-txt-dim/40">{original?.custoEnergia || 0}</span>
+                <span className="text-txt-dim/25">→</span>
+                <span className={`${changed ? 'text-amber-300 font-semibold' : 'text-txt-main'}`}>{ability.custoEnergia || 0}</span>
               </div>
             </div>
+            <div className="space-y-1">
+              <span className="text-txt-dim/50 block text-[10px] uppercase">Dano</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-txt-dim/40 truncate">{original?.dano || '—'}</span>
+                <span className="text-txt-dim/25">→</span>
+                <span className={`${changed ? 'text-amber-300 font-semibold' : 'text-txt-main'} truncate`}>{ability.dano || '—'}</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <span className="text-txt-dim/50 block text-[10px] uppercase">Duração</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-txt-dim/40 truncate">{original?.duracao || '—'}</span>
+                <span className="text-txt-dim/25">→</span>
+                <span className={`${changed ? 'text-amber-300 font-semibold' : 'text-txt-main'} truncate`}>{ability.duracao || '—'}</span>
+              </div>
+            </div>
+          </div>
+          {descChanged && (
+            <div className="space-y-1.5">
+              <button onClick={() => setShowDesc(v => !v)}
+                className="text-[11px] text-amber-400/70 hover:text-amber-400 flex items-center gap-1 transition-colors">
+                <span className={`transition-transform ${showDesc ? 'rotate-90' : ''}`}>▸</span>
+                Descrição balanceada
+              </button>
+              {showDesc && (
+                <div className="space-y-2 pl-1">
+                  <div className="bg-red-400/5 border border-red-400/10 rounded-lg p-3">
+                    <span className="text-[10px] text-red-400/40 block mb-1">Original</span>
+                    <p className="text-txt-dim/50 text-[11px] leading-relaxed whitespace-pre-wrap line-through decoration-red-400/20">{original?.descricao || ability.descricao}</p>
+                  </div>
+                  <div className="bg-emerald-400/5 border border-emerald-400/10 rounded-lg p-3">
+                    <span className="text-[10px] text-emerald-400/40 block mb-1">Balanceado</span>
+                    <p className="text-txt-main text-[11px] leading-relaxed whitespace-pre-wrap">{ability.descricaoBalanceada}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-        </div>
+          {ability.feedback && (
+            <p className="text-gold/50 text-[11px] italic leading-relaxed">💡 {ability.feedback}</p>
+          )}
+        </>
       )}
-      {ability.feedback && (
-        <p className="text-gold/50 text-[9px] italic leading-relaxed">💡 {ability.feedback}</p>
-      )}
-      {onApplySingle && (
+      {onApplySingle && !isIrbalanceavel && (
         <button onClick={() => onApplySingle(ability)}
-          className="text-[10px] text-gold/70 hover:text-gold border border-gold/20 hover:border-gold/40 px-2 py-0.5 rounded transition-colors">
+          className="text-[11px] text-gold/70 hover:text-gold border border-gold/20 hover:border-gold/40 px-3 py-1 rounded-lg transition-colors">
           Aplicar esta
         </button>
       )}
@@ -138,9 +159,9 @@ function MessageBubble({ msg, char, onApplySingle }) {
           O
         </div>
         <div className="space-y-2 min-w-0 flex-1">
-          <div className="bg-deep/80 border border-gold/15 rounded-lg rounded-tl-sm p-3.5 backdrop-blur-sm">
+          <div className="bg-deep/80 border border-gold/15 rounded-lg rounded-tl-sm p-4 backdrop-blur-sm">
             {msg.content && (
-              <p className="text-txt-main text-xs leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              <p className="text-txt-main text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             )}
           </div>
           {msg.type === 'analysis' && msg.data && (
@@ -160,8 +181,8 @@ function MessageBubble({ msg, char, onApplySingle }) {
 
   return (
     <div className="flex justify-end">
-      <div className="bg-void/70 border border-sep/20 rounded-lg rounded-tr-sm p-3.5 max-w-[85%] backdrop-blur-sm">
-        <p className="text-txt-dim text-xs leading-relaxed">{msg.content}</p>
+      <div className="bg-void/70 border border-sep/20 rounded-lg rounded-tr-sm p-4 max-w-[85%] backdrop-blur-sm">
+        <p className="text-txt-dim text-[13px] leading-relaxed">{msg.content}</p>
       </div>
     </div>
   )
@@ -340,14 +361,14 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex justify-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm drawer-overlay" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-md h-full bg-deep/98 border-l border-gold/20 shadow-2xl shadow-black/50 flex flex-col drawer-panel">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gold/15 bg-gradient-to-r from-void/80 via-deep/90 to-void/80">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/25 to-amber-600/15 border border-gold/30 flex items-center justify-center text-gold text-sm font-cinzel font-bold">
+          <div className="relative w-full max-w-lg h-full bg-deep/98 border-l border-gold/20 shadow-2xl shadow-black/50 flex flex-col drawer-panel">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gold/15 bg-gradient-to-r from-void/80 via-deep/90 to-void/80">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/25 to-amber-600/15 border border-gold/30 flex items-center justify-center text-gold text-base font-cinzel font-bold">
                 O
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-gold text-sm font-cinzel font-semibold">Oráculo</h3>
-                <p className="text-txt-dim/50 text-[10px]">Motor de Balanceamento</p>
+                <p className="text-txt-dim/50 text-[11px]">Motor de Balanceamento</p>
               </div>
               <button onClick={() => setOpen(false)}
                 className="text-txt-dim/40 hover:text-txt-dim text-lg px-2 transition-colors">
@@ -355,7 +376,7 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
               </button>
             </div>
 
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-gradient-to-b from-void/30 via-deep/10 to-void/30">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-void/30 via-deep/10 to-void/30">
               {messages.map(msg => (
                 <MessageBubble key={msg.id} msg={msg} char={char} onApplySingle={handleApplySingle} />
               ))}
@@ -369,7 +390,7 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
                   key={action.id}
                   onClick={() => handleQuickAction(action)}
                   disabled={loading || (action.requiresResult && !lastResult)}
-                  className="text-[10px] bg-gold/8 border border-gold/15 text-gold/70 hover:text-gold hover:border-gold/35 px-2.5 py-1 rounded-md transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                  className="text-[11px] bg-gold/8 border border-gold/15 text-gold/70 hover:text-gold hover:border-gold/35 px-3 py-1.5 rounded-md transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
                 >
                   {action.icon} {action.label}
                 </button>
@@ -386,7 +407,7 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
                   onKeyDown={handleKeyDown}
                   placeholder="Pergunte ou solicite análise..."
                   disabled={loading}
-                  className="flex-1 bg-void/60 border border-sep/25 rounded-lg px-3.5 py-2.5 text-xs text-txt-main placeholder:text-txt-dim/25 focus:border-gold/30 focus:outline-none disabled:opacity-40 transition-colors"
+                  className="flex-1 bg-void/60 border border-sep/25 rounded-lg px-4 py-2.5 text-[13px] text-txt-main placeholder:text-txt-dim/25 focus:border-gold/30 focus:outline-none disabled:opacity-40 transition-colors"
                 />
                 <button
                   onClick={handleSend}
