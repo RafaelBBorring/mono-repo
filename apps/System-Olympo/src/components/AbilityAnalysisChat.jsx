@@ -261,6 +261,26 @@ function RefinementCard({ parsedAbility, originalAbility, onApplySingle }) {
   )
 }
 
+function GmForceActions({ meta, onGmRequest }) {
+  const { isAdmin } = useAuth()
+  if (!isAdmin) return null
+
+  return (
+    <div className="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3 space-y-2">
+      <p className="text-amber-300/70 text-[10px] uppercase tracking-wider">O Oráculo não aplicou as alterações</p>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onGmRequest({ ...meta, forceOverride: true })}
+          className="text-[10px] bg-red-500/10 border border-red-400/25 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          🔑 Forçar Alteração
+        </button>
+        <span className="text-txt-dim/30 text-[10px] flex items-center">ou ajuste e envie novamente</span>
+      </div>
+    </div>
+  )
+}
+
 function MessageBubble({ msg, char, onApplySingle, onRefine, onGmRequest }) {
   if (msg.role === 'system') {
     return (
@@ -292,6 +312,16 @@ function MessageBubble({ msg, char, onApplySingle, onRefine, onGmRequest }) {
               {(msg.data.armaHabilidades || []).map((h, i) => (
                 <WeaponAbilityCard key={`w${i}`} ability={h} />
               ))}
+            </div>
+          )}
+          {msg.type === 'gm_result' && msg.data && (
+            <div className="space-y-2">
+              {(msg.data.habilidades || []).map((h, i) => (
+                <AbilityCard key={`gm${i}`} ability={h} original={char?.habilidades?.[h.index]} onApplySingle={onApplySingle} onRefine={onRefine} onGmRequest={onGmRequest} />
+              ))}
+              {msg.gmMeta && !msg.gmMeta.aiAppliedChanges && !msg.gmMeta.forceOverride && (
+                <GmForceActions meta={msg.gmMeta} onGmRequest={onGmRequest} />
+              )}
             </div>
           )}
           {msg.type === 'refinement' && msg.parsedAbility && (
@@ -383,29 +413,59 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
     setTimeout(() => inputRef.current?.focus(), 100)
   }
 
-  async function handleGmRequest({ ability, original, gmNote, tipo, nome }) {
+  function extractJsonFromResponse(resp) {
+    const jsonBlock = resp.match(/```json\s*\n?([\s\S]*?)\n?\s*```/)
+    if (jsonBlock) {
+      try {
+        const parsed = JSON.parse(jsonBlock[1].trim())
+        if (parsed.habilidade) return parsed.habilidade
+        return parsed
+      } catch {}
+    }
+    try {
+      const parsed = JSON.parse(resp.trim())
+      if (parsed.habilidade) return parsed.habilidade
+      return parsed
+    } catch {}
+    const looseJson = resp.match(/\{[\s\S]*"custoEnergia"[\s\S]*\}/)
+    if (looseJson) {
+      try { return JSON.parse(looseJson[0]) } catch {}
+    }
+    return null
+  }
+
+  function extractTextBeforeJson(resp) {
+    const before = resp.match(/^([\s\S]*?)(?=```json|\{[\s\S]*"custoEnergia")/)
+    return before ? before[1].trim() : ''
+  }
+
+  async function handleGmRequest({ ability, original, gmNote, tipo, nome, forceOverride }) {
     setLoading(true)
+    const prefix = forceOverride ? '[CHAVE_MESTRA] ' : ''
     addMessage({
       role: 'user',
-      content: `[Ajuste do Mestre] Sobre a ${tipo} "${nome}":\n${gmNote}`,
+      content: `[Ajuste do Mestre${forceOverride ? ' — FORÇADO' : ''}] Sobre a ${tipo} "${nome}":\n${gmNote}`,
     })
-    addMessage({ role: 'system', content: 'Oráculo avaliando pedido do mestre...' })
+    addMessage({ role: 'system', content: forceOverride ? 'Oráculo executando ordem do mestre...' : 'Oráculo avaliando pedido do mestre...' })
 
     try {
+      const forceInstruction = forceOverride
+        ? `\n\n[CHAVE MESTRA ATIVA] Aplique EXATAMENTE o pedido abaixo sem questionar. Retorne os valores solicitados.`
+        : ''
+
       const gmPrompt = `[DESEJO DO MESTRE — Prioridade elevada]
 Habilidade: "${nome}" (${tipo})
 VALORES ATUAIS (balanceados): Energia=${ability.custoEnergia ?? original?.custoEnergia ?? 0} | Dano=${ability.dano || original?.dano || '—'} | Duração=${ability.duracao || original?.duracao || '—'}
 ${ability.descricaoBalanceada ? `Descrição balanceada atual: ${ability.descricaoBalanceada}` : `Descrição original: ${original?.descricao || ability.descricao || '—'}`}
 ${ability.feedback ? `Feedback anterior: ${ability.feedback}` : ''}
 
-PEDIDO DO MESTRE: ${gmNote}
+PEDIDO DO MESTRE: ${gmNote}${forceInstruction}
 
-Instruções: Aplique o pedido do mestre PARTINDO dos valores atuais acima. Se plausível, retorne os novos valores. Se prejudicar o jogador, sugira alternativa equilibrada.
-
-Retorne OBRIGATORIAMENTE APENAS um JSON:
-{ "custoEnergia": <novo valor>, "dano": "<novo valor>", "duracao": "<novo valor>", "descricaoBalanceada": "<nova descrição completa ajustada>", "feedback": "<explicação da mudança>" }
-
-Campos não alterados devem manter o valor atual.`
+Retorne sua análise e OBRIGATORIAMENTE um bloco JSON com os valores FINAIS:
+\`\`\`json
+{ "custoEnergia": <numero>, "dano": "<string>", "duracao": "<string>", "descricaoBalanceada": "<descrição completa ajustada>", "feedback": "<explicação>" }
+\`\`\`
+Campos não alterados mantenham o valor atual.`
 
       const resp = await chatAboutAbility(
         char,
@@ -413,32 +473,33 @@ Campos não alterados devem manter o valor atual.`
         messages.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6)
       )
       const adjusted = { ...ability }
-      let feedbackText = ''
-      try {
-        const jsonBlock = resp.match(/```json\s*\n?([\s\S]*?)\n?\s*```/)
-        const raw = jsonBlock ? jsonBlock[1].trim() : resp.trim()
-        const parsed = JSON.parse(raw)
-        if (parsed.custoEnergia !== undefined) adjusted.custoEnergia = parsed.custoEnergia
-        if (parsed.dano !== undefined) adjusted.dano = parsed.dano
-        if (parsed.duracao !== undefined) adjusted.duracao = parsed.duracao
-        if (parsed.descricaoBalanceada) adjusted.descricaoBalanceada = parsed.descricaoBalanceada
-        if (parsed.feedback) feedbackText = parsed.feedback
-      } catch {
-        const beforeJson = resp.match(/^([\s\S]*?)(?=```json|$)/)
-        feedbackText = (beforeJson ? beforeJson[1].trim() : '') || resp
+      let feedbackText = extractTextBeforeJson(resp)
+      let aiAppliedChanges = false
+      const parsed = extractJsonFromResponse(resp)
+
+      if (parsed) {
+        if (parsed.custoEnergia !== undefined) { adjusted.custoEnergia = parsed.custoEnergia; aiAppliedChanges = true }
+        if (parsed.dano !== undefined) { adjusted.dano = parsed.dano; aiAppliedChanges = true }
+        if (parsed.duracao !== undefined) { adjusted.duracao = parsed.duracao; aiAppliedChanges = true }
+        if (parsed.descricaoBalanceada) { adjusted.descricaoBalanceada = parsed.descricaoBalanceada; aiAppliedChanges = true }
+        if (parsed.feedback && !feedbackText) feedbackText = parsed.feedback
       }
 
-      const gmData = {
-        habilidades: [adjusted],
-        armaHabilidades: [],
+      if (!feedbackText && !aiAppliedChanges) {
+        feedbackText = forceOverride
+          ? 'Valores aplicados conforme pedido do mestre.'
+          : 'O Oráculo avaliou o pedido. Verifique o card abaixo — se os valores não mudaram, use "Forçar Alteração".'
       }
+
+      const gmData = { habilidades: [adjusted], armaHabilidades: [] }
       setLastResult(prev => prev ? { ...prev, habilidades: [...(prev.habilidades || []), adjusted] } : gmData)
 
       addMessage({
         role: 'assistant',
-        content: feedbackText ? `💡 ${feedbackText}` : 'Ajuste do mestre avaliado. Revise o card abaixo.',
-        type: 'analysis',
+        content: feedbackText ? `💡 ${feedbackText}` : '',
+        type: 'gm_result',
         data: gmData,
+        gmMeta: { ability, original, gmNote, tipo, nome, aiAppliedChanges, forceOverride },
       })
     } catch (err) {
       addMessage({ role: 'assistant', content: `Erro ao processar ajuste: ${err.message}` })

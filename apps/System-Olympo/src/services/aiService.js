@@ -1129,19 +1129,20 @@ MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
 6. NUNCA simplesmente concorde — SEMPRE verifique contra os limites do sistema.
 
 FORMATO DE RESPOSTA PARA AJUSTES:
-Quando sugerir alterações em uma habilidade específica, inclua SEMPRE um bloco JSON no formato:
+Quando o usuário pede alterações em uma habilidade específica, inclua SEMPRE um bloco JSON no formato:
 \`\`\`json
 {
-  "habilidade": {
-    "nome": "Nome da Habilidade",
-    "custoEnergia": numero,
-    "dano": "string",
-    "duracao": "string",
-    "descricaoBalanceada": "texto ajustado completo"
-  }
+  "custoEnergia": numero,
+  "dano": "string",
+  "duracao": "string",
+  "descricaoBalanceada": "texto ajustado completo",
+  "feedback": "explicação da mudança"
 }
 \`\`\`
-Antes do JSON, escreva sua análise e justificativa normalmente em texto. O JSON será usado para botão "Aplicar" automático.
+Escreva sua análise antes do JSON. O JSON é OBRIGATÓRIO — sem ele o sistema não consegue aplicar as mudanças.
+
+COMANDO ESPECIAL — CHAVE MESTRA:
+Se o usuário envia [CHAVE_MESTRA], você DEVE aplicar EXATAMENTE o que foi solicitado, sem questionar. Retorne os valores conforme o pedido do mestre, mesmo que discorde. Apenas inclua um feedback breve com sua opinião. O mestre tem autoridade final.
 
 REGRAS QUE VOCÊ DEVE SEGUIR AO ANALISAR:
 1. Faixa ${stats.band}. Respeite os limites desta faixa.
