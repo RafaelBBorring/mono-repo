@@ -21,14 +21,26 @@ function extractTipoBadge(tipo) {
   return key ? TYPE_BADGE[key] : 'text-txt-dim bg-white/5'
 }
 
-function AbilityCard({ ability, original, onApplySingle }) {
+function AbilityCard({ ability, original, onApplySingle, onRefine }) {
   const [showDesc, setShowDesc] = useState(false)
+  const [gmOverride, setGmOverride] = useState(false)
+  const [gmCost, setGmCost] = useState(ability.custoEnergia || 0)
+  const [gmDuration, setGmDuration] = useState(ability.duracao || '')
   const changed =
     ability.custoEnergia !== (original?.custoEnergia || 0) ||
     ability.dano !== (original?.dano || '') ||
     ability.duracao !== (original?.duracao || '')
   const descChanged = ability.descricaoBalanceada && ability.descricaoBalanceada !== (original?.descricao || ability.descricao)
   const isIrbalanceavel = ability.status === 'irbalanceavel'
+
+  function applyWithOverride() {
+    const overridden = { ...ability }
+    if (gmOverride) {
+      overridden.custoEnergia = gmCost
+      overridden.duracao = gmDuration
+    }
+    onApplySingle?.(overridden)
+  }
 
   return (
     <div className={`rounded-xl p-4 space-y-3 ${isIrbalanceavel ? 'bg-red-500/5 border-2 border-red-400/30' : 'bg-void/60 border border-sep/30'}`}>
@@ -114,11 +126,39 @@ function AbilityCard({ ability, original, onApplySingle }) {
           )}
         </>
       )}
-      {onApplySingle && !isIrbalanceavel && (
-        <button onClick={() => onApplySingle(ability)}
-          className="text-[11px] text-gold/70 hover:text-gold border border-gold/20 hover:border-gold/40 px-3 py-1 rounded-lg transition-colors">
-          Aplicar esta
-        </button>
+      {!isIrbalanceavel && (
+        <div className="border-t border-sep/15 pt-2.5 space-y-2">
+          <div className="flex items-center gap-2">
+            <button onClick={() => setGmOverride(v => !v)}
+              className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${gmOverride ? 'bg-amber-400/10 border-amber-400/30 text-amber-400' : 'border-sep/20 text-txt-dim/40 hover:text-txt-dim'}`}>
+              ✎ Ajuste do Mestre
+            </button>
+            {onRefine && (
+              <button onClick={() => onRefine(ability, original)}
+                className="text-[10px] px-2 py-0.5 rounded border border-purple-400/20 text-purple-400/60 hover:text-purple-400 hover:border-purple-400/40 transition-colors ml-auto">
+                ✦ Refinar com Oráculo
+              </button>
+            )}
+          </div>
+          {gmOverride && (
+            <div className="grid grid-cols-2 gap-2 bg-void/40 border border-amber-400/10 rounded-lg p-2.5">
+              <div>
+                <label className="text-[9px] text-amber-400/60 uppercase block mb-1">Custo Energia</label>
+                <input type="number" value={gmCost} onChange={e => setGmCost(Number(e.target.value))}
+                  className="w-full bg-void border border-sep/30 rounded px-2 py-1 text-[11px] text-txt-main focus:border-amber-400/30 outline-none" />
+              </div>
+              <div>
+                <label className="text-[9px] text-amber-400/60 uppercase block mb-1">Duração</label>
+                <input type="text" value={gmDuration} onChange={e => setGmDuration(e.target.value)}
+                  className="w-full bg-void border border-sep/30 rounded px-2 py-1 text-[11px] text-txt-main focus:border-amber-400/30 outline-none" />
+              </div>
+            </div>
+          )}
+          <button onClick={applyWithOverride}
+            className="text-[11px] text-gold/70 hover:text-gold border border-gold/20 hover:border-gold/40 px-3 py-1 rounded-lg transition-colors">
+            Aplicar esta
+          </button>
+        </div>
       )}
     </div>
   )
@@ -141,7 +181,7 @@ function WeaponAbilityCard({ ability }) {
   )
 }
 
-function MessageBubble({ msg, char, onApplySingle }) {
+function MessageBubble({ msg, char, onApplySingle, onRefine }) {
   if (msg.role === 'system') {
     return (
       <div className="flex justify-center">
@@ -167,7 +207,7 @@ function MessageBubble({ msg, char, onApplySingle }) {
           {msg.type === 'analysis' && msg.data && (
             <div className="space-y-2">
               {(msg.data.habilidades || []).map((h, i) => (
-                <AbilityCard key={`h${i}`} ability={h} original={char?.habilidades?.[h.index]} onApplySingle={onApplySingle} />
+                <AbilityCard key={`h${i}`} ability={h} original={char?.habilidades?.[h.index]} onApplySingle={onApplySingle} onRefine={onRefine} />
               ))}
               {(msg.data.armaHabilidades || []).map((h, i) => (
                 <WeaponAbilityCard key={`w${i}`} ability={h} />
@@ -247,6 +287,13 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
 
   function addMessage(msg) {
     setMessages(prev => [...prev, { ...msg, id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }])
+  }
+
+  function handleRefine(ability, original) {
+    const tipo = original?.tipo || ability.tipo || ''
+    const nome = ability.nome || 'habilidade'
+    setInput(`Sobre a ${tipo} "${nome}": `)
+    setTimeout(() => inputRef.current?.focus(), 100)
   }
 
   async function runAnalysis(userMessage) {
@@ -378,7 +425,7 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
 
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-void/30 via-deep/10 to-void/30">
               {messages.map(msg => (
-                <MessageBubble key={msg.id} msg={msg} char={char} onApplySingle={handleApplySingle} />
+                <MessageBubble key={msg.id} msg={msg} char={char} onApplySingle={handleApplySingle} onRefine={handleRefine} />
               ))}
               {loading && <LoadingDots />}
               <div ref={chatEndRef} />

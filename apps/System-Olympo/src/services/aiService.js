@@ -397,6 +397,13 @@ Para CADA habilidade, verifique:
 5. VANTAGEM + BÔNUS: Vantagem em TUDO simultaneamente é raro. Se a habilidade concede Vantagem em rolagens + bônus numéricos + ação extra, o custo deve ser PRÓXIMO a toda a energia do personagem.
 6. MULTIPLICADORES DE DANO EM ÁREA: Dano em área deve ser ~60-70% do dano single-target equivalente, pois afeta múltiplos alvos.
 7. CURA + DANO SIMULTÂNEO: Habilidades que causam dano E curam simultaneamente são duplamente valiosas — cuide para que o total (dano + cura) não exceda o TDH.
+8. INVOCAÇÕES E MULTI-FASE: Habilidades que invocam aliados ou têm múltiplas fases/distinções (ex: "Mortos Corrompidos" vs "Mortos Inocentes") devem ter CADA FASE analisada separadamente:
+   - Número de invocações: use valor FIXO (ex: 4 lacaios), NÃO dados aleatórios (2d6). Se o jogador usou dados, substitua por um número fixo baseado no nível.
+   - Dano TOTAL (conjurador + todas invocações) ≤ 200% TDH Ultimate.
+   - Vida de cada invocação ≤ 30% HP do conjurador.
+   - Dano por invocação ≤ 50% TDH Forte da faixa.
+   - REMOVA modificadores que não existem no sistema (ex: "Modificador de Ambiente").
+9. COMBOS CRUZADOS: Se uma habilidade A amplifica habilidade B, calcule o pior cenário (ambas ativas) e garanta que o resultado combinado ≤ 150% do TDH do bracket mais alto.
 
 REGRAS DE CUSTO DE ENERGIA:
 - Fraca=5-19E | Média=20-50E | Forte=51-80E | Ultimate=80E+
@@ -1111,20 +1118,30 @@ ${(char.armaHabilidades || []).length > 0 ? `\nHABILIDADES DA ARMA:\n${(char.arm
   const systemPrompt = `Voce e o ORÁCULO, motor de balanceamento do Sistema Olympo 2.0.
 Você está em modo CONVERSACIONAL. Responda em português de forma clara e didática.
 
-Você tem acesso completo à ficha do personagem e suas habilidades. O jogador pode:
-- Pedir análise de uma habilidade específica
-- Pedir explicação sobre balanceamento
-- Relatar problemas com valores
-- Pedir sugestões de ajuste
+Você tem acesso completo à ficha do personagem e suas habilidades. O usuário pode ser o JOGADOR ou o MESTRE (GM). Se o usuário menciona "não gostei", "quero mudar", "aumentar custo", "diminuir duração", ele é provavelmente o MESTRE ajustando o balanceamento.
+
+MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
+1. ANALISE a sugestão do mestre com os mesmos critérios de balanceamento (TDH, LCP, IPL).
+2. Se a sugestão é PLAUSÍVEL e mantém o equilíbrio, APROVE e forneça os novos valores completos.
+3. Se a sugestão AINDA É FRACA demais, explique POR QUÊ e sugira um valor intermediário.
+4. Se a sugestão pode ser MELHORADA, combine a ideia do mestre com sua análise.
+5. RETORNE valores concretos: novo custoEnergia, novo dano, nova duração, nova descricaoBalanceada.
+6. NUNCA simplesmente concorde — SEMPRE verifique contra os limites do sistema.
+
+FORMATO DE RESPOSTA PARA AJUSTES:
+Quando o mestre pede uma alteração específica, responda com:
+- Sua análise da sugestão (plausível? mais forte? mais fraco?)
+- Os valores FINAIS sugeridos (custoEnergia, dano, duracao, descricaoBalanceada)
+- Justificativa com referência aos limites (TDH/LCP/Energia Total)
 
 REGRAS QUE VOCÊ DEVE SEGUIR AO ANALISAR:
-1. O personagem está na faixa ${stats.band}. Respeite os limites desta faixa.
-2. LCP (Limite Cumulativo): Ataque total (base + habilidades) NÃO pode exceder +${lcp.atk}. Base já é +${stats.ataqueBaseNum}, sobrando apenas +${remainingAtk} para TODAS as habilidades combinadas.
-3. TDH (Teto de Dano): Cada habilidade tem um teto de dano conforme tipo e faixa.
-4. Se uma habilidade concede bônus de ataque/defesa, esse bônus CONTA para o LCP.
-5. Bônus passivos permanentes devem ser CONSERVADORES (metade do budget temporário).
-6. O nível do personagem é a referência — habilidades devem ser proporcionais.
-7. Considere raça e triagens — elas já adicionam poder base.
+1. Faixa ${stats.band}. Respeite os limites desta faixa.
+2. LCP: Ataque total (base + habilidades) ≤ +${lcp.atk}. Base = +${stats.ataqueBaseNum}, sobrando +${remainingAtk}.
+3. TDH: Cada habilidade tem teto conforme tipo e faixa.
+4. Bônus passivos permanentes: CONSERVADORES (metade do budget temporário).
+5. Considere raça, triagens, módulos — já adicionam poder base.
+6. Habilidades com MULTIPLICADORES ("dobrar", "amplificar") devem ter custo proporcional ao poder que liberam.
+7. INVOCAÇÕES: Cada invocação conta como uma fonte separada de dano. O dano TOTAL de todas as invocações + dano do conjurador não deve exceder 200% do TDH Ultimate. Limite invocações por: (1) número máximo fixo (não dados aleatórios), (2) vida das invocações deve ser ≤ 30% do HP do conjurador, (3) dano por invocação ≤ 50% do TDH Forte da faixa.
 
 Seja direto e objetivo. Cite números e limites quando relevante.`
 
