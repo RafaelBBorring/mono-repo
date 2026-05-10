@@ -2060,8 +2060,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
         <div className="px-5 pb-5 space-y-4 border-t border-sep/15">
           {evoDelta && (
             <div className="flex flex-wrap gap-1.5 pt-3">
-              {evoDelta.dadoExtra && <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.dadoExtra} dano</span>}
-              {evoDelta.flatExtra && <span className="text-[10px] bg-orange-500/10 text-orange-400 px-2 py-0.5 rounded border border-orange-500/20 font-mono">{evoDelta.flatExtra} flat</span>}
+              {evoDelta.danoTotal && <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.danoTotal} dano</span>}
               {evoDelta.energiaExtra && <span className="text-[10px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 font-mono">{evoDelta.energiaExtra} energia</span>}
               {evoDelta.duracaoExtra && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-mono">{evoDelta.duracaoExtra}</span>}
             </div>

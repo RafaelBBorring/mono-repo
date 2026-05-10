@@ -75,10 +75,20 @@ export function calcEvolucaoDelta(skill, evolNivel) {
     }
   }
 
+  let danoTotal = ''
+  if (dadoExtraStr && flatExtra > 0) {
+    danoTotal = `${dadoExtraStr}+${flatExtra}`
+  } else if (dadoExtraStr) {
+    danoTotal = dadoExtraStr
+  } else if (flatExtra > 0) {
+    danoTotal = `+${flatExtra}`
+  }
+
   return {
     bracket,
     dadoExtra:    dadoExtraStr,
     flatExtra:    flatExtra > 0 ? `+${flatExtra}` : '',
+    danoTotal,
     energiaExtra: energiaExtra > 0 ? `+${energiaExtra}` : '',
     duracaoExtra: duracaoExtra > 0 ? `+${duracaoExtra} rod.` : '',
   }

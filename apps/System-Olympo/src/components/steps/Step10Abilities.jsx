@@ -331,8 +331,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
               {showPreview && delta && (
                 <div className="bg-gold/5 border border-gold/20 rounded-lg px-4 py-2 text-xs space-y-0.5">
                   <p className="text-gold font-semibold mb-1">Preview — Evolução {evoAtual}/{maxEvo} ({delta.bracket})</p>
-                  {delta.dadoExtra   && <p className="text-txt-main">Dano extra (cumulativo): <span className="text-gold font-mono">{delta.dadoExtra}</span></p>}
-                  {delta.flatExtra   && <p className="text-txt-main">Bônus fixo (cumulativo): <span className="text-gold font-mono">{delta.flatExtra}</span></p>}
+                  {delta.danoTotal   && <p className="text-txt-main">Dano extra (cumulativo): <span className="text-gold font-mono">{delta.danoTotal}</span></p>}
                   {delta.energiaExtra && <p className="text-txt-main">Custo Energia adicional: <span className="text-err font-mono">{delta.energiaExtra}</span></p>}
                   {delta.duracaoExtra && <p className="text-txt-main">Duração adicional: <span className="text-ok font-mono">{delta.duracaoExtra}</span></p>}
                   <p className="text-txt-dim italic mt-1">Valores finais são calibrados pela IA durante análise de balanceamento.</p>
