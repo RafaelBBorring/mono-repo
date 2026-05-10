@@ -392,26 +392,40 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
     addMessage({ role: 'system', content: 'Oráculo avaliando pedido do mestre...' })
 
     try {
+      const gmPrompt = `[DESEJO DO MESTRE — Prioridade elevada]
+Habilidade: "${nome}" (${tipo})
+VALORES ATUAIS (balanceados): Energia=${ability.custoEnergia ?? original?.custoEnergia ?? 0} | Dano=${ability.dano || original?.dano || '—'} | Duração=${ability.duracao || original?.duracao || '—'}
+${ability.descricaoBalanceada ? `Descrição balanceada atual: ${ability.descricaoBalanceada}` : `Descrição original: ${original?.descricao || ability.descricao || '—'}`}
+${ability.feedback ? `Feedback anterior: ${ability.feedback}` : ''}
+
+PEDIDO DO MESTRE: ${gmNote}
+
+Instruções: Aplique o pedido do mestre PARTINDO dos valores atuais acima. Se plausível, retorne os novos valores. Se prejudicar o jogador, sugira alternativa equilibrada.
+
+Retorne OBRIGATORIAMENTE APENAS um JSON:
+{ "custoEnergia": <novo valor>, "dano": "<novo valor>", "duracao": "<novo valor>", "descricaoBalanceada": "<nova descrição completa ajustada>", "feedback": "<explicação da mudança>" }
+
+Campos não alterados devem manter o valor atual.`
+
       const resp = await chatAboutAbility(
         char,
-        `[DESEJO DO MESTRE — Prioridade elevada] Sobre a ${tipo} "${nome}":\n${gmNote}\n\nRetorne OBRIGATORIAMENTE um JSON com: { "custoEnergia": numero, "dano": "string", "duracao": "string", "descricaoBalanceada": "texto ajustado", "feedback": "explicação" }. Se a alteração é plausível, aplique. Se prejudica o jogador injustamente, sugira alternativa.`,
+        gmPrompt,
         messages.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6)
       )
       const adjusted = { ...ability }
       let feedbackText = ''
-      let parsed = null
       try {
-        const cleaned = resp.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-        parsed = JSON.parse(cleaned)
-        if (parsed.custoEnergia !== undefined || parsed.descricaoBalanceada) {
-          if (parsed.custoEnergia !== undefined) adjusted.custoEnergia = parsed.custoEnergia
-          if (parsed.dano !== undefined) adjusted.dano = parsed.dano
-          if (parsed.duracao !== undefined) adjusted.duracao = parsed.duracao
-          if (parsed.descricaoBalanceada) adjusted.descricaoBalanceada = parsed.descricaoBalanceada
-          if (parsed.feedback) feedbackText = parsed.feedback
-        }
+        const jsonBlock = resp.match(/```json\s*\n?([\s\S]*?)\n?\s*```/)
+        const raw = jsonBlock ? jsonBlock[1].trim() : resp.trim()
+        const parsed = JSON.parse(raw)
+        if (parsed.custoEnergia !== undefined) adjusted.custoEnergia = parsed.custoEnergia
+        if (parsed.dano !== undefined) adjusted.dano = parsed.dano
+        if (parsed.duracao !== undefined) adjusted.duracao = parsed.duracao
+        if (parsed.descricaoBalanceada) adjusted.descricaoBalanceada = parsed.descricaoBalanceada
+        if (parsed.feedback) feedbackText = parsed.feedback
       } catch {
-        feedbackText = resp
+        const beforeJson = resp.match(/^([\s\S]*?)(?=```json|$)/)
+        feedbackText = (beforeJson ? beforeJson[1].trim() : '') || resp
       }
 
       const gmData = {
