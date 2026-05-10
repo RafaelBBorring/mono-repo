@@ -1342,33 +1342,6 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
     setTab('library')
   }
 
-  function keepOriginalRitual() {
-    if (!update) return
-    if (activeGrimorio && grimorioSlotsLeft <= 0) {
-      setCustomError('Este grimorio esta cheio.')
-      return
-    }
-    const ritual = {
-      id: crypto.randomUUID(),
-      name: customName.trim(),
-      circle: customCircle,
-      category: customCategory.trim() || 'Personalizado',
-      pe_cost: customPeCost,
-      action_cost: customAction,
-      duration: customDuration,
-      range: customRange,
-      short_description: customDesc.trim(),
-      effect: customEffect.trim(),
-      source_name: customEntity.trim(),
-      isCustom: true,
-      grimorioId: activeGrimorio ? activeGrimorio.id : null,
-    }
-    const current = char[card.field] || []
-    update({ [card.field]: [...current, ritual] })
-    resetCustomForm()
-    setTab('library')
-  }
-
   function resetCustomForm() {
     setCustomName('')
     setCustomDesc('')
@@ -1633,26 +1606,14 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
                   <>
                     <div className="border border-purple-500/20 rounded-xl bg-purple-500/5 p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-purple-300 text-xs font-semibold">Feedback do Oraculo</span>
+                        <span className="text-purple-300 text-xs font-semibold">Veredito do Oraculo</span>
                         <span className={`text-[9px] border rounded-full px-1.5 py-0.5 ${CIRCLE_BADGE[customResult.circle || customCircle] || CIRCLE_BADGE[1]}`}>
                           {customResult.circle || customCircle}o
                         </span>
                       </div>
 
-                      <div className="border border-sep/15 rounded-lg p-3 space-y-2">
-                        <h4 className="text-txt-dim/60 text-[10px] uppercase tracking-wider">Original</h4>
-                        <p className="text-txt-main text-sm font-semibold">{customName}</p>
-                        <p className="text-txt-dim text-xs">{customDesc || customEffect}</p>
-                        <div className="flex flex-wrap gap-2 text-[10px] font-mono">
-                          <span className="text-amber-300">{customPeCost} PE</span>
-                          <span className="text-purple-300">{customAction}</span>
-                          <span className="text-sky-300">{customDuration}</span>
-                          <span className="text-txt-dim">{customRange}</span>
-                        </div>
-                      </div>
-
                       <div className="border border-gold/20 rounded-lg bg-gold/5 p-3 space-y-2">
-                        <h4 className="text-gold text-[10px] uppercase tracking-wider">Versao do Oraculo</h4>
+                        <h4 className="text-gold text-[10px] uppercase tracking-wider">Ritual Definitivo</h4>
                         <h4 className="text-txt-main font-semibold text-sm">{customResult.name || customName}</h4>
                         {customResult.short_description && <p className="text-txt-dim text-xs leading-relaxed">{customResult.short_description}</p>}
                         {customResult.effect && <p className="text-txt-dim/60 text-[11px] leading-relaxed whitespace-pre-line">{customResult.effect}</p>}
@@ -1668,16 +1629,10 @@ function RitualPickerModal({ char, update, card, profile, grimorioId, onClose })
 
                       {customError && <p className="text-err text-xs">{customError}</p>}
 
-                      <div className="flex gap-2">
-                        <button type="button" onClick={keepOriginalRitual}
-                          className="flex-1 py-2 rounded-lg bg-white/5 text-txt-dim text-xs font-semibold border border-sep/20 hover:bg-white/10 transition-colors active:scale-[0.99]">
-                          Manter Original
-                        </button>
-                        <button type="button" onClick={confirmCustomRitual}
-                          className="flex-1 py-2 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
-                          Usar Versao IA
-                        </button>
-                      </div>
+                      <button type="button" onClick={confirmCustomRitual}
+                        className="w-full py-2 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
+                        Confirmar Ritual
+                      </button>
                       <button type="button" onClick={resetCustomForm}
                         className="w-full py-2 rounded-lg text-txt-dim/50 text-xs hover:text-txt-dim transition-colors">
                         Cancelar e refazer

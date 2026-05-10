@@ -806,7 +806,7 @@ CONTEXTO OPCIONAL:
 ${JSON.stringify(context, null, 2)}
 
 INSTRUÇÃO DIRETA DO ADMIN:
-${analysisNote || 'Nenhuma. Apenas revisar, completar e balancear o ritual atual.'}
+${analysisNote || 'Você tem LIBERDADE CRIATIVA TOTAL para reescrever o ritual. REGRAS: (1) Mantenha o nome do ritual original, a menos que ele seja incoerente com a lei física do Regente — nesse caso, sugira um nome alternativo que preserve a intenção. (2) A descrição e mecânica DEVEM ser coerentes com a lei distorcida do Regente indicado em source_name. (3) Se a descrição original do jogador não faz sentido dentro da lei do Regente, REESCREVA completamente a explicação para que seja coerente. Exemplo: se o ritual cura ferimentos usando Biofísica, não diga que "retrocede o tempo" — diga que "sobrecarrega o organismo criando células regenerativas beyond natural limits". (4) O efeito é DEFINITIVO — o jogador não pode manter a versão original. Seja criativo, preciso e balanceado.'}
 
 Responda EXCLUSIVAMENTE com JSON:
 {
