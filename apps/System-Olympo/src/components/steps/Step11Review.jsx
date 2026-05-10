@@ -1741,7 +1741,6 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
   const [editName, setEditName] = useState('')
   const [editImage, setEditImage] = useState('')
   const [editUploading, setEditUploading] = useState(false)
-  const [selectedRegent, setSelectedRegent] = useState('')
 
   if (!accessTier) return null
 
@@ -1778,14 +1777,12 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
       maxCircle: tier.maxCircle,
       maxRituals: 30,
       isPersonal: true,
-      regent: selectedRegent || null,
       createdAt: new Date().toISOString(),
     }
     const currentGrimorios = char.grimorios || []
     update({ grimorios: [...currentGrimorios, newGrimorio] })
     setName('Grimório em Branco')
     setImageUrl('')
-    setSelectedRegent('')
     setMode('list')
   }
 
@@ -1850,7 +1847,7 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                 )}
               </div>
               {update && availableTiers.length > 0 && (
-                <button type="button" onClick={() => { setMode('create'); setName('Grimório em Branco'); setImageUrl(''); setSelectedRegent('') }}
+                <button type="button" onClick={() => { setMode('create'); setName('Grimório em Branco'); setImageUrl('') }}
                   className="w-full py-2.5 rounded-lg bg-gold/15 text-gold text-xs font-semibold border border-gold/25 hover:bg-gold/25 transition-colors active:scale-[0.99]">
                   + Criar Novo Grimório
                 </button>
@@ -1869,33 +1866,13 @@ function GrimorioPickerModal({ char, update, card, onClose }) {
                       <span className="text-txt-dim text-[10px] font-mono block mt-0.5">Círculos 1o–{tier?.maxCircle || 2}o — Máx. 30 rituais — Afinidade atual: {getScoreForDisplay(char, card.key)}</span>
                     </div>
                     <div>
-                      <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Regente *</label>
-                      <div className="space-y-2">
-                        {ENTIDADES_OUTRO_LADO.map(reg => (
-                          <button key={reg.id} type="button" onClick={() => setSelectedRegent(reg.id)}
-                            className={`w-full text-left p-3 rounded-lg border transition-all ${
-                              selectedRegent === reg.id
-                                ? 'border-gold/40 bg-gold/10'
-                                : 'border-sep/20 bg-void/30 hover:border-sep/40'
-                            }`}>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs font-semibold ${selectedRegent === reg.id ? 'text-gold' : 'text-txt-main'}`}>{reg.name}</span>
-                            </div>
-                            <p className="text-txt-dim/50 text-[10px] mt-0.5">{reg.domain}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
                       <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1 block">Nome do Grimório</label>
                       <input type="text" value={name} onChange={e => setName(e.target.value)}
                         placeholder="Grimório em Branco"
                         className="w-full bg-void border border-sep rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none" />
                     </div>
-                    <button type="button" onClick={createGrimorio} disabled={!selectedRegent}
-                      className={`w-full py-2.5 rounded-lg text-xs font-semibold transition-colors active:scale-[0.99] ${
-                        selectedRegent ? 'bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25' : 'bg-void/30 text-txt-dim/30 border border-sep/10 cursor-not-allowed'
-                      }`}>
+                    <button type="button" onClick={createGrimorio}
+                      className="w-full py-2.5 rounded-lg text-xs font-semibold transition-colors active:scale-[0.99] bg-gold/15 text-gold border border-gold/25 hover:bg-gold/25">
                       Criar Grimório
                     </button>
                   </>

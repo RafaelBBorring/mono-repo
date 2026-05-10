@@ -666,6 +666,7 @@ function EquipCard({ item, onClick }) {
   const equipType = getEquipmentType(item)
   const armorType = getArmorType(item)
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
+  const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
   return (
     <button type="button" onClick={onClick}
       className={`armory-card w-full rounded-lg border ${isLegendaryItem ? 'border-lime-300/45 bg-lime-300/8 text-lime-300 shadow-lg shadow-lime-300/10' : `${rc.border} ${rc.bg} ${rc.text} ${rc.glow}`} p-3 text-left`}>
@@ -675,7 +676,7 @@ function EquipCard({ item, onClick }) {
       </div>
       <div className="flex-1 min-w-0">
         <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Equipamento'}</span>
-        {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}</span>}
+        {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}</span>}
       </div>
     </button>
   )
@@ -1291,6 +1292,7 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
   const armorTypeMeta = getArmorType(item)
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
   const equipHabilidades = item.equipHabilidades || item.passivas || []
+  const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
   const [editNome, setEditNome] = useState(item.nome || '')
   const [editDesc, setEditDesc] = useState(item.descricao || '')
   const [editDano, setEditDano] = useState(item.dano || '')
@@ -1416,7 +1418,7 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
               {item.dano && (
                 <div className={`bg-void/50 border rounded-lg px-3 py-2 ${rc.border}`}>
                   <span className="text-txt-dim/50 text-[9px] uppercase">Dano</span>
-                  <p className="text-red-400/90 text-sm font-mono mt-0.5">{item.dano}</p>
+                  <p className="text-red-400/90 text-sm font-mono mt-0.5">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}</p>
                 </div>
               )}
               {item.efeitos && (
