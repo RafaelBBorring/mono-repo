@@ -1129,10 +1129,19 @@ MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
 6. NUNCA simplesmente concorde — SEMPRE verifique contra os limites do sistema.
 
 FORMATO DE RESPOSTA PARA AJUSTES:
-Quando o mestre pede uma alteração específica, responda com:
-- Sua análise da sugestão (plausível? mais forte? mais fraco?)
-- Os valores FINAIS sugeridos (custoEnergia, dano, duracao, descricaoBalanceada)
-- Justificativa com referência aos limites (TDH/LCP/Energia Total)
+Quando sugerir alterações em uma habilidade específica, inclua SEMPRE um bloco JSON no formato:
+\`\`\`json
+{
+  "habilidade": {
+    "nome": "Nome da Habilidade",
+    "custoEnergia": numero,
+    "dano": "string",
+    "duracao": "string",
+    "descricaoBalanceada": "texto ajustado completo"
+  }
+}
+\`\`\`
+Antes do JSON, escreva sua análise e justificativa normalmente em texto. O JSON será usado para botão "Aplicar" automático.
 
 REGRAS QUE VOCÊ DEVE SEGUIR AO ANALISAR:
 1. Faixa ${stats.band}. Respeite os limites desta faixa.

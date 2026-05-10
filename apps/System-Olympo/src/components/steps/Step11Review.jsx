@@ -1098,13 +1098,12 @@ function KnowledgeExpandedSection({ char, update, card, profile, onOpenPicker, o
               )}
               {update && isFull && (
                 <div className="rounded-lg border border-amber-300/15 bg-amber-300/5 flex items-center justify-center min-h-[80px]">
-                  <span className="text-amber-300/40 text-[10px]">Cheio</span>
                 </div>
               )}
             </div>
           </div>
-        )
-      })()}
+          )
+        })()}
 
       {sidebarOpen && createPortal(
         <div className="fixed inset-0 z-[60] flex justify-end" onClick={() => setSidebarOpen(false)}>
@@ -1981,8 +1980,202 @@ function AutoResizeTextarea({ value, onChange, placeholder, className }) {
   )
 }
 
+const RT_COLORS = [
+  { label: 'Branco', value: '#e2e8f0', cls: 'bg-slate-200' },
+  { label: 'Vermelho', value: '#f87171', cls: 'bg-red-400' },
+  { label: 'Laranja', value: '#fb923c', cls: 'bg-orange-400' },
+  { label: 'Amarelo', value: '#facc15', cls: 'bg-yellow-400' },
+  { label: 'Verde', value: '#4ade80', cls: 'bg-green-400' },
+  { label: 'Azul', value: '#60a5fa', cls: 'bg-blue-400' },
+  { label: 'Roxo', value: '#c084fc', cls: 'bg-purple-400' },
+  { label: 'Dourado', value: '#fbbf24', cls: 'bg-amber-400' },
+]
+
+const BG_COLORS = [
+  { label: 'Nenhum', value: '', cls: 'bg-void border border-sep/30' },
+  { label: 'Vermelho', value: '#7f1d1d', cls: 'bg-red-900' },
+  { label: 'Laranja', value: '#7c2d12', cls: 'bg-orange-900' },
+  { label: 'Amarelo', value: '#713f12', cls: 'bg-yellow-900' },
+  { label: 'Verde', value: '#14532d', cls: 'bg-green-900' },
+  { label: 'Azul', value: '#1e3a5f', cls: 'bg-blue-900' },
+  { label: 'Roxo', value: '#3b0764', cls: 'bg-purple-900' },
+  { label: 'Cinza', value: '#1f2937', cls: 'bg-gray-800' },
+]
+
+function RichTextToolbar({ editorRef }) {
+  const [showTextColor, setShowTextColor] = useState(false)
+  const [showBgColor, setShowBgColor] = useState(false)
+
+  function exec(command, value) {
+    editorRef.current?.focus()
+    document.execCommand(command, false, value || null)
+  }
+
+  return (
+    <div className="flex items-center gap-1 px-2 py-1.5 bg-void/80 border-b border-sep/20 rounded-t-lg flex-wrap">
+      <button type="button" onClick={() => exec('bold')} title="Negrito"
+        className="w-7 h-7 rounded flex items-center justify-center text-txt-dim/70 hover:text-txt-main hover:bg-sep/20 transition-colors text-sm font-bold">B</button>
+      <button type="button" onClick={() => exec('italic')} title="Itálico"
+        className="w-7 h-7 rounded flex items-center justify-center text-txt-dim/70 hover:text-txt-main hover:bg-sep/20 transition-colors text-sm italic">I</button>
+      <button type="button" onClick={() => exec('underline')} title="Sublinhado"
+        className="w-7 h-7 rounded flex items-center justify-center text-txt-dim/70 hover:text-txt-main hover:bg-sep/20 transition-colors text-sm underline">U</button>
+      <button type="button" onClick={() => exec('strikeThrough')} title="Tachado"
+        className="w-7 h-7 rounded flex items-center justify-center text-txt-dim/70 hover:text-txt-main hover:bg-sep/20 transition-colors text-sm line-through">S</button>
+      <div className="w-px h-5 bg-sep/20 mx-1" />
+      <div className="relative">
+        <button type="button" onClick={() => { setShowTextColor(v => !v); setShowBgColor(false) }} title="Cor do texto"
+          className="w-7 h-7 rounded flex items-center justify-center text-txt-dim/70 hover:text-txt-main hover:bg-sep/20 transition-colors text-sm">
+          <span className="border-b-2 border-current" style={{ color: '#f87171' }}>A</span>
+        </button>
+        {showTextColor && (
+          <div className="absolute top-full left-0 mt-1 bg-deep border border-sep/30 rounded-lg p-1.5 flex gap-1 z-50 shadow-xl">
+            {RT_COLORS.map(c => (
+              <button type="button" key={c.value} onClick={() => { exec('foreColor', c.value); setShowTextColor(false) }} title={c.label}
+                className={`w-5 h-5 rounded-full ${c.cls} border border-sep/30 hover:scale-125 transition-transform`} />
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="relative">
+        <button type="button" onClick={() => { setShowBgColor(v => !v); setShowTextColor(false) }} title="Cor de fundo"
+          className="w-7 h-7 rounded flex items-center justify-center text-txt-dim/70 hover:text-txt-main hover:bg-sep/20 transition-colors text-sm">
+          <span className="bg-amber-900/60 px-0.5 rounded text-[10px]">A</span>
+        </button>
+        {showBgColor && (
+          <div className="absolute top-full left-0 mt-1 bg-deep border border-sep/30 rounded-lg p-1.5 flex gap-1 z-50 shadow-xl">
+            {BG_COLORS.map(c => (
+              <button type="button" key={c.value || 'none'} onClick={() => { exec('hiliteColor', c.value || 'transparent'); setShowBgColor(false) }} title={c.label}
+                className={`w-5 h-5 rounded-full ${c.cls} hover:scale-125 transition-transform`} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
+  const [form, setForm] = useState({
+    nome: h.nome || '',
+    descricao: h.descricao || '',
+    custoEnergia: h.custoEnergia || 0,
+    dano: h.dano || '',
+    duracao: h.duracao || '',
+    status: h.status || 'Pendente',
+  })
+  const editorRef = useRef(null)
+  const isHtml = form.descricao?.includes('<') && form.descricao?.includes('>')
+
+  useEffect(() => {
+    if (editorRef.current && isHtml) {
+      editorRef.current.innerHTML = form.descricao
+    }
+  }, [])
+
+  function handleChange(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  function handleDescEditorInput() {
+    if (editorRef.current) {
+      handleChange('descricao', editorRef.current.innerHTML)
+    }
+  }
+
+  function handleSave() {
+    updateHabilidade(i, form)
+    onClose()
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-xl max-h-[90vh] bg-deep border border-gold/20 rounded-2xl shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-gold/15 bg-gradient-to-r from-void/60 via-deep/80 to-void/60">
+          <span className="text-gold text-lg">✎</span>
+          <h3 className="text-gold text-sm font-cinzel font-semibold flex-1">Editar Habilidade</h3>
+          <button type="button" onClick={onClose}
+            className="text-txt-dim/40 hover:text-txt-dim text-lg transition-colors">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div>
+            <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider block mb-1">Status</label>
+            <select value={form.status} onChange={e => handleChange('status', e.target.value)}
+              className={`text-xs bg-void border border-sep/50 rounded-lg px-3 py-1.5 ${STATUS_COLORS[form.status] || 'text-txt-dim'}`}>
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider block mb-1">Nome</label>
+            <input type="text" value={form.nome} onChange={e => handleChange('nome', e.target.value)} placeholder="Nome da habilidade"
+              className="w-full bg-void border border-sep/30 rounded-lg px-4 py-2.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none transition-colors" />
+          </div>
+
+          <div>
+            <label className="text-txt-dim/60 text-[10px] uppercase tracking-wider block mb-1.5">Descrição</label>
+            <div className="border border-sep/25 rounded-lg overflow-hidden bg-void/60">
+              <RichTextToolbar editorRef={editorRef} />
+              {isHtml ? (
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  onInput={handleDescEditorInput}
+                  className="px-4 py-3 text-sm text-txt-main leading-relaxed min-h-[120px] max-h-[300px] overflow-y-auto focus:outline-none whitespace-pre-wrap break-words"
+                  style={{ fontFamily: 'inherit' }}
+                />
+              ) : (
+                <textarea
+                  value={form.descricao}
+                  onChange={e => handleChange('descricao', e.target.value)}
+                  placeholder="Descrição da habilidade..."
+                  rows={5}
+                  className="w-full px-4 py-3 text-sm text-txt-main leading-relaxed resize-none focus:outline-none bg-transparent min-h-[120px] max-h-[300px] overflow-y-auto"
+                />
+              )}
+            </div>
+            <p className="text-txt-dim/30 text-[9px] mt-1">Selecione texto para aplicar formatação (negrito, itálico, cores)</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-sky-400 text-[10px] uppercase tracking-wider block mb-1">Energia</label>
+              <input type="number" value={form.custoEnergia} onChange={e => handleChange('custoEnergia', Number(e.target.value) || 0)}
+                className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none transition-colors" />
+            </div>
+            <div>
+              <label className="text-red-400 text-[10px] uppercase tracking-wider block mb-1">Dano</label>
+              <input type="text" value={form.dano} onChange={e => handleChange('dano', e.target.value)}
+                className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none transition-colors" />
+            </div>
+            <div>
+              <label className="text-amber-400 text-[10px] uppercase tracking-wider block mb-1">Duração</label>
+              <input type="text" value={form.duracao} onChange={e => handleChange('duracao', e.target.value)}
+                className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none transition-colors" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-sep/20 bg-void/40">
+          <button type="button" onClick={onClose}
+            className="text-sm text-txt-dim/50 hover:text-txt-dim px-4 py-2 rounded-lg transition-colors">
+            Cancelar
+          </button>
+          <button type="button" onClick={handleSave}
+            className="text-sm bg-gold/15 border border-gold/25 text-gold hover:bg-gold/25 px-5 py-2 rounded-lg font-medium transition-colors">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining, active, activePreview, onToggleActive }) {
   const [open, setOpen] = useState(false)
+  const [editModal, setEditModal] = useState(false)
 
   const evoNivel = h.evolucaoNivel || 0
   const maxEvo = getMaxEvolucao(h.tipo)
@@ -2052,6 +2245,10 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
             </div>
           )}
           <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-ok/20 bg-ok/5' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-warn/20 bg-warn/5' : STATUS_COLORS[h.status] === 'text-err' ? 'border-err/20 bg-err/5' : 'border-sep/20 bg-sep/5'} ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
+          {canEdit && (
+            <button type="button" onClick={e => { e.stopPropagation(); setEditModal(true) }}
+              className="text-txt-dim/30 hover:text-gold/60 text-xs transition-colors" title="Editar habilidade">✎</button>
+          )}
           <span className="text-txt-dim/30 text-sm">{open ? '▲' : '▼'}</span>
         </div>
       </button>
@@ -2076,7 +2273,11 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           ) : null}
           {!canEdit ? (
             <>
-              <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+              {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
+                <div className="text-txt-dim/90 text-sm pt-4 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
+              ) : (
+                <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+              )}
               <div className="flex flex-wrap gap-2.5">
                 {h.custoEnergia > 0 && (
                   <span className="bg-sky-500/10 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-sm font-mono">
@@ -2124,6 +2325,9 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
             </>
           )}
         </div>
+      )}
+      {editModal && (
+        <AbilityEditModal h={h} i={i} canEdit={canEdit} updateHabilidade={updateHabilidade} onClose={() => setEditModal(false)} />
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { analyzeBalance, chatAboutAbility } from '../services/aiService'
+import { useAuth } from '../contexts/AuthContext'
 
 const QUICK_ACTIONS = [
   { id: 'analyze_all', label: 'Analisar Tudo', icon: '✦' },
@@ -23,23 +24,48 @@ function extractTipoBadge(tipo) {
 
 function AbilityCard({ ability, original, onApplySingle, onRefine }) {
   const [showDesc, setShowDesc] = useState(false)
-  const [gmOverride, setGmOverride] = useState(false)
-  const [gmCost, setGmCost] = useState(ability.custoEnergia || 0)
-  const [gmDuration, setGmDuration] = useState(ability.duracao || '')
+  const [gmDialogOpen, setGmDialogOpen] = useState(false)
+  const [gmNote, setGmNote] = useState('')
+  const [gmLoading, setGmLoading] = useState(false)
+  const [gmResult, setGmResult] = useState(null)
+  const { isAdmin } = useAuth()
   const changed =
     ability.custoEnergia !== (original?.custoEnergia || 0) ||
     ability.dano !== (original?.dano || '') ||
     ability.duracao !== (original?.duracao || '')
   const descChanged = ability.descricaoBalanceada && ability.descricaoBalanceada !== (original?.descricao || ability.descricao)
   const isIrbalanceavel = ability.status === 'irbalanceavel'
+  const activeAbility = gmResult || ability
 
-  function applyWithOverride() {
-    const overridden = { ...ability }
-    if (gmOverride) {
-      overridden.custoEnergia = gmCost
-      overridden.duracao = gmDuration
+  async function handleGmSubmit() {
+    if (!gmNote.trim()) return
+    setGmLoading(true)
+    try {
+      const tipo = original?.tipo || ability.tipo || ''
+      const nome = ability.nome || 'habilidade'
+      const resp = await chatAboutAbility(
+        { ...window.__oracleChar, _gmOverride: true },
+        `[DESEJO DO MESTRE — Prioridade elevada] Sobre a ${tipo} "${nome}":\n${gmNote}\n\nRetorne OBRIGATORIAMENTE um JSON com: { "custoEnergia": numero, "dano": "string", "duracao": "string", "descricaoBalanceada": "texto ajustado", "feedback": "explicação" }. Se a alteração é plausível, aplique. Se prejudica o jogador injustamente, sugira alternativa.`
+      )
+      try {
+        const cleaned = resp.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+        const parsed = JSON.parse(cleaned)
+        if (parsed.custoEnergia !== undefined || parsed.descricaoBalanceada) {
+          setGmResult({ ...ability, ...parsed })
+        }
+      } catch {
+        setGmResult({ ...ability, _gmResponse: resp })
+      }
+    } catch (err) {
+      setGmResult({ ...ability, _gmError: err.message })
+    } finally {
+      setGmLoading(false)
     }
-    onApplySingle?.(overridden)
+  }
+
+  function applyFinal() {
+    const toApply = gmResult || ability
+    onApplySingle?.(toApply)
   }
 
   return (
@@ -129,32 +155,69 @@ function AbilityCard({ ability, original, onApplySingle, onRefine }) {
       {!isIrbalanceavel && (
         <div className="border-t border-sep/15 pt-2.5 space-y-2">
           <div className="flex items-center gap-2">
-            <button onClick={() => setGmOverride(v => !v)}
-              className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${gmOverride ? 'bg-amber-400/10 border-amber-400/30 text-amber-400' : 'border-sep/20 text-txt-dim/40 hover:text-txt-dim'}`}>
-              ✎ Ajuste do Mestre
-            </button>
+            {isAdmin && (
+              <button onClick={() => setGmDialogOpen(v => !v)}
+                className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${gmDialogOpen ? 'bg-amber-400/10 border-amber-400/30 text-amber-400' : 'border-sep/20 text-txt-dim/40 hover:text-txt-dim hover:border-sep/40'}`}>
+                ✎ Ajuste do Mestre
+              </button>
+            )}
             {onRefine && (
               <button onClick={() => onRefine(ability, original)}
-                className="text-[10px] px-2 py-0.5 rounded border border-purple-400/20 text-purple-400/60 hover:text-purple-400 hover:border-purple-400/40 transition-colors ml-auto">
+                className="text-[10px] px-2.5 py-1 rounded border border-purple-400/20 text-purple-400/60 hover:text-purple-400 hover:border-purple-400/40 transition-colors ml-auto">
                 ✦ Refinar com Oráculo
               </button>
             )}
           </div>
-          {gmOverride && (
-            <div className="grid grid-cols-2 gap-2 bg-void/40 border border-amber-400/10 rounded-lg p-2.5">
-              <div>
-                <label className="text-[9px] text-amber-400/60 uppercase block mb-1">Custo Energia</label>
-                <input type="number" value={gmCost} onChange={e => setGmCost(Number(e.target.value))}
-                  className="w-full bg-void border border-sep/30 rounded px-2 py-1 text-[11px] text-txt-main focus:border-amber-400/30 outline-none" />
-              </div>
-              <div>
-                <label className="text-[9px] text-amber-400/60 uppercase block mb-1">Duração</label>
-                <input type="text" value={gmDuration} onChange={e => setGmDuration(e.target.value)}
-                  className="w-full bg-void border border-sep/30 rounded px-2 py-1 text-[11px] text-txt-main focus:border-amber-400/30 outline-none" />
+          {isAdmin && gmDialogOpen && !gmResult && (
+            <div className="bg-void/50 border border-amber-400/15 rounded-lg p-3 space-y-2.5">
+              <label className="text-[10px] text-amber-400/70 uppercase tracking-wider block">O que deseja ajustar?</label>
+              <textarea
+                value={gmNote}
+                onChange={e => setGmNote(e.target.value)}
+                placeholder="Descreva as alterações desejadas. O Oráculo avaliará criticamente antes de aplicar..."
+                rows={3}
+                className="w-full bg-void border border-sep/25 rounded-lg px-3 py-2 text-[12px] text-txt-main placeholder:text-txt-dim/25 focus:border-amber-400/30 outline-none resize-none leading-relaxed"
+              />
+              <button onClick={handleGmSubmit} disabled={gmLoading || !gmNote.trim()}
+                className="text-[11px] bg-amber-400/10 border border-amber-400/25 text-amber-400 hover:bg-amber-400/20 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                {gmLoading ? 'Consultando Oráculo...' : 'Enviar ao Oráculo'}
+              </button>
+            </div>
+          )}
+          {gmResult && (
+            <div className="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3 space-y-2.5">
+              <span className="text-[10px] text-amber-400/70 uppercase tracking-wider block">Resultado do Ajuste do Mestre</span>
+              {gmResult.feedback && (
+                <p className="text-txt-main text-[11px] leading-relaxed whitespace-pre-wrap">{gmResult.feedback}</p>
+              )}
+              {gmResult._gmResponse && (
+                <p className="text-txt-main text-[11px] leading-relaxed whitespace-pre-wrap">{gmResult._gmResponse}</p>
+              )}
+              {gmResult._gmError && (
+                <p className="text-red-400 text-[11px]">{gmResult._gmError}</p>
+              )}
+              {(gmResult.custoEnergia !== undefined || gmResult.descricaoBalanceada) && (
+                <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  {gmResult.custoEnergia !== undefined && (
+                    <div><span className="text-txt-dim/50 text-[10px] uppercase block">Energia</span><span className="text-amber-300 font-semibold">{gmResult.custoEnergia}</span></div>
+                  )}
+                  {gmResult.dano && (
+                    <div><span className="text-txt-dim/50 text-[10px] uppercase block">Dano</span><span className="text-amber-300 font-semibold">{gmResult.dano}</span></div>
+                  )}
+                  {gmResult.duracao && (
+                    <div><span className="text-txt-dim/50 text-[10px] uppercase block">Duração</span><span className="text-amber-300 font-semibold">{gmResult.duracao}</span></div>
+                  )}
+                </div>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => { setGmResult(null); setGmNote('') }}
+                  className="text-[10px] px-2 py-1 rounded border border-sep/20 text-txt-dim/50 hover:text-txt-dim transition-colors">
+                  Refazer
+                </button>
               </div>
             </div>
           )}
-          <button onClick={applyWithOverride}
+          <button onClick={applyFinal}
             className="text-[11px] text-gold/70 hover:text-gold border border-gold/20 hover:border-gold/40 px-3 py-1 rounded-lg transition-colors">
             Aplicar esta
           </button>
@@ -177,6 +240,69 @@ function WeaponAbilityCard({ ability }) {
       {ability.feedback && (
         <p className="text-gold/50 text-[9px] italic leading-relaxed">💡 {ability.feedback}</p>
       )}
+    </div>
+  )
+}
+
+function RefinementCard({ parsedAbility, originalAbility, onApplySingle }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!parsedAbility) return null
+
+  function handleApply() {
+    const ability = {
+      ...parsedAbility,
+      index: originalAbility ? (char_habs_cache || []).findIndex(h => h.nome === originalAbility.nome) : undefined,
+    }
+    onApplySingle?.(ability)
+  }
+
+  return (
+    <div className="bg-emerald-400/5 border border-emerald-400/20 rounded-lg p-3 space-y-2.5 mt-2">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] bg-emerald-400/15 text-emerald-400 px-2 py-0.5 rounded font-semibold">AJUSTE SUGERIDO</span>
+        <span className="text-txt-main text-sm font-semibold">{parsedAbility.nome}</span>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-[11px]">
+        <div>
+          <span className="text-txt-dim/50 block text-[10px] uppercase">Energia</span>
+          <div className="flex items-center gap-1.5">
+            {originalAbility && <span className="text-txt-dim/40 line-through">{originalAbility.custoEnergia || 0}</span>}
+            <span className="text-emerald-400 font-semibold">{parsedAbility.custoEnergia ?? '—'}</span>
+          </div>
+        </div>
+        <div>
+          <span className="text-txt-dim/50 block text-[10px] uppercase">Dano</span>
+          <div className="flex items-center gap-1.5">
+            {originalAbility && <span className="text-txt-dim/40 line-through text-xs">{originalAbility.dano || '—'}</span>}
+            <span className="text-emerald-400 font-semibold truncate">{parsedAbility.dano || '—'}</span>
+          </div>
+        </div>
+        <div>
+          <span className="text-txt-dim/50 block text-[10px] uppercase">Duração</span>
+          <div className="flex items-center gap-1.5">
+            {originalAbility && <span className="text-txt-dim/40 line-through text-xs">{originalAbility.duracao || '—'}</span>}
+            <span className="text-emerald-400 font-semibold truncate">{parsedAbility.duracao || '—'}</span>
+          </div>
+        </div>
+      </div>
+      {parsedAbility.descricaoBalanceada && (
+        <div className="space-y-1">
+          <button onClick={() => setExpanded(v => !v)}
+            className="text-[10px] text-emerald-400/70 hover:text-emerald-400 flex items-center gap-1 transition-colors">
+            <span className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>▸</span>
+            Descrição ajustada
+          </button>
+          {expanded && (
+            <p className="text-txt-main text-[11px] leading-relaxed whitespace-pre-wrap bg-void/30 rounded p-2 border border-sep/10">
+              {parsedAbility.descricaoBalanceada}
+            </p>
+          )}
+        </div>
+      )}
+      <button onClick={handleApply}
+        className="text-[11px] bg-emerald-400/10 border border-emerald-400/25 text-emerald-400 hover:bg-emerald-400/20 px-3 py-1.5 rounded-lg transition-colors">
+        Aplicar este ajuste
+      </button>
     </div>
   )
 }
@@ -213,6 +339,9 @@ function MessageBubble({ msg, char, onApplySingle, onRefine }) {
                 <WeaponAbilityCard key={`w${i}`} ability={h} />
               ))}
             </div>
+          )}
+          {msg.type === 'refinement' && msg.parsedAbility && (
+            <RefinementCard parsedAbility={msg.parsedAbility} originalAbility={msg.originalAbility} onApplySingle={onApplySingle} />
           )}
         </div>
       </div>
@@ -274,6 +403,10 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
   }, [open])
 
   useEffect(() => {
+    if (open) window.__oracleChar = char
+  }, [open, char])
+
+  useEffect(() => {
     if (open && messages.length === 0) {
       setMessages([
         {
@@ -321,6 +454,17 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
     }
   }
 
+  function parseAbilityFromResponse(text) {
+    const jsonMatch = text.match(/```json\s*\n?([\s\S]*?)\n?\s*```/)
+    if (!jsonMatch) return null
+    try {
+      const parsed = JSON.parse(jsonMatch[1])
+      if (parsed.habilidade && parsed.habilidade.nome) return parsed.habilidade
+      if (parsed.nome) return parsed
+    } catch {}
+    return null
+  }
+
   async function handleChat(userMessage) {
     if (loading) return
     setLoading(true)
@@ -328,7 +472,21 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
 
     try {
       const response = await chatAboutAbility(char, userMessage, messages.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6))
-      addMessage({ role: 'assistant', content: response })
+      const parsedAbility = parseAbilityFromResponse(response)
+      if (parsedAbility) {
+        const originalHab = (char.habilidades || []).find(h =>
+          h.nome?.toLowerCase() === parsedAbility.nome?.toLowerCase()
+        )
+        addMessage({
+          role: 'assistant',
+          content: response,
+          type: 'refinement',
+          parsedAbility,
+          originalAbility: originalHab,
+        })
+      } else {
+        addMessage({ role: 'assistant', content: response })
+      }
     } catch (err) {
       addMessage({ role: 'assistant', content: `Erro: ${err.message}` })
     } finally {
@@ -337,13 +495,35 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
   }
 
   function handleApplySingle(ability) {
-    if (!lastResult || !onApply) return
-    const result = {
-      habilidades: ability.index !== undefined && !ability.tipo ? [ability] : [],
-      armaHabilidades: ability.tipo === 'arma' ? [ability] : [],
+    if (!onApply) return
+    if (ability.index !== undefined) {
+      const isWeapon = ability.tipo === 'arma'
+      const result = {
+        habilidades: !isWeapon ? [ability] : [],
+        armaHabilidades: isWeapon ? [ability] : [],
+      }
+      onApply(result)
+      addMessage({ role: 'system', content: `"${ability.nome}" aplicada.` })
+    } else {
+      const originalHab = (char.habilidades || []).find(h =>
+        h.nome?.toLowerCase() === ability.nome?.toLowerCase()
+      )
+      if (originalHab) {
+        const idx = char.habilidades.indexOf(originalHab)
+        const result = {
+          habilidades: [{
+            ...ability,
+            index: idx,
+            nome: ability.nome || originalHab.nome,
+          }],
+          armaHabilidades: [],
+        }
+        onApply(result)
+        addMessage({ role: 'system', content: `"${ability.nome}" ajustada e aplicada.` })
+      } else {
+        addMessage({ role: 'system', content: `Não foi possível encontrar "${ability.nome}" nas habilidades do personagem.` })
+      }
     }
-    onApply(result)
-    addMessage({ role: 'system', content: `"${ability.nome}" aplicada.` })
   }
 
   function handleApplyAll() {
@@ -445,21 +625,22 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
             </div>
 
             <div className="border-t border-sep/20 bg-deep/80 p-3">
-              <div className="flex gap-2">
-                <input
+              <div className="flex gap-2 items-end">
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Pergunte ou solicite análise..."
+                  placeholder="Pergunte ou solicite análise... (Shift+Enter para nova linha)"
                   disabled={loading}
-                  className="flex-1 bg-void/60 border border-sep/25 rounded-lg px-4 py-2.5 text-[13px] text-txt-main placeholder:text-txt-dim/25 focus:border-gold/30 focus:outline-none disabled:opacity-40 transition-colors"
+                  rows={1}
+                  className="flex-1 bg-void/60 border border-sep/25 rounded-lg px-4 py-2.5 text-[13px] text-txt-main placeholder:text-txt-dim/25 focus:border-gold/30 focus:outline-none disabled:opacity-40 transition-colors resize-none leading-relaxed min-h-[40px] max-h-[120px] overflow-y-auto"
+                  onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }}
                 />
                 <button
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
-                  className="bg-gold/15 border border-gold/25 text-gold hover:bg-gold/25 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-25 disabled:cursor-not-allowed"
+                  className="bg-gold/15 border border-gold/25 text-gold hover:bg-gold/25 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-25 disabled:cursor-not-allowed flex-shrink-0"
                 >
                   Enviar
                 </button>
