@@ -907,6 +907,11 @@ function EquipCreateModal({ char, onSave, onClose }) {
   function handleImage(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    processImageFile(file)
+    e.target.value = ''
+  }
+
+  function processImageFile(file) {
     const reader = new FileReader()
     reader.onload = (ev) => {
       const img = new Image()
@@ -924,7 +929,30 @@ function EquipCreateModal({ char, onSave, onClose }) {
       img.src = ev.target.result
     }
     reader.readAsDataURL(file)
-    e.target.value = ''
+  }
+
+  function handlePaste(e) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        processImageFile(item.getAsFile())
+        return
+      }
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    const file = e.dataTransfer?.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      processImageFile(file)
+    }
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault()
   }
 
   function selectType(id) {
@@ -1001,8 +1029,8 @@ function EquipCreateModal({ char, onSave, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose}>
-      <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose} onPaste={handlePaste}>
+      <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()} onDrop={handleDrop} onDragOver={handleDragOver}>
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
           <h3 className="font-cinzel text-primary text-sm">Novo Equipamento</h3>
           <div className="flex items-center gap-2">
@@ -1146,13 +1174,14 @@ function EquipCreateModal({ char, onSave, onClose }) {
             <div className="space-y-4">
               <div className="flex items-start gap-4">
                 <button onClick={() => fileRef.current?.click()}
-                  className="w-20 h-20 rounded-lg border-2 border-dashed border-sep/50 flex flex-col items-center justify-center hover:border-gold/40 transition-colors shrink-0 bg-void/50 overflow-hidden group">
+                  className="w-20 h-20 rounded-lg border-2 border-dashed border-sep/50 flex flex-col items-center justify-center hover:border-gold/40 transition-colors shrink-0 bg-void/50 overflow-hidden group relative"
+                  onDrop={e => { e.stopPropagation(); handleDrop(e) }} onDragOver={e => { e.stopPropagation(); e.preventDefault() }}>
                   {preview ? (
                     <img src={preview} alt="" className="w-full h-full rounded-lg object-cover" />
                   ) : (
                     <>
                       <span className="text-txt-dim/40 text-lg group-hover:text-gold/50 transition-colors">📷</span>
-                      <span className="text-txt-dim/30 text-[8px] mt-0.5">Imagem</span>
+                      <span className="text-txt-dim/30 text-[8px] mt-0.5">Colar / Arrastar</span>
                     </>
                   )}
                 </button>

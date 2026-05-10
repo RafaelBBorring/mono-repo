@@ -6,9 +6,9 @@ export const ARMOR_SLOTS = [
 ]
 
 export const ARMOR_WEIGHTS = [
-  { id: 'leve', label: 'Leve', armor: 5, speedPenalty: 0, extraLife: 5, critBonus: 0, desc: 'Mobilidade total, proteção mínima. Sem penalidade.' },
-  { id: 'comum', label: 'Comum', armor: 10, speedPenalty: 0, extraLife: 10, critBonus: 0, desc: 'Equilíbrio entre proteção e mobilidade.' },
-  { id: 'pesado', label: 'Pesado', armor: 15, speedPenalty: -1, extraLife: 15, critBonus: 0, desc: 'Proteção máxima. -1 DES, reduz velocidade.' },
+  { id: 'leve', label: 'Leve', armor: 4, speedPenalty: 0, extraLife: 3, critBonus: 0, desc: 'Mobilidade total, proteção mínima. Sem penalidade.' },
+  { id: 'comum', label: 'Comum', armor: 7, speedPenalty: 0, extraLife: 5, critBonus: 0, desc: 'Equilíbrio entre proteção e mobilidade.' },
+  { id: 'pesado', label: 'Pesado', armor: 10, speedPenalty: -1, extraLife: 8, critBonus: 0, desc: 'Proteção máxima. -1 DES, reduz velocidade.' },
 ]
 
 export const ARMOR_TYPES = [
@@ -60,29 +60,101 @@ export const ARMOR_TYPES = [
 ]
 
 export const EQUIPMENT_RARITIES = [
-  { rank: 'Comum', extraLife: 0, armorBonus: 0, activeSkills: 0, passiveSkills: 0, critBonus: 0, damageBonus: 0, shieldAmount: 0, color: 'gray' },
-  { rank: 'Incomum', extraLife: 5, armorBonus: 1, activeSkills: 0, passiveSkills: 0, critBonus: 0, damageBonus: 0, shieldAmount: 0, color: 'emerald' },
-  { rank: 'Raro', extraLife: 10, armorBonus: 2, activeSkills: 0, passiveSkills: 0, critBonus: 2, damageBonus: 0, shieldAmount: 5, color: 'sky' },
-  { rank: 'Épico', extraLife: 15, armorBonus: 3, activeSkills: 1, passiveSkills: 0, critBonus: 3, damageBonus: 1, shieldAmount: 8, color: 'purple' },
-  { rank: 'Heroico', extraLife: 20, armorBonus: 4, activeSkills: 1, passiveSkills: 0, critBonus: 5, damageBonus: 2, shieldAmount: 12, color: 'rose' },
-  { rank: 'Ancestral', extraLife: 30, armorBonus: 5, activeSkills: 2, passiveSkills: 0, critBonus: 7, damageBonus: 3, shieldAmount: 18, color: 'amber' },
-  { rank: 'Mítico', extraLife: 40, armorBonus: 7, activeSkills: 2, passiveSkills: 0, critBonus: 10, damageBonus: 4, shieldAmount: 25, color: 'fuchsia' },
-  { rank: 'Transcendente', extraLife: 50, armorBonus: 10, activeSkills: 2, passiveSkills: 1, critBonus: 15, damageBonus: 5, shieldAmount: 35, color: 'cyan' },
+  {
+    rank: 'Comum', extraLife: 0, armorBonus: 0, activeSkills: 0, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 0, color: 'gray',
+    desc: 'Equipamento básico sem melhorias.',
+  },
+  {
+    rank: 'Incomum', extraLife: 3, armorBonus: 1, activeSkills: 0, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 0, color: 'emerald',
+    desc: 'Vida Permanente: +3 HP (mantido mesmo sem equipamento).',
+  },
+  {
+    rank: 'Raro', extraLife: 5, armorBonus: 1, activeSkills: 0, passiveSkills: 0,
+    critBonus: 1, damageBonus: 0, shieldAmount: 2, color: 'sky',
+    desc: 'Vida Permanente +3→5. Escudo: 2 (absorve dano antes do HP, regenera a cada turno).',
+  },
+  {
+    rank: 'Épico', extraLife: 8, armorBonus: 2, activeSkills: 1, passiveSkills: 0,
+    critBonus: 2, damageBonus: 1, shieldAmount: 4, color: 'purple',
+    desc: 'Vida Permanente: +8. Escudo: 4 (regenera/turno). 1 habilidade ativa. Armadura aumenta absorção.',
+  },
+  {
+    rank: 'Heroico', extraLife: 12, armorBonus: 2, activeSkills: 1, passiveSkills: 0,
+    critBonus: 3, damageBonus: 1, shieldAmount: 6, color: 'rose',
+    desc: 'Vida Permanente: +12. Escudo: 6. +1 habilidade ativa. Se a peça quebrar, perde armadura e escudo até reparar (1h + materiais).',
+  },
+  {
+    rank: 'Ancestral', extraLife: 15, armorBonus: 3, activeSkills: 2, passiveSkills: 0,
+    critBonus: 4, damageBonus: 2, shieldAmount: 8, color: 'amber',
+    desc: 'Vida Permanente: +15. Escudo: 8. 2 habilidades ativas. Armadura é absorção de dano (não CA). Reparo: rank × 10 PO + 1h.',
+  },
+  {
+    rank: 'Mítico', extraLife: 20, armorBonus: 4, activeSkills: 2, passiveSkills: 0,
+    critBonus: 5, damageBonus: 2, shieldAmount: 10, color: 'fuchsia',
+    desc: 'Vida Permanente: +20. Escudo: 10 (regenera/turno). Armadura: absorção de dano por golpe. Escudo é camada extra antes do HP.',
+  },
+  {
+    rank: 'Transcendente', extraLife: 25, armorBonus: 5, activeSkills: 2, passiveSkills: 1,
+    critBonus: 7, damageBonus: 3, shieldAmount: 12, color: 'cyan',
+    desc: 'Vida Permanente: +25. Escudo: 12. 2 ativas + 1 passiva. Dano absorvido por armadura não ignora escudo. Reparo: 250 PO + 4h de ferraria.',
+  },
 ]
 
+export const EQUIPMENT_STAT_LABELS = {
+  armorBonus: {
+    label: 'Armadura',
+    icon: '🛡',
+    desc: 'Absorção de Dano — Reduz CADA golpe recebido pelo valor indicado. Acumulável entre peças.',
+    lose: 'Se o equipamento quebrar ou for removido, perde-se temporariamente a armadura daquela peça.',
+  },
+  extraLife: {
+    label: 'Vida Permanente',
+    icon: '❤',
+    desc: 'Adicionado ao HP máximo do personagem. Permanece mesmo que o equipamento seja removido.',
+    lose: 'Não perdido ao desequipar. É uma melhoria permanente no corpo do personagem.',
+  },
+  shieldAmount: {
+    label: 'Escudo de Energia',
+    icon: '💠',
+    desc: 'Camada de proteção que absorve dano ANTES do HP. Regenera completamente no início de cada turno de combate.',
+    lose: 'Se o equipamento for removido em combate, o escudo desaparece imediatamente.',
+  },
+  critBonus: {
+    label: 'Chance de Crítico',
+    icon: '⚡',
+    desc: 'Chance adicional de causar golpe crítico (dano dobrado).',
+    lose: null,
+  },
+  damageBonus: {
+    label: 'Dano Extra',
+    icon: '⚔',
+    desc: 'Adicionado ao dano de cada ataque realizado.',
+    lose: null,
+  },
+}
+
+export const EQUIPMENT_REPAIR_RULES = {
+  desc: 'Quando um equipamento recebe dano direto (ataque focado na armadura, explosão, etc.), ele pode quebrar.',
+  broken: 'Equipamento quebrado: perde-se armadura, escudo e habilidades até reparo.',
+  repair: 'Custo de reparo: Raridade × 10 PO. Tempo: 1 hora de trabalho em ferraria.',
+  transcendente: 'Transcendente: 250 PO + 4 horas. Exige ferraria especializada.',
+}
+
 export const EQUIPMENT_TYPES = [
-  { id: 'peitoral_leve', label: 'Peitoral Leve', slot: 'peitoral', weight: 'leve', armorType: null, caBase: 5, penalty: 0, extraLife: 5, desc: 'Couro fino, tecido reforçado. Leve e ágil.' },
-  { id: 'peitoral_comum', label: 'Peitoral Comum', slot: 'peitoral', weight: 'comum', armorType: null, caBase: 10, penalty: 0, extraLife: 10, desc: 'Cota de malha ou couro endurecido. Equilibrado.' },
-  { id: 'peitoral_pesado', label: 'Peitoral Pesado', slot: 'peitoral', weight: 'pesado', armorType: null, caBase: 15, penalty: -1, extraLife: 15, desc: 'Placas de metal completo. Proteção máxima.' },
-  { id: 'elmo_leve', label: 'Elmo Leve', slot: 'elmo', weight: 'leve', armorType: null, caBase: 3, penalty: 0, extraLife: 3, desc: 'Capacete de couro. Proteção básica craniana.' },
-  { id: 'elmo_comum', label: 'Elmo Comum', slot: 'elmo', weight: 'comum', armorType: null, caBase: 5, penalty: 0, extraLife: 5, desc: 'Elmo de metal reforçado. Boa proteção.' },
-  { id: 'elmo_pesado', label: 'Elmo Pesado', slot: 'elmo', weight: 'pesado', armorType: null, caBase: 8, penalty: -1, extraLife: 8, desc: 'Elmo completo com viseira. Visão limitada, proteção total.' },
-  { id: 'calcas_leve', label: 'Calças Leves', slot: 'calcas', weight: 'leve', armorType: null, caBase: 3, penalty: 0, extraLife: 3, desc: 'Perneiras de couro flexível. Mobilidade total.' },
-  { id: 'calcas_comum', label: 'Calças Comuns', slot: 'calcas', weight: 'comum', armorType: null, caBase: 5, penalty: 0, extraLife: 5, desc: 'Grevas de malha. Proteção razoável.' },
-  { id: 'calcas_pesado', label: 'Calças Pesadas', slot: 'calcas', weight: 'pesado', armorType: null, caBase: 8, penalty: -1, extraLife: 8, desc: 'Placas articuladas. Máxima proteção nas pernas.' },
-  { id: 'botas_leve', label: 'Botas Leves', slot: 'botas', weight: 'leve', armorType: null, caBase: 2, penalty: 0, extraLife: 2, desc: 'Botas de couro. Agilidade e leveza.' },
-  { id: 'botas_comum', label: 'Botas Comuns', slot: 'botas', weight: 'comum', armorType: null, caBase: 4, penalty: 0, extraLife: 4, desc: 'Botas reforçadas com placa de metal.' },
-  { id: 'botas_pesado', label: 'Botas Pesadas', slot: 'botas', weight: 'pesado', armorType: null, caBase: 6, penalty: -1, extraLife: 6, desc: 'Botas de placa pesada. Máxima proteção nos pés.' },
+  { id: 'peitoral_leve', label: 'Peitoral Leve', slot: 'peitoral', weight: 'leve', armorType: null, caBase: 4, penalty: 0, extraLife: 3, desc: 'Couro fino, tecido reforçado. Leve e ágil.' },
+  { id: 'peitoral_comum', label: 'Peitoral Comum', slot: 'peitoral', weight: 'comum', armorType: null, caBase: 7, penalty: 0, extraLife: 6, desc: 'Cota de malha ou couro endurecido. Equilibrado.' },
+  { id: 'peitoral_pesado', label: 'Peitoral Pesado', slot: 'peitoral', weight: 'pesado', armorType: null, caBase: 10, penalty: -1, extraLife: 9, desc: 'Placas de metal completo. Proteção máxima.' },
+  { id: 'elmo_leve', label: 'Elmo Leve', slot: 'elmo', weight: 'leve', armorType: null, caBase: 2, penalty: 0, extraLife: 2, desc: 'Capacete de couro. Proteção básica craniana.' },
+  { id: 'elmo_comum', label: 'Elmo Comum', slot: 'elmo', weight: 'comum', armorType: null, caBase: 4, penalty: 0, extraLife: 3, desc: 'Elmo de metal reforçado. Boa proteção.' },
+  { id: 'elmo_pesado', label: 'Elmo Pesado', slot: 'elmo', weight: 'pesado', armorType: null, caBase: 6, penalty: -1, extraLife: 5, desc: 'Elmo completo com viseira. Visão limitada, proteção total.' },
+  { id: 'calcas_leve', label: 'Calças Leves', slot: 'calcas', weight: 'leve', armorType: null, caBase: 2, penalty: 0, extraLife: 2, desc: 'Perneiras de couro flexível. Mobilidade total.' },
+  { id: 'calcas_comum', label: 'Calças Comuns', slot: 'calcas', weight: 'comum', armorType: null, caBase: 4, penalty: 0, extraLife: 3, desc: 'Grevas de malha. Proteção razoável.' },
+  { id: 'calcas_pesado', label: 'Calças Pesadas', slot: 'calcas', weight: 'pesado', armorType: null, caBase: 6, penalty: -1, extraLife: 5, desc: 'Placas articuladas. Máxima proteção nas pernas.' },
+  { id: 'botas_leve', label: 'Botas Leves', slot: 'botas', weight: 'leve', armorType: null, caBase: 1, penalty: 0, extraLife: 1, desc: 'Botas de couro. Agilidade e leveza.' },
+  { id: 'botas_comum', label: 'Botas Comuns', slot: 'botas', weight: 'comum', armorType: null, caBase: 3, penalty: 0, extraLife: 2, desc: 'Botas reforçadas com placa de metal.' },
+  { id: 'botas_pesado', label: 'Botas Pesadas', slot: 'botas', weight: 'pesado', armorType: null, caBase: 4, penalty: -1, extraLife: 4, desc: 'Botas de placa pesada. Máxima proteção nos pés.' },
   { id: 'acessorio', label: 'Acessório', slot: 'acessorio', weight: null, armorType: null, caBase: 0, penalty: 0, extraLife: 0, desc: 'Anéis, amuletos, capas. Concedem passivas especiais.' },
   { id: 'utilidade', label: 'Item de Utilidade', slot: null, weight: null, armorType: null, caBase: 0, penalty: 0, extraLife: 0, desc: 'Escutas, ganchos, tasers, kits. Efeitos situacionais.' },
 ]
