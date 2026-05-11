@@ -22,6 +22,10 @@ function getArmorType(item = {}) {
   return ARMOR_TYPES.find(t => t.id === item.armorType)
 }
 
+function isOutfit(item = {}) {
+  return item.categoria === 'Traje'
+}
+
 function enforceSingleSlot(items, incoming, incomingIdx = -1) {
   const type = getEquipmentType(incoming)
   if (!incoming?.equipado || !type?.slot) return items
@@ -80,6 +84,8 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const equipmentStats = calcEquipStats(equipamentos)
   const legendaryAssigned = char.armasLendarias || []
   const [showCreate, setShowCreate] = useState(false)
+  const [showCreateOutfit, setShowCreateOutfit] = useState(false)
+  const [pieceOutfitId, setPieceOutfitId] = useState(null)
   const [showLegendaryCatalog, setShowLegendaryCatalog] = useState(false)
   const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
   const enrichedLegendary = useMemo(() => {
@@ -91,6 +97,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
     })
   }, [legendaryAssigned, legendaryForgeItems])
   const [viewIdx, setViewIdx] = useState(null)
+  const [viewOutfitIdx, setViewOutfitIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const [showWeaponDrawer, setShowWeaponDrawer] = useState(false)
   const [viewLegendaryIdx, setViewLegendaryIdx] = useState(null)
@@ -104,8 +111,9 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
     return () => { alive = false }
   }, [])
 
-  function openDrawer(idx) { setViewIdx(idx); setEditMode(false); onDrawerToggle?.(true) }
-  function closeDrawer() { setViewIdx(null); setEditMode(false); onDrawerToggle?.(false) }
+  function openDrawer(idx) { setViewIdx(idx); setViewOutfitIdx(null); setEditMode(false); onDrawerToggle?.(true) }
+  function closeDrawer() { setViewIdx(null); setViewOutfitIdx(null); setEditMode(false); onDrawerToggle?.(false) }
+  function openOutfitDrawer(idx) { setViewOutfitIdx(idx); setViewIdx(null); setEditMode(false); onDrawerToggle?.(true) }
 
   function addEquip(item) {
     const next = enforceSingleSlot([...equipamentos, item], item, equipamentos.length)
@@ -113,10 +121,49 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
     setShowCreate(false)
   }
 
+  function addOutfit(item) {
+    onUpdate([...equipamentos, item])
+    setShowCreateOutfit(false)
+  }
+
+  function addOutfitPiece(outfitId, item) {
+    const nextItem = { ...item, trajeId: outfitId }
+    const next = enforceSingleSlot([...equipamentos, nextItem], nextItem, equipamentos.length)
+    onUpdate(next)
+    setPieceOutfitId(null)
+  }
+
   function updateEquip(idx, patch) {
     const next = [...equipamentos]
     next[idx] = { ...next[idx], ...patch }
     onUpdate(enforceSingleSlot(next, next[idx], idx))
+  }
+
+  function setOutfitEquipped(outfitId, equipped) {
+    let next = equipamentos.map(item => {
+      if (item.id === outfitId && isOutfit(item)) return { ...item, equipado: equipped }
+      if (item.trajeId === outfitId && (item.categoria === 'Arma' || item.categoria === 'Equipamento')) {
+        return { ...item, equipado: equipped, local: equipped ? 'equipado' : 'guardado' }
+      }
+      return item
+    })
+
+    if (equipped) {
+      next.forEach((item, idx) => {
+        if (item.trajeId === outfitId && item.equipado) {
+          next = enforceSingleSlot(next, item, idx)
+        }
+      })
+    }
+
+    onUpdate(next)
+  }
+
+  function dissolveOutfit(outfitId) {
+    onUpdate(equipamentos
+      .filter(item => item.id !== outfitId)
+      .map(item => item.trajeId === outfitId ? { ...item, trajeId: null } : item))
+    closeDrawer()
   }
 
   function removeEquip(idx) {
@@ -209,6 +256,9 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   }
 
   const viewing = viewIdx !== null ? equipamentos[viewIdx] : null
+  const viewingOutfit = viewOutfitIdx !== null ? equipamentos[viewOutfitIdx] : null
+  const outfits = equipamentos.filter(isOutfit)
+  const visibleEquipamentos = equipamentos.filter(item => !isOutfit(item) && !item.trajeId)
 
   return (
     <>
@@ -223,10 +273,16 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
             Armas Lendárias
           </button>
           {canEdit && (
-            <button onClick={() => setShowCreate(true)}
-              className="text-[9px] border border-primary/30 text-primary/70 px-2 py-0.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0">
-              + Arma/Equip
-            </button>
+            <>
+              <button onClick={() => setShowCreateOutfit(true)}
+                className="text-[9px] border border-sky-300/30 text-sky-300/80 px-2 py-0.5 rounded hover:bg-sky-300/10 hover:text-sky-200 transition-colors shrink-0">
+                + Traje
+              </button>
+              <button onClick={() => setShowCreate(true)}
+                className="text-[9px] border border-primary/30 text-primary/70 px-2 py-0.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0">
+                + Arma/Equip
+              </button>
+            </>
           )}
         </div>
 
@@ -270,7 +326,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
             </div>
           ) : null}
 
-          {(weapon || equipamentos.length > 0 || enrichedLegendary.length > 0) && (
+          {(weapon || visibleEquipamentos.length > 0 || outfits.length > 0 || enrichedLegendary.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {weapon && (
                 <WeaponCard
@@ -286,7 +342,23 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   onClick={() => setShowWeaponDrawer(true)}
                 />
               )}
-              {equipamentos.map((item, idx) => (
+              {outfits.map((item) => {
+                const idx = equipamentos.indexOf(item)
+                const pieces = equipamentos.filter(piece => piece.trajeId === item.id)
+                return (
+                  <OutfitCard
+                    key={item.id || idx}
+                    item={item}
+                    pieces={pieces}
+                    canEdit={canEdit}
+                    onToggle={() => setOutfitEquipped(item.id, !item.equipado)}
+                    onClick={() => openOutfitDrawer(idx)}
+                  />
+                )
+              })}
+              {visibleEquipamentos.map((item) => {
+                const idx = equipamentos.indexOf(item)
+                return (
                 <EquipCard
                   key={item.id || idx}
                   item={item}
@@ -294,14 +366,15 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'guardado' : 'equipado' })}
                   onClick={() => openDrawer(idx)}
                 />
-              ))}
+                )
+              })}
               {enrichedLegendary.map((item, idx) => (
                 <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
               ))}
             </div>
           )}
 
-          {!weapon && equipamentos.length === 0 && enrichedLegendary.length === 0 && (
+          {!weapon && visibleEquipamentos.length === 0 && outfits.length === 0 && enrichedLegendary.length === 0 && (
             <p className="text-txt-dim/50 text-[11px] italic">Nenhum equipamento</p>
           )}
         </div>
@@ -309,6 +382,23 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
 
       {showCreate && createPortal(
         <EquipCreateModal char={char} onSave={addEquip} onClose={() => setShowCreate(false)} />,
+        document.body
+      )}
+
+      {showCreateOutfit && createPortal(
+        <OutfitCreateModal onSave={addOutfit} onClose={() => setShowCreateOutfit(false)} />,
+        document.body
+      )}
+
+      {pieceOutfitId && createPortal(
+        <EquipCreateModal
+          char={char}
+          onSave={(item) => addOutfitPiece(pieceOutfitId, item)}
+          onClose={() => setPieceOutfitId(null)}
+          initialCategory="Equipamento"
+          lockCategory
+          title="Nova PeÃ§a do Traje"
+        />,
         document.body
       )}
 
@@ -337,6 +427,23 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           onClose={closeDrawer}
           onImageChange={handleDrawerImage}
           imgRef={editImgRef}
+        />,
+        document.body
+      )}
+
+      {viewingOutfit && createPortal(
+        <OutfitDrawer
+          outfit={viewingOutfit}
+          pieces={equipamentos
+            .map((item, idx) => ({ item, idx }))
+            .filter(({ item }) => item.trajeId === viewingOutfit.id)}
+          canEdit={canEdit}
+          onAddPiece={() => setPieceOutfitId(viewingOutfit.id)}
+          onToggleOutfit={() => setOutfitEquipped(viewingOutfit.id, !viewingOutfit.equipado)}
+          onTogglePiece={(idx, piece) => updateEquip(idx, { equipado: !piece.equipado, local: piece.equipado ? 'guardado' : 'equipado' })}
+          onOpenPiece={(idx) => openDrawer(idx)}
+          onDissolve={() => dissolveOutfit(viewingOutfit.id)}
+          onClose={closeDrawer}
         />,
         document.body
       )}
@@ -375,6 +482,32 @@ function ArmoryStat({ label, value, tone }) {
     <div className="bg-black/20 border border-white/5 rounded px-2 py-1.5">
       <span className="block text-[8px] uppercase tracking-wider text-txt-dim/45">{label}</span>
       <strong className={`block text-sm font-mono ${tone}`}>{value || 0}</strong>
+    </div>
+  )
+}
+
+function OutfitCard({ item, pieces = [], canEdit, onToggle, onClick }) {
+  const stats = calcEquipStats(pieces.map(piece => ({ ...piece, equipado: true })))
+  const equippedPieces = pieces.filter(piece => piece.equipado).length
+  const completeSlots = new Set(pieces.map(piece => getEquipmentType(piece)?.slot).filter(Boolean)).size
+  return (
+    <div className="armory-card w-full rounded-lg border border-sky-300/35 bg-sky-300/6 text-sky-100 shadow-lg shadow-sky-300/8 p-3 text-left">
+      <div className="armory-rank-rail" style={{ background: 'rgba(125, 211, 252, 0.55)' }} />
+      <button type="button" onClick={onToggle} disabled={!canEdit}
+        title={item.equipado ? 'Desequipar traje' : 'Equipar traje'}
+        className={`armory-icon bg-sky-300/10 text-sky-200 border-sky-300/25 transition-transform ${canEdit ? 'hover:scale-[1.03] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/40' : 'opacity-85'}`}>
+        {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span>TRJ</span>}
+      </button>
+      <button type="button" onClick={onClick} className="flex-1 min-w-0 text-left">
+        <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Traje'}</span>
+        <span className="text-sky-200/65 text-[11px] mt-0.5 block">{pieces.length} pecas · {equippedPieces} equipadas · {completeSlots}/4 slots</span>
+        <span className="text-emerald-300/75 text-[10px] font-mono mt-1 block">
+          ARM {stats.totalArmor || 0} · DUR {stats.totalDurabilityMax ? `${stats.totalDurability}/${stats.totalDurabilityMax}` : '0'}
+        </span>
+        <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${item.equipado ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>
+          {item.equipado ? 'traje equipado' : 'traje guardado'}
+        </span>
+      </button>
     </div>
   )
 }
@@ -938,9 +1071,226 @@ function LegendaryCatalogModal({ items, assigned, isAdmin, onAssign, onClose }) 
   )
 }
 
-function EquipCreateModal({ char, onSave, onClose }) {
+function OutfitDrawer({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit, onTogglePiece, onOpenPiece, onDissolve, onClose }) {
+  const pieceItems = pieces.map(({ item }) => item)
+  const stats = calcEquipStats(pieceItems.map(piece => ({ ...piece, equipado: true })))
+  return (
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/40 drawer-overlay" onClick={onClose} />
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[420px] bg-deep border-l border-sky-300/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
+        <div className="px-4 py-3 border-b border-sep/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-sky-300/10 border border-sky-300/20 grid place-items-center overflow-hidden">
+              {outfit.imagem ? <img src={outfit.imagem} alt="" className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-sky-200 text-[18px]">checkroom</span>}
+            </div>
+            <div>
+              <h3 className="font-cinzel text-sky-100 text-xs uppercase tracking-wider">{outfit.nome || 'Traje'}</h3>
+              <span className="text-txt-dim/60 text-[10px]">{pieces.length} pecas vinculadas</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">âœ•</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {outfit.imagem && (
+            <img src={outfit.imagem} alt="" className="w-full aspect-[4/3] rounded-lg object-cover border border-sky-300/20" />
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Armadura</span>
+              <p className="text-primary text-sm font-mono mt-0.5">{stats.totalArmor || 0}</p>
+            </div>
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Durabilidade</span>
+              <p className="text-emerald-300 text-sm font-mono mt-0.5">{stats.totalDurabilityMax ? `${stats.totalDurability}/${stats.totalDurabilityMax}` : 0}</p>
+            </div>
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Penalidade</span>
+              <p className="text-amber-300 text-sm font-mono mt-0.5">{stats.totalSpeedPenalty ? `${stats.totalSpeedPenalty} DES` : '0'}</p>
+            </div>
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Estado</span>
+              <p className="text-txt-main text-sm font-mono mt-0.5">{outfit.equipado ? 'equipado' : 'guardado'}</p>
+            </div>
+          </div>
+
+          {outfit.descricao && (
+            <p className="text-txt-dim/75 text-xs leading-relaxed">{outfit.descricao}</p>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-txt-dim text-[10px] uppercase tracking-wider">PeÃ§as do traje</span>
+              {canEdit && (
+                <button onClick={onAddPiece} className="text-[10px] border border-sky-300/30 text-sky-200 px-2 py-1 rounded hover:bg-sky-300/10 transition-colors">
+                  + PeÃ§a
+                </button>
+              )}
+            </div>
+            {pieces.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-sky-300/20 bg-sky-300/5 px-3 py-6 text-center">
+                <span className="material-symbols-outlined text-sky-200/50 text-3xl">inventory_2</span>
+                <p className="text-txt-dim/55 text-[11px] mt-1">Crie as peÃ§as internas para este traje.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pieces.map(({ item, idx }) => {
+                  const type = getEquipmentType(item)
+                  const armorType = getArmorType(item)
+                  return (
+                    <div key={item.id || idx} className="rounded-lg border border-sky-300/15 bg-void/45 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded border border-sky-300/20 bg-sky-300/8 grid place-items-center overflow-hidden shrink-0">
+                          {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span className="text-sky-100/70 text-[10px]">EQP</span>}
+                        </div>
+                        <button type="button" onClick={() => onOpenPiece(idx)} className="min-w-0 flex-1 text-left">
+                          <span className="text-txt-main text-xs font-semibold truncate block">{item.nome || 'PeÃ§a'}</span>
+                          <span className="text-txt-dim/55 text-[10px] block">{type?.label || item.categoria}{armorType ? ` · ${armorType.label}` : ''}</span>
+                        </button>
+                        {canEdit && (
+                          <button onClick={() => onTogglePiece(idx, item)}
+                            className={`text-[9px] px-2 py-1 rounded border transition-colors ${item.equipado ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10' : 'border-sep/30 text-txt-dim/60 bg-black/15'}`}>
+                            {item.equipado ? 'on' : 'off'}
+                          </button>
+                        )}
+                      </div>
+                      {item.categoria === 'Equipamento' && (
+                        <div className="mt-2 flex flex-wrap gap-1.5 text-[9px] font-mono">
+                          <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/15">ARM {getEquipmentArmorValue(item)}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-300 border border-emerald-400/15">DUR {getEquipmentDurabilityCurrent(item)}/{getEquipmentDurabilityMax(item)}</span>
+                          {type?.penalty ? <span className="px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 border border-amber-400/15">{type.penalty} DES</span> : null}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-t border-sep/30 flex gap-2 shrink-0">
+          {canEdit && (
+            <>
+              <button onClick={onToggleOutfit}
+                className={`text-[10px] border px-3 py-1.5 rounded-lg transition-colors ${outfit.equipado ? 'border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10' : 'border-sky-400/30 text-sky-300 hover:bg-sky-400/10'}`}>
+                {outfit.equipado ? 'Desequipar traje' : 'Equipar traje'}
+              </button>
+              <button onClick={onDissolve} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Desfazer traje</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OutfitCreateModal({ onSave, onClose }) {
+  const [nome, setNome] = useState('Traje Completo')
+  const [descricao, setDescricao] = useState('')
+  const [imagem, setImagem] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const fileRef = useRef(null)
+
+  function processImageFile(file) {
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const size = 256
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        const scale = Math.max(size / img.width, size / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+        const dataUrl = canvas.toDataURL('image/webp', 0.78)
+        setImagem(dataUrl)
+        setPreview(dataUrl)
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleImage(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processImageFile(file)
+    e.target.value = ''
+  }
+
+  function handlePaste(e) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        processImageFile(item.getAsFile())
+        return
+      }
+    }
+  }
+
+  function handleSave() {
+    onSave({
+      id: Date.now(),
+      categoria: 'Traje',
+      nome: nome.trim() || 'Traje Completo',
+      descricao,
+      imagem,
+      equipado: false,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose} onPaste={handlePaste}>
+      <div className="codex-card !bg-deep border-sky-300/25 rounded-xl w-full max-w-md shadow-2xl shadow-black/50 modal-content" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between">
+          <h3 className="font-cinzel text-sky-200 text-sm">Novo Traje</h3>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">âœ•</button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <button onClick={() => fileRef.current?.click()}
+              className="w-28 h-28 rounded-lg border-2 border-dashed border-sky-300/25 flex flex-col items-center justify-center hover:border-sky-300/50 transition-colors shrink-0 bg-void/50 overflow-hidden group">
+              {preview ? <img src={preview} alt="" className="w-full h-full object-cover" /> : (
+                <>
+                  <span className="material-symbols-outlined text-sky-200/60 text-3xl">checkroom</span>
+                  <span className="text-txt-dim/45 text-[9px] mt-1">Imagem do traje</span>
+                </>
+              )}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+            <div className="flex-1 space-y-2">
+              <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome do traje"
+                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-sky-300/45 focus:outline-none" autoFocus />
+              <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="DescriÃ§Ã£o visual, origem, detalhes..." rows={4}
+                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-sky-300/45 focus:outline-none leading-relaxed" />
+            </div>
+          </div>
+          <div className="rounded-lg border border-sky-300/15 bg-sky-300/5 px-3 py-2">
+            <p className="text-sky-100/80 text-[11px] leading-relaxed">O traje funciona como uma pasta visual. As peÃ§as criadas dentro dele continuam calculando armadura, durabilidade, penalidade e carga normalmente.</p>
+          </div>
+        </div>
+        <div className="px-6 py-3 border-t border-sep/30 flex justify-end gap-2">
+          <button onClick={onClose} className="text-txt-dim text-xs hover:text-txt-main px-3 py-1.5 transition-colors">Cancelar</button>
+          <button onClick={handleSave}
+            className="text-xs px-4 py-1.5 rounded-lg font-semibold bg-gold text-void hover:bg-gold-light transition-colors">
+            Criar Traje
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', lockCategory = false, title = 'Novo Equipamento' }) {
   const [step, setStep] = useState(0)
-  const [itemCategory, setItemCategory] = useState('Arma')
+  const [itemCategory, setItemCategory] = useState(initialCategory)
   const [equipType, setEquipType] = useState(null)
   const [selectedType, setSelectedType] = useState('')
   const [selectedRank, setSelectedRank] = useState('Comum')
@@ -1141,7 +1491,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose} onPaste={handlePaste}>
       <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()} onDrop={handleDrop} onDragOver={handleDragOver}>
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
-          <h3 className="font-cinzel text-primary text-sm">Novo Equipamento</h3>
+          <h3 className="font-cinzel text-primary text-sm">{title}</h3>
           <div className="flex items-center gap-2">
             {Array.from({ length: detailStep + 1 }, (_, s) => (
               <div key={s} className={`w-2 h-2 rounded-full transition-colors ${step >= s ? 'bg-gold' : 'bg-sep/50'}`} />
@@ -1153,8 +1503,8 @@ function EquipCreateModal({ char, onSave, onClose }) {
         <div className="flex-1 overflow-y-auto p-6">
           {step === 0 && (
             <div className="space-y-3">
-              <h4 className="text-txt-dim text-xs uppercase tracking-wider">Categoria</h4>
-              <div className="grid grid-cols-3 gap-2">
+              <h4 className="text-txt-dim text-xs uppercase tracking-wider">{lockCategory ? 'PeÃ§a do traje' : 'Categoria'}</h4>
+              {!lockCategory && <div className="grid grid-cols-3 gap-2">
                 {[
                   { cat: 'Arma', icon: '⚔', desc: 'Espadas, armas de fogo' },
                   { cat: 'Equipamento', icon: '🛡', desc: 'Armaduras, coletes' },
@@ -1167,7 +1517,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
                     <span className="text-[8px] text-txt-dim/50 block mt-0.5">{c.desc}</span>
                   </button>
                 ))}
-              </div>
+              </div>}
 
               {itemCategory === 'Arma' && (
                 <div className="grid grid-cols-2 gap-2">
