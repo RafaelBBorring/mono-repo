@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { Fragment, useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS, canEquipRank as canUseWeaponRank, getWeaponLimitForLevel, getWeaponWeight } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
@@ -274,6 +274,37 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
         .map(item => getEquipmentType(item)?.slot)
         .filter(Boolean)
     : []
+  const naturalArmoryCards = [
+    ...(weapon ? [{ key: 'primary_weapon', kind: 'weapon' }] : []),
+    ...visibleEquipamentos.map((item) => {
+      const idx = equipamentos.indexOf(item)
+      return { key: `equip:${item.id || idx}`, kind: 'equip', item, idx }
+    }),
+    ...enrichedLegendary.map((item, idx) => ({ key: `legendary:${item.id || idx}`, kind: 'legendary', item, idx })),
+  ]
+  const armoryCardOrder = Array.isArray(char.armoryCardOrder) ? char.armoryCardOrder : []
+  const orderedArmoryCards = naturalArmoryCards
+    .map((card, naturalIdx) => ({ ...card, naturalIdx, orderIdx: armoryCardOrder.indexOf(card.key) }))
+    .sort((a, b) => {
+      if (a.orderIdx === -1 && b.orderIdx === -1) return a.naturalIdx - b.naturalIdx
+      if (a.orderIdx === -1) return 1
+      if (b.orderIdx === -1) return -1
+      return a.orderIdx - b.orderIdx
+    })
+  const armorySlotCount = outfits.length ? Math.max(6, Math.ceil(orderedArmoryCards.length / 2) * 2) : orderedArmoryCards.length
+
+  function moveArmoryCard(cardKey, direction) {
+    if (!onCharacterUpdate) return
+    const keys = orderedArmoryCards.map(card => card.key)
+    const current = keys.indexOf(cardKey)
+    const target = current + direction
+    if (current === -1 || target < 0 || target >= keys.length) return
+    const next = [...keys]
+    const moved = next[current]
+    next[current] = next[target]
+    next[target] = moved
+    onCharacterUpdate({ armoryCardOrder: next })
+  }
 
   return (
     <>
@@ -342,7 +373,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           ) : null}
 
           {(weapon || visibleEquipamentos.length > 0 || outfits.length > 0 || enrichedLegendary.length > 0) && (
-            <div className={outfits.length ? 'grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)] gap-3 items-start' : ''}>
+            <div className={outfits.length ? 'grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] gap-4 items-start' : ''}>
               {outfits.length > 0 && (
                 <div className="space-y-3 lg:sticky lg:top-4">
                   {outfits.map((item) => {
@@ -361,35 +392,49 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   })}
                 </div>
               )}
-              <div className={outfits.length ? 'grid grid-cols-1 md:grid-cols-2 gap-3 auto-rows-min content-start' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3'}>
-                {weapon && (
-                  <WeaponCard
-                    weapon={weapon}
-                    rank={weaponRank}
-                    habilidades={char.armaHabilidades || []}
-                    triagemBonus={getWeaponTriagemBonus(char)}
-                    image={char.armaImagem}
-                    displayName={char.armaNome || weapon.name}
-                    equipped={weaponEquipped}
-                    canEdit={canEdit}
-                    onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'guardado' : 'equipado' })}
-                    onClick={() => setShowWeaponDrawer(true)}
-                  />
-                )}
-                {visibleEquipamentos.map((item) => {
-                  const idx = equipamentos.indexOf(item)
-                  return (
-                    <EquipCard
-                      key={item.id || idx}
-                      item={item}
+              <div className={outfits.length ? 'grid grid-cols-2 gap-3 auto-rows-min content-start' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3'}>
+                {orderedArmoryCards.map((card, cardIdx) => {
+                  const cardNode = card.kind === 'weapon' ? (
+                    <WeaponCard
+                      weapon={weapon}
+                      rank={weaponRank}
+                      habilidades={char.armaHabilidades || []}
+                      triagemBonus={getWeaponTriagemBonus(char)}
+                      image={char.armaImagem}
+                      displayName={char.armaNome || weapon.name}
+                      equipped={weaponEquipped}
                       canEdit={canEdit}
-                      onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'guardado' : 'equipado' })}
-                      onClick={() => openDrawer(idx)}
+                      onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'guardado' : 'equipado' })}
+                      onClick={() => setShowWeaponDrawer(true)}
                     />
+                  ) : card.kind === 'equip' ? (
+                    <EquipCard
+                      item={card.item}
+                      canEdit={canEdit}
+                      onToggle={() => updateEquip(card.idx, { equipado: !card.item.equipado, local: card.item.equipado ? 'guardado' : 'equipado' })}
+                      onClick={() => openDrawer(card.idx)}
+                    />
+                  ) : (
+                    <LegendaryAssignedCard item={card.item} onClick={() => setViewLegendaryIdx(card.idx)} />
+                  )
+
+                  return outfits.length ? (
+                    <ArmoryGridSlot
+                      key={card.key}
+                      canMove={canEdit && !!onCharacterUpdate && orderedArmoryCards.length > 1}
+                      canMoveBack={cardIdx > 0}
+                      canMoveForward={cardIdx < orderedArmoryCards.length - 1}
+                      onMoveBack={() => moveArmoryCard(card.key, -1)}
+                      onMoveForward={() => moveArmoryCard(card.key, 1)}
+                    >
+                      {cardNode}
+                    </ArmoryGridSlot>
+                  ) : (
+                    <Fragment key={card.key}>{cardNode}</Fragment>
                   )
                 })}
-                {enrichedLegendary.map((item, idx) => (
-                  <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
+                {outfits.length && Array.from({ length: Math.max(0, armorySlotCount - orderedArmoryCards.length) }).map((_, idx) => (
+                  <ArmoryEmptySlot key={`empty-slot-${idx}`} />
                 ))}
               </div>
             </div>
@@ -509,17 +554,49 @@ function ArmoryStat({ label, value, tone }) {
   )
 }
 
+function ArmoryGridSlot({ children, canMove, canMoveBack, canMoveForward, onMoveBack, onMoveForward }) {
+  return (
+    <div className="group relative aspect-[1.55/1] min-h-[112px] rounded-lg border border-sep/35 bg-void/25 p-2 overflow-hidden">
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+      {canMove && (
+        <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button type="button" onClick={onMoveBack} disabled={!canMoveBack}
+            title="Mover para antes"
+            className="w-6 h-6 rounded border border-primary/25 bg-deep/90 text-primary/80 grid place-items-center hover:text-primary disabled:opacity-25 disabled:hover:text-primary/80">
+            <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+          </button>
+          <button type="button" onClick={onMoveForward} disabled={!canMoveForward}
+            title="Mover para depois"
+            className="w-6 h-6 rounded border border-primary/25 bg-deep/90 text-primary/80 grid place-items-center hover:text-primary disabled:opacity-25 disabled:hover:text-primary/80">
+            <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+          </button>
+        </div>
+      )}
+      <div className="relative z-[1] h-full flex items-start">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ArmoryEmptySlot() {
+  return (
+    <div className="aspect-[1.55/1] min-h-[112px] rounded-lg border border-dashed border-sep/25 bg-black/10" />
+  )
+}
+
 function OutfitCard({ item, pieces = [], canEdit, onToggle, onClick }) {
   const stats = calcEquipStats(pieces.map(piece => ({ ...piece, equipado: true })))
   const equippedPieces = pieces.filter(piece => piece.equipado).length
   const completeSlots = new Set(pieces.map(piece => getEquipmentType(piece)?.slot).filter(Boolean)).size
   const previewPieces = pieces.slice(0, 4)
   return (
-    <div className="relative rounded-lg border border-sky-300/35 bg-sky-300/6 text-sky-100 shadow-lg shadow-sky-300/8 p-3 overflow-hidden">
+    <div className="relative rounded-lg border border-sky-300/35 bg-sky-300/6 text-sky-100 shadow-lg shadow-sky-300/8 p-2.5 overflow-hidden">
       <div className="armory-rank-rail" style={{ background: 'rgba(125, 211, 252, 0.55)' }} />
       <button type="button" onClick={onToggle} disabled={!canEdit}
         title={item.equipado ? 'Desequipar traje' : 'Equipar traje'}
-        className={`w-full aspect-[2/3] rounded-lg border bg-sky-300/10 text-sky-200 border-sky-300/25 overflow-hidden transition-transform ${canEdit ? 'hover:scale-[1.01] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/50' : 'opacity-90'}`}>
+        className={`w-full h-[320px] lg:h-[360px] xl:h-[390px] rounded-lg border bg-sky-300/10 text-sky-200 border-sky-300/25 overflow-hidden transition-transform ${canEdit ? 'hover:scale-[1.01] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/50' : 'opacity-90'}`}>
         {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover object-top" /> : (
           <span className="w-full h-full grid place-items-center">
             <span className="material-symbols-outlined text-sky-200/70 text-4xl">checkroom</span>
