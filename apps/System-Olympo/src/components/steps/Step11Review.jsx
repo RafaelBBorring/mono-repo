@@ -180,6 +180,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
     .filter((item) => activeEffects[item.effectKey])
   const activeItems = [...activeAbilityItems, ...activeModuleItems]
   const activeBonuses = mergeBonuses(activeItems)
+  const sysSkillBonuses = calcSystemSkillBonuses(char)
   const equipmentStats = calcEquipStats(char.equipamentos || [])
   const equipDurBonus = sysSkillBonuses.equipmentDurability
   if (equipDurBonus > 0) {
@@ -219,7 +220,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const pehSpent = calcPEHSpent(char.habilidades)
   const pehRemaining = pehTotal - pehSpent
 
-  const sysSkillBonuses = calcSystemSkillBonuses(char)
   const skelBonus = sysSkillBonuses.skeletonPoints
   const skelBase = cls ? getProgressionRewards(cls, char.nivel, char.choices).esqueleto : 0
   const skelTotal = cls ? calcSkeletonPointsAvailable(cls, char.nivel, char.choices, char) : 0
