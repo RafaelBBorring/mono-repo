@@ -62,6 +62,7 @@ function parseListParam(value) {
 }
 
 export function calcSystemSkillBonuses(char = {}) {
+  if (char == null) char = {}
   const bonuses = {
     skeletonPoints: 0,
     vida: 0,
