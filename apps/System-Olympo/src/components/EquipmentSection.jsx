@@ -286,7 +286,13 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                 />
               )}
               {equipamentos.map((item, idx) => (
-                <EquipCard key={item.id || idx} item={item} onClick={() => openDrawer(idx)} />
+                <EquipCard
+                  key={item.id || idx}
+                  item={item}
+                  canEdit={canEdit}
+                  onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'mochila' : 'equipado' })}
+                  onClick={() => openDrawer(idx)}
+                />
               ))}
               {enrichedLegendary.map((item, idx) => (
                 <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
@@ -319,6 +325,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       {viewing && createPortal(
         <EquipDrawer
           item={viewing}
+          char={char}
           canEdit={canEdit}
           editMode={editMode}
           onEdit={() => setEditMode(true)}
@@ -532,9 +539,9 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
                 ))}
               </div>
               <button type="button"
-                onClick={() => updateWeaponLocation(char.armaEquipada !== false ? 'mochila' : 'equipado')}
-                className={`w-full text-[10px] px-3 py-2 rounded-lg border transition-colors ${char.armaEquipada !== false ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15'}`}>
-                {char.armaEquipada !== false ? 'Desequipar para mochila' : 'Equipar e contabilizar carga'}
+                onClick={() => updateWeaponLocation(weaponLocal === 'equipado' ? 'mochila' : 'equipado')}
+                className={`w-full text-[10px] px-3 py-2 rounded-lg border transition-colors ${weaponLocal === 'equipado' ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15'}`}>
+                {weaponLocal === 'equipado' ? 'Desequipar para mochila' : 'Equipar e contabilizar carga'}
               </button>
               {onTransfer && (
                 <button type="button" onClick={onTransfer}
@@ -569,6 +576,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
                       )
                     })}
                   </div>
+                  <p className="text-txt-dim/45 text-[9px]">Limite atual: {getWeaponLimitForLevel(char.nivel || 1).maxRank}. Ranks acima do nivel ficam bloqueados.</p>
                   <label className="flex items-center gap-2 text-[10px] text-txt-dim cursor-pointer">
                     <input type="checkbox" checked={editEquipped} onChange={e => setEditEquipped(e.target.checked)} className="accent-gold" />
                     Equipada na carga
@@ -739,29 +747,32 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
   )
 }
 
-function EquipCard({ item, onClick }) {
+function EquipCard({ item, canEdit, onToggle, onClick }) {
   const rc = RANK_COLORS[item.rank] || RANK_COLORS.Comum
   const isLegendaryItem = item.categoria === 'Arma Lendaria' || item.categoria === 'Arma Lendária' || item.categoria === 'Arma Mistica'
   const isWeapon = item.categoria === 'Arma' || isLegendaryItem
+  const canQuickEquip = canEdit && (item.categoria === 'Arma' || item.categoria === 'Equipamento')
   const equipType = getEquipmentType(item)
   const armorType = getArmorType(item)
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
   const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
   return (
-    <button type="button" onClick={onClick}
+    <div
       className={`armory-card w-full rounded-lg border ${isLegendaryItem ? 'border-lime-300/45 bg-lime-300/8 text-lime-300 shadow-lg shadow-lime-300/10' : `${rc.border} ${rc.bg} ${rc.text} ${rc.glow}`} p-3 text-left`}>
       <div className="armory-rank-rail" />
-      <div className={`armory-icon ${isLegendaryItem ? 'bg-lime-300/10 text-lime-300 border-lime-300/25' : rc.badge}`}>
+      <button type="button" onClick={onToggle} disabled={!canQuickEquip}
+        title={item.equipado ? 'Desequipar' : 'Equipar'}
+        className={`armory-icon ${isLegendaryItem ? 'bg-lime-300/10 text-lime-300 border-lime-300/25' : rc.badge} transition-transform ${canQuickEquip ? 'hover:scale-[1.03] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/40' : 'opacity-85'}`}>
         {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span>{isWeapon ? 'ARM' : 'EQP'}</span>}
-      </div>
-      <div className="flex-1 min-w-0">
+      </button>
+      <button type="button" onClick={onClick} className="flex-1 min-w-0 text-left">
         <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Equipamento'}</span>
         {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}</span>}
         <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${item.equipado ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>
           {item.equipado ? 'equipado' : (item.local || 'guardado')}
         </span>
-      </div>
-    </button>
+      </button>
+    </div>
   )
 }
 
@@ -1267,15 +1278,15 @@ function EquipCreateModal({ char, onSave, onClose }) {
           )}
 
           {step === 2 && itemCategory === 'Equipamento' && (
-            <div className="space-y-3">
+            <div className="space-y-3 font-sans">
               <div>
                 <h4 className="text-txt-dim text-xs uppercase tracking-wider">Categoria do equipamento</h4>
-                <p className="text-txt-dim/55 text-[10px] mt-1">A primeira peÃ§a ativa o mini-bonus; 3 peÃ§as da mesma categoria liberam o bonus maior.</p>
+                <p className="text-txt-dim/65 text-[11px] mt-1 leading-relaxed">A primeira peca ativa o mini bonus; 3 pecas da mesma categoria liberam o bonus maior.</p>
               </div>
               <button type="button" onClick={() => setArmorType(null)}
                 className={`w-full text-left border rounded-lg p-3 transition-all ${armorType === null ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40 hover:border-gold/30'}`}>
-                <span className="text-txt-main text-[11px] font-semibold">Sem categoria</span>
-                <span className="block text-txt-dim/50 text-[10px] mt-0.5">Nao conta para bonus de conjunto.</span>
+                <span className="text-txt-main text-xs font-semibold">Sem categoria</span>
+                <span className="block text-txt-dim/60 text-[11px] mt-0.5">Nao conta para bonus de conjunto.</span>
               </button>
               <div className="grid grid-cols-1 gap-2">
                 {SET_BONUSES.map(s => {
@@ -1284,21 +1295,21 @@ function EquipCreateModal({ char, onSave, onClose }) {
                     <button key={s.id} type="button" onClick={() => setArmorType(s.id)}
                       className={`text-left border rounded-lg p-3 transition-all ${armorType === s.id ? `${s.borderClass} ${s.bgClass}` : 'border-sep/40 bg-void/40 hover:border-sep/70'}`}>
                       <div className="flex items-center justify-between gap-2">
-                        <span className={`text-xs font-semibold ${s.colorClass}`}>{s.name}</span>
-                        <span className={`text-[8px] px-1.5 py-0.5 rounded border ${s.badgeClass}`}>1+ / 3+</span>
+                        <span className={`text-sm font-semibold ${s.colorClass}`}>{s.name}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded border ${s.badgeClass}`}>1+ / 3+</span>
                       </div>
-                      <p className="text-txt-dim/60 text-[10px] mt-1 leading-snug">{s.desc}</p>
+                      <p className="text-txt-dim/70 text-[11px] mt-1 leading-relaxed">{s.desc}</p>
                       <div className="mt-2 grid gap-1.5">
                         <div className="rounded border border-white/5 bg-black/15 px-2 py-1.5">
-                          <span className="block text-txt-dim/45 text-[8px] uppercase">Mini-bonus</span>
-                          <span className="text-txt-main/80 text-[10px]">{s.miniBonus}</span>
-                          {s.miniPassive && <span className="block text-txt-dim/55 text-[9px] mt-0.5">{s.miniPassive}</span>}
+                          <span className="block text-txt-dim/50 text-[9px] uppercase tracking-wider">Mini bonus</span>
+                          <span className="text-txt-main/85 text-[11px] leading-relaxed">{s.miniBonus}</span>
+                          {s.miniPassive && <span className="block text-txt-dim/60 text-[10px] mt-0.5 leading-relaxed">{s.miniPassive}</span>}
                         </div>
                         {mainBonus && (
                           <div className="rounded border border-white/5 bg-black/15 px-2 py-1.5">
-                            <span className="block text-txt-dim/45 text-[8px] uppercase">Com 3 peÃ§as</span>
-                            <span className="text-txt-main/80 text-[10px]">{mainBonus.label}: {mainBonus.bonus}</span>
-                            <span className="block text-txt-dim/55 text-[9px] mt-0.5">{mainBonus.passive}</span>
+                            <span className="block text-txt-dim/50 text-[9px] uppercase tracking-wider">Com 3 pecas</span>
+                            <span className="text-txt-main/85 text-[11px] leading-relaxed">{mainBonus.label}: {mainBonus.bonus}</span>
+                            <span className="block text-txt-dim/60 text-[10px] mt-0.5 leading-relaxed">{mainBonus.passive}</span>
                           </div>
                         )}
                       </div>
@@ -1484,7 +1495,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
   )
 }
 
-function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
+function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
   const rc = RANK_COLORS[item.rank] || RANK_COLORS.Comum
   const equipType = getEquipmentType(item)
   const armorTypeMeta = getArmorType(item)
@@ -1501,6 +1512,46 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
   const [editPeso, setEditPeso] = useState(item.peso ?? '')
   const [editLocal, setEditLocal] = useState(item.local || (item.equipado ? 'equipado' : 'guardado'))
   const [editArmorAtual, setEditArmorAtual] = useState(item.armorAtual ?? '')
+  const [editItemHabilidades, setEditItemHabilidades] = useState(item.habilidades || [])
+  const [editEquipHabilidades, setEditEquipHabilidades] = useState(equipHabilidades || [])
+  const currentLevel = char?.nivel || 1
+  const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
+  const editWeaponRank = WEAPON_RANKS.find(r => r.rank === editRank) || WEAPON_RANKS[0]
+  const editWeaponUsedSlots = editItemHabilidades.reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+  const editEquipRarity = getEquipmentRarity(editRank)
+  const editEquipSlots = item.categoria === 'Equipamento' ? ((editEquipRarity?.activeSkills || 0) + (editEquipRarity?.passiveSkills || 0)) : 0
+  const editEquipUsedSlots = editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()).length
+  const editAbilityOverflow = (item.categoria === 'Arma' && editWeaponUsedSlots > editWeaponRank.slots) || (item.categoria === 'Equipamento' && editEquipUsedSlots > editEquipSlots)
+
+  function updateEditItemHab(index, patch) {
+    const next = [...editItemHabilidades]
+    next[index] = { ...next[index], ...patch }
+    setEditItemHabilidades(next)
+  }
+
+  function addEditItemHab() {
+    if (editWeaponUsedSlots >= editWeaponRank.slots) return
+    setEditItemHabilidades([...editItemHabilidades, { nome: '', potencia: 'Fraca', descricao: '', tipo: 'Ativa', custo: '' }])
+  }
+
+  function removeEditItemHab(index) {
+    setEditItemHabilidades(editItemHabilidades.filter((_, i) => i !== index))
+  }
+
+  function updateEditEquipHab(index, patch) {
+    const next = [...editEquipHabilidades]
+    next[index] = { ...next[index], ...patch }
+    setEditEquipHabilidades(next)
+  }
+
+  function addEditEquipHab() {
+    if (editEquipUsedSlots >= editEquipSlots) return
+    setEditEquipHabilidades([...editEquipHabilidades, { nome: '', tipo: 'Ativa', descricao: '', efeito: '' }])
+  }
+
+  function removeEditEquipHab(index) {
+    setEditEquipHabilidades(editEquipHabilidades.filter((_, i) => i !== index))
+  }
 
   function handleSave() {
     onSaveEdit({
@@ -1510,6 +1561,9 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
       efeitos: editEfeitos,
       rank: editRank,
       equipado: editEquipado,
+      habilidades: item.categoria === 'Arma' ? editItemHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.habilidades,
+      equipHabilidades: item.categoria === 'Equipamento' ? editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.equipHabilidades,
+      passivas: item.categoria === 'Equipamento' ? editEquipHabilidades.filter(h => (h.tipo || '').includes('Passiva')) : item.passivas,
       armorType: editArmorType,
       setId: editArmorType,
       peso: editPeso === '' ? estimateEquipmentWeight({ ...item, nome: editNome, descricao: editDesc }) : Number(editPeso),
@@ -1574,14 +1628,17 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
                 <div className="flex flex-wrap gap-1 mt-1">
                   {WEAPON_RANKS.map(r => {
                     const c = RANK_COLORS[r.rank]
+                    const allowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, r.rank) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, r.rank) : true
                     return (
-                      <button key={r.rank} onClick={() => setEditRank(r.rank)}
-                        className={`text-[9px] px-2 py-0.5 rounded border transition-colors ${editRank === r.rank ? `${c.badge}` : 'border-sep/30 text-txt-dim/50 hover:border-sep/60'}`}>
+                      <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
+                        title={!allowed ? `Limite atual: ${item.categoria === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}` : r.rank}
+                        className={`text-[9px] px-2 py-0.5 rounded border transition-colors ${editRank === r.rank ? `${c.badge}` : allowed ? 'border-sep/30 text-txt-dim/50 hover:border-sep/60' : 'border-sep/10 text-txt-dim/20 cursor-not-allowed'}`}>
                         {r.rank}
                       </button>
                     )
                   })}
                 </div>
+                <p className="text-txt-dim/45 text-[9px] mt-1">Limite atual: {item.categoria === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}.</p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -1619,6 +1676,75 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
                   <label className="text-txt-dim/50 text-[9px] uppercase">Armadura atual</label>
                   <input type="number" step="1" value={editArmorAtual} onChange={e => setEditArmorAtual(e.target.value)} placeholder="cheia"
                     className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                </div>
+              )}
+              {item.categoria === 'Arma' && (
+                <div className="border-t border-sep/20 pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-txt-dim text-[10px] uppercase tracking-wider">Habilidades da arma</span>
+                    <span className={`text-[10px] font-mono ${editWeaponUsedSlots > editWeaponRank.slots ? 'text-err' : 'text-txt-dim'}`}>Slots {editWeaponUsedSlots}/{editWeaponRank.slots}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {editItemHabilidades.map((h, i) => (
+                      <div key={i} className="bg-void/45 border border-sep/30 rounded-lg p-2 space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <input type="text" value={h.nome || ''} onChange={e => updateEditItemHab(i, { nome: e.target.value })} placeholder="Nome"
+                            className="min-w-0 flex-1 bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                          <select value={h.potencia || 'Fraca'} onChange={e => updateEditItemHab(i, { potencia: e.target.value })}
+                            className="bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main">
+                            {Object.entries(WEAPON_ABILITY_COST).map(([label, cost]) => <option key={label} value={label}>{label} ({cost})</option>)}
+                          </select>
+                          <select value={h.tipo || 'Ativa'} onChange={e => updateEditItemHab(i, { tipo: e.target.value })}
+                            className="bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main">
+                            <option value="Ativa">Ativa</option>
+                            <option value="Passiva">Passiva</option>
+                          </select>
+                          <button onClick={() => removeEditItemHab(i)} className="text-err/55 hover:text-err text-xs px-1 shrink-0">x</button>
+                        </div>
+                        <textarea value={h.descricao || ''} onChange={e => updateEditItemHab(i, { descricao: e.target.value })} placeholder="Descricao da habilidade..." rows={2}
+                          className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1 text-[9px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
+                        <input type="text" value={h.custo || ''} onChange={e => updateEditItemHab(i, { custo: e.target.value })} placeholder="Custo"
+                          className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                      </div>
+                    ))}
+                    {editWeaponUsedSlots < editWeaponRank.slots && (
+                      <button onClick={addEditItemHab} className="text-gold/70 hover:text-gold text-[10px]">+ Habilidade</button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {item.categoria === 'Equipamento' && (
+                <div className="border-t border-sep/20 pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-txt-dim text-[10px] uppercase tracking-wider">Habilidades do equipamento</span>
+                    <span className={`text-[10px] font-mono ${editEquipUsedSlots > editEquipSlots ? 'text-err' : 'text-txt-dim'}`}>Slots {editEquipUsedSlots}/{editEquipSlots}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {editEquipHabilidades.map((h, i) => (
+                      <div key={i} className="bg-void/45 border border-emerald-400/15 rounded-lg p-2 space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <input type="text" value={h.nome || ''} onChange={e => updateEditEquipHab(i, { nome: e.target.value })} placeholder="Nome"
+                            className="min-w-0 flex-1 bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                          <select value={h.tipo || 'Ativa'} onChange={e => updateEditEquipHab(i, { tipo: e.target.value })}
+                            className="bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main">
+                            <option value="Ativa">Ativa</option>
+                            <option value="Passiva">Passiva</option>
+                          </select>
+                          <button onClick={() => removeEditEquipHab(i)} className="text-err/55 hover:text-err text-xs px-1 shrink-0">x</button>
+                        </div>
+                        <textarea value={h.descricao || ''} onChange={e => updateEditEquipHab(i, { descricao: e.target.value })} placeholder="Descricao da habilidade..." rows={2}
+                          className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1 text-[9px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
+                        <input type="text" value={h.efeito || ''} onChange={e => updateEditEquipHab(i, { efeito: e.target.value })} placeholder="Efeito mecanico"
+                          className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                      </div>
+                    ))}
+                    {editEquipUsedSlots < editEquipSlots && (
+                      <button onClick={addEditEquipHab} className="text-gold/70 hover:text-gold text-[10px]">+ Habilidade</button>
+                    )}
+                    {editEquipSlots === 0 && (
+                      <p className="text-txt-dim/40 text-[10px] italic">Este rank nao concede slots de habilidade.</p>
+                    )}
+                  </div>
                 </div>
               )}
               <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Descrição" rows={3}
@@ -1738,6 +1864,12 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
         <div className="px-4 py-3 border-t border-sep/30 flex gap-2 shrink-0">
           {canEdit && !editMode && (
             <>
+              {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && (
+                <button onClick={() => onSaveEdit({ equipado: !item.equipado, local: item.equipado ? 'mochila' : 'equipado' })}
+                  className={`text-[10px] border px-3 py-1.5 rounded-lg transition-colors ${item.equipado ? 'border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10' : 'border-sky-400/30 text-sky-300 hover:bg-sky-400/10'}`}>
+                  {item.equipado ? 'Desequipar' : 'Equipar'}
+                </button>
+              )}
               <button onClick={onEdit} className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">Editar</button>
               <button onClick={onDelete} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Excluir</button>
               {onTransfer && <button onClick={onTransfer} className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors">Transferir</button>}
@@ -1745,7 +1877,8 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
           )}
           {editMode && (
             <>
-              <button onClick={handleSave} className="text-[10px] bg-gold text-void px-3 py-1.5 rounded-lg hover:bg-gold-light transition-colors font-semibold">Salvar</button>
+              <button onClick={handleSave} disabled={!editRankAllowed || editAbilityOverflow}
+                className="text-[10px] bg-gold text-void px-3 py-1.5 rounded-lg hover:bg-gold-light transition-colors font-semibold disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
               <button onClick={onCancelEdit} className="text-[10px] text-txt-dim hover:text-txt-main px-3 py-1.5 transition-colors">Cancelar</button>
             </>
           )}
