@@ -433,7 +433,7 @@ FICHA CALCULADA REAL DO PERSONAGEM:
 Nome: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nível: ${stats.nivel} | Faixa: ${stats.band} | Raça: ${char.raca || 'N/A'} (${char.racaTipo || 'N/A'})
 Atributos: FOR ${stats.atributos.FOR}(Mod${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(Mod${stats.atributos.modDES}) | CON ${stats.atributos.CON}(Mod${stats.atributos.modCON}) | INT ${stats.atributos.INT}(Mod${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(Mod${stats.atributos.modAM})
 Vida Total: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase} | Reações: ${stats.reacoes}
-Equipamentos equipados: Armadura ${stats.equipStats.totalArmor} | Vida Extra ${stats.equipStats.totalExtraLife} | Escudo ${stats.equipStats.totalShield} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
+Equipamentos equipados: Armadura ${stats.equipStats.totalArmor}/${stats.equipStats.totalArmorMax} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
 Sets ativos: ${stats.equipStats.activeSetBonuses.map(s => `${s.type.label} ${s.count}/4 (${s.bonus.label}: ${s.bonus.bonus})`).join(' | ') || 'Nenhum'}
 Dano Base de Classe: ${stats.danoBase} | Bônus Arma (${char.armaRank}): ${stats.armaDanoBonus} | Ataque Base: ${stats.ataqueBase} (valor numérico: +${stats.ataqueBaseNum})
 DANO TOTAL BASE (sem habilidades): ${stats.danoBase} + ${stats.armaDanoBonus}
@@ -1101,7 +1101,7 @@ export async function chatAboutAbility(char, userMessage, history = []) {
 PERSONAGEM: ${char.nome || 'Sem Nome'} | ${char.raca || 'N/A'} (${char.racaTipo || '?'}) | ${char.classe || '?'} | Nível ${stats.nivel} | Faixa ${stats.band}
 Atributos: FOR ${stats.atributos.FOR}(+${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(+${stats.atributos.modDES}) | CON ${stats.atributos.CON}(+${stats.atributos.modCON}) | INT ${stats.atributos.INT}(+${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(+${stats.atributos.modAM})
 Vida: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase}
-Equipamentos: Armadura ${stats.equipStats.totalArmor} | Vida Extra ${stats.equipStats.totalExtraLife} | Escudo ${stats.equipStats.totalShield} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
+Equipamentos: Armadura ${stats.equipStats.totalArmor}/${stats.equipStats.totalArmorMax} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
 Ataque Base: d20+${stats.ataqueBaseNum} | Dano Base: ${stats.danoBase} | Arma Bônus: ${stats.armaDanoBonus}
 PEH: ${pehSpent}/${pehTotal}
 LCP — Limite cumulativo para ${stats.band}: Ataque total ≤ +${lcp.atk} | Esquiva ≤ +${lcp.def} | CA bônus ≤ +${lcp.ca} | Ataques extras ≤ +${lcp.extra}
@@ -1205,8 +1205,8 @@ EQUIPAMENTO:
 - Tipo: ${typeDef?.label || equipType}
 - Slot: ${typeDef?.slot || 'utilidade'} | Peso: ${typeDef?.weight || 'n/a'} | Set: ${armorTypeDef?.label || 'sem set'}
 - Rank: ${equipRank}
-- Armadura base da peca: ${typeDef?.caBase || 0} | Vida extra base: ${typeDef?.extraLife || 0} | Penalidade: ${typeDef?.penalty || 0}
-- Bonus por rank: Armadura +${rarity.armorBonus} | Vida temporaria +${rarity.extraLife} | Escudo ${rarity.shieldAmount}
+- Armadura base da peca: ${typeDef?.caBase || 0} | Penalidade: ${typeDef?.penalty || 0}
+- Bonus por rank: Armadura +${rarity.armorBonus}
 - Slots disponiveis: ${activeSlots} ativa(s), ${passiveSlots} passiva(s)
 ${userDesc ? `- Descrição do jogador: ${userDesc}` : ''}
 

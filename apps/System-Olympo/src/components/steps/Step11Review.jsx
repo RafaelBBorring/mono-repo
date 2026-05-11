@@ -192,7 +192,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
   if (activeBonuses.dano && derived.danoBase) derived.danoBase = `${derived.danoBase} + ${activeBonuses.dano}`
 
-  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0) + activeBonuses.vida + equipmentStats.totalExtraLife)
+  const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0) + activeBonuses.vida)
   const energiaNow = char.energiaOverride ?? (derived.energia + (char.energiaBonus || 0) + activeBonuses.energia)
   const peNow = char.peOverride ?? (derived.pe + (char.peBonus || 0))
 
@@ -528,13 +528,12 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                     <span className="text-gold text-xs font-mono block mt-1 leading-tight">{derived.danoBase}</span>
                   </div>
                 </div>
-                {(equipmentStats.totalShield || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeSetBonuses.length > 0) && (
+                {(equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeSetBonuses.length > 0) && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {equipmentStats.totalShield ? <span className="text-[10px] px-2 py-1 rounded border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">Escudo {equipmentStats.totalShield}</span> : null}
                     {equipmentStats.totalCrit ? <span className="text-[10px] px-2 py-1 rounded border border-purple-400/20 bg-purple-400/10 text-purple-300">Crit +{equipmentStats.totalCrit}%</span> : null}
                     {equipmentStats.totalDamage ? <span className="text-[10px] px-2 py-1 rounded border border-red-400/20 bg-red-400/10 text-red-300">Dano +{equipmentStats.totalDamage}</span> : null}
                     {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
-                      <span key={type.id} className={`text-[10px] px-2 py-1 rounded border ${type.badgeClass}`}>{type.label} {count}/4: {bonus.label}</span>
+                      <span key={`${type.id}-${bonus.pieces}`} className={`text-[10px] px-2 py-1 rounded border ${type.badgeClass}`}>{type.label} {count}/4: {bonus.label}</span>
                     ))}
                   </div>
                 )}

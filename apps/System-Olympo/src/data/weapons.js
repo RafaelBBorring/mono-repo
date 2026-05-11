@@ -1,23 +1,23 @@
 export const WEAPONS = [
-  { id: 'espada_longa', name: 'Espada Longa', dano: '1d8', attr: 'FOR', mec: 'Golpe Versátil: 2 mãos = +1d6 dano.' },
-  { id: 'katana', name: 'Katana', dano: '1d8', attr: 'DES', mec: 'Iajutsu: sem ataque anterior, +4 acerto e +2d8 dano.' },
-  { id: 'adaga', name: 'Adaga / Punhal', dano: '1d4', attr: 'DES', mec: 'Ataque Rápido: 2 ataques (2° com −2).' },
-  { id: 'machado_guerra', name: 'Machado de Guerra', dano: '1d10', attr: 'FOR', mec: 'Golpe Pesado: −2 acerto, crítico em 18–20.' },
-  { id: 'martelo_guerra', name: 'Martelo de Guerra', dano: '1d10', attr: 'FOR', mec: 'Impacto: 30% chance de atordoar (CD CON 14).' },
-  { id: 'lanca', name: 'Lança', dano: '1d6', attr: 'FOR', mec: 'Alcance 3m. +2 CA contra ataques corpo-a-corpo.' },
-  { id: 'mangual', name: 'Mangual', dano: '1d8', attr: 'FOR', mec: 'Ignora bônus de +4 de escudos inimigos.' },
-  { id: 'chicote', name: 'Chicote', dano: '1d4', attr: 'DES', mec: 'Acerto pode desarmar o alvo (CD DES 14).' },
-  { id: 'arco_longo', name: 'Arco Longo', dano: '1d8', attr: 'DES', mec: '+2 acerto se não se moveu.' },
-  { id: 'besta', name: 'Besta', dano: '1d10', attr: 'DES', mec: '+4 dano contra armadura pesada.' },
-  { id: 'pistola', name: 'Pistola', dano: '1d8', attr: 'DES', mec: '+3d8 dano contra alvos a menos de 5m.' },
-  { id: 'submetralhadora', name: 'Sub-Metralhadora', dano: '1d6', attr: 'DES', mec: 'Rajada: ao acertar, gasta 3 munição para +2 ataques extras (−3 acerto cada). Recarga: 1 ação (carregador 30).' },
-  { id: 'rifle', name: 'Rifle', dano: '1d10', attr: 'DES', mec: '+3 acerto para alvos a 30m ou mais.' },
-  { id: 'escopeta', name: 'Escopeta', dano: '2d6', attr: 'DES', mec: 'Cone 5m: atinge todos no cone.' },
-  { id: 'sniper', name: 'Sniper', dano: '2d8', attr: 'DES', mec: 'Se mirar 1 rodada, +5 acerto no próximo.' },
-  { id: 'escudo_pequeno', name: 'Escudo Pequeno', dano: '1d4', attr: 'FOR', mec: '+2 CA. Ao bloquear, pode atacar como reação (empurra 3m).' },
-  { id: 'escudo_grande', name: 'Escudo Grande', dano: '1d6', attr: 'FOR', mec: '+3 CA. Pode plantar para cobertura total.' },
-  { id: 'manopla', name: 'Manopla', dano: '1d6', attr: 'FOR', mec: 'Golpes consecutivos no mesmo alvo: +1d4 (máx Mod.FOR), reseta ao errar.' },
-  { id: 'foice', name: 'Foice', dano: '1d6', attr: 'FOR', mec: 'Gancho: acertos consecutivos causam sangramento (+1d4 por turno, máx 3). Alcance 2m.' },
+  { id: 'espada_longa', name: 'Espada Longa', dano: '1d8', attr: 'FOR', peso: 1.8, mec: 'Golpe Versátil: 2 mãos = +1d6 dano.' },
+  { id: 'katana', name: 'Katana', dano: '1d8', attr: 'DES', peso: 1.4, mec: 'Iajutsu: sem ataque anterior, +4 acerto e +2d8 dano.' },
+  { id: 'adaga', name: 'Adaga / Punhal', dano: '1d4', attr: 'DES', peso: 0.5, mec: 'Ataque Rápido: 2 ataques (2° com −2).' },
+  { id: 'machado_guerra', name: 'Machado de Guerra', dano: '1d10', attr: 'FOR', peso: 4.0, mec: 'Golpe Pesado: −2 acerto, crítico em 18–20.' },
+  { id: 'martelo_guerra', name: 'Martelo de Guerra', dano: '1d10', attr: 'FOR', peso: 5.0, mec: 'Impacto: 30% chance de atordoar (CD CON 14).' },
+  { id: 'lanca', name: 'Lança', dano: '1d6', attr: 'FOR', peso: 3.0, mec: 'Alcance 3m. +2 CA contra ataques corpo-a-corpo.' },
+  { id: 'mangual', name: 'Mangual', dano: '1d8', attr: 'FOR', peso: 3.5, mec: 'Ignora bônus de +4 de escudos inimigos.' },
+  { id: 'chicote', name: 'Chicote', dano: '1d4', attr: 'DES', peso: 1.0, mec: 'Acerto pode desarmar o alvo (CD DES 14).' },
+  { id: 'arco_longo', name: 'Arco Longo', dano: '1d8', attr: 'DES', peso: 1.5, mec: '+2 acerto se não se moveu.' },
+  { id: 'besta', name: 'Besta', dano: '1d10', attr: 'DES', peso: 2.5, mec: '+4 dano contra armadura pesada.' },
+  { id: 'pistola', name: 'Pistola', dano: '1d8', attr: 'DES', peso: 1.0, mec: '+3d8 dano contra alvos a menos de 5m.' },
+  { id: 'submetralhadora', name: 'Sub-Metralhadora', dano: '1d6', attr: 'DES', peso: 3.5, mec: 'Rajada: ao acertar, gasta 3 munição para +2 ataques extras (−3 acerto cada). Recarga: 1 ação (carregador 30).' },
+  { id: 'rifle', name: 'Rifle', dano: '1d10', attr: 'DES', peso: 3.5, mec: '+3 acerto para alvos a 30m ou mais.' },
+  { id: 'escopeta', name: 'Escopeta', dano: '2d6', attr: 'DES', peso: 3.5, mec: 'Cone 5m: atinge todos no cone.' },
+  { id: 'sniper', name: 'Sniper', dano: '2d8', attr: 'DES', peso: 5.0, mec: 'Se mirar 1 rodada, +5 acerto no próximo.' },
+  { id: 'escudo_pequeno', name: 'Escudo Pequeno', dano: '1d4', attr: 'FOR', peso: 4.0, mec: '+2 CA. Ao bloquear, pode atacar como reação (empurra 3m).' },
+  { id: 'escudo_grande', name: 'Escudo Grande', dano: '1d6', attr: 'FOR', peso: 7.0, mec: '+3 CA. Pode plantar para cobertura total.' },
+  { id: 'manopla', name: 'Manopla', dano: '1d6', attr: 'FOR', peso: 1.8, mec: 'Golpes consecutivos no mesmo alvo: +1d4 (máx Mod.FOR), reseta ao errar.' },
+  { id: 'foice', name: 'Foice', dano: '1d6', attr: 'FOR', peso: 1.5, mec: 'Gancho: acertos consecutivos causam sangramento (+1d4 por turno, máx 3). Alcance 2m.' },
 ]
 
 export const WEAPON_RANKS = [
@@ -85,6 +85,7 @@ export function canEquipRank(nivel, rank) {
 
 export function getWeaponWeight(weaponId, name = '', description = '') {
   const weapon = WEAPONS.find(w => w.id === weaponId)
+  if (weapon?.peso) return weapon.peso
   const text = `${weapon?.name || ''} ${name || ''} ${description || ''}`.toLowerCase()
   if (!text.trim()) return 1
   if (/adaga|punhal|faca/.test(text)) return 0.5

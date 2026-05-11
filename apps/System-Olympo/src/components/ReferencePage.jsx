@@ -643,8 +643,7 @@ function QuickFormulasSection() {
           <FormulaCard label="Vida Base (por classe)" formula="Guerreiro: 100+CON×5 | Op.: 70+CON×5 | Mist.: 50+CON×5" color="emerald" />
           <FormulaCard label="Energia Total" formula="Base(AM) + [Energia/Nível × N] + Progressão + Intuitivo" desc="Intuitivo: +⌊AM×0.5⌋ × ⌊N/5⌋" color="sky" />
           <FormulaCard label="PE Total" formula="PE Base + PE/Nível × N + Progressão + Raça" desc="PE = Pontos de Esqueleto" color="sky" />
-          <FormulaCard label="Escudo de Energia" formula="Soma dos shields das peças equipadas" desc="Regenera completamente no início de cada turno" color="cyan" />
-          <FormulaCard label="Vida Temporária" formula="Soma extraLife das peças equipadas" desc="Concedida na 1ª utilização. Perdida ao desequipar/quebrar" color="emerald" />
+          <FormulaCard label="Absorção de Armadura" formula="Soma das peças equipadas (caBase + rank)" desc="Reduz CADA golpe recebido. Não é CA. Cada golpe = −1 Durabilidade." color="purple" />
         </div>
       </div>
 
@@ -661,8 +660,8 @@ function QuickFormulasSection() {
         <p>• Pontos de Esqueleto em CON afetam Vida retroativamente em todos os níveis.</p>
         <p>• Pontos de Esqueleto em AM afetam Energia retroativamente em todos os níveis.</p>
         <p>• Armadura de equipamento é absorção de dano (camada separada antes da Vida), não soma na CA.</p>
-        <p>• Escudo de Energia absorve dano ANTES do HP e regenera no início de cada turno de combate.</p>
-        <p>• Vida Temporária é concedida na 1ª utilização da peça na sessão e removida ao desequipar.</p>
+        <p>• Cada golpe absorvido pela armadura consome 1 ponto de Durabilidade da peça.</p>
+        <p>• Bônus de categoria (set) acumulam progressivamente: 2 peças ativam 2 peças, 3 peças ativam 2+3, 4 peças ativam 2+3+4.</p>
       </div>
     </div>
   )
@@ -1285,16 +1284,13 @@ function EquipmentSection() {
       <p className="text-txt-dim text-sm mb-4">
         Equipamentos complementam as armas e oferecem proteção, utilidades e bônus passivos. Dividem-se em
         <span className="text-primary"> Armaduras</span>,
-        <span className="text-sky-400"> Escudos</span>,
         <span className="text-purple-400"> Acessórios</span> e
         <span className="text-on-surface-variant"> Itens de Utilidade</span>.
       </p>
 
       <p className="text-txt-dim text-sm mb-4">
-        Na revisão atual, armaduras não aumentam CA diretamente. CA é defesa passiva contra ataques; <strong className="text-txt-main">Armadura</strong> é uma
-        camada separada de <strong className="text-primary">absorção/durabilidade</strong> antes da Vida. Ao chegar a 0, a peça quebra até reparo. Peitoral,
-        Elmo, Calças e Botas podem receber categorias como Guerreiro, Furtivo, Tecnológico, Médico, Demolidor, Exploração, Opala, Feitiçaria, Sobrenatural, Elemental ou Elementalista,
-        com bônus ativados progressivamente conforme o número de peças equipadas da mesma categoria.
+        Na revisão atual, armaduras não aumentam CA diretamente. CA é defesa passiva contra ataques; <strong className="text-primary">Armadura</strong> é uma
+        camada de <strong className="text-primary">absorção de dano</strong> que reduz cada golpe recebido pelo valor total das peças equipadas. Cada golpe absorvido consome 1 ponto de Durabilidade da peça. Quando a Durabilidade chega a 0, a peça quebra até reparo.
       </p>
 
       <div className="bg-void rounded-xl border border-primary/20 p-4">
@@ -1322,7 +1318,6 @@ function EquipmentSection() {
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Slot</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Peso</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Armadura Base</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">Vida Temp.</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Penalidade</th>
               </tr>
             </thead>
@@ -1333,7 +1328,6 @@ function EquipmentSection() {
                   <td className="py-2 px-3 text-txt-dim capitalize">{t.slot}</td>
                   <td className="py-2 px-3 text-txt-dim capitalize">{t.weight || '—'}</td>
                   <td className="py-2 px-3 font-mono text-primary">{t.caBase}</td>
-                  <td className="py-2 px-3 font-mono text-emerald-400">+{t.extraLife}</td>
                   <td className="py-2 px-3 font-mono text-red-400">{t.penalty ? `${t.penalty} DES` : '—'}</td>
                 </tr>
               ))}
@@ -1361,8 +1355,6 @@ function EquipmentSection() {
               <tr className="border-b border-sep/40">
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Armadura+</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">Vida Temp.</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">Escudo</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Habilidades</th>
               </tr>
             </thead>
@@ -1371,8 +1363,6 @@ function EquipmentSection() {
                 <tr key={r.rank} className="border-b border-sep/20 hover:bg-void/40">
                   <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
                   <td className="py-2 px-3 font-mono text-primary">{r.armorBonus > 0 ? `+${r.armorBonus}` : '—'}</td>
-                  <td className="py-2 px-3 font-mono text-emerald-400">{r.extraLife > 0 ? `+${r.extraLife}` : '—'}</td>
-                  <td className="py-2 px-3 font-mono text-cyan-400">{r.shieldAmount > 0 ? `+${r.shieldAmount}` : '—'}</td>
                   <td className="py-2 px-3 font-mono text-purple-400">
                     {r.activeSkills > 0 ? `${r.activeSkills} ativa${r.activeSkills > 1 ? 's' : ''}` : ''}
                     {r.passiveSkills > 0 ? `${r.activeSkills > 0 ? ' + ' : ''}${r.passiveSkills} passiva` : ''}
@@ -1383,7 +1373,7 @@ function EquipmentSection() {
             </tbody>
           </table>
         </div>
-        <p className="text-txt-dim text-xs mt-2">Esses valores somam à base do tipo de equipamento. Armadura+ aumenta a camada de Absorção/Durabilidade, não a CA. Vida extra é temporária de sessão enquanto a peça estiver equipada e íntegra.</p>
+        <p className="text-txt-dim text-xs mt-2">Esses valores somam à base do tipo de equipamento. Armadura+ aumenta a camada de Absorção, não a CA.</p>
       </div>
 
       <div className="bg-void rounded-xl border border-sky-400/20 p-4">
@@ -1402,9 +1392,34 @@ function EquipmentSection() {
         </div>
       </div>
 
+      <div className="bg-void rounded-xl border border-primary/25 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-primary text-lg">🛡️</span>
+          <h3 className="text-primary text-sm font-semibold">Como a Armadura Funciona</h3>
+        </div>
+        <div className="space-y-2 text-xs text-txt-dim">
+          <div className="flex gap-2 items-start">
+            <span className="text-primary font-bold shrink-0">1. Absorção:</span>
+            <span>A armadura reduz CADA golpe recebido pelo valor total de todas as peças equipadas e não quebradas. Ex: Peitoral Pesado Épico (18+5=23) + Elmo Pesado Épico (10+5=15) = 38 de absorção por golpe.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-amber-300 font-bold shrink-0">2. Durabilidade:</span>
+            <span>Cada vez que a armadura absorve um golpe, TODAS as peças equipadas perdem 1 ponto de Durabilidade. Quando uma peça chega a 0 Durabilidade, ela quebra e deixa de contribuir com absorção.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-emerald-400 font-bold shrink-0">3. Não é CA:</span>
+            <span>Armadura não altera a Classe de Armadura (CA). CA vem de perícia (Reflexo/Bloqueio) + atributos. Armadura é uma camada separada que reduz o dano que passa pela CA.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-red-400 font-bold shrink-0">4. Quebra:</span>
+            <span>Peças quebradas (Durabilidade 0) perdem toda absorção até serem reparadas em ferraria. Se Durabilidade cair para −5 ou menos, a peça é destruída permanentemente.</span>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
-        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Categoria (Sets)</h3>
-        <p className="text-txt-dim text-xs mb-3">Cada categoria ativa bônus progressivos conforme o número de peças equipadas. Com 1 peça, recebe o bônus mínimo. Com 2 ou mais, recebe o bônus correspondente ao nível atingido.</p>
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Categoria (Sets) — Acumulativo</h3>
+        <p className="text-txt-dim text-xs mb-3">Cada categoria ativa bônus progressivos conforme o número de peças equipadas. Com 1 peça, recebe o bônus mínimo. Com 2 ou mais, recebe TODOS os bônus das faixas atingidas (2 peças ativa o bônus de 2, 3 peças ativa 2+3, 4 peças ativa 2+3+4).</p>
         <div className="space-y-4">
           {ARMOR_TYPES.map(type => (
             <div key={type.id} className={`rounded-lg border ${type.borderClass} overflow-hidden`}>
@@ -1468,7 +1483,7 @@ function EquipmentSection() {
         <p>• Equipamentos seguem os mesmos ranks de armas para limites por nível.</p>
         <p>• Capacidade de moeda inicial: 5000 + (Nível − 1) × 500.</p>
         <p>• Peso corporal não conta para a capacidade de carga.</p>
-        <p>• Categorias ativam bônus automaticamente conforme o número de peças da mesma categoria equipadas.</p>
+        <p>• Categorias ativam bônus progressivamente — todas as faixas atingidas se acumulam.</p>
         <p>• Armas e equipamentos podem ser equipados, guardados, enviados para mochila, veículo ou base.</p>
         <p>• Fichas salvas podem transferir itens e equipamentos entre personagens.</p>
         <p>• A IA balanceia passivas de equipamento usando os mesmos limites SCP/TDH de habilidades.</p>
@@ -1485,15 +1500,6 @@ function DurabilitySection() {
     { weight: 'Pesado', baseHP: 22, repairCost: 'Rank × 12 PO', repairTime: '2 horas', desc: 'Placas de metal. Alta durabilidade, reparo demorado.' },
   ]
 
-  const damageTypes = [
-    { tipo: 'Corte/Perfuração', dano: '1 ponto', desc: 'Espadas, lanças, garras' },
-    { tipo: 'Impacto/Concussão', dano: '1 ponto', desc: 'Martelos, quedas, explosões' },
-    { tipo: 'Ataque focado na armadura', dano: '1d4 pontos', desc: 'Habilidade direcionada ao equipamento' },
-    { tipo: 'Explosão em área', dano: '1d6 pontos', desc: 'Granadas, magias de área' },
-    { tipo: 'Dano elemental (fogo/geada/ácido)', dano: '1d4 pontos', desc: 'Elementos que corroem ou derretem' },
-    { tipo: 'Crítico direcionado', dano: '2d4 pontos', desc: 'Crítico com intenção de destruir equipamento' },
-  ]
-
   return (
     <div className="space-y-6">
       <SectionTitle>Sistema de Durabilidade</SectionTitle>
@@ -1501,6 +1507,27 @@ function DurabilitySection() {
         Cada peça de equipamento possui pontos de <strong className="text-primary">Durabilidade</strong> independentes da Armadura (absorção).
         Quando a Durabilidade chega a 0, a peça quebra e perde todas as suas propriedades até ser reparada.
       </p>
+
+      <div className="bg-void rounded-xl border border-amber-300/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-amber-300 text-lg">⚙️</span>
+          <h3 className="text-amber-300 text-sm font-semibold">Regra Principal de Desgaste</h3>
+        </div>
+        <div className="bg-deep rounded-lg border border-amber-300/15 p-3">
+          <p className="text-amber-200 text-xs font-semibold mb-2">Cada golpe absorvido pela armadura consome 1 ponto de Durabilidade de TODAS as peças equipadas.</p>
+          <p className="text-txt-dim text-xs">Ex: Se o personagem recebe 3 golpes em um turno e tem 4 peças equipadas, todas as 4 peças perdem 3 pontos de Durabilidade cada.</p>
+        </div>
+        <div className="mt-3 bg-deep rounded-lg border border-amber-300/15 p-3">
+          <p className="text-amber-200 text-xs font-semibold mb-2">Ataques focados na armadura causam dano extra à Durabilidade:</p>
+          <ul className="space-y-1 text-xs text-txt-dim">
+            <li>• <strong className="text-txt-main">Corte/Perfuração normal:</strong> — (desgaste padrão de 1 por golpe)</li>
+            <li>• <strong className="text-txt-main">Ataque focado na armadura:</strong> +1d4 pontos de dano à Durabilidade</li>
+            <li>• <strong className="text-txt-main">Explosão em área:</strong> +1d6 pontos de dano à Durabilidade</li>
+            <li>• <strong className="text-txt-main">Dano elemental (fogo/gelo/ácido):</strong> +1d4 pontos de dano à Durabilidade</li>
+            <li>• <strong className="text-txt-main">Crítico direcionado ao equipamento:</strong> +2d4 pontos de dano à Durabilidade</li>
+          </ul>
+        </div>
+      </div>
 
       <div className="bg-void rounded-xl border border-amber-300/20 p-4">
         <h3 className="text-amber-300 text-sm font-semibold mb-3">Durabilidade por Peso</h3>
@@ -1529,28 +1556,12 @@ function DurabilitySection() {
         <p className="text-txt-dim text-xs mt-2">Fórmula de Durabilidade: Base do Peso + (Bônus de Rank × 2). Acessórios e itens de utilidade não possuem durabilidade.</p>
       </div>
 
-      <div className="bg-void rounded-xl border border-red-400/20 p-4">
-        <h3 className="text-red-400 text-sm font-semibold mb-3">Perda de Durabilidade por Tipo de Dano</h3>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {damageTypes.map((d, i) => (
-            <div key={i} className="bg-void/60 border border-red-400/15 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-txt-main text-xs font-semibold">{d.tipo}</span>
-                <span className="text-red-400 font-mono text-xs">−{d.dano}</span>
-              </div>
-              <p className="text-txt-dim text-[11px]">{d.desc}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-txt-dim text-xs mt-2">O Mestre decide quando o dano recebido afeta a durabilidade do equipamento. Em geral, apenas ataques direcionados ou dano massivo causam desgaste.</p>
-      </div>
-
       <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
         <h3 className="text-emerald-400 text-sm font-semibold mb-3">Regras de Quebra & Reparo</h3>
         <div className="space-y-2 text-xs text-txt-dim">
           <div className="flex gap-2 items-start">
             <span className="text-red-400 font-bold shrink-0">Quebra:</span>
-            <span>Ao atingir 0 Durabilidade, a peça quebra. Perde-se armadura (absorção), escudo, vida temporária e habilidades da peça até reparo.</span>
+            <span>Ao atingir 0 Durabilidade, a peça quebra. Perde-se armadura (absorção) e habilidades da peça até reparo.</span>
           </div>
           <div className="flex gap-2 items-start">
             <span className="text-emerald-400 font-bold shrink-0">Reparo em Campo:</span>
@@ -1575,29 +1586,30 @@ function DurabilitySection() {
               <tr className="border-b border-sep/40">
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Bônus Durabilidade</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">Resistência Elemental</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Exemplo (Pesado)</th>
               </tr>
             </thead>
             <tbody>
               {[
-                { rank: 'Comum', bonus: '+0', resist: 'Normal' },
-                { rank: 'Incomum', bonus: '+2', resist: 'Normal' },
-                { rank: 'Raro', bonus: '+4', resist: '+2 contra elemento aleatório' },
-                { rank: 'Épico', bonus: '+6', resist: '+4 contra elemento aleatório' },
-                { rank: 'Heroico', bonus: '+8', resist: '+6 contra 2 elementos' },
-                { rank: 'Ancestral', bonus: '+10', resist: '+8 contra 2 elementos' },
-                { rank: 'Mítico', bonus: '+12', resist: '+10 contra 3 elementos' },
-                { rank: 'Transcendente', bonus: '+15', resist: 'Imune a desgaste elemental' },
+                { rank: 'Comum', bonus: '+0', ex: '22' },
+                { rank: 'Incomum', bonus: '+4', ex: '26' },
+                { rank: 'Raro', bonus: '+8', ex: '30' },
+                { rank: 'Épico', bonus: '+12', ex: '34' },
+                { rank: 'Heroico', bonus: '+16', ex: '38' },
+                { rank: 'Ancestral', bonus: '+20', ex: '42' },
+                { rank: 'Mítico', bonus: '+24', ex: '46' },
+                { rank: 'Transcendente', bonus: '+30', ex: '52' },
               ].map((r, i) => (
                 <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
                   <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
                   <td className="py-2 px-3 font-mono text-primary">{r.bonus}</td>
-                  <td className="py-2 px-3 text-txt-dim text-xs">{r.resist}</td>
+                  <td className="py-2 px-3 font-mono text-txt-dim">{r.ex} pts</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p className="text-txt-dim text-xs mt-2">Fórmula: Base do Peso + (Bônus de Rank × 2). Transcendente pesado = 22 + 30 = 52 pontos de durabilidade.</p>
       </div>
     </div>
   )

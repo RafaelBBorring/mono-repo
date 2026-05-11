@@ -239,14 +239,13 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
         </div>
 
         <div className="space-y-2">
-          {(equipmentStats.totalArmor || equipmentStats.totalExtraLife || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.totalShield || equipmentStats.activeCategoryBonuses.length > 0 || equipmentStats.activeSetBonuses.length > 0) ? (
+          {(equipmentStats.totalArmor || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeCategoryBonuses.length > 0 || equipmentStats.activeSetBonuses.length > 0) ? (
             <div className="rounded-lg border border-primary/15 bg-void/45 p-3">
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <ArmoryStat label="Armadura" value={equipmentStats.totalArmorMax ? `${equipmentStats.totalArmor}/${equipmentStats.totalArmorMax}` : 0} tone="text-primary" />
-                <ArmoryStat label="Vida sessão" value={equipmentStats.totalExtraLife} tone="text-emerald-400" />
-                <ArmoryStat label="Escudo" value={equipmentStats.totalShield} tone="text-cyan-400" />
                 <ArmoryStat label="Crit" value={`${equipmentStats.totalCrit}%`} tone="text-purple-400" />
                 <ArmoryStat label="Dano" value={equipmentStats.totalDamage ? `+${equipmentStats.totalDamage}` : 0} tone="text-red-400" />
+                <ArmoryStat label="Penalidade" value={equipmentStats.totalSpeedPenalty ? `${equipmentStats.totalSpeedPenalty} DES` : '—'} tone={equipmentStats.totalSpeedPenalty ? 'text-amber-400' : 'text-txt-dim'} />
               </div>
               {equipmentStats.activeCategoryBonuses.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -260,7 +259,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
               {equipmentStats.activeSetBonuses.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
-                    <span key={type.id} className={`text-[9px] px-2 py-1 rounded border ${type.badgeClass}`}>
+                    <span key={`${type.id}-${bonus.pieces}`} className={`text-[9px] px-2 py-1 rounded border ${type.badgeClass}`}>
                       {type.label} {count}/4: {bonus.label}
                     </span>
                   ))}
@@ -1263,9 +1262,9 @@ function EquipCreateModal({ char, onSave, onClose }) {
                           )}
                           {itemCategory === 'Equipamento' && rarity && (
                             <>
-                              <div>Armadura: <span className="text-primary font-mono">+{rarity.armorBonus}</span> · Vida: <span className="text-emerald-400 font-mono">+{rarity.extraLife}</span></div>
+                              <div>Armadura: <span className="text-primary font-mono">+{rarity.armorBonus}</span> · Categoria define buffs extras</div>
                               <div>Ativas: <span className="font-mono">{rarity.activeSkills}</span> · Passivas: <span className="font-mono">{rarity.passiveSkills}</span></div>
-                              <div>Escudo: <span className="font-mono">{rarity.shieldAmount}</span> · Categoria define buffs extras</div>
+                              <div>Ativas: <span className="font-mono">{rarity.activeSkills}</span> · Passivas: <span className="font-mono">{rarity.passiveSkills}</span></div>
                             </>
                           )}
                         </div>
@@ -1774,14 +1773,6 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                   <div className={`bg-void/50 border rounded-lg px-3 py-2 ${rc.border}`}>
                     <span className="text-txt-dim/50 text-[9px] uppercase">Armadura</span>
                     <p className="text-primary text-sm font-mono mt-0.5">{item.armorAtual ?? (equipType.caBase + rarity.armorBonus)} / {equipType.caBase + rarity.armorBonus}</p>
-                  </div>
-                  <div className="bg-void/50 border border-emerald-400/20 rounded-lg px-3 py-2">
-                    <span className="text-txt-dim/50 text-[9px] uppercase">Vida sessão</span>
-                    <p className="text-emerald-400 text-sm font-mono mt-0.5">+{equipType.extraLife + rarity.extraLife}</p>
-                  </div>
-                  <div className="bg-void/50 border border-cyan-400/20 rounded-lg px-3 py-2">
-                    <span className="text-txt-dim/50 text-[9px] uppercase">Escudo</span>
-                    <p className="text-cyan-400 text-sm font-mono mt-0.5">{rarity.shieldAmount}</p>
                   </div>
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
                     <span className="text-txt-dim/50 text-[9px] uppercase">Peso</span>
