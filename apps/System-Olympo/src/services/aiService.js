@@ -22,7 +22,7 @@ import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
 import { calcEquipStats, getEquipmentRarity, EQUIPMENT_TYPES, ARMOR_TYPES } from '../data/equipment'
 import { CLASSES } from '../data/classes'
-import { SYSTEM_SKILLS } from '../data/systemSkills'
+import { SYSTEM_SKILLS, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 
 // ─── Infra (Supabase Edge Function com fallback para env key direto) ────────
 
@@ -494,7 +494,10 @@ HABILIDADES DA ARMA:
 ${JSON.stringify(armaHabs, null, 2)}
 
 CATALOGO DE SKILLS SISTEMICAS DISPONIVEIS AO MESTRE:
-${JSON.stringify(SYSTEM_SKILLS.map(s => ({ id: s.id, name: s.name, category: s.category, short: s.short })), null, 2)}
+${JSON.stringify(SYSTEM_SKILLS.map(s => ({ id: s.id, name: s.name, category: s.category, short: s.short, effectTypes: s.effectTypes })), null, 2)}
+
+TIPOS DE EFEITO E PARAMETROS:
+${JSON.stringify(Object.entries(EFFECT_PARAM_DEFS).map(([type, def]) => ({ type, label: def.label, params: Object.entries(def.params).map(([k, p]) => ({ key: k, label: p.label, type: p.type, default: p.default })) })), null, 2)}
 
   INSTRUÇÕES CRÍTICAS:
 - Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
@@ -514,7 +517,7 @@ ANTES de responder, VOCÊ DEVE:
 6. Verificar COMBOS: habilidade A amplifica habilidade B. Qual o pior cenário? Está dentro de 150% TDH?
 7. Se uma habilidade for INERENTEMENTE QUEBRADA (multiplicador sem limite, amplificador global sem contrapeso viável), marque status "irbalanceavel" e explique no feedback o que o jogador deve alterar no CONCEITO.
 
-Se uma Passiva altera progressao, recursos permanentes, criacao de armas/equipamentos ou outro subsistema, sugira uma Skill em "systemSkillSuggestions". Use apenas IDs do catalogo; se nenhuma encaixar, use "integracao_manual".
+Se uma Passiva altera progressao, recursos permanentes, criacao de armas/equipamentos ou outro subsistema, sugira uma Skill em "systemSkillSuggestions". Use apenas IDs do catalogo; se nenhuma encaixar, use "manual_integration". Para CADA sugestao, inclua "effects" com os tipos de efeito apropriados e parametros extraidos da descricao da passiva (valores numericos, intervalos, etc). Use os tipos de efeito listados no catalogo acima e preencha os parametros com os valores detectados na passiva.
 
 Responda EXCLUSIVAMENTE com JSON:
 {
@@ -549,7 +552,10 @@ Responda EXCLUSIVAMENTE com JSON:
       "title": "titulo curto para o mestre",
       "message": "por que esta passiva precisa ou se beneficia dessa Skill",
       "details": "detalhes da passiva e impacto esperado",
-      "source": "ai"
+      "source": "ai",
+      "suggestedEffects": [
+        { "type": "effect_type_do_catalogo", "amount": 2, "every": 5 }
+      ]
     }
   ]
 }`

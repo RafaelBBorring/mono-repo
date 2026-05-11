@@ -14,8 +14,8 @@ import RuneAdminPanel from './RuneAdminPanel'
 import MagicAdminPanel from './MagicAdminPanel'
 import MysticWeaponAdminPanel from './MysticWeaponAdminPanel'
 import GrimoireAdminPage from './GrimoireAdminPage'
-import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, getSystemSkillById } from '../data/systemSkills'
-import { createSystemSkillAssignment, createSystemSkillNotification, summarizeSystemSkillBonuses } from '../utils/systemSkills'
+import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, getSystemSkillById, EFFECT_PARAM_DEFS } from '../data/systemSkills'
+import { createSystemSkillAssignment, createSystemSkillNotification, createDefaultEffectsForSkill, summarizeSystemSkillBonuses } from '../utils/systemSkills'
 
 const STATUS_COLORS_ADMIN = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -958,10 +958,11 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
     }))
   }
 
-  function assignSystemSkill(skillId, sourceAbilityIndex = null) {
+  function assignSystemSkill(skillId, sourceAbilityIndex = null, effects = null) {
+    const defaultEffects = effects && effects.length > 0 ? effects : createDefaultEffectsForSkill(skillId)
     setData(prev => ({
       ...prev,
-      systemSkills: [...(prev.systemSkills || []), createSystemSkillAssignment(skillId, { sourceAbilityIndex })],
+      systemSkills: [...(prev.systemSkills || []), createSystemSkillAssignment(skillId, { sourceAbilityIndex, effects: defaultEffects })],
     }))
   }
 
@@ -980,6 +981,42 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
     }))
   }
 
+  function addSkillEffect(skillIndex, effectType) {
+    const paramDef = EFFECT_PARAM_DEFS[effectType]
+    if (!paramDef) return
+    const newEffect = { type: effectType }
+    for (const [key, p] of Object.entries(paramDef.params)) {
+      if (p.default != null) newEffect[key] = p.default
+    }
+    setData(prev => {
+      const arr = [...(prev.systemSkills || [])]
+      const entry = { ...arr[skillIndex] }
+      entry.effects = [...(entry.effects || []), newEffect]
+      arr[skillIndex] = entry
+      return { ...prev, systemSkills: arr }
+    })
+  }
+
+  function updateSkillEffect(skillIndex, effectIndex, patch) {
+    setData(prev => {
+      const arr = [...(prev.systemSkills || [])]
+      const entry = { ...arr[skillIndex] }
+      entry.effects = (entry.effects || []).map((e, i) => i === effectIndex ? { ...e, ...patch } : e)
+      arr[skillIndex] = entry
+      return { ...prev, systemSkills: arr }
+    })
+  }
+
+  function removeSkillEffect(skillIndex, effectIndex) {
+    setData(prev => {
+      const arr = [...(prev.systemSkills || [])]
+      const entry = { ...arr[skillIndex] }
+      entry.effects = (entry.effects || []).filter((_, i) => i !== effectIndex)
+      arr[skillIndex] = entry
+      return { ...prev, systemSkills: arr }
+    })
+  }
+
   function closeSystemNotice(noticeId) {
     setData(prev => ({
       ...prev,
@@ -993,7 +1030,7 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
       systemSkillNotifications: [
         ...(prev.systemSkillNotifications || []),
         createSystemSkillNotification({
-          skillId: 'integracao_manual',
+          skillId: 'manual_integration',
           title: 'Passiva requer avaliacao sistemica',
           message: 'O mestre marcou esta ficha para revisar uma possivel Skill personalizada.',
           source: 'admin',
@@ -1454,6 +1491,9 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
               )}
               {(data.systemSkills || []).map((entry, i) => {
                 const skill = getSystemSkillById(entry.skillId)
+                const effects = entry.effects || []
+                const availableEffectTypes = skill?.effectTypes || Object.keys(EFFECT_PARAM_DEFS)
+                const addableTypes = availableEffectTypes.filter(t => !effects.some(e => e.type === t) || ['attack_bonus', 'damage_bonus', 'ca_bonus', 'armor_bonus', 'equipment_durability_bonus', 'forge_unlock', 'knowledge_unlock', 'manual_flag'].includes(t))
                 return (
                   <div key={entry.id || i} className="rounded-lg border border-sky-300/20 bg-void/45 p-3 space-y-2">
                     <div className="flex items-center gap-2">
@@ -1476,6 +1516,66 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                       </select>
                       <input type="text" value={entry.notes || ''} onChange={e => updateSystemSkill(i, { notes: e.target.value })}
                         className="admin-input text-xs" placeholder="Notas do mestre" />
+                    </div>
+
+                    <div className="border-t border-sky-300/10 pt-2 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sky-300/60 text-[9px] uppercase tracking-wider">Efeitos ({effects.length})</span>
+                        {addableTypes.length > 0 && (
+                          <select onChange={e => { if (e.target.value) { addSkillEffect(i, e.target.value); e.target.value = '' } }}
+                            className="admin-input !text-[10px] !py-0.5 w-auto">
+                            <option value="">+ Efeito...</option>
+                            {addableTypes.map(t => <option key={t} value={t}>{EFFECT_PARAM_DEFS[t]?.label || t}</option>)}
+                          </select>
+                        )}
+                      </div>
+                      {effects.length === 0 && (
+                        <p className="text-txt-dim/35 text-[10px] italic">Nenhum efeito configurado.</p>
+                      )}
+                      {effects.map((effect, ei) => {
+                        const def = EFFECT_PARAM_DEFS[effect.type]
+                        if (!def) return null
+                        return (
+                          <div key={ei} className="rounded border border-sep/20 bg-void/30 p-2 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-txt-dim text-[10px] font-medium">{def.label}</span>
+                              <button onClick={() => removeSkillEffect(i, ei)} className="text-err/50 hover:text-err text-[10px]">x</button>
+                            </div>
+                            {Object.entries(def.params).map(([pKey, pDef]) => {
+                              if (pDef.type === 'select') {
+                                return (
+                                  <div key={pKey} className="flex items-center gap-1.5">
+                                    <label className="text-txt-dim/50 text-[9px] w-28 shrink-0">{pDef.label}</label>
+                                    <select value={effect[pKey] ?? pDef.default} onChange={e => updateSkillEffect(i, ei, { [pKey]: e.target.value })}
+                                      className="admin-input !text-[10px] !py-0.5 flex-1">
+                                      {(pDef.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                  </div>
+                                )
+                              }
+                              if (pDef.type === 'number') {
+                                return (
+                                  <div key={pKey} className="flex items-center gap-1.5">
+                                    <label className="text-txt-dim/50 text-[9px] w-28 shrink-0">{pDef.label}</label>
+                                    <input type="number" value={effect[pKey] ?? pDef.default}
+                                      min={pDef.min} max={pDef.max}
+                                      onChange={e => updateSkillEffect(i, ei, { [pKey]: Number(e.target.value) || pDef.default })}
+                                      className="admin-input !text-[10px] !py-0.5 flex-1 text-center" />
+                                  </div>
+                                )
+                              }
+                              return (
+                                <div key={pKey} className="flex items-center gap-1.5">
+                                  <label className="text-txt-dim/50 text-[9px] w-28 shrink-0">{pDef.label}</label>
+                                  <input type="text" value={effect[pKey] ?? pDef.default ?? ''}
+                                    onChange={e => updateSkillEffect(i, ei, { [pKey]: e.target.value })}
+                                    className="admin-input !text-[10px] !py-0.5 flex-1" />
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )
@@ -1510,8 +1610,17 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-txt-main text-xs font-semibold">{notice.title}</p>
                       <p className="text-txt-dim/75 text-[11px] mt-0.5">{notice.message}</p>
+                      {notice.suggestedEffects && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {notice.suggestedEffects.map((ef, ei) => (
+                            <span key={ei} className="text-[8px] bg-sky-300/10 text-sky-300 px-1 py-0.5 rounded border border-sky-300/20">
+                              {EFFECT_PARAM_DEFS[ef.type]?.label || ef.type}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <button onClick={() => { assignSystemSkill(notice.skillId, notice.abilityIndex); closeSystemNotice(notice.id) }} className="text-[10px] bg-gold text-void px-2 py-1 rounded font-semibold">Atribuir</button>
+                    <button onClick={() => { assignSystemSkill(notice.skillId, notice.abilityIndex, notice.suggestedEffects); closeSystemNotice(notice.id) }} className="text-[10px] bg-gold text-void px-2 py-1 rounded font-semibold">Atribuir</button>
                     <button onClick={() => closeSystemNotice(notice.id)} className="text-[10px] border border-err/25 text-err px-2 py-1 rounded">Excluir</button>
                   </div>
                 </div>

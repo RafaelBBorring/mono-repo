@@ -16,7 +16,7 @@ import { RUNE_TRAINING_RULES } from '../utils/runeRules'
 import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
 import { normalizeProgressionLabel } from '../utils/progressionUtils'
 import { ARMOR_ABSORPTION_HARD_CAP, ARMOR_ABSORPTION_SOFT_CAP, ARMOR_TYPES, ARMOR_SLOTS, EQUIPMENT_RARITIES, EQUIPMENT_TYPES, EQUIPMENT_STAT_LABELS, SIMPLE_ITEMS } from '../data/equipment'
-import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES } from '../data/systemSkills'
+import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 import { useState, useMemo, useEffect, useRef } from 'react'
 
 const SECTION_CATEGORIES = [
@@ -2577,6 +2577,22 @@ function SystemSkillsRulesSection() {
           <p><strong className="text-sky-200">2.</strong> A sugestao vira notificacao na Mesa do Mestre, nunca aplicacao automatica.</p>
           <p><strong className="text-sky-200">3.</strong> O Mestre pode atribuir a Skill, excluir a notificacao ou marcar como Integracao Manual.</p>
           <p><strong className="text-sky-200">4.</strong> Skills ativas aparecem na ficha e seus bonus entram nos calculos suportados.</p>
+          <p><strong className="text-sky-200">5.</strong> Cada Skill pode conter multiplos efeitos com parametros configuraveis (valores, intervalos, escalas).</p>
+        </div>
+      </TableCard>
+
+      <TableCard title="Tipos de Efeito e Parametros" color="sky">
+        <div className="p-4 space-y-1">
+          <p className="text-txt-dim text-[10px] mb-2">Cada Skill contem um ou mais efeitos. Os parametros sao configurados pelo mestre ao atribuir.</p>
+          {Object.entries(EFFECT_PARAM_DEFS).map(([type, def]) => {
+            const params = Object.entries(def.params)
+            return (
+              <div key={type} className="flex items-start gap-2 py-1 border-b border-sep/10 last:border-0">
+                <span className="text-sky-200 text-[10px] font-medium w-48 shrink-0">{def.label}</span>
+                <span className="text-txt-dim/60 text-[10px]">{params.length === 0 ? 'Sem parametros' : params.map(([k, p]) => `${p.label}: ${p.type === 'select' ? (p.options || []).map(o => o.label).join('/') : p.default}`).join(' | ')}</span>
+              </div>
+            )
+          })}
         </div>
       </TableCard>
 
@@ -2591,6 +2607,19 @@ function SystemSkillsRulesSection() {
                 <span className="text-[9px] border border-sky-300/20 text-sky-200 rounded px-1.5 py-0.5">{skill.rarity}</span>
               </div>
               <p className="text-txt-dim text-xs leading-relaxed">{skill.description}</p>
+              <div className="mt-2 space-y-1">
+                {(skill.effectTypes || []).map(et => {
+                  const eDef = EFFECT_PARAM_DEFS[et]
+                  if (!eDef) return null
+                  const paramNames = Object.entries(eDef.params).map(([k, p]) => `${p.label} (${p.type === 'number' ? `${p.default}` : p.type === 'select' ? (p.options || []).map(o => o.label).join('/') : p.default})`).join(', ')
+                  return (
+                    <div key={et} className="text-[10px] bg-sky-300/5 border border-sky-300/10 rounded px-2 py-1">
+                      <span className="text-sky-200">{eDef.label}</span>
+                      {paramNames && <span className="text-txt-dim/60 ml-1">— {paramNames}</span>}
+                    </div>
+                  )
+                })}
+              </div>
               <p className="text-sky-200/70 text-[11px] mt-2">{skill.adminNotes}</p>
             </div>
           )

@@ -147,7 +147,7 @@ export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
   const reflexoGrau = pericias?.Reflexo || 0
   const bloqueioGrau = pericias?.Bloqueio || 0
   const treino = Math.max(getGrauBonus(reflexoGrau), getGrauBonus(bloqueioGrau))
-  return 10 + treino + Math.max(modCON, modDES) + calcSystemSkillBonuses(raceContext).armadura
+  return 10 + treino + Math.max(modCON, modDES) + calcSystemSkillBonuses(raceContext).armadura + calcSystemSkillBonuses(raceContext).ca
 }
 
 export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
@@ -272,6 +272,7 @@ export function calcCarryCapacity(atributos, skeletonPoints, char) {
     const eq = Array.isArray(char.equipamentos) ? char.equipamentos : Object.values(char.equipamentos || {})
     if (eq.some(e => /mochila|backpack|bolsa.*refor/i.test(e.nome || ''))) capacity += 8
     if (eq.some(e => /bolsa.*dimens|bag.*holding/i.test(e.nome || ''))) capacity += 20
+    capacity += calcSystemSkillBonuses(char).carryCapacity
   }
   return capacity
 }
