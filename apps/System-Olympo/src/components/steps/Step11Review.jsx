@@ -34,8 +34,8 @@ import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyze
 import { calcEquipStats } from '../../data/equipment'
 import { uploadGrimorioImage } from '../../services/uploadService'
 import ImageUploadField from '../ImageUploadField'
-import { getSystemSkillById } from '../../data/systemSkills'
-import { summarizeSystemSkillBonuses } from '../../utils/systemSkills'
+import { getSystemSkillById, SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, EFFECT_PARAM_DEFS } from '../../data/systemSkills'
+import { summarizeSystemSkillBonuses, createDefaultEffectsForSkill } from '../../utils/systemSkills'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -183,7 +183,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const carriedLoad = calcCarriedLoad(char)
 
   const derived = {
-    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
+    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char, char.subTriagem, char.subTriagemNivel) : 0,
     energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char) : 0,
     pe: cls ? calcPeTotal(cls, char.nivel, char.choices, char) : 0,
     ca: (cls ? calcCA(char.atributos, sk, char.pericias, char) : 0) + activeBonuses.ca,
@@ -761,21 +761,96 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 </div>
               </section>
 
-              {((char.systemSkills || []).length > 0 || (char.systemSkillNotifications || []).some(n => n.status !== 'closed')) && (
+              {((char.systemSkills || []).length > 0 || (char.systemSkillNotifications || []).some(n => n.status !== 'closed') || canEdit) && (
                 <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
                   <SectionHeader icon="◆" title="Skills Sistêmicas" color="bg-sky-300" />
                   <div className="space-y-2">
+                    {canEdit && (
+                      <div className="flex items-center gap-2">
+                        <select onChange={e => { if (e.target.value) { const effects = createDefaultEffectsForSkill(e.target.value); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId: e.target.value, active: true, sourceAbilityIndex: null, notes: '', effects, createdAt: new Date().toISOString() }] }); e.target.value = '' } }}
+                          className="text-xs bg-void/60 border border-sky-300/30 text-sky-200 rounded px-2 py-1.5 focus:border-gold/40 focus:outline-none">
+                          <option value="">+ Atribuir Skill...</option>
+                          {SYSTEM_SKILL_CATEGORIES.map(cat => (
+                            <optgroup key={cat.id} label={cat.label}>
+                              {SYSTEM_SKILLS.filter(s => s.category === cat.id).map(skill => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     {(char.systemSkills || []).length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {(char.systemSkills || []).map((entry, i) => {
                           const skill = getSystemSkillById(entry.skillId)
+                          const effects = entry.effects || []
+                          const availableTypes = skill?.effectTypes || Object.keys(EFFECT_PARAM_DEFS)
+                          const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || ['attack_bonus', 'damage_bonus', 'ca_bonus', 'armor_bonus', 'equipment_durability_bonus', 'forge_unlock', 'knowledge_unlock', 'manual_flag'].includes(t))
                           return (
                             <div key={entry.id || i} className={`rounded-lg border p-2.5 ${entry.active === false ? 'border-sep/25 bg-void/30 opacity-60' : 'border-sky-300/20 bg-sky-300/5'}`}>
                               <div className="flex items-center gap-2">
                                 <span className="text-sky-200 text-xs font-semibold">{skill?.name || entry.skillId}</span>
                                 <span className="text-[8px] border border-sky-300/20 text-sky-200/65 rounded px-1.5 py-0.5">{entry.active === false ? 'inativa' : 'ativa'}</span>
+                                {canEdit && (
+                                  <div className="ml-auto flex gap-1">
+                                    <button onClick={() => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, active: s.active === false ? true : false } : s) })}
+                                      className="text-[9px] text-sky-300/50 hover:text-sky-300">{entry.active === false ? 'ativar' : 'desativar'}</button>
+                                    <button onClick={() => update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) })}
+                                      className="text-[9px] text-err/50 hover:text-err">x</button>
+                                  </div>
+                                )}
                               </div>
                               <p className="text-txt-dim/70 text-[10px] mt-1 leading-relaxed">{skill?.short || 'Integracao sistemica definida pelo mestre.'}</p>
+                              {canEdit && effects.length > 0 && (
+                                <div className="mt-1.5 space-y-1">
+                                  {effects.map((effect, ei) => {
+                                    const eDef = EFFECT_PARAM_DEFS[effect.type]
+                                    if (!eDef) return null
+                                    return (
+                                      <div key={ei} className="text-[9px] bg-void/30 border border-sep/15 rounded px-1.5 py-1 space-y-0.5">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sky-200/70">{eDef.label}</span>
+                                          <button onClick={() => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.filter((_, fi) => fi !== ei) } : s) })}
+                                            className="text-err/40 hover:text-err text-[8px]">x</button>
+                                        </div>
+                                        {Object.entries(eDef.params).map(([pKey, pDef]) => {
+                                          if (pDef.type === 'select') return (
+                                            <div key={pKey} className="flex items-center gap-1">
+                                              <span className="text-txt-dim/40">{pDef.label}:</span>
+                                              <select value={effect[pKey] ?? pDef.default} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
+                                                className="bg-transparent text-txt-dim text-[8px] border-b border-sep/20">
+                                                {(pDef.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                              </select>
+                                            </div>
+                                          )
+                                          if (pDef.type === 'number') return (
+                                            <div key={pKey} className="flex items-center gap-1">
+                                              <span className="text-txt-dim/40">{pDef.label}:</span>
+                                              <input type="number" value={effect[pKey] ?? pDef.default} min={pDef.min} max={pDef.max}
+                                                onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: Number(e.target.value) || pDef.default } : ef) } : s) })}
+                                                className="w-12 bg-transparent text-txt-dim text-[8px] border-b border-sep/20 text-center" />
+                                            </div>
+                                          )
+                                          return (
+                                            <div key={pKey} className="flex items-center gap-1">
+                                              <span className="text-txt-dim/40">{pDef.label}:</span>
+                                              <input type="text" value={effect[pKey] ?? pDef.default ?? ''}
+                                                onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
+                                                className="flex-1 bg-transparent text-txt-dim text-[8px] border-b border-sep/20" />
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                              {canEdit && addableTypes.length > 0 && (
+                                <select onChange={e => { if (e.target.value) { const pDef = EFFECT_PARAM_DEFS[e.target.value]; const newEff = { type: e.target.value }; if (pDef) for (const [k, p] of Object.entries(pDef.params)) { if (p.default != null) newEff[k] = p.default; } update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: [...(s.effects || []), newEff] } : s) }); e.target.value = '' } }}
+                                  className="mt-1 text-[8px] bg-transparent border border-sep/15 text-txt-dim/50 rounded px-1 py-0.5">
+                                  <option value="">+ efeito...</option>
+                                  {addableTypes.map(t => <option key={t} value={t}>{EFFECT_PARAM_DEFS[t]?.label || t}</option>)}
+                                </select>
+                              )}
                             </div>
                           )
                         })}
@@ -791,9 +866,31 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                       </div>
                     )}
                     {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').length > 0 && (
-                      <p className="text-warn/80 text-[10px] leading-relaxed">
-                        Existem notificacoes sistemicas aguardando decisao do Mestre.
-                      </p>
+                      <div className="space-y-1">
+                        {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').map(notice => (
+                          <div key={notice.id} className="rounded border border-warn/20 bg-warn/5 px-2 py-1.5 flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-txt-main text-[10px] font-semibold">{notice.title}</p>
+                              <p className="text-txt-dim/70 text-[9px]">{notice.message}</p>
+                              {notice.suggestedEffects && (
+                                <div className="mt-0.5 flex flex-wrap gap-0.5">
+                                  {notice.suggestedEffects.map((ef, ei) => (
+                                    <span key={ei} className="text-[7px] bg-sky-300/10 text-sky-300 px-1 py-0.5 rounded">{EFFECT_PARAM_DEFS[ef.type]?.label || ef.type}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            {canEdit && (
+                              <div className="flex gap-1 shrink-0">
+                                <button onClick={() => { const effects = notice.suggestedEffects && notice.suggestedEffects.length > 0 ? notice.suggestedEffects : createDefaultEffectsForSkill(notice.skillId); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId: notice.skillId, active: true, sourceAbilityIndex: notice.abilityIndex ?? null, notes: '', effects, createdAt: new Date().toISOString() }], systemSkillNotifications: (char.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n) }) }}
+                                  className="text-[8px] bg-gold text-void px-1.5 py-0.5 rounded font-semibold">Atribuir</button>
+                                <button onClick={() => update({ systemSkillNotifications: (char.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n) })}
+                                  className="text-[8px] border border-err/25 text-err px-1.5 py-0.5 rounded">Descartar</button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </section>

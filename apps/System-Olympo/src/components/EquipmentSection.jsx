@@ -1,6 +1,6 @@
 import { Fragment, useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS, canEquipRank as canUseWeaponRank, getWeaponLimitForLevel, getWeaponWeight } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS, canEquipRank as canUseWeaponRank, getWeaponLimitForLevel, getWeaponWeight, getWeaponRankBonus } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { generateWeaponAbilities, generateEquipmentAbilities, analyzeBalance, suggestItemWeight } from '../services/aiService'
 import { getAttrValue } from '../utils/calculator'
@@ -839,7 +839,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
                   <div className="flex flex-wrap gap-1">
                     {WEAPON_RANKS.map(r => {
                       const c = RANK_COLORS[r.rank]
-                      const allowed = canUseWeaponRank(char.nivel || 1, r.rank)
+                      const allowed = canUseWeaponRank(char.nivel || 1, r.rank, getWeaponRankBonus(char))
                       return (
                         <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
                           title={!allowed ? `Requer nível maior. Limite atual: ${getWeaponLimitForLevel(char.nivel || 1).maxRank}` : r.rank}
@@ -1693,7 +1693,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   const equipSkillSlotsAvail = activeSlotsAvail + passiveSlotsAvail
   const usedSlots = habilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const currentLevel = char?.nivel || 1
-  const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
+  const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank, getWeaponRankBonus(char)) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
   const detailStep = itemCategory === 'Equipamento' ? 3 : 2
 
   async function handleAIEquip() {
@@ -1966,7 +1966,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                   {WEAPON_RANKS.map(r => {
                     const rc = RANK_COLORS[r.rank]
                     const rarity = getEquipmentRarity(r.rank)
-                    const allowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, r.rank) : canUseEquipRank(currentLevel, r.rank)
+                    const allowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, getWeaponRankBonus(char)) : canUseEquipRank(currentLevel, r.rank)
                     return (
                       <button key={r.rank} onClick={() => allowed && setSelectedRank(r.rank)} disabled={!allowed}
                         title={!allowed ? `Requer nível maior. Limite atual: ${itemCategory === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}` : r.rank}
@@ -2234,7 +2234,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const [editItemHabilidades, setEditItemHabilidades] = useState(item.habilidades || [])
   const [editEquipHabilidades, setEditEquipHabilidades] = useState(equipHabilidades || [])
   const currentLevel = char?.nivel || 1
-  const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
+  const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank, getWeaponRankBonus(char)) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
   const editWeaponRank = WEAPON_RANKS.find(r => r.rank === editRank) || WEAPON_RANKS[0]
   const editWeaponUsedSlots = editItemHabilidades.reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const editEquipRarity = getEquipmentRarity(editRank)
@@ -2347,7 +2347,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                 <div className="flex flex-wrap gap-1 mt-1">
                   {WEAPON_RANKS.map(r => {
                     const c = RANK_COLORS[r.rank]
-                    const allowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, r.rank) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, r.rank) : true
+                    const allowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, getWeaponRankBonus(char)) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, r.rank) : true
                     return (
                       <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
                         title={!allowed ? `Limite atual: ${item.categoria === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}` : r.rank}

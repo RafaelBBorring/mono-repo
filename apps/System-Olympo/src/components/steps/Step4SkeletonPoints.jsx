@@ -16,14 +16,14 @@ export default function Step4SkeletonPoints({ char, update }) {
   const remaining = totalAvailable - totalSpent
 
   const vidaNow = char.classe
-    ? calcVidaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char)
+    ? calcVidaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char, char.subTriagem, char.subTriagemNivel)
     : 0
   const energiaNow = char.classe
     ? calcEnergiaTotal(char.classe, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)
     : 0
 
   const vidaNoSk = char.classe
-    ? calcVidaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char)
+    ? calcVidaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char, char.subTriagem, char.subTriagemNivel)
     : 0
   const energiaNoSk = char.classe
     ? calcEnergiaTotal(char.classe, char.nivel, char.atributos, {}, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)

@@ -58,11 +58,11 @@ function applyReward(total, r) {
   }
 }
 
-function getTankBonus(triagemPrincipal, triagemPrincipalNivel, nivel) {
-  if (triagemPrincipal === 'TANK' && triagemPrincipalNivel >= 0.1) {
-    return nivel * 5
-  }
-  return 0
+function getTankBonus(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, nivel) {
+  let bonus = 0
+  if (triagemPrincipal === 'TANK' && triagemPrincipalNivel >= 0.1) bonus += nivel * 6
+  if (subTriagem === 'TANK' && subTriagemNivel >= 0.1) bonus += nivel * 6
+  return bonus
 }
 
 function buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext) {
@@ -70,20 +70,20 @@ function buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTr
   const modInt = getModifier(getAttrValue(attrs, 'INT', skeletonPoints, raceContext))
   if (triagemPrincipal === 'INTUITIVO' && triagemPrincipalNivel >= 0.6) types.push('Passiva')
   if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.2) {
-    const n = Math.floor(modInt / 3)
+    const n = Math.floor(modInt / 4)
     for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
   }
   if (triagemPrincipal === 'GRADUADO' && triagemPrincipalNivel >= 0.5) {
-    const n = Math.floor(modInt / 3)
+    const n = Math.floor(modInt / 4)
     for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
   }
   if (subTriagem === 'INTUITIVO' && subTriagemNivel >= 0.6) types.push('Passiva')
   if (subTriagem === 'GRADUADO' && subTriagemNivel >= 0.2) {
-    const n = Math.floor(modInt / 3)
+    const n = Math.floor(modInt / 4)
     for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
   }
   if (subTriagem === 'GRADUADO' && subTriagemNivel >= 0.5) {
-    const n = Math.floor(modInt / 3)
+    const n = Math.floor(modInt / 4)
     for (let i = 0; i < n; i++) types.push('Extra (Triagem)')
   }
   const ca = (modulosAdquiridos || []).find(m => m.id === 'conhecimento_amplificado')
@@ -98,7 +98,7 @@ function getExtraAbilities(triagemPrincipal, triagemPrincipalNivel, subTriagem, 
   return buildExtraAbilitiesTypes(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, attrs, skeletonPoints, modulosAdquiridos, raceContext).length
 }
 
-export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, raceContext) {
+export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, raceContext, subTriagem, subTriagemNivel) {
   const def = getClassDef(classe)
   if (!def) return 0
   const con = getAttrValue(attrs, 'CON', skeletonPoints, raceContext)
@@ -108,7 +108,7 @@ export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, tri
   for (let n = 1; n <= nivel; n++) {
     vidaPorNivelTotal += def.vidaPorNivel(getModifier(con))
   }
-  const tankBonus = getTankBonus(triagemPrincipal, triagemPrincipalNivel || 0, nivel)
+  const tankBonus = getTankBonus(triagemPrincipal, triagemPrincipalNivel || 0, subTriagem, subTriagemNivel || 0, nivel)
   return base + vidaPorNivelTotal + prog.vida + tankBonus + (raceContext ? calculateRaceBonus(raceContext).hp : 0) + calcSystemSkillBonuses(raceContext || {}).vida
 }
 
@@ -182,7 +182,11 @@ export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, s
 
   if ((tp === 'COMBATE' && tn >= 0.2) || (st === 'COMBATE' && sn >= 0.2)) {
     const bonus = Math.floor(n / 10)
-    if (bonus > 0) parts.push(`+${bonus}d6+${bonus * 5}`)
+    if (bonus > 0) {
+      const am = getAttrValue(attrs, 'AM', skeletonPoints, raceContext)
+      const modAM = getModifier(am)
+      parts.push(`+${bonus}d6${modAM * bonus >= 0 ? '+' : ''}${modAM * bonus}`)
+    }
   }
   if ((tp === 'ATIRADOR' && tn >= 0.2) || (st === 'ATIRADOR' && sn >= 0.2)) {
     const int = getAttrValue(attrs, 'INT', skeletonPoints, raceContext)
@@ -263,8 +267,6 @@ export function calcCarryCapacity(atributos, skeletonPoints, char) {
   let capacity = 10 + (baseFOR * 2) + Math.floor(baseCON * 0.5)
   if (char) {
     const mods = char.modulosAdquiridos || []
-    if (mods.some(m => m.id === 'mochila_avancada')) capacity += 10
-    if (mods.some(m => m.id === 'forja_pessoal')) capacity += 5
     if (mods.some(m => m.id === 'portador_nato')) {
       const buys = mods.filter(m => m.id === 'portador_nato').reduce((s, m) => s + (m.boughtCount || 1), 0)
       capacity += buys * 8

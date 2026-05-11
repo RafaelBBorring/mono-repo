@@ -76,11 +76,16 @@ export function getRankIndex(rank) {
   return WEAPON_RANKS.findIndex(r => r.rank === rank)
 }
 
-export function canEquipRank(nivel, rank) {
+export function canEquipRank(nivel, rank, rankBonus = 0) {
   const limit = getWeaponLimitForLevel(nivel)
-  const maxIdx = getRankIndex(limit.maxRank)
+  const maxIdx = getRankIndex(limit.maxRank) + rankBonus
   const rankIdx = getRankIndex(rank)
   return rankIdx >= 0 && rankIdx <= maxIdx
+}
+
+export function getWeaponRankBonus(char) {
+  const maestria = (char?.modulosAdquiridos || []).find(m => m.id === 'maestria_armamento')
+  return maestria ? (maestria.boughtCount || 1) : 0
 }
 
 export function getWeaponWeight(weaponId, name = '', description = '') {

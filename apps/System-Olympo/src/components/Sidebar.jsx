@@ -10,7 +10,7 @@ export default function Sidebar({ char, step }) {
   const cls = char.classe
 
   const derived = {
-    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
+    vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char, char.subTriagem, char.subTriagemNivel) : 0,
     energia: cls ? calcEnergiaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char) : 0,
     pe: cls ? calcPeTotal(cls, char.nivel, char.choices, char) : 0,
     ca: cls ? calcCA(char.atributos, sk, char.pericias, char) : 0,

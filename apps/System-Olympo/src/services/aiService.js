@@ -267,7 +267,7 @@ function computeCharStats(char) {
   const totalAttr = (a) => getAttrValue(attrs, a, sk, char)
   const mod       = (a) => getModifier(totalAttr(a))
 
-  const vidaTotal    = calcVidaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel, char)
+  const vidaTotal    = calcVidaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel, char, char.subTriagem, char.subTriagemNivel)
   const energiaTotal = calcEnergiaTotal(char.classe, nivel, attrs, sk, choices, char.triagemPrincipal, char.triagemPrincipalNivel, char.subTriagem, char.subTriagemNivel, char)
   const peTotal      = calcPeTotal(char.classe, nivel, choices, char)
   const caBase       = calcCA(attrs, sk, char.pericias, char)
@@ -1202,7 +1202,7 @@ export async function generateEquipmentAbilities(char, equipType, equipRank, act
     attrVals[a] = getAttrValue(attrs, a, sk, char)
   }
 
-  const vida = cls ? calcVidaTotal(cls, nivel, attrs, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 100
+  const vida = cls ? calcVidaTotal(cls, nivel, attrs, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char, char.subTriagem, char.subTriagemNivel) : 100
   const ca = cls ? calcCA(attrs, sk, char.pericias, char) : 10
   const oldSignature = typeof passiveSlotsArg === 'string' || passiveSlotsArg == null
   const activeSlots = oldSignature ? 0 : Number(activeSlotsOrPassiveSlots) || 0

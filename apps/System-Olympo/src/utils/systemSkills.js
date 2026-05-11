@@ -201,9 +201,10 @@ export function suggestSystemSkillsForCharacter(char = {}) {
     })
 
     const numMatch = text.match(/(\d+)\s*pontos?\s*(de\s*)?esqueleto/i)
-    const intervalMatch = text.match(/cada\s*(\d+)\s*n[ií]ve/i)
+    const intervalMatch = text.match(/cada\s*(\d+)?\s*n[ií]ve/i)
     if (/esqueleto|atributo|evolu/i.test(text) && /n[ií]vel|level|progress/i.test(text)) {
-      const effects = [{ type: 'skeleton_points_per_level_interval', every: intervalMatch ? Number(intervalMatch[1]) : 5, amount: numMatch ? Number(numMatch[1]) : 1 }]
+      const every = intervalMatch ? (intervalMatch[1] ? Number(intervalMatch[1]) : 1) : 5
+      const effects = [{ type: 'skeleton_points_per_level_interval', every, amount: numMatch ? Number(numMatch[1]) : 1 }]
       add('skeleton_progression', 'A passiva altera progressão ou pontos de esqueleto.', effects)
     }
     if (/marco|milestone/i.test(text) && /esqueleto|atributo/i.test(text)) {
