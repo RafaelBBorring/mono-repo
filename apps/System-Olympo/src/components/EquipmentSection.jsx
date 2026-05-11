@@ -250,18 +250,18 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                 </p>
               )}
               {equipmentStats.activeCategoryBonuses.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {equipmentStats.activeCategoryBonuses.map(({ type, count, bonus }) => (
-                    <span key={type.id} className={`text-[9px] px-2 py-1 rounded border ${type.badgeClass}`}>
+                    <span key={type.id} className={`text-[11px] px-3 py-1.5 rounded border leading-snug ${type.badgeClass}`}>
                       {type.label} {count}: {bonus}
                     </span>
                   ))}
                 </div>
               )}
               {equipmentStats.activeSetBonuses.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
-                    <span key={`${type.id}-${bonus.pieces}`} className={`text-[9px] px-2 py-1 rounded border ${type.badgeClass}`}>
+                    <span key={`${type.id}-${bonus.pieces}`} className={`text-[11px] px-3 py-1.5 rounded border leading-snug ${type.badgeClass}`}>
                       {type.label} {count}/4: {bonus.label}
                     </span>
                   ))}
@@ -1196,7 +1196,10 @@ function EquipCreateModal({ char, onSave, onClose }) {
                       className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${equipType === et.id ? 'border-primary/50 bg-primary/5' : 'border-sep/40 bg-void/40'}`}>
                       <span className="text-txt-main text-[11px] font-semibold">{et.label}</span>
                       <div className="text-[10px] mt-0.5 text-txt-dim/50">{et.desc}</div>
-                      <div className="text-[9px] mt-1 text-primary/60 font-mono">Armadura: {et.caBase}{et.penalty ? ` | DES ${et.penalty}` : ''}</div>
+                      <div className="text-[10px] mt-1 text-primary/70 font-mono">
+                        Armadura: {et.caBase} · Durabilidade: {getEquipmentDurabilityMax({ tipoEquip: et.id, rank: selectedRank })}
+                      </div>
+                      <div className="text-[9px] mt-0.5 text-amber-300/65 font-mono">{et.penalty ? `Penalidade: ${et.penalty} DES` : 'Sem penalidade'}</div>
                     </button>
                   ))}
                 </div>
@@ -1257,6 +1260,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
                           {itemCategory === 'Equipamento' && rarity && (
                             <>
                               <div>Armadura: <span className="text-primary font-mono">+{rarity.armorBonus}</span> · Categoria define buffs extras</div>
+                              <div>Durabilidade: <span className="text-emerald-300 font-mono">{getEquipmentDurabilityMax({ tipoEquip: equipType, rank: r.rank, armorType })}</span></div>
                               <div>Ativas: <span className="font-mono">{rarity.activeSkills}</span> · Passivas: <span className="font-mono">{rarity.passiveSkills}</span></div>
                             </>
                           )}
