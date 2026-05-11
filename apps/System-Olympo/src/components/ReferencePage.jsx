@@ -15,53 +15,224 @@ import { SPELL_TRAINING_RULES } from '../utils/spellRules'
 import { RUNE_TRAINING_RULES } from '../utils/runeRules'
 import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
 import { normalizeProgressionLabel } from '../utils/progressionUtils'
-import { useState } from 'react'
+import { ARMOR_TYPES, ARMOR_SLOTS, EQUIPMENT_RARITIES, EQUIPMENT_TYPES, EQUIPMENT_STAT_LABELS, SIMPLE_ITEMS } from '../data/equipment'
+import { useState, useMemo } from 'react'
 
-const sections = [
-  'Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias',
-  'Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos',
-  'Armas', 'Ranks de Arma', 'Limites de Equipamento', 'Equipamentos', 'Armas Lendárias', 'Artes Marciais', 'Alquimia', 'Feitiços', 'Runas', 'Grimórios', 'Criação de Personagem', 'Balanceamento',
+const SECTION_CATEGORIES = [
+  {
+    id: 'quickref',
+    label: 'Referência Rápida',
+    icon: '⚡',
+    color: 'text-amber-300 border-amber-300/30 bg-amber-300/5',
+    activeColor: 'bg-amber-300 text-void',
+    sections: ['Fórmulas Rápidas', 'Regras de Combate'],
+  },
+  {
+    id: 'character',
+    label: 'Personagem',
+    icon: '👤',
+    color: 'text-sky-400 border-sky-400/30 bg-sky-400/5',
+    activeColor: 'bg-sky-400 text-void',
+    sections: ['Raças', 'Atributos', 'Classes', 'Progressão', 'Perícias', 'Criação de Personagem'],
+  },
+  {
+    id: 'combat',
+    label: 'Combate & Habilidades',
+    icon: '⚔️',
+    color: 'text-red-400 border-red-400/30 bg-red-400/5',
+    activeColor: 'bg-red-400 text-white',
+    sections: ['Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos'],
+  },
+  {
+    id: 'equipment',
+    label: 'Equipamento',
+    icon: '🛡️',
+    color: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5',
+    activeColor: 'bg-emerald-400 text-void',
+    sections: ['Armas', 'Ranks de Arma', 'Equipamentos', 'Limites de Equipamento', 'Armas Lendárias', 'Artes Marciais'],
+  },
+  {
+    id: 'magic',
+    label: 'Magia & Conhecimento',
+    icon: '✨',
+    color: 'text-purple-400 border-purple-400/30 bg-purple-400/5',
+    activeColor: 'bg-purple-400 text-white',
+    sections: ['Alquimia', 'Feitiços', 'Runas', 'Grimórios'],
+  },
+  {
+    id: 'system',
+    label: 'Sistema',
+    icon: '⚙️',
+    color: 'text-gold border-gold/30 bg-gold/5',
+    activeColor: 'bg-gold text-void',
+    sections: ['Balanceamento'],
+  },
 ]
 
+const ALL_SECTIONS = SECTION_CATEGORIES.flatMap(c => c.sections)
+
+function getSectionCategory(sectionId) {
+  return SECTION_CATEGORIES.find(c => c.sections.includes(sectionId))
+}
+
 export default function ReferencePage() {
-  const [section, setSection] = useState('Atributos')
+  const [section, setSection] = useState('Fórmulas Rápidas')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [expandedCategory, setExpandedCategory] = useState('quickref')
+
+  const category = getSectionCategory(section)
+
+  const searchResults = useMemo(() => {
+    if (!searchTerm.trim()) return null
+    const term = searchTerm.toLowerCase()
+    const keywords = {
+      'Fórmulas Rápidas': ['formula', 'ca', 'classe armadura', 'vida', 'energia', 'reacoes', 'percepcao', 'carga', 'capacidade', 'dano base', 'economia'],
+      'Regras de Combate': ['combate', 'morrendo', 'morte', 'dying', 'medicina', 'kit medico', 'cura', 'estabilizar', 'inconsciente', 'turno', 'acao', 'reacao', 'movimento', 'iniciativa', 'critico', 'condicao'],
+      'Raças': ['raca', 'race', 'humano', 'elfo', 'anao', 'bruxa', 'vampiro', 'lobisomem', 'dasariano', 'fae', 'semideus'],
+      'Atributos': ['atributo', 'for', 'des', 'con', 'int', 'apa', 'am', 'forca', 'destreza', 'constituicao', 'inteligencia', 'aparencia', 'abilidade mental', 'modificador'],
+      'Classes': ['classe', 'guerreiro', 'operativo', 'mistico', 'class'],
+      'Progressão': ['progressao', 'nivel', 'level', 'peh', 'evolucao'],
+      'Perícias': ['pericia', 'skill', 'treinamento', 'grau', 'bloqueio', 'reflexo', 'percepcao', 'medicina', 'tecnologia', 'furtividade'],
+      'Triagens': ['triagem', 'tank', 'assassino', 'combate', 'atirador', 'tecnico', 'graduado', 'intuitivo', 'suporte'],
+      'Módulos Passivos': ['modulo', 'passivo', 'module'],
+      'Módulos Especiais': ['modulo', 'especial', 'module'],
+      'Módulos Ativos': ['modulo', 'ativo', 'module'],
+      'Armas': ['arma', 'weapon', 'dano', 'machado', 'espada', 'rifle', 'pistola', 'escopeta'],
+      'Ranks de Arma': ['rank', 'patente', 'comum', 'incomum', 'raro', 'epico', 'heroico', 'ancestral', 'mitico', 'transcendente'],
+      'Equipamentos': ['equipamento', 'equipment', 'armadura', 'peitoral', 'elmo', 'calca', 'bota', 'categoria', 'set', 'bonus', 'guerreiro', 'furtivo', 'medico', 'tecnologico', 'demolidor', 'exploracao', 'escudo', 'durabilidade'],
+      'Limites de Equipamento': ['limite', 'equipamento', 'rank maximo'],
+      'Armas Lendárias': ['lendario', 'legendary', 'forja'],
+      'Artes Marciais': ['arte marcial', 'boxe', 'karate', 'muay thai', 'judo', 'taekwondo', 'aikido', 'desarmado'],
+      'Alquimia': ['alquimia', 'alchemy', 'ritual', 'circulo', 'reagente', 'veu', 'abismo'],
+      'Feitiços': ['feitico', 'spell', 'bruxaria', 'arcana', 'magia', 'conjuracao'],
+      'Runas': ['runa', 'rune', 'selo', 'menor', 'comum', 'maior'],
+      'Grimórios': ['grimorio', 'grimoire', 'tom', 'livro'],
+      'Criação de Personagem': ['criacao', 'criar', 'personagem', 'guia', 'passo a passo'],
+      'Balanceamento': ['balanceamento', 'balance', 'scp', 'tdh', 'pp', 'ipl', 'calibracao', 'protocolo'],
+    }
+    return ALL_SECTIONS.filter(s => {
+      const kws = keywords[s] || []
+      return s.toLowerCase().includes(term) || kws.some(k => k.includes(term) || term.includes(k))
+    })
+  }, [searchTerm])
+
+  const handleSectionClick = (s) => {
+    setSection(s)
+    setSearchTerm('')
+    const cat = getSectionCategory(s)
+    if (cat) setExpandedCategory(cat.id)
+  }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="section-header text-primary mb-8 justify-center">
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="section-header text-primary mb-6 justify-center">
         <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>menu_book</span>
         Referência do Sistema Olympo 2.0
       </div>
-      <div className="flex flex-wrap gap-2 mb-6 justify-center">
-        {sections.map(s => (
-          <button key={s} onClick={() => setSection(s)}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${section === s ? 'bg-primary text-on-primary' : 'border border-outline/30 text-on-surface-variant hover:border-primary hover:text-primary'}`}>
-            {s}
-          </button>
-        ))}
+
+      <div className="mb-6 max-w-xl mx-auto">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-txt-dim text-lg" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>search</span>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar seção (ex: carga, morrendo, CA, equipamento...)"
+            className="w-full bg-void border border-sep rounded-lg pl-10 pr-4 py-2.5 text-sm text-txt-main placeholder:text-txt-dim/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-dim hover:text-txt-main text-xs">✕</button>
+          )}
+        </div>
+        {searchResults && searchResults.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {searchResults.map(s => {
+              const cat = getSectionCategory(s)
+              return (
+                <button key={s} onClick={() => handleSectionClick(s)}
+                  className="px-3 py-1 rounded text-xs font-medium border border-primary/40 text-primary hover:bg-primary hover:text-on-primary transition-colors">
+                  {cat?.icon} {s}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {searchResults && searchResults.length === 0 && (
+          <p className="text-txt-dim text-xs mt-2 text-center">Nenhuma seção encontrada para "{searchTerm}"</p>
+        )}
       </div>
-      <div className="codex-card p-6">
-        {section === 'Raças' && <RacasSection />}
-        {section === 'Atributos' && <AttributesSection />}
-        {section === 'Classes' && <ClassesSection />}
-        {section === 'Progressão' && <ProgressionSection />}
-        {section === 'Perícias' && <PericiasSection />}
-        {section === 'Triagens' && <TriagesSection />}
-        {section === 'Módulos Passivos' && <ModulesSection items={MODULES_PASSIVE} title="Módulos Passivos" />}
-        {section === 'Módulos Especiais' && <ModulesSection items={MODULES_SPECIAL} title="Módulos Especiais" special />}
-        {section === 'Módulos Ativos' && <ModulesSection items={MODULES_ACTIVE} title="Módulos Ativos" active />}
-        {section === 'Armas' && <WeaponsSection />}
-        {section === 'Ranks de Arma' && <RanksSection />}
-        {section === 'Limites de Equipamento' && <EquipLimitsSection />}
-        {section === 'Equipamentos' && <EquipmentSection />}
-        {section === 'Armas Lendárias' && <LegendaryWeaponsSection />}
-        {section === 'Artes Marciais' && <MartialArtsSection />}
-        {section === 'Alquimia' && <AlchemySection />}
-        {section === 'Feitiços' && <SpellsSection />}
-        {section === 'Runas' && <RunesSection />}
-        {section === 'Grimórios' && <GrimoriosSection />}
-        {section === 'Criação de Personagem' && <CreationGuideSection />}
-        {section === 'Balanceamento' && <BalanceProtocolSection />}
+
+      <div className="flex gap-4">
+        <nav className="hidden lg:block w-56 shrink-0">
+          <div className="sticky top-20 space-y-1">
+            {SECTION_CATEGORIES.map(cat => (
+              <div key={cat.id}>
+                <button
+                  onClick={() => { setExpandedCategory(expandedCategory === cat.id ? cat.id : cat.id); if (!cat.sections.includes(section)) setSection(cat.sections[0]) }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${expandedCategory === cat.id ? cat.color : 'text-txt-dim hover:text-txt-main hover:bg-void/40'}`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </button>
+                {expandedCategory === cat.id && (
+                  <div className="ml-3 pl-3 border-l border-sep/30 space-y-0.5 mt-1 mb-2">
+                    {cat.sections.map(s => (
+                      <button key={s} onClick={() => setSection(s)}
+                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${section === s ? 'text-primary font-semibold bg-primary/10' : 'text-txt-dim hover:text-txt-main hover:bg-void/30'}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        <div className="flex-1 min-w-0">
+          <div className="lg:hidden flex flex-wrap gap-1.5 mb-4">
+            {SECTION_CATEGORIES.map(cat => (
+              <button key={cat.id} onClick={() => { setExpandedCategory(cat.id); if (!cat.sections.includes(section)) setSection(cat.sections[0]) }}
+                className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${expandedCategory === cat.id ? cat.activeColor : 'text-txt-dim border-sep/30 hover:border-primary/30'}`}>
+                {cat.icon} {cat.label}
+              </button>
+            ))}
+          </div>
+          <div className="lg:hidden flex flex-wrap gap-1 mb-4">
+            {(getSectionCategory(section)?.sections || []).map(s => (
+              <button key={s} onClick={() => setSection(s)}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${section === s ? 'bg-primary text-on-primary' : 'border border-outline/30 text-on-surface-variant hover:border-primary hover:text-primary'}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+
+          <div className="codex-card p-6">
+            {section === 'Fórmulas Rápidas' && <QuickFormulasSection />}
+            {section === 'Regras de Combate' && <CombatRulesSection />}
+            {section === 'Raças' && <RacasSection />}
+            {section === 'Atributos' && <AttributesSection />}
+            {section === 'Classes' && <ClassesSection />}
+            {section === 'Progressão' && <ProgressionSection />}
+            {section === 'Perícias' && <PericiasSection />}
+            {section === 'Triagens' && <TriagesSection />}
+            {section === 'Módulos Passivos' && <ModulesSection items={MODULES_PASSIVE} title="Módulos Passivos" />}
+            {section === 'Módulos Especiais' && <ModulesSection items={MODULES_SPECIAL} title="Módulos Especiais" special />}
+            {section === 'Módulos Ativos' && <ModulesSection items={MODULES_ACTIVE} title="Módulos Ativos" active />}
+            {section === 'Armas' && <WeaponsSection />}
+            {section === 'Ranks de Arma' && <RanksSection />}
+            {section === 'Limites de Equipamento' && <EquipLimitsSection />}
+            {section === 'Equipamentos' && <EquipmentSection />}
+            {section === 'Armas Lendárias' && <LegendaryWeaponsSection />}
+            {section === 'Artes Marciais' && <MartialArtsSection />}
+            {section === 'Alquimia' && <AlchemySection />}
+            {section === 'Feitiços' && <SpellsSection />}
+            {section === 'Runas' && <RunesSection />}
+            {section === 'Grimórios' && <GrimoriosSection />}
+            {section === 'Criação de Personagem' && <CreationGuideSection />}
+            {section === 'Balanceamento' && <BalanceProtocolSection />}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -325,6 +496,208 @@ function getDiffStars(n) {
 
 function SectionTitle({ children }) {
   return <h2 className="font-cinzel text-primary text-2xl mb-4 tracking-wider">{children}</h2>
+}
+
+function FormulaCard({ label, formula, desc, color = 'gold' }) {
+  const colors = {
+    gold: 'border-gold/20 bg-gold/5',
+    emerald: 'border-emerald-400/20 bg-emerald-400/5',
+    sky: 'border-sky-400/20 bg-sky-400/5',
+    red: 'border-red-400/20 bg-red-400/5',
+    purple: 'border-purple-400/20 bg-purple-400/5',
+    amber: 'border-amber-300/20 bg-amber-300/5',
+    cyan: 'border-cyan-400/20 bg-cyan-400/5',
+  }
+  return (
+    <div className={`rounded-lg border p-3 ${colors[color] || colors.gold}`}>
+      <div className="text-txt-dim text-xs mb-1">{label}</div>
+      <div className="text-txt-main font-mono text-sm font-semibold">{formula}</div>
+      {desc && <p className="text-txt-dim text-[11px] mt-1">{desc}</p>}
+    </div>
+  )
+}
+
+function QuickFormulasSection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Fórmulas Rápidas</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Todas as fórmulas de cálculo do sistema em um só lugar. Use como referência durante a criação de personagem ou sessão.
+      </p>
+
+      <div className="bg-void rounded-xl border border-gold/20 p-4">
+        <h3 className="text-gold text-sm font-semibold mb-3">Combate</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <FormulaCard label="Classe de Armadura (CA)" formula="10 + treino(Reflexo ou Bloqueio) + MAX(Mod.CON, Mod.DES)" desc="treino = bônus do grau de perícia treinado" color="red" />
+          <FormulaCard label="Reações" formula="⌊DES ÷ 5⌋ (mínimo 1)" desc="DES = valor final do atributo" color="amber" />
+          <FormulaCard label="Percepção Passiva" formula="10 + treino(Percepção) + Mod.INT" desc="Percepção passiva é o mínimo que o personagem percebe sem teste" color="cyan" />
+          <FormulaCard label="Dano Base" formula="Dado de classe + Mod.FOR + bônus de triagem" desc="Guerreiro: d12, Operativo: d10, Místico: d8" color="red" />
+          <FormulaCard label="Modificador de Atributo" formula="⌊(valor − 10) ÷ 2⌋" desc="Consulte a tabela de modificadores em Atributos" color="gold" />
+          <FormulaCard label="Armadura (Absorção)" formula="Soma das peças equipadas (caBase + raridade)" desc="Reduz CADA golpe recebido. Não é CA." color="purple" />
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Vida & Recursos</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <FormulaCard label="Vida Total" formula="Base(CON) + [Vida/Nível × N] + Progressão + Raça + Tank" color="emerald" />
+          <FormulaCard label="Vida Base (por classe)" formula="Guerreiro: 100+CON×5 | Op.: 70+CON×5 | Mist.: 50+CON×5" color="emerald" />
+          <FormulaCard label="Energia Total" formula="Base(AM) + [Energia/Nível × N] + Progressão + Intuitivo" desc="Intuitivo: +⌊AM×0.5⌋ × ⌊N/5⌋" color="sky" />
+          <FormulaCard label="PE Total" formula="PE Base + PE/Nível × N + Progressão + Raça" desc="PE = Pontos de Esqueleto" color="sky" />
+          <FormulaCard label="Escudo de Energia" formula="Soma dos shields das peças equipadas" desc="Regenera completamente no início de cada turno" color="cyan" />
+          <FormulaCard label="Vida Temporária" formula="Soma extraLife das peças equipadas" desc="Concedida na 1ª utilização. Perdida ao desequipar/quebrar" color="emerald" />
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sky-400/20 p-4">
+        <h3 className="text-sky-400 text-sm font-semibold mb-3">Inventário & Carga</h3>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <FormulaCard label="Capacidade de Carga" formula="10 + (FOR × 2) + ⌊CON × 0.5⌋" desc="Módulos (Mochila Avançada +10, Forja +5, Portador Nato +8/compra) e itens especiais aumentam" color="sky" />
+          <FormulaCard label="Economia Inicial" formula="5000 + (Nível − 1) × 500" desc="Em dracmas ou equivalente" color="amber" />
+        </div>
+      </div>
+
+      <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
+        <p className="text-primary font-semibold text-sm mb-1">Notas</p>
+        <p>• Pontos de Esqueleto em CON afetam Vida retroativamente em todos os níveis.</p>
+        <p>• Pontos de Esqueleto em AM afetam Energia retroativamente em todos os níveis.</p>
+        <p>• Armadura de equipamento é absorção de dano (camada separada antes da Vida), não soma na CA.</p>
+        <p>• Escudo de Energia absorve dano ANTES do HP e regenera no início de cada turno de combate.</p>
+        <p>• Vida Temporária é concedida na 1ª utilização da peça na sessão e removida ao desequipar.</p>
+      </div>
+    </div>
+  )
+}
+
+function CombatRulesSection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Regras de Combate</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Regras essenciais para resolução de combates, condições, morte e cura. Referência rápida para mesas de jogo.
+      </p>
+
+      <div className="bg-void rounded-xl border border-red-400/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-red-400 text-lg">💀</span>
+          <h3 className="text-red-400 text-sm font-semibold">Estado de Morrendo</h3>
+        </div>
+        <div className="space-y-3">
+          <div className="bg-deep rounded-lg border border-red-400/15 p-3">
+            <div className="text-red-300 text-xs font-semibold mb-2">Quando um personagem chega a 0 Vida</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• O personagem cai <strong className="text-red-400">Inconsciente</strong> e entra no estado <strong className="text-red-400">Morrendo</strong>.</li>
+              <li>• No início de cada turno do personagem, faça um <strong className="text-txt-main">Teste de Morte</strong>: jogue 1d20.</li>
+              <li>• <span className="text-emerald-400 font-semibold">10 ou mais:</span> 1 Sucesso. Acumule 3 sucessos → personagem estabiliza com 1 PV.</li>
+              <li>• <span className="text-red-400 font-semibold">9 ou menos:</span> 1 Falha. Acumule 3 falhas → personagem morre.</li>
+              <li>• <span className="text-amber-300 font-semibold">20 natural:</span> Recupera 1 PV e desperta imediatamente.</li>
+              <li>• <span className="text-red-400 font-semibold">1 natural:</span> Conta como 2 falhas.</li>
+            </ul>
+          </div>
+          <div className="bg-deep rounded-lg border border-red-400/15 p-3">
+            <div className="text-amber-300 text-xs font-semibold mb-2">Sofrendo dano enquanto Morrendo</div>
+            <ul className="space-y-1 text-xs text-txt-dim">
+              <li>• Qualquer dano sofrido conta como 1 falha adicional no Teste de Morte.</li>
+              <li>• Um ataque crítico sofrido conta como 2 falhas.</li>
+              <li>• Dano que exceda o máximo de Vida do personagem causa morte instantânea (sem testes).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-emerald-400 text-lg">🏥</span>
+          <h3 className="text-emerald-400 text-sm font-semibold">Cura & Estabilização</h3>
+        </div>
+        <div className="space-y-3">
+          <div className="bg-deep rounded-lg border border-emerald-400/15 p-3">
+            <div className="text-emerald-300 text-xs font-semibold mb-2">Estabilizar um aliado Morrendo</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• <strong className="text-txt-main">Kit Médico Portátil:</strong> Consome 1 uso (de 3). Restaura 1d8 + Mod.INT Vida. Pode ser usado em aliados morrendo sem teste.</li>
+              <li>• <strong className="text-txt-main">Teste de Medicina:</strong> CD 15 + Nível do alvo ÷ 2 (arredondado para baixo). Sucesso estabiliza com 1 PV. Falha desperdiça a ação.</li>
+              <li>• <strong className="text-txt-main">Habilidade de Cura:</strong> Funciona normalmente em aliados morrendo, mas restaura no máximo 30% da Vida máxima do alvo.</li>
+              <li>• <strong className="text-txt-main">Sem tratamento:</strong> O personagem continua fazendo Testes de Morte até estabilizar (3 sucessos) ou morrer (3 falhas).</li>
+            </ul>
+          </div>
+          <div className="bg-deep rounded-lg border border-emerald-400/15 p-3">
+            <div className="text-emerald-300 text-xs font-semibold mb-2">Regras de Cura Geral</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• Cura via habilidade: máximo 30% da vida máxima por uso individual; máximo 20% em área.</li>
+              <li>• Curas de item/equipamento: 1d8 + Mod.INT (Kit Médico), mais bônus de categoria Médico.</li>
+              <li>• Vida Temporária de equipamento não pode exceder a Vida Máxima. Vida Temp acima do máximo é perdida.</li>
+              <li>• Cura não empilha Vida Temporária — apenas a maior fonte aplica.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-amber-300/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-amber-300 text-lg">🎯</span>
+          <h3 className="text-amber-300 text-sm font-semibold">Ações em Combate</h3>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[
+            { tipo: 'Padrão', desc: 'Atacar, usar habilidade, interagir com objeto, testes de perícia ativos.' },
+            { tipo: 'Movimento', desc: 'Deslocamento até o limite de velocidade. Pode ser dividido antes/depois da ação.' },
+            { tipo: 'Bônus', desc: 'Concedida por triagens, módulos ou habilidades específicas. Não pode ser trocada por ação padrão.' },
+            { tipo: 'Reação', desc: 'Resposta a evento (ataque de oportunidade, bloqueio, contra-ataque). Limite = Reações por turno.' },
+            { tipo: 'Livre', desc: 'Falar, largar item, observar. O Mestre determina o que conta como livre.' },
+            { tipo: 'Completa', desc: 'Usa ação padrão + movimento para efeitos poderosos (correr, focar ataque, etc.).' },
+          ].map((a, i) => (
+            <div key={i} className="bg-deep rounded-lg border border-amber-300/15 p-3">
+              <div className="text-amber-200 text-xs font-semibold mb-1">{a.tipo}</div>
+              <p className="text-txt-dim text-[11px]">{a.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-purple-400/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-purple-400 text-lg">⚡</span>
+          <h3 className="text-purple-400 text-sm font-semibold">Condições</h3>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-2">
+          {[
+            { nome: 'Inconsciente', efeito: 'Não pode agir ou reagir. Perde percepção passiva. CA = 10 (sem modificadores).' },
+            { nome: 'Atordoado', efeito: 'Não pode agir ou reagir por 1 turno. Ataques contra têm Vantagem.' },
+            { nome: 'Cego', efeito: 'Ataques têm Desvantagem. Inimigos têm Vantagem. Percepção passiva −10.' },
+            { nome: 'Ensurdecido', efeito: 'Não percebe sons. Desvantagem em Percepção auditiva.' },
+            { nome: 'Amedrontado', efeito: 'Desvantagem em testes e ataques enquanto a fonte estiver visível. Não pode se aproximar voluntariamente.' },
+            { nome: 'Paralisado', efeito: 'Não pode agir, reagir ou se mover. Ataques corpo a corpo a ≤1m são críticos automáticos.' },
+            { nome: 'Envenenado', efeito: 'Desvantagem em testes de ataque e testes de atributo.' },
+            { nome: 'Quebrado (Equip.)', efeito: 'Equipamento quebrado: perde armadura, escudo e habilidades até reparo em ferraria.' },
+          ].map((c, i) => (
+            <div key={i} className="bg-deep rounded-lg border border-purple-400/15 p-2.5">
+              <div className="text-purple-300 text-xs font-semibold">{c.nome}</div>
+              <p className="text-txt-dim text-[11px] mt-0.5">{c.efeito}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sky-400/20 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sky-400 text-lg">🎲</span>
+          <h3 className="text-sky-400 text-sm font-semibold">Golpe Crítico & Acerto Crítico</h3>
+        </div>
+        <div className="space-y-2 text-xs text-txt-dim">
+          <p>• <strong className="text-txt-main">Acerto Crítico (20 natural no d20):</strong> O dobro do dano é rolado (role os dados duas vezes e some modificadores uma vez).</p>
+          <p>• <strong className="text-txt-main">Erro Crítico (1 natural no d20):</strong> O ataque falha automaticamente. O Mestre pode aplicar consequência narrativa (arma derrubada, abertura de guarda, etc.).</p>
+          <p>• <strong className="text-txt-main">Habilidades com crítico:</strong> Seguem o mesmo padrão, mas apenas dados de dano da habilidade são dobrados (não bônus fixos).</p>
+        </div>
+      </div>
+
+      <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
+        <p className="text-primary font-semibold text-sm mb-1">CDs de Resistência Recomendados</p>
+        <p>• <strong className="text-txt-main">N1-10:</strong> CD 14–16</p>
+        <p>• <strong className="text-txt-main">N11-20:</strong> CD 18–22</p>
+        <p>• <strong className="text-txt-main">N21-30:</strong> CD 22–28</p>
+      </div>
+    </div>
+  )
 }
 
 function AttributesSection() {
@@ -819,30 +1192,63 @@ function EquipmentSection() {
       </p>
 
       <p className="text-txt-dim text-sm mb-4">
-        Na revisão atual, armaduras não aumentam CA diretamente. CA é defesa passiva contra ataques; Armadura é uma
-        camada separada de absorção/durabilidade antes da Vida. Ao chegar a 0, a peça quebra até reparo. Peitoral,
-        Elmo, Calças e Botas podem receber categorias como Guerreiro, Furtivo, Tecnológico, Médico, Demolidor ou Exploração,
-        com bônus ativados a partir de 3 peças equipadas da mesma categoria.
+        Na revisão atual, armaduras não aumentam CA diretamente. CA é defesa passiva contra ataques; <strong className="text-txt-main">Armadura</strong> é uma
+        camada separada de <strong className="text-primary">absorção/durabilidade</strong> antes da Vida. Ao chegar a 0, a peça quebra até reparo. Peitoral,
+        Elmo, Calças e Botas podem receber categorias como Guerreiro, Furtivo, Tecnológico, Médico, Demolidor, Exploração, Opala, Feitiçaria, Sobrenatural, Elemental ou Elementalista,
+        com bônus ativados progressivamente conforme o número de peças equipadas da mesma categoria.
       </p>
 
       <div className="bg-void rounded-xl border border-primary/20 p-4">
-        <h3 className="text-primary text-sm font-semibold mb-3">Tipos de Equipamento</h3>
-        <div className="grid gap-3">
-          {[
-            { nome: 'Peitoral Leve', ca: '4 Armadura', desc: 'Couro, tecido reforçado. Sem penalidade.' },
-            { nome: 'Peitoral Comum', ca: '7 Armadura', desc: 'Cota de malha ou couro endurecido. Equilibrado.' },
-            { nome: 'Peitoral Pesado', ca: '10 Armadura', desc: 'Placas completas. Penalidade de mobilidade.' },
-            { nome: 'Elmo', ca: '2-6 Armadura', desc: 'Proteção craniana conforme peso.' },
-            { nome: 'Botas/Calças', ca: '1-6 Armadura', desc: 'Proteção segmentada e durabilidade da peça.' },
-            { nome: 'Acessório', ca: '0 Armadura', desc: 'Anéis, amuletos, capas. Concedem habilidades ou categoria.' },
-            { nome: 'Item de Utilidade', ca: '—', desc: 'Escutas, ganchos, tasers, kits. Efeitos situacionais. Não ocupa slot.' },
-          ].map((eq, i) => (
-            <div key={i} className="bg-void/60 border border-sep/30 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-txt-main font-semibold text-sm">{eq.nome}</span>
-                <span className="text-primary font-mono text-xs">{eq.ca}</span>
+        <h3 className="text-primary text-sm font-semibold mb-3">Slots de Equipamento</h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {ARMOR_SLOTS.map(slot => (
+            <div key={slot.id} className="bg-void/60 border border-sep/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{slot.icon}</span>
+                <span className="text-txt-main font-semibold text-sm">{slot.label}</span>
               </div>
-              <p className="text-txt-dim text-xs">{eq.desc}</p>
+              <p className="text-txt-dim text-xs">{slot.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-primary/20 p-4">
+        <h3 className="text-primary text-sm font-semibold mb-3">Tipos de Equipamento (Base)</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Tipo</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Slot</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Peso</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Armadura Base</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Vida Temp.</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Penalidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {EQUIPMENT_TYPES.filter(t => t.slot && t.slot !== 'acessorio' && t.slot !== null).map(t => (
+                <tr key={t.id} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 text-txt-main font-semibold">{t.label}</td>
+                  <td className="py-2 px-3 text-txt-dim capitalize">{t.slot}</td>
+                  <td className="py-2 px-3 text-txt-dim capitalize">{t.weight || '—'}</td>
+                  <td className="py-2 px-3 font-mono text-primary">{t.caBase}</td>
+                  <td className="py-2 px-3 font-mono text-emerald-400">+{t.extraLife}</td>
+                  <td className="py-2 px-3 font-mono text-red-400">{t.penalty ? `${t.penalty} DES` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 mt-3">
+          {EQUIPMENT_TYPES.filter(t => !t.slot || t.slot === 'acessorio').map(t => (
+            <div key={t.id} className="bg-void/60 border border-sep/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-txt-main font-semibold text-sm">{t.label}</span>
+                <span className="text-txt-dim font-mono text-xs">{t.slot || 'Sem slot'}</span>
+              </div>
+              <p className="text-txt-dim text-xs">{t.desc}</p>
             </div>
           ))}
         </div>
@@ -855,49 +1261,80 @@ function EquipmentSection() {
             <thead>
               <tr className="border-b border-sep/40">
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">Armadura</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Armadura+</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Vida Temp.</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Escudo</th>
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Habilidades</th>
               </tr>
             </thead>
             <tbody>
-              {[
-                { rank: 'Comum', ca: 0, slots: '0' },
-                { rank: 'Incomum', ca: 1, slots: '0' },
-                { rank: 'Raro', ca: 1, slots: '0' },
-                { rank: 'Epico', ca: 2, slots: '1 ativa' },
-                { rank: 'Heroico', ca: 2, slots: '1 ativa' },
-                { rank: 'Ancestral', ca: 3, slots: '2 ativas' },
-                { rank: 'Mitico', ca: 4, slots: '2 ativas' },
-                { rank: 'Transcendente', ca: 4, slots: '2 ativas + 1 passiva' },
-              ].map((r, i) => (
-                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+              {EQUIPMENT_RARITIES.map(r => (
+                <tr key={r.rank} className="border-b border-sep/20 hover:bg-void/40">
                   <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
-                  <td className="py-2 px-3 font-mono text-primary">{r.ca > 0 ? `+${r.ca}` : '—'}</td>
-                  <td className="py-2 px-3 font-mono text-purple-400">{r.slots}</td>
+                  <td className="py-2 px-3 font-mono text-primary">{r.armorBonus > 0 ? `+${r.armorBonus}` : '—'}</td>
+                  <td className="py-2 px-3 font-mono text-emerald-400">{r.extraLife > 0 ? `+${r.extraLife}` : '—'}</td>
+                  <td className="py-2 px-3 font-mono text-cyan-400">{r.shieldAmount > 0 ? `+${r.shieldAmount}` : '—'}</td>
+                  <td className="py-2 px-3 font-mono text-purple-400">
+                    {r.activeSkills > 0 ? `${r.activeSkills} ativa${r.activeSkills > 1 ? 's' : ''}` : ''}
+                    {r.passiveSkills > 0 ? `${r.activeSkills > 0 ? ' + ' : ''}${r.passiveSkills} passiva` : ''}
+                    {!r.activeSkills && !r.passiveSkills ? '—' : ''}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="text-txt-dim text-xs mt-2">Esses valores aumentam a camada de Armadura/durabilidade, não a CA. Vida extra é temporária de sessão enquanto a peça estiver equipada e íntegra.</p>
+        <p className="text-txt-dim text-xs mt-2">Esses valores somam à base do tipo de equipamento. Armadura+ aumenta a camada de Absorção/Durabilidade, não a CA. Vida extra é temporária de sessão enquanto a peça estiver equipada e íntegra.</p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sky-400/20 p-4">
+        <h3 className="text-sky-400 text-sm font-semibold mb-3">Estatísticas Explicadas</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Object.entries(EQUIPMENT_STAT_LABELS).map(([key, stat]) => (
+            <div key={key} className="bg-void/60 border border-sep/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span>{stat.icon}</span>
+                <span className="text-txt-main font-semibold text-sm">{stat.label}</span>
+              </div>
+              <p className="text-txt-dim text-xs">{stat.desc}</p>
+              {stat.lose && <p className="text-red-400/70 text-[11px] mt-1">⚠ {stat.lose}</p>}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
-        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Categoria</h3>
-        <div className="grid gap-3">
-          {[
-            { name: 'Furtivo', pieces: 3, bonus: '+10 em Furtividade', desc: 'Pode gastar 3 PE para receber Vantagem em uma esquiva até o fim do turno.' },
-            { name: 'Guerreiro', pieces: 3, bonus: '+5 Vida temporária e +2 em Bloqueio', desc: 'Pode gastar 2 PE ao sofrer dano para reduzir 1d6 do impacto.' },
-            { name: 'Tecnológico', pieces: 3, bonus: '+10 em Tecnologia', desc: 'Scan passivo identifica eletrônicos, rastreadores e armadilhas simples em 10m.' },
-            { name: 'Demolidor', pieces: 3, bonus: '+10 em explosivos/arrombamento', desc: 'Permite controlar dano colateral de cargas preparadas.' },
-            { name: 'Médico', pieces: 3, bonus: '+10 em Medicina', desc: 'Permite estabilizar um aliado como ação bônus gastando 3 PE.' },
-          ].map((s, i) => (
-            <div key={i} className="bg-void/60 border border-emerald-400/15 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-emerald-400 font-semibold text-sm">{s.name} ({s.pieces} peças)</span>
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Categoria (Sets)</h3>
+        <p className="text-txt-dim text-xs mb-3">Cada categoria ativa bônus progressivos conforme o número de peças equipadas. Com 1 peça, recebe o bônus mínimo. Com 2 ou mais, recebe o bônus correspondente ao nível atingido.</p>
+        <div className="space-y-4">
+          {ARMOR_TYPES.map(type => (
+            <div key={type.id} className={`rounded-lg border ${type.borderClass} overflow-hidden`}>
+              <div className={`px-4 py-2.5 ${type.bgClass} border-b ${type.borderClass}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`font-cinzel text-sm font-bold ${type.colorClass}`}>{type.label}</span>
+                </div>
+                <p className="text-txt-dim text-xs mt-0.5">{type.desc}</p>
               </div>
-              <p className="text-primary font-mono text-xs mb-1">{s.bonus}</p>
-              <p className="text-txt-dim text-xs italic">{s.desc}</p>
+              <div className="px-4 py-3 space-y-2">
+                <div className="flex gap-3 text-xs">
+                  <span className={`${type.colorClass} font-semibold`}>1 peça:</span>
+                  <span className="text-txt-main">{type.miniBonus}</span>
+                </div>
+                <div className="flex gap-3 text-xs">
+                  <span className={`${type.colorClass} font-semibold`}>Passiva (1 peça):</span>
+                  <span className="text-txt-dim">{type.miniPassive}</span>
+                </div>
+                {type.bonuses.map(b => (
+                  <div key={b.pieces} className={`bg-void/60 rounded-lg p-2.5 border ${type.borderClass}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${type.badgeClass}`}>{b.pieces} peças</span>
+                      <span className="text-txt-main font-semibold text-xs">{b.label}</span>
+                    </div>
+                    <p className={`${type.colorClass} font-mono text-xs mb-0.5`}>{b.bonus}</p>
+                    <p className="text-txt-dim text-[11px] italic">{b.passive}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
@@ -906,27 +1343,13 @@ function EquipmentSection() {
       <div className="bg-void rounded-xl border border-sky-400/20 p-4">
         <h3 className="text-sky-400 text-sm font-semibold mb-3">Itens de Utilidade</h3>
         <div className="grid gap-2">
-          {[
-            { nome: 'Escuta Eletrônica', efeito: 'Vantagem em Percepção auditiva', peso: '0.2 kg' },
-            { nome: 'Gancho de Escalada', efeito: 'Escalada sem teste em superfícies adequadas', peso: '1.5 kg' },
-            { nome: 'Taser de Pulso', efeito: '1d4+INT, CD 12 CON ou paralisia 1 turno', peso: '0.3 kg' },
-            { nome: 'Kit Médico Portátil', efeito: 'Restaura 1d8+INT Vida (3 usos)', peso: '0.5 kg' },
-            { nome: 'Kit de Ladrão', efeito: 'Vantagem em prestidigitação e arrombamento', peso: '0.3 kg' },
-            { nome: 'Lente de Visão Noturna', efeito: 'Visão no escuro 30m', peso: '0.2 kg' },
-            { nome: 'Granada de Fumaça', efeito: 'Área 5m obscurecida por 3 turnos', peso: '0.4 kg' },
-            { nome: 'Granada de Fragmentação', efeito: '4d8 em raio 4m, DES CD 15 metade', peso: '0.4 kg' },
-            { nome: 'Flashbang', efeito: 'CON CD 15 ou cego/surdo por 1 turno', peso: '0.35 kg' },
-            { nome: 'Carga C4', efeito: '6d10 em raio 6m, dobra contra estruturas', peso: '1.2 kg' },
-            { nome: 'Drone Batedor', efeito: '+10 em reconhecimento a até 80m', peso: '0.6 kg' },
-            { nome: 'Jammer Portátil', efeito: 'Bloqueia sinais em 15m por 10 minutos', peso: '0.9 kg' },
-            { nome: 'Corda de Aço (10m)', efeito: 'Suporta 200kg, imobilizar FOR vs FOR', peso: '1 kg' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between bg-void/40 border border-sep/20 rounded px-3 py-2">
+          {SIMPLE_ITEMS.map(item => (
+            <div key={item.id} className="flex items-center justify-between bg-void/40 border border-sep/20 rounded px-3 py-2">
               <div>
                 <span className="text-txt-main text-sm font-semibold">{item.nome}</span>
                 <p className="text-txt-dim text-xs">{item.efeito}</p>
               </div>
-              <span className="text-on-surface-variant font-mono text-xs">{item.peso}</span>
+              <span className="text-on-surface-variant font-mono text-xs">{item.peso} kg</span>
             </div>
           ))}
         </div>
@@ -938,18 +1361,19 @@ function EquipmentSection() {
         <div className="bg-void/60 border border-sep/30 rounded p-3 text-sm text-txt-main font-mono">
           Carga Máxima = 10 + (FOR × 2) + ⌊CON × 0.5⌋ kg
         </div>
-        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada) e itens especiais podem aumentar a capacidade. Apenas itens carregados, em mochila ou equipados entram na carga; itens em base, casa ou veículo ficam registrados, mas não pesam na ficha ativa.</p>
+        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada +10, Forja Pessoal +5, Portador Nato +8/compra) e itens especiais podem aumentar a capacidade. Apenas itens carregados, em mochila ou equipados entram na carga; itens em base, casa ou veículo ficam registrados, mas não pesam na ficha ativa.</p>
       </div>
 
       <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
         <p className="text-primary font-semibold text-sm mb-1">Observações</p>
         <p>• Equipamentos seguem os mesmos ranks de armas para limites por nível.</p>
-        <p>• Capacidade de moeda inicial: $50 Dólares + 5 Dracmas.</p>
+        <p>• Capacidade de moeda inicial: 5000 + (Nível − 1) × 500.</p>
         <p>• Peso corporal não conta para a capacidade de carga.</p>
-        <p>• Categorias ativam bônus automaticamente quando 3+ peças da mesma categoria estão equipadas.</p>
+        <p>• Categorias ativam bônus automaticamente conforme o número de peças da mesma categoria equipadas.</p>
         <p>• Armas e equipamentos podem ser equipados, guardados, enviados para mochila, veículo ou base.</p>
         <p>• Fichas salvas podem transferir itens e equipamentos entre personagens.</p>
         <p>• A IA balanceia passivas de equipamento usando os mesmos limites SCP/TDH de habilidades.</p>
+        <p>• Equipamento pesado impõe −1 DES por peça. Peças leves e comuns não têm penalidade.</p>
       </div>
     </div>
   )
