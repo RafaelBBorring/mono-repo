@@ -513,7 +513,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
-                  {equipmentStats.totalArmorMax ? <CombatStat label="Armadura" value={`${equipmentStats.totalArmor}/${equipmentStats.totalArmorMax}`} isGold /> : null}
+                  {equipmentStats.totalArmorMax ? <CombatStat label="Armadura" value={equipmentStats.totalArmorRaw > equipmentStats.totalArmor ? `${equipmentStats.totalArmor}/${equipmentStats.totalArmorCap}` : equipmentStats.totalArmor} isGold /> : null}
+                  {equipmentStats.totalDurabilityMax ? <CombatStat label="Durabilidade" value={`${equipmentStats.totalDurability}/${equipmentStats.totalDurabilityMax}`} isGold /> : null}
                   {activeBonuses.ataque ? <CombatStat label="Ataque Ativo" value={`${activeBonuses.ataque > 0 ? '+' : ''}${activeBonuses.ataque}`} isGold /> : null}
                   <div className="text-center">
                     <span className="text-txt-dim/50 text-[10px] uppercase block">Reações</span>

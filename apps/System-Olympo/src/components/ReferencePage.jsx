@@ -15,7 +15,7 @@ import { SPELL_TRAINING_RULES } from '../utils/spellRules'
 import { RUNE_TRAINING_RULES } from '../utils/runeRules'
 import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
 import { normalizeProgressionLabel } from '../utils/progressionUtils'
-import { ARMOR_TYPES, ARMOR_SLOTS, EQUIPMENT_RARITIES, EQUIPMENT_TYPES, EQUIPMENT_STAT_LABELS, SIMPLE_ITEMS } from '../data/equipment'
+import { ARMOR_ABSORPTION_HARD_CAP, ARMOR_ABSORPTION_SOFT_CAP, ARMOR_TYPES, ARMOR_SLOTS, EQUIPMENT_RARITIES, EQUIPMENT_TYPES, EQUIPMENT_STAT_LABELS, SIMPLE_ITEMS } from '../data/equipment'
 import { useState, useMemo, useEffect, useRef } from 'react'
 
 const SECTION_CATEGORIES = [
@@ -643,7 +643,7 @@ function QuickFormulasSection() {
           <FormulaCard label="Vida Base (por classe)" formula="Guerreiro: 100+CON×5 | Op.: 70+CON×5 | Mist.: 50+CON×5" color="emerald" />
           <FormulaCard label="Energia Total" formula="Base(AM) + [Energia/Nível × N] + Progressão + Intuitivo" desc="Intuitivo: +⌊AM×0.5⌋ × ⌊N/5⌋" color="sky" />
           <FormulaCard label="PE Total" formula="PE Base + PE/Nível × N + Progressão + Raça" desc="PE = Pontos de Esqueleto" color="sky" />
-          <FormulaCard label="Absorção de Armadura" formula="Soma das peças equipadas (caBase + rank)" desc="Reduz CADA golpe recebido. Não é CA. Cada golpe = −1 Durabilidade." color="purple" />
+          <FormulaCard label="Absorção de Armadura" formula={`Soma das peças equipadas; limite ${ARMOR_ABSORPTION_HARD_CAP}`} desc={`Não é CA. Desgaste por golpe: 1 normal, 2 pesado/sobrecarga ${ARMOR_ABSORPTION_SOFT_CAP}+.`} color="purple" />
         </div>
       </div>
 
@@ -660,7 +660,7 @@ function QuickFormulasSection() {
         <p>• Pontos de Esqueleto em CON afetam Vida retroativamente em todos os níveis.</p>
         <p>• Pontos de Esqueleto em AM afetam Energia retroativamente em todos os níveis.</p>
         <p>• Armadura de equipamento é absorção de dano (camada separada antes da Vida), não soma na CA.</p>
-        <p>• Cada golpe absorvido pela armadura consome 1 ponto de Durabilidade da peça.</p>
+        <p>• Cada golpe absorvido pela armadura consome Durabilidade: 1 em leve/comum, 2 em pesado ou em sobrecarga acima de {ARMOR_ABSORPTION_SOFT_CAP} absorção.</p>
         <p>• Bônus de categoria (set) acumulam progressivamente: 2 peças ativam 2 peças, 3 peças ativam 2+3, 4 peças ativam 2+3+4.</p>
       </div>
     </div>
@@ -1290,7 +1290,7 @@ function EquipmentSection() {
 
       <p className="text-txt-dim text-sm mb-4">
         Na revisão atual, armaduras não aumentam CA diretamente. CA é defesa passiva contra ataques; <strong className="text-primary">Armadura</strong> é uma
-        camada de <strong className="text-primary">absorção de dano</strong> que reduz cada golpe recebido pelo valor total das peças equipadas. Cada golpe absorvido consome 1 ponto de Durabilidade da peça. Quando a Durabilidade chega a 0, a peça quebra até reparo.
+        camada de <strong className="text-primary">absorção de dano</strong> que reduz cada golpe recebido pelo valor total das peças equipadas, até o limite ativo de {ARMOR_ABSORPTION_HARD_CAP}. Acima de {ARMOR_ABSORPTION_SOFT_CAP}, o conjunto entra em sobrecarga e desgasta 2 de Durabilidade por golpe absorvido. Quando a Durabilidade chega a 0, a peça quebra até reparo.
       </p>
 
       <div className="bg-void rounded-xl border border-primary/20 p-4">
@@ -1400,11 +1400,11 @@ function EquipmentSection() {
         <div className="space-y-2 text-xs text-txt-dim">
           <div className="flex gap-2 items-start">
             <span className="text-primary font-bold shrink-0">1. Absorção:</span>
-            <span>A armadura reduz CADA golpe recebido pelo valor total de todas as peças equipadas e não quebradas. Ex: Peitoral Pesado Épico (18+5=23) + Elmo Pesado Épico (10+5=15) = 38 de absorção por golpe.</span>
+            <span>A armadura reduz CADA golpe recebido pelo valor total de todas as peças equipadas e não quebradas, com limite ativo de {ARMOR_ABSORPTION_HARD_CAP}. Valores acima do limite ficam como excesso bruto e não reduzem dano adicional.</span>
           </div>
           <div className="flex gap-2 items-start">
             <span className="text-amber-300 font-bold shrink-0">2. Durabilidade:</span>
-            <span>Cada vez que a armadura absorve um golpe, TODAS as peças equipadas perdem 1 ponto de Durabilidade. Quando uma peça chega a 0 Durabilidade, ela quebra e deixa de contribuir com absorção.</span>
+            <span>Cada vez que a armadura absorve um golpe, todas as peças equipadas perdem Durabilidade: leve/comum perdem 1, pesado perde 2. Se a absorção total passar de {ARMOR_ABSORPTION_SOFT_CAP}, todo o conjunto desgasta 2 por golpe.</span>
           </div>
           <div className="flex gap-2 items-start">
             <span className="text-emerald-400 font-bold shrink-0">3. Não é CA:</span>
@@ -1475,7 +1475,7 @@ function EquipmentSection() {
         <div className="bg-void/60 border border-sep/30 rounded p-3 text-sm text-txt-main font-mono">
           Carga Máxima = 10 + (FOR × 2) + ⌊CON × 0.5⌋ kg
         </div>
-        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada +10, Forja Pessoal +5, Portador Nato +8/compra) e itens especiais podem aumentar a capacidade. Apenas itens carregados, em mochila ou equipados entram na carga; itens em base, casa ou veículo ficam registrados, mas não pesam na ficha ativa.</p>
+        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada +10, Forja Pessoal +5, Portador Nato +8/compra) e itens especiais podem aumentar a capacidade. Armas e equipamentos entram na carga somente quando equipados. Itens de inventário ainda usam local: mochila/carregado pesa; base, casa, case ou veículo ficam registrados, mas não pesam na ficha ativa.</p>
       </div>
 
       <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
@@ -1484,10 +1484,10 @@ function EquipmentSection() {
         <p>• Capacidade de moeda inicial: 5000 + (Nível − 1) × 500.</p>
         <p>• Peso corporal não conta para a capacidade de carga.</p>
         <p>• Categorias ativam bônus progressivamente — todas as faixas atingidas se acumulam.</p>
-        <p>• Armas e equipamentos podem ser equipados, guardados, enviados para mochila, veículo ou base.</p>
+        <p>• Armas e equipamentos usam apenas equipado/guardado; só equipados contam na carga.</p>
         <p>• Fichas salvas podem transferir itens e equipamentos entre personagens.</p>
         <p>• A IA balanceia passivas de equipamento usando os mesmos limites SCP/TDH de habilidades.</p>
-        <p>• Equipamento pesado impõe −1 DES por peça. Peças leves e comuns não têm penalidade.</p>
+        <p>• Equipamento pesado impõe penalidade por peça: peitoral −3 DES, elmo −1 DES, calças −2 DES e botas −2 DES.</p>
       </div>
     </div>
   )
@@ -1496,8 +1496,8 @@ function EquipmentSection() {
 function DurabilitySection() {
   const durabilityByWeight = [
     { weight: 'Leve', baseHP: 8, repairCost: 'Rank × 5 PO', repairTime: '30 min', desc: 'Couro, tecido reforçado. Durabilidade baixa, reparo rápido.' },
-    { weight: 'Comum', baseHP: 14, repairCost: 'Rank × 8 PO', repairTime: '1 hora', desc: 'Cota de malha, couro endurecido. Equilibrado.' },
-    { weight: 'Pesado', baseHP: 22, repairCost: 'Rank × 12 PO', repairTime: '2 horas', desc: 'Placas de metal. Alta durabilidade, reparo demorado.' },
+    { weight: 'Comum', baseHP: 12, repairCost: 'Rank × 8 PO', repairTime: '1 hora', desc: 'Cota de malha, couro endurecido. Equilibrado.' },
+    { weight: 'Pesado', baseHP: 18, repairCost: 'Rank × 12 PO', repairTime: '2 horas', desc: 'Placas de metal. Alta durabilidade, mas perde 2 por golpe absorvido.' },
   ]
 
   return (
@@ -1514,8 +1514,8 @@ function DurabilitySection() {
           <h3 className="text-amber-300 text-sm font-semibold">Regra Principal de Desgaste</h3>
         </div>
         <div className="bg-deep rounded-lg border border-amber-300/15 p-3">
-          <p className="text-amber-200 text-xs font-semibold mb-2">Cada golpe absorvido pela armadura consome 1 ponto de Durabilidade de TODAS as peças equipadas.</p>
-          <p className="text-txt-dim text-xs">Ex: Se o personagem recebe 3 golpes em um turno e tem 4 peças equipadas, todas as 4 peças perdem 3 pontos de Durabilidade cada.</p>
+          <p className="text-amber-200 text-xs font-semibold mb-2">Cada golpe absorvido consome Durabilidade de todas as peças equipadas: leve/comum perdem 1, pesado perde 2.</p>
+          <p className="text-txt-dim text-xs">Se a absorção total passar de {ARMOR_ABSORPTION_SOFT_CAP}, o conjunto inteiro fica em sobrecarga e cada peça perde 2 por golpe absorvido.</p>
         </div>
         <div className="mt-3 bg-deep rounded-lg border border-amber-300/15 p-3">
           <p className="text-amber-200 text-xs font-semibold mb-2">Ataques focados na armadura causam dano extra à Durabilidade:</p>
@@ -1553,7 +1553,7 @@ function DurabilitySection() {
             </tbody>
           </table>
         </div>
-        <p className="text-txt-dim text-xs mt-2">Fórmula de Durabilidade: Base do Peso + (Bônus de Rank × 2). Acessórios e itens de utilidade não possuem durabilidade.</p>
+        <p className="text-txt-dim text-xs mt-2">Fórmula de Durabilidade: Base do Peso + Bônus de Rank. Peças Guerreiro recebem +2 Durabilidade máxima. Acessórios e itens de utilidade não possuem durabilidade.</p>
       </div>
 
       <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
@@ -1591,14 +1591,14 @@ function DurabilitySection() {
             </thead>
             <tbody>
               {[
-                { rank: 'Comum', bonus: '+0', ex: '22' },
-                { rank: 'Incomum', bonus: '+4', ex: '26' },
-                { rank: 'Raro', bonus: '+8', ex: '30' },
-                { rank: 'Épico', bonus: '+12', ex: '34' },
-                { rank: 'Heroico', bonus: '+16', ex: '38' },
-                { rank: 'Ancestral', bonus: '+20', ex: '42' },
-                { rank: 'Mítico', bonus: '+24', ex: '46' },
-                { rank: 'Transcendente', bonus: '+30', ex: '52' },
+                { rank: 'Comum', bonus: '+0', ex: '18' },
+                { rank: 'Incomum', bonus: '+2', ex: '20' },
+                { rank: 'Raro', bonus: '+4', ex: '22' },
+                { rank: 'Épico', bonus: '+6', ex: '24' },
+                { rank: 'Heroico', bonus: '+8', ex: '26' },
+                { rank: 'Ancestral', bonus: '+10', ex: '28' },
+                { rank: 'Mítico', bonus: '+12', ex: '30' },
+                { rank: 'Transcendente', bonus: '+16', ex: '34' },
               ].map((r, i) => (
                 <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
                   <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
@@ -1609,7 +1609,7 @@ function DurabilitySection() {
             </tbody>
           </table>
         </div>
-        <p className="text-txt-dim text-xs mt-2">Fórmula: Base do Peso + (Bônus de Rank × 2). Transcendente pesado = 22 + 30 = 52 pontos de durabilidade.</p>
+        <p className="text-txt-dim text-xs mt-2">Fórmula: Base do Peso + Bônus de Rank. Transcendente pesado = 18 + 16 = 34 pontos de durabilidade; Guerreiro adiciona +2.</p>
       </div>
     </div>
   )

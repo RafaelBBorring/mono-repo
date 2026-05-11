@@ -6,10 +6,24 @@ export const ARMOR_SLOTS = [
 ]
 
 export const ARMOR_WEIGHTS = [
-  { id: 'leve', label: 'Leve', armor: 8, speedPenalty: 0, critBonus: 0, desc: 'Mobilidade total, proteção mínima. Sem penalidade.' },
-  { id: 'comum', label: 'Comum', armor: 13, speedPenalty: 0, critBonus: 0, desc: 'Equilíbrio entre proteção e mobilidade.' },
-  { id: 'pesado', label: 'Pesado', armor: 18, speedPenalty: -1, critBonus: 0, desc: 'Proteção máxima. -1 DES, reduz velocidade.' },
+  { id: 'leve', label: 'Leve', armor: 5, speedPenalty: 0, durability: 8, wear: 1, critBonus: 0, desc: 'Mobilidade total, proteção mínima. Sem penalidade.' },
+  { id: 'comum', label: 'Comum', armor: 8, speedPenalty: 0, durability: 12, wear: 1, critBonus: 0, desc: 'Equilíbrio entre proteção e mobilidade.' },
+  { id: 'pesado', label: 'Pesado', armor: 12, speedPenalty: -2, durability: 18, wear: 2, critBonus: 0, desc: 'Proteção alta. Desgasta 2 de durabilidade por golpe absorvido.' },
 ]
+
+export const ARMOR_ABSORPTION_SOFT_CAP = 45
+export const ARMOR_ABSORPTION_HARD_CAP = 60
+
+export const DURABILITY_RANK_BONUSES = {
+  Comum: 0,
+  Incomum: 2,
+  Raro: 4,
+  'Épico': 6,
+  Heroico: 8,
+  Ancestral: 10,
+  'Mítico': 12,
+  Transcendente: 16,
+}
 
 export const ARMOR_TYPES = [
   {
@@ -20,9 +34,9 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-red-400/10',
     borderClass: 'border-red-400/30',
     badgeClass: 'bg-red-400/10 text-red-400 border-red-400/20',
-    miniBonus: '+5 em Bloqueio enquanto ao menos uma peça Guerreiro estiver equipada.',
-    miniPassive: '1 PE para firmar postura e ignorar o primeiro empurrão ou queda da cena.',
-    desc: 'Proteção física, postura de linha de frente e controle de impacto.',
+    miniBonus: '+5 em Bloqueio e +2 Durabilidade maxima em pecas Guerreiro equipadas.',
+    miniPassive: '1 PE para firmar postura e ignorar o primeiro empurrao ou queda da cena.',
+    desc: 'Protecao fisica, durabilidade extra, postura de linha de frente e controle de impacto.',
     bonuses: [
       { pieces: 2, label: 'Postura Firme', bonus: '+8 Vida temporária ao iniciar combate e +4 em Bloqueio', passive: 'Pode gastar 1 PE ao sofrer dano para reduzir 1d6 do impacto.' },
       { pieces: 3, label: 'Linha de Frente', bonus: '+15 Vida temporária ao iniciar combate e +7 em Bloqueio', passive: 'Pode gastar 2 PE ao sofrer dano para reduzir 1d8+2 do impacto. Vantagem em testes contra ser movido.' },
@@ -248,7 +262,7 @@ export const EQUIPMENT_STAT_LABELS = {
   armorBonus: {
     label: 'Armadura',
     icon: '🛡',
-    desc: 'Absorção de Dano — Reduz CADA golpe recebido pelo valor indicado. Acumulável entre peças. Cada golpe absorvido consome 1 ponto de Durabilidade.',
+    desc: `Absorção de Dano — reduz cada golpe recebido. Soma entre peças até ${ARMOR_ABSORPTION_HARD_CAP}; acima de ${ARMOR_ABSORPTION_SOFT_CAP}, o desgaste por golpe aumenta.`,
     lose: 'Se o equipamento quebrar (Durabilidade 0) ou for removido, perde-se a armadura daquela peça.',
   },
   critBonus: {
@@ -266,25 +280,25 @@ export const EQUIPMENT_STAT_LABELS = {
 }
 
 export const EQUIPMENT_REPAIR_RULES = {
-  desc: 'Quando um equipamento recebe dano direto (ataque focado na armadura, explosão, etc.), ele pode quebrar. Cada golpe absorvido pela armadura consome 1 ponto de Durabilidade.',
+  desc: `Cada golpe absorvido consome Durabilidade. Leve e comum perdem 1; pesado perde 2. Acima de ${ARMOR_ABSORPTION_SOFT_CAP} de absorção total, qualquer conjunto perde 2 por golpe.`,
   broken: 'Equipamento quebrado (Durabilidade 0): perde-se armadura e habilidades até reparo.',
   repair: 'Custo de reparo: Raridade × 10 PO. Tempo: 1 hora de trabalho em ferraria.',
   transcendente: 'Transcendente: 250 PO + 4 horas. Exige ferraria especializada.',
 }
 
 export const EQUIPMENT_TYPES = [
-  { id: 'peitoral_leve', label: 'Peitoral Leve', slot: 'peitoral', weight: 'leve', armorType: null, caBase: 8, penalty: 0, desc: 'Couro fino, tecido reforçado. Leve e ágil.' },
-  { id: 'peitoral_comum', label: 'Peitoral Comum', slot: 'peitoral', weight: 'comum', armorType: null, caBase: 13, penalty: 0, desc: 'Cota de malha ou couro endurecido. Equilibrado.' },
-  { id: 'peitoral_pesado', label: 'Peitoral Pesado', slot: 'peitoral', weight: 'pesado', armorType: null, caBase: 18, penalty: -1, desc: 'Placas de metal completo. Proteção máxima.' },
-  { id: 'elmo_leve', label: 'Elmo Leve', slot: 'elmo', weight: 'leve', armorType: null, caBase: 4, penalty: 0, desc: 'Capacete de couro. Proteção básica craniana.' },
-  { id: 'elmo_comum', label: 'Elmo Comum', slot: 'elmo', weight: 'comum', armorType: null, caBase: 7, penalty: 0, desc: 'Elmo de metal reforçado. Boa proteção.' },
-  { id: 'elmo_pesado', label: 'Elmo Pesado', slot: 'elmo', weight: 'pesado', armorType: null, caBase: 10, penalty: -1, desc: 'Elmo completo com viseira. Visão limitada, proteção total.' },
-  { id: 'calcas_leve', label: 'Calças Leves', slot: 'calcas', weight: 'leve', armorType: null, caBase: 4, penalty: 0, desc: 'Perneiras de couro flexível. Mobilidade total.' },
-  { id: 'calcas_comum', label: 'Calças Comuns', slot: 'calcas', weight: 'comum', armorType: null, caBase: 7, penalty: 0, desc: 'Grevas de malha. Proteção razoável.' },
-  { id: 'calcas_pesado', label: 'Calças Pesadas', slot: 'calcas', weight: 'pesado', armorType: null, caBase: 10, penalty: -1, desc: 'Placas articuladas. Máxima proteção nas pernas.' },
-  { id: 'botas_leve', label: 'Botas Leves', slot: 'botas', weight: 'leve', armorType: null, caBase: 3, penalty: 0, desc: 'Botas de couro. Agilidade e leveza.' },
-  { id: 'botas_comum', label: 'Botas Comuns', slot: 'botas', weight: 'comum', armorType: null, caBase: 6, penalty: 0, desc: 'Botas reforçadas com placa de metal.' },
-  { id: 'botas_pesado', label: 'Botas Pesadas', slot: 'botas', weight: 'pesado', armorType: null, caBase: 8, penalty: -1, desc: 'Botas de placa pesada. Máxima proteção nos pés.' },
+  { id: 'peitoral_leve', label: 'Peitoral Leve', slot: 'peitoral', weight: 'leve', armorType: null, caBase: 6, penalty: 0, desc: 'Couro fino, tecido reforçado. Leve e ágil.' },
+  { id: 'peitoral_comum', label: 'Peitoral Comum', slot: 'peitoral', weight: 'comum', armorType: null, caBase: 10, penalty: 0, desc: 'Cota de malha ou couro endurecido. Equilibrado.' },
+  { id: 'peitoral_pesado', label: 'Peitoral Pesado', slot: 'peitoral', weight: 'pesado', armorType: null, caBase: 16, penalty: -3, desc: 'Placas de metal completo. Proteção máxima, mobilidade baixa.' },
+  { id: 'elmo_leve', label: 'Elmo Leve', slot: 'elmo', weight: 'leve', armorType: null, caBase: 3, penalty: 0, desc: 'Capacete de couro. Proteção básica craniana.' },
+  { id: 'elmo_comum', label: 'Elmo Comum', slot: 'elmo', weight: 'comum', armorType: null, caBase: 5, penalty: 0, desc: 'Elmo de metal reforçado. Boa proteção.' },
+  { id: 'elmo_pesado', label: 'Elmo Pesado', slot: 'elmo', weight: 'pesado', armorType: null, caBase: 8, penalty: -1, desc: 'Elmo completo com viseira. Visão limitada, proteção alta.' },
+  { id: 'calcas_leve', label: 'Calças Leves', slot: 'calcas', weight: 'leve', armorType: null, caBase: 3, penalty: 0, desc: 'Perneiras de couro flexível. Mobilidade total.' },
+  { id: 'calcas_comum', label: 'Calças Comuns', slot: 'calcas', weight: 'comum', armorType: null, caBase: 5, penalty: 0, desc: 'Grevas de malha. Proteção razoável.' },
+  { id: 'calcas_pesado', label: 'Calças Pesadas', slot: 'calcas', weight: 'pesado', armorType: null, caBase: 8, penalty: -2, desc: 'Placas articuladas. Alta proteção nas pernas.' },
+  { id: 'botas_leve', label: 'Botas Leves', slot: 'botas', weight: 'leve', armorType: null, caBase: 2, penalty: 0, desc: 'Botas de couro. Agilidade e leveza.' },
+  { id: 'botas_comum', label: 'Botas Comuns', slot: 'botas', weight: 'comum', armorType: null, caBase: 4, penalty: 0, desc: 'Botas reforçadas com placa de metal.' },
+  { id: 'botas_pesado', label: 'Botas Pesadas', slot: 'botas', weight: 'pesado', armorType: null, caBase: 6, penalty: -2, desc: 'Botas de placa pesada. Alta proteção nos pés.' },
   { id: 'acessorio', label: 'Acessório', slot: 'acessorio', weight: null, armorType: null, caBase: 0, penalty: 0, desc: 'Anéis, amuletos, capas. Concedem passivas especiais.' },
   { id: 'utilidade', label: 'Item de Utilidade', slot: null, weight: null, armorType: null, caBase: 0, penalty: 0, desc: 'Escutas, ganchos, tasers, kits. Efeitos situacionais.' },
 ]
@@ -362,28 +376,64 @@ export function canEquipRank(nivel, rank) {
   return rankIdx >= 0 && rankIdx <= maxIdx
 }
 
+export function getEquipmentArmorValue(item = {}) {
+  const type = EQUIPMENT_TYPES.find(t => t.id === item.tipoEquip)
+  const rarity = getEquipmentRarity(item.rank)
+  if (!type || !rarity) return 0
+  return (type.caBase || 0) + (rarity.armorBonus || 0)
+}
+
+export function getEquipmentDurabilityMax(item = {}) {
+  const type = EQUIPMENT_TYPES.find(t => t.id === item.tipoEquip)
+  if (!type?.weight) return 0
+  const baseByWeight = { leve: 8, comum: 12, pesado: 18 }
+  const rankBonus = DURABILITY_RANK_BONUSES[item.rank] ?? DURABILITY_RANK_BONUSES[getEquipmentRarity(item.rank).rank] ?? 0
+  const categoryBonus = item.armorType === 'guerreiro' || item.setId === 'guerreiro' ? 2 : 0
+  return (baseByWeight[type.weight] || 0) + rankBonus + categoryBonus
+}
+
+export function getEquipmentDurabilityCurrent(item = {}) {
+  const max = getEquipmentDurabilityMax(item)
+  if (!max) return 0
+  const raw = item.durabilidadeAtual ?? item.durabilityAtual ?? item.armorAtual
+  if (raw === '' || raw == null || Number.isNaN(Number(raw))) return max
+  return Math.min(max, Math.max(0, Number(raw)))
+}
+
 export function calcEquipStats(equipamentos) {
-  if (!Array.isArray(equipamentos)) return { totalArmor: 0, totalArmorMax: 0, totalCrit: 0, totalDamage: 0, totalSpeedPenalty: 0, activeCategoryBonuses: [], activeSetBonuses: [] }
+  if (!Array.isArray(equipamentos)) return { totalArmor: 0, totalArmorRaw: 0, totalArmorMax: 0, totalArmorCap: ARMOR_ABSORPTION_HARD_CAP, totalDurability: 0, totalDurabilityMax: 0, totalCrit: 0, totalDamage: 0, totalSpeedPenalty: 0, activeCategoryBonuses: [], activeSetBonuses: [] }
 
   let totalArmor = 0
+  let totalArmorRaw = 0
   let totalArmorMax = 0
+  let totalDurability = 0
+  let totalDurabilityMax = 0
   let totalCrit = 0
   let totalDamage = 0
   let totalSpeedPenalty = 0
 
   const equipped = equipamentos.filter(e => e.equipado && e.categoria === 'Equipamento')
+  const setCounts = {}
+  equipped.forEach(e => {
+    if (e.armorType) {
+      setCounts[e.armorType] = (setCounts[e.armorType] || 0) + 1
+    }
+  })
 
   for (const eq of equipped) {
     const type = EQUIPMENT_TYPES.find(t => t.id === eq.tipoEquip)
     const rarity = getEquipmentRarity(eq.rank)
     if (!type || !rarity) continue
 
-    const armorMax = (type.caBase || 0) + (rarity.armorBonus || 0)
-    const armorCurrent = eq.armorAtual == null ? armorMax : Math.max(0, Number(eq.armorAtual) || 0)
-    const broken = eq.quebrado || armorCurrent <= 0
+    const armorMax = getEquipmentArmorValue(eq)
+    const durabilityMax = getEquipmentDurabilityMax(eq)
+    const durabilityCurrent = getEquipmentDurabilityCurrent(eq)
+    const broken = eq.quebrado || (durabilityMax > 0 && durabilityCurrent <= 0)
 
     totalArmorMax += armorMax
-    totalArmor += broken ? 0 : Math.min(armorCurrent, armorMax)
+    totalDurabilityMax += durabilityMax
+    totalDurability += broken ? 0 : durabilityCurrent
+    totalArmorRaw += broken ? 0 : armorMax
     if (!broken) {
       totalCrit += rarity.critBonus || 0
       totalDamage += rarity.damageBonus || 0
@@ -391,12 +441,7 @@ export function calcEquipStats(equipamentos) {
     }
   }
 
-  const setCounts = {}
-  equipped.forEach(e => {
-    if (e.armorType) {
-      setCounts[e.armorType] = (setCounts[e.armorType] || 0) + 1
-    }
-  })
+  totalArmor = Math.min(totalArmorRaw, ARMOR_ABSORPTION_HARD_CAP)
 
   const activeCategoryBonuses = []
   const activeSetBonuses = []
@@ -413,7 +458,7 @@ export function calcEquipStats(equipamentos) {
     }
   }
 
-  return { totalArmor, totalArmorMax, totalCrit, totalDamage, totalSpeedPenalty, activeCategoryBonuses, activeSetBonuses }
+  return { totalArmor, totalArmorRaw, totalArmorMax, totalArmorCap: ARMOR_ABSORPTION_HARD_CAP, totalArmorSoftCap: ARMOR_ABSORPTION_SOFT_CAP, totalDurability, totalDurabilityMax, totalCrit, totalDamage, totalSpeedPenalty, activeCategoryBonuses, activeSetBonuses }
 }
 
 export function estimateEquipmentWeight(item = {}) {

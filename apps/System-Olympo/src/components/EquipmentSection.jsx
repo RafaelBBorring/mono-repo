@@ -7,7 +7,7 @@ import { getAttrValue } from '../utils/calculator'
 import { getModifier } from '../data/attributes'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchMysticWeapons } from '../services/alchemyService'
-import { ARMOR_TYPES, EQUIPMENT_TYPES, SIMPLE_ITEMS, SET_BONUSES, calcEquipStats, getEquipmentRarity, canEquipRank as canUseEquipRank, getEquipLimitForLevel, estimateEquipmentWeight } from '../data/equipment'
+import { ARMOR_ABSORPTION_HARD_CAP, ARMOR_ABSORPTION_SOFT_CAP, ARMOR_TYPES, EQUIPMENT_TYPES, SIMPLE_ITEMS, SET_BONUSES, calcEquipStats, getEquipmentArmorValue, getEquipmentDurabilityCurrent, getEquipmentDurabilityMax, getEquipmentRarity, canEquipRank as canUseEquipRank, getEquipLimitForLevel, estimateEquipmentWeight } from '../data/equipment'
 
 function tagValue(tags = [], key) {
   const found = tags.find(t => t.startsWith(`${key}:`))
@@ -21,14 +21,6 @@ function getEquipmentType(item = {}) {
 function getArmorType(item = {}) {
   return ARMOR_TYPES.find(t => t.id === item.armorType)
 }
-
-const WEAPON_LOCATION_OPTIONS = [
-  { id: 'equipado', label: 'Equipado', desc: 'Na mao, coldre ou pronto para combate', counts: true },
-  { id: 'mochila', label: 'Mochila', desc: 'Carregado pelo personagem', counts: true },
-  { id: 'veiculo', label: 'Veiculo', desc: 'Fica fora da carga pessoal', counts: false },
-  { id: 'base', label: 'Base', desc: 'Guardado em base segura', counts: false },
-  { id: 'case', label: 'Case', desc: 'Guardado em maleta ou estojo', counts: false },
-]
 
 function enforceSingleSlot(items, incoming, incomingIdx = -1) {
   const type = getEquipmentType(incoming)
@@ -83,7 +75,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const { isAdmin } = useAuth()
   const weapon = WEAPONS.find(w => w.id === char.arma)
   const weaponRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
-  const weaponEquipped = !!weapon && (char.armaLocal ? char.armaLocal === 'equipado' : char.armaEquipada !== false)
+  const weaponEquipped = !!weapon && char.armaEquipada !== false
   const equipamentos = char.equipamentos || []
   const equipmentStats = calcEquipStats(equipamentos)
   const legendaryAssigned = char.armasLendarias || []
@@ -239,14 +231,24 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
         </div>
 
         <div className="space-y-2">
-          {(equipmentStats.totalArmor || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeCategoryBonuses.length > 0 || equipmentStats.activeSetBonuses.length > 0) ? (
+          {(equipmentStats.totalArmor || equipmentStats.totalDurabilityMax || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeCategoryBonuses.length > 0 || equipmentStats.activeSetBonuses.length > 0) ? (
             <div className="rounded-lg border border-primary/15 bg-void/45 p-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <ArmoryStat label="Armadura" value={equipmentStats.totalArmorMax ? `${equipmentStats.totalArmor}/${equipmentStats.totalArmorMax}` : 0} tone="text-primary" />
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <ArmoryStat
+                  label="Armadura"
+                  value={equipmentStats.totalArmorRaw > equipmentStats.totalArmor ? `${equipmentStats.totalArmor}/${equipmentStats.totalArmorCap}` : (equipmentStats.totalArmor || 0)}
+                  tone={equipmentStats.totalArmorRaw > ARMOR_ABSORPTION_SOFT_CAP ? 'text-amber-300' : 'text-primary'}
+                />
+                <ArmoryStat label="Durabilidade" value={equipmentStats.totalDurabilityMax ? `${equipmentStats.totalDurability}/${equipmentStats.totalDurabilityMax}` : 0} tone="text-emerald-300" />
                 <ArmoryStat label="Crit" value={`${equipmentStats.totalCrit}%`} tone="text-purple-400" />
                 <ArmoryStat label="Dano" value={equipmentStats.totalDamage ? `+${equipmentStats.totalDamage}` : 0} tone="text-red-400" />
                 <ArmoryStat label="Penalidade" value={equipmentStats.totalSpeedPenalty ? `${equipmentStats.totalSpeedPenalty} DES` : '—'} tone={equipmentStats.totalSpeedPenalty ? 'text-amber-400' : 'text-txt-dim'} />
               </div>
+              {equipmentStats.totalArmorRaw > equipmentStats.totalArmor && (
+                <p className="mt-2 text-[10px] text-amber-200/75">
+                  Absorção bruta {equipmentStats.totalArmorRaw}; limite ativo {ARMOR_ABSORPTION_HARD_CAP}. Acima de {ARMOR_ABSORPTION_SOFT_CAP}, golpes absorvidos desgastam 2 de durabilidade.
+                </p>
+              )}
               {equipmentStats.activeCategoryBonuses.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {equipmentStats.activeCategoryBonuses.map(({ type, count, bonus }) => (
@@ -280,7 +282,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   displayName={char.armaNome || weapon.name}
                   equipped={weaponEquipped}
                   canEdit={canEdit}
-                  onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'mochila' : 'equipado' })}
+                  onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'guardado' : 'equipado' })}
                   onClick={() => setShowWeaponDrawer(true)}
                 />
               )}
@@ -289,7 +291,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   key={item.id || idx}
                   item={item}
                   canEdit={canEdit}
-                  onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'mochila' : 'equipado' })}
+                  onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'guardado' : 'equipado' })}
                   onClick={() => openDrawer(idx)}
                 />
               ))}
@@ -412,13 +414,11 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
   const assassinBonus = getAssassinReactionBonus(char)
   const editRankDef = WEAPON_RANKS.find(r => r.rank === editRank) || rank
   const editUsedSlots = editHabilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
-  const weaponLocal = char.armaLocal || (char.armaEquipada === false ? 'guardado' : 'equipado')
-  const selectedLocation = WEAPON_LOCATION_OPTIONS.find(opt => opt.id === weaponLocal) || WEAPON_LOCATION_OPTIONS[0]
 
-  function updateWeaponLocation(local) {
+  function updateWeaponEquipped(equipped) {
     onUpdate?.({
-      armaLocal: local,
-      armaEquipada: local === 'equipado',
+      armaLocal: equipped ? 'equipado' : 'guardado',
+      armaEquipada: equipped,
     })
   }
 
@@ -464,7 +464,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
       armaNome: editName,
       armaRank: editRank,
       armaEquipada: editEquipped,
-      armaLocal: editEquipped ? 'equipado' : (weaponLocal === 'equipado' ? 'mochila' : weaponLocal),
+      armaLocal: editEquipped ? 'equipado' : 'guardado',
       armaHabilidades: editHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()),
     })
     setEditMode(false)
@@ -521,26 +521,17 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
             <div className="rounded-lg border border-primary/15 bg-void/45 p-3 space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-txt-dim/50 text-[9px] uppercase tracking-wider">Local da arma</span>
-                  <p className="text-txt-main text-xs mt-0.5">{selectedLocation.label}</p>
+                  <span className="text-txt-dim/50 text-[9px] uppercase tracking-wider">Estado da arma</span>
+                  <p className="text-txt-main text-xs mt-0.5">{char.armaEquipada !== false ? 'Equipada' : 'Desequipada'}</p>
                 </div>
-                <span className={`text-[9px] px-2 py-1 rounded border ${selectedLocation.counts ? 'text-emerald-300 border-emerald-400/25 bg-emerald-400/10' : 'text-txt-dim/60 border-sep/30 bg-black/20'}`}>
-                  {selectedLocation.counts ? 'conta carga' : 'fora da carga'}
+                <span className={`text-[9px] px-2 py-1 rounded border ${char.armaEquipada !== false ? 'text-emerald-300 border-emerald-400/25 bg-emerald-400/10' : 'text-txt-dim/60 border-sep/30 bg-black/20'}`}>
+                  {char.armaEquipada !== false ? 'conta carga' : 'fora da carga'}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {WEAPON_LOCATION_OPTIONS.map(opt => (
-                  <button key={opt.id} type="button" onClick={() => updateWeaponLocation(opt.id)}
-                    title={opt.desc}
-                    className={`text-[10px] px-2 py-1.5 rounded border transition-colors ${weaponLocal === opt.id ? 'border-gold/55 bg-gold/10 text-gold' : 'border-sep/30 bg-black/15 text-txt-dim/70 hover:border-gold/30 hover:text-gold/80'}`}>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
               <button type="button"
-                onClick={() => updateWeaponLocation(weaponLocal === 'equipado' ? 'mochila' : 'equipado')}
-                className={`w-full text-[10px] px-3 py-2 rounded-lg border transition-colors ${weaponLocal === 'equipado' ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15'}`}>
-                {weaponLocal === 'equipado' ? 'Desequipar para mochila' : 'Equipar e contabilizar carga'}
+                onClick={() => updateWeaponEquipped(char.armaEquipada === false)}
+                className={`w-full text-[10px] px-3 py-2 rounded-lg border transition-colors ${char.armaEquipada !== false ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15'}`}>
+                {char.armaEquipada !== false ? 'Desequipar' : 'Equipar'}
               </button>
               {onTransfer && (
                 <button type="button" onClick={onTransfer}
@@ -578,7 +569,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
                   <p className="text-txt-dim/45 text-[9px]">Limite atual: {getWeaponLimitForLevel(char.nivel || 1).maxRank}. Ranks acima do nivel ficam bloqueados.</p>
                   <label className="flex items-center gap-2 text-[10px] text-txt-dim cursor-pointer">
                     <input type="checkbox" checked={editEquipped} onChange={e => setEditEquipped(e.target.checked)} className="accent-gold" />
-                    Equipada na carga
+                    Equipada
                   </label>
                 </div>
               </div>
@@ -768,7 +759,7 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
         <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Equipamento'}</span>
         {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}</span>}
         <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${item.equipado ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>
-          {item.equipado ? 'equipado' : (item.local || 'guardado')}
+          {item.equipado ? 'equipado' : 'guardado'}
         </span>
       </button>
     </div>
@@ -1126,6 +1117,8 @@ function EquipCreateModal({ char, onSave, onClose }) {
   }
 
   function handleSave() {
+    const equipmentDraft = { categoria: itemCategory, tipoEquip: equipType, rank: selectedRank, nome, descricao, armorType, setId: armorType }
+    const durabilityMax = itemCategory === 'Equipamento' ? getEquipmentDurabilityMax(equipmentDraft) : 0
     onSave({
       id: Date.now(), nome, descricao, imagem, dano, efeitos,
       categoria: itemCategory,
@@ -1133,13 +1126,14 @@ function EquipCreateModal({ char, onSave, onClose }) {
       tipoEquip: itemCategory === 'Equipamento' ? equipType : (itemCategory === 'Utilidade' ? 'utilidade' : null),
       rank: selectedRank,
       peso: peso === '' ? (itemCategory === 'Arma' ? getWeaponWeight(selectedType, nome, descricao || efeitos) : estimateEquipmentWeight({ categoria: itemCategory, tipoEquip: equipType, nome, descricao })) : Number(peso),
-      local: (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? (equipado ? 'equipado' : local) : local,
+      local: (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? (equipado ? 'equipado' : 'guardado') : local,
       habilidades: itemCategory === 'Arma' ? habilidades.filter(h => h.nome.trim()) : [],
       equipHabilidades: itemCategory === 'Equipamento' ? passivas.filter(h => h.nome?.trim()) : [],
       passivas: itemCategory === 'Equipamento' ? passivas.filter(h => (h.tipo || '').includes('Passiva')) : [],
       armorType: itemCategory === 'Equipamento' ? armorType : null,
       setId: itemCategory === 'Equipamento' ? armorType : null,
       equipado: itemCategory === 'Equipamento' || itemCategory === 'Arma' ? equipado : false,
+      durabilidadeAtual: itemCategory === 'Equipamento' ? durabilityMax : null,
     })
   }
 
@@ -1264,7 +1258,6 @@ function EquipCreateModal({ char, onSave, onClose }) {
                             <>
                               <div>Armadura: <span className="text-primary font-mono">+{rarity.armorBonus}</span> · Categoria define buffs extras</div>
                               <div>Ativas: <span className="font-mono">{rarity.activeSkills}</span> · Passivas: <span className="font-mono">{rarity.passiveSkills}</span></div>
-                              <div>Ativas: <span className="font-mono">{rarity.activeSkills}</span> · Passivas: <span className="font-mono">{rarity.passiveSkills}</span></div>
                             </>
                           )}
                         </div>
@@ -1353,12 +1346,12 @@ function EquipCreateModal({ char, onSave, onClose }) {
                   {itemCategory === 'Arma' && (
                     <label className="flex items-center gap-2 text-[10px] text-txt-dim cursor-pointer">
                       <input type="checkbox" checked={equipado} onChange={e => setEquipado(e.target.checked)} className="accent-gold" />
-                      Equipada na carga
+                      Equipada
                     </label>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid gap-2 ${itemCategory === 'Utilidade' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <div className="flex gap-1.5">
                   <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg"
                     className="min-w-0 flex-1 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
@@ -1367,15 +1360,16 @@ function EquipCreateModal({ char, onSave, onClose }) {
                     IA
                   </button>
                 </div>
-                <select value={local} onChange={e => setLocal(e.target.value)}
-                  className="bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
-                  <option value="equipado">Equipado</option>
-                  <option value="mochila">Mochila</option>
-                  <option value="veiculo">Veículo</option>
-                  <option value="base">Base/Casa</option>
-                  <option value="case">Case</option>
-                  <option value="guardado">Guardado</option>
-                </select>
+                {itemCategory === 'Utilidade' && (
+                  <select value={local} onChange={e => setLocal(e.target.value)}
+                    className="bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
+                    <option value="mochila">Mochila</option>
+                    <option value="veiculo">Veículo</option>
+                    <option value="base">Base/Casa</option>
+                    <option value="case">Case</option>
+                    <option value="guardado">Guardado</option>
+                  </select>
+                )}
               </div>
               <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição (opcional)" rows={2}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-gold/40 focus:outline-none" />
@@ -1510,7 +1504,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const [editArmorType, setEditArmorType] = useState(item.armorType || item.setId || null)
   const [editPeso, setEditPeso] = useState(item.peso ?? '')
   const [editLocal, setEditLocal] = useState(item.local || (item.equipado ? 'equipado' : 'guardado'))
-  const [editArmorAtual, setEditArmorAtual] = useState(item.armorAtual ?? '')
+  const [editDurabilidadeAtual, setEditDurabilidadeAtual] = useState(item.durabilidadeAtual ?? item.durabilityAtual ?? item.armorAtual ?? '')
   const [editItemHabilidades, setEditItemHabilidades] = useState(item.habilidades || [])
   const [editEquipHabilidades, setEditEquipHabilidades] = useState(equipHabilidades || [])
   const currentLevel = char?.nivel || 1
@@ -1566,9 +1560,9 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
       armorType: editArmorType,
       setId: editArmorType,
       peso: editPeso === '' ? estimateEquipmentWeight({ ...item, nome: editNome, descricao: editDesc }) : Number(editPeso),
-      local: editEquipado ? 'equipado' : editLocal,
-      armorAtual: editArmorAtual === '' ? null : Number(editArmorAtual),
-      quebrado: editArmorAtual !== '' && Number(editArmorAtual) <= 0,
+      local: (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? (editEquipado ? 'equipado' : 'guardado') : editLocal,
+      durabilidadeAtual: editDurabilidadeAtual === '' ? null : Number(editDurabilidadeAtual),
+      quebrado: editDurabilidadeAtual !== '' && Number(editDurabilidadeAtual) <= 0,
     })
     onCancelEdit()
   }
@@ -1619,7 +1613,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
               {item.categoria === 'Arma' && (
                 <label className="flex items-center gap-2 text-[10px] text-txt-dim cursor-pointer">
                   <input type="checkbox" checked={editEquipado} onChange={e => setEditEquipado(e.target.checked)} className="accent-gold" />
-                  Equipada na carga
+                  Equipada
                 </label>
               )}
               <div>
@@ -1639,7 +1633,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                 </div>
                 <p className="text-txt-dim/45 text-[9px] mt-1">Limite atual: {item.categoria === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}.</p>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid gap-2 ${item.categoria === 'Utilidade' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <div>
                   <label className="text-txt-dim/50 text-[9px] uppercase">Dano</label>
                   <input type="text" value={editDano} onChange={e => setEditDano(e.target.value)} placeholder="2d10+3"
@@ -1657,23 +1651,22 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                   <input type="number" step="0.1" value={editPeso} onChange={e => setEditPeso(e.target.value)} placeholder="auto"
                     className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
                 </div>
-                <div>
+                {item.categoria === 'Utilidade' && <div>
                   <label className="text-txt-dim/50 text-[9px] uppercase">Local</label>
                   <select value={editLocal} onChange={e => setEditLocal(e.target.value)}
                     className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
-                    <option value="equipado">Equipado</option>
                     <option value="mochila">Mochila</option>
                     <option value="veiculo">Veículo</option>
                     <option value="base">Base/Casa</option>
                     <option value="case">Case</option>
                     <option value="guardado">Guardado</option>
                   </select>
-                </div>
+                </div>}
               </div>
               {item.categoria === 'Equipamento' && (
                 <div>
-                  <label className="text-txt-dim/50 text-[9px] uppercase">Armadura atual</label>
-                  <input type="number" step="1" value={editArmorAtual} onChange={e => setEditArmorAtual(e.target.value)} placeholder="cheia"
+                  <label className="text-txt-dim/50 text-[9px] uppercase">Durabilidade atual</label>
+                  <input type="number" step="1" value={editDurabilidadeAtual} onChange={e => setEditDurabilidadeAtual(e.target.value)} placeholder="cheia"
                     className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
                 </div>
               )}
@@ -1764,7 +1757,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                     {item.quebrado && <span className="text-[9px] text-err bg-err/10 border border-err/20 px-1.5 py-0.5 rounded">quebrado</span>}
                     {equipType?.label && <span className="text-[9px] text-txt-dim/70 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{equipType.label}</span>}
                     {armorTypeMeta && <span className={`text-[9px] px-1.5 py-0.5 rounded border ${armorTypeMeta.badgeClass}`}>{armorTypeMeta.label}</span>}
-                    <span className="text-[9px] text-txt-dim/70 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{item.local || (item.equipado ? 'equipado' : 'guardado')}</span>
+                    <span className="text-[9px] text-txt-dim/70 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{item.equipado ? 'equipado' : 'guardado'}</span>
                   </div>
                 )}
               </div>
@@ -1772,11 +1765,19 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                 <div className="grid grid-cols-2 gap-2">
                   <div className={`bg-void/50 border rounded-lg px-3 py-2 ${rc.border}`}>
                     <span className="text-txt-dim/50 text-[9px] uppercase">Armadura</span>
-                    <p className="text-primary text-sm font-mono mt-0.5">{item.armorAtual ?? (equipType.caBase + rarity.armorBonus)} / {equipType.caBase + rarity.armorBonus}</p>
+                    <p className="text-primary text-sm font-mono mt-0.5">{getEquipmentArmorValue(item)}</p>
+                  </div>
+                  <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
+                    <span className="text-txt-dim/50 text-[9px] uppercase">Durabilidade</span>
+                    <p className="text-emerald-300 text-sm font-mono mt-0.5">{getEquipmentDurabilityCurrent(item)} / {getEquipmentDurabilityMax(item)}</p>
                   </div>
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
                     <span className="text-txt-dim/50 text-[9px] uppercase">Peso</span>
                     <p className="text-txt-main text-sm font-mono mt-0.5">{estimateEquipmentWeight(item).toFixed(1)} kg</p>
+                  </div>
+                  <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
+                    <span className="text-txt-dim/50 text-[9px] uppercase">Penalidade</span>
+                    <p className="text-amber-300 text-sm font-mono mt-0.5">{equipType.penalty ? `${equipType.penalty} DES` : '0'}</p>
                   </div>
                 </div>
               )}
@@ -1787,8 +1788,8 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                     <p className="text-txt-main text-sm font-mono mt-0.5">{estimateEquipmentWeight(item).toFixed(1)} kg</p>
                   </div>
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
-                    <span className="text-txt-dim/50 text-[9px] uppercase">Local</span>
-                    <p className="text-txt-main text-sm font-mono mt-0.5">{item.local || (item.equipado ? 'equipado' : 'guardado')}</p>
+                    <span className="text-txt-dim/50 text-[9px] uppercase">{item.categoria === 'Arma' ? 'Estado' : 'Local'}</span>
+                    <p className="text-txt-main text-sm font-mono mt-0.5">{item.categoria === 'Arma' ? (item.equipado ? 'equipada' : 'guardada') : (item.local || 'guardado')}</p>
                   </div>
                 </div>
               )}
@@ -1856,7 +1857,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
           {canEdit && !editMode && (
             <>
               {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && (
-                <button onClick={() => onSaveEdit({ equipado: !item.equipado, local: item.equipado ? 'mochila' : 'equipado' })}
+                <button onClick={() => onSaveEdit({ equipado: !item.equipado, local: item.equipado ? 'guardado' : 'equipado' })}
                   className={`text-[10px] border px-3 py-1.5 rounded-lg transition-colors ${item.equipado ? 'border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10' : 'border-sky-400/30 text-sky-300 hover:bg-sky-400/10'}`}>
                   {item.equipado ? 'Desequipar' : 'Equipar'}
                 </button>
