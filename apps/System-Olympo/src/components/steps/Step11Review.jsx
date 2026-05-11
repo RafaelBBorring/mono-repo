@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes, calcCarryCapacity, calcCarriedLoad, calcSkeletonPointsAvailable, getProgressionRewards } from '../../utils/calculator'
 import { exportSheet } from '../../utils/exporter'
-import { ATTR_ICONS, getModifier } from '../../data/attributes'
+import { ATTR_ICONS, getModifier, getAttrCap } from '../../data/attributes'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
 import { RANK_COLORS } from '../../data/colors'
@@ -237,6 +237,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const runesEnabled = runeProfile.hasAccess && (systemOptIn.runes || (char.runes || []).length > 0)
   const magicEnabled = magicProfile.hasAccess && (systemOptIn.magic || (char.magics || []).length > 0)
   const [sheetView, setSheetView] = useState('full')
+  const [skillCatalogOpen, setSkillCatalogOpen] = useState(false)
 
   function toggleKnowledge(key, currentlyEnabled) {
     if (!update) return
@@ -410,6 +411,18 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
       </div>
 
       <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
+
+      {cls && skelTotal > 0 && (
+        <SkeletonPointAllocator char={char} update={update} sk={sk} skelTotal={skelTotal} skelSpent={skelSpent} sysSkillBonuses={sysSkillBonuses} skelBase={skelBase} />
+      )}
+
+      {skillCatalogOpen && isAdmin && (
+        <SkillCatalogModal
+          assigned={char.systemSkills || []}
+          onSelect={(skillId) => { const effects = createDefaultEffectsForSkill(skillId); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId, active: true, sourceAbilityIndex: null, notes: '', effects, createdAt: new Date().toISOString() }] }); setSkillCatalogOpen(false) }}
+          onClose={() => setSkillCatalogOpen(false)}
+        />
+      )}
 
       <div className="codex-card overflow-hidden">
         <div className="flex flex-col xl:flex-row">
@@ -784,28 +797,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   <div className="flex items-center gap-2 mb-3">
                     <SectionHeader icon="◆" title="Skills Sistêmicas" color="bg-sky-300" />
                     {isAdmin && (
-                      <div className="ml-auto relative">
-                        <select onChange={e => { if (e.target.value) { const effects = createDefaultEffectsForSkill(e.target.value); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId: e.target.value, active: true, sourceAbilityIndex: null, notes: '', effects, createdAt: new Date().toISOString() }] }); e.target.value = '' } }}
-                          className="text-[11px] bg-gold/10 border border-gold/30 text-gold rounded-md px-3 py-1.5 font-semibold hover:bg-gold/20 transition-colors cursor-pointer appearance-none pr-7 focus:border-gold/60 focus:outline-none">
-                          <option value="">+ Atribuir Skill</option>
-                          {SYSTEM_SKILL_CATEGORIES.map(cat => (
-                            <optgroup key={cat.id} label={cat.label}>
-                              {SYSTEM_SKILLS.filter(s => s.category === cat.id).map(skill => (
-                                <option key={skill.id} value={skill.id}>{skill.name} — {skill.rarity}</option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gold/60 text-[10px]">▼</span>
-                      </div>
+                      <button onClick={() => setSkillCatalogOpen(true)} className="ml-auto bg-gold/10 border border-gold/30 text-gold rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-gold/20 transition-colors">
+                        + Atribuir Skill
+                      </button>
                     )}
                   </div>
-                  {skelBonus > 0 && (
-                    <div className="mb-3 bg-emerald-400/[0.08] border border-emerald-400/20 rounded-lg px-3 py-2 flex items-center gap-2">
-                      <span className="text-emerald-400 text-sm">◆</span>
-                      <span className="text-emerald-300 text-[11px] font-medium">Pontos de Esqueleto: {skelBase} base + {skelBonus} bônus = <strong>{skelTotal} disponíveis</strong> ({skelSpent} gastos, {skelTotal - skelSpent} restantes)</span>
-                    </div>
-                  )}
                   <div className="space-y-3">
                     {(char.systemSkills || []).length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -831,8 +827,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                                         className={`text-[10px] px-2 py-0.5 rounded transition-colors ${isActive ? 'text-sky-300/50 hover:text-sky-300 hover:bg-sky-400/10' : 'text-emerald-300/50 hover:text-emerald-300 hover:bg-emerald-400/10'}`}>
                                         {isActive ? 'Desativar' : 'Ativar'}
                                       </button>
-                                      <button onClick={() => update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) })}
-                                        className="text-[10px] px-1.5 py-0.5 rounded text-err/40 hover:text-err hover:bg-err/10 transition-colors">✕</button>
+                                      <button onClick={() => { if (confirm(`Remover a skill "${skill?.name || entry.skillId}"? Os efeitos serão perdidos.`)) update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) }) }}
+                                        className="text-[10px] px-2 py-0.5 rounded text-err/40 hover:text-err hover:bg-err/10 transition-colors border border-transparent hover:border-err/20">Excluir</button>
                                     </div>
                                   )}
                                 </div>
@@ -3184,9 +3180,7 @@ function TriagemSection({ char, cls }) {
             })}
           </div>
         </div>
-      ) : (
-        <p className="text-txt-dim/50 text-[11px] italic">Nenhuma triagem principal</p>
-      )}
+      ) : null}
       {subData && subNv >= 0.1 && (
         <div className="border-t border-sep/30 pt-3">
           <div className="flex items-center gap-2 mb-1.5">
@@ -3208,6 +3202,124 @@ function TriagemSection({ char, cls }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function SkillCatalogModal({ assigned, onSelect, onClose }) {
+  const [activeCat, setActiveCat] = useState(null)
+  const assignedIds = new Set((assigned || []).map(a => a.skillId))
+  const filtered = activeCat ? SYSTEM_SKILLS.filter(s => s.category === activeCat) : SYSTEM_SKILLS
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0c0e14] border border-gold/20 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-sep/20 flex items-center gap-3">
+          <span className="text-gold font-cinzel text-base tracking-wide">Catálogo de Skills</span>
+          <span className="text-[10px] text-txt-dim/50">{SYSTEM_SKILLS.length} skills disponíveis</span>
+          <button onClick={onClose} className="ml-auto text-txt-dim/40 hover:text-txt-dim text-lg">✕</button>
+        </div>
+        <div className="px-6 py-2.5 border-b border-sep/15 flex flex-wrap gap-1.5">
+          <button onClick={() => setActiveCat(null)} className={`text-[10px] px-2.5 py-1 rounded-md transition-colors ${!activeCat ? 'bg-gold/15 text-gold border border-gold/30' : 'bg-white/5 text-txt-dim/60 border border-transparent hover:bg-white/10'}`}>Todas</button>
+          {SYSTEM_SKILL_CATEGORIES.map(cat => (
+            <button key={cat.id} onClick={() => setActiveCat(activeCat === cat.id ? null : cat.id)} className={`text-[10px] px-2.5 py-1 rounded-md transition-colors ${activeCat === cat.id ? 'bg-sky-400/15 text-sky-300 border border-sky-400/30' : 'bg-white/5 text-txt-dim/60 border border-transparent hover:bg-white/10'}`}>{cat.label}</button>
+          ))}
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+          {filtered.map(skill => {
+            const isAssigned = assignedIds.has(skill.id)
+            const catLabel = SYSTEM_SKILL_CATEGORIES.find(c => c.id === skill.category)?.label || ''
+            return (
+              <div key={skill.id} className={`rounded-xl border p-4 transition-colors ${isAssigned ? 'border-emerald-400/20 bg-emerald-400/[0.03] opacity-60' : 'border-sep/20 bg-white/[0.02] hover:border-gold/25 hover:bg-gold/[0.02]'}`}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[13px] font-semibold text-txt-main">{skill.name}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-txt-dim/50 border border-sep/15">{catLabel}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-txt-dim/50 border border-sep/15">{skill.rarity}</span>
+                    </div>
+                    <p className="text-txt-dim/70 text-[11px] mt-1.5 leading-relaxed">{skill.description}</p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {skill.effectTypes.map(et => {
+                        const eDef = EFFECT_PARAM_DEFS[et]
+                        return <span key={et} className="text-[8px] bg-sky-400/10 text-sky-300/80 border border-sky-400/15 rounded px-1.5 py-0.5">{eDef?.label || et}</span>
+                      })}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { if (!isAssigned) onSelect(skill.id) }}
+                    disabled={isAssigned}
+                    className={`shrink-0 px-4 py-2 rounded-lg text-[11px] font-semibold transition-colors ${isAssigned ? 'bg-emerald-400/10 text-emerald-300/50 cursor-default' : 'bg-gold text-void hover:bg-gold/90'}`}>
+                    {isAssigned ? 'Atribuída' : 'Atribuir'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSkillBonuses, skelBase }) {
+  const [open, setOpen] = useState(false)
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="bg-emerald-400/10 border border-emerald-400/25 text-emerald-300 rounded-lg px-3 py-1.5 text-[11px] font-medium hover:bg-emerald-400/20 transition-colors flex items-center gap-2">
+        <span className="text-emerald-400">◆</span>
+        Pontos de Esqueleto: <strong>{skelSpent}/{skelTotal}</strong>
+        {skelTotal - skelSpent > 0 && <span className="ml-1 bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded text-[9px]">+{skelTotal - skelSpent} disponíveis</span>}
+        {sysSkillBonuses.skeletonPoints > 0 && <span className="text-[9px] text-emerald-400/60">(inclui +{sysSkillBonuses.skeletonPoints} de Skills)</span>}
+      </button>
+    )
+  }
+  const remaining = skelTotal - skelSpent
+  const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
+  const attrCap = getAttrCap(char.nivel || 1)
+
+  function handleAdd(attr) {
+    if (remaining <= 0) return
+    if ((adjustedAttrs[attr] || 0) >= attrCap) return
+    const newVal = (sk[attr] || 0) + 1
+    update({ skeletonPoints: { ...sk, [attr]: newVal } })
+  }
+  function handleRemove(attr) {
+    if ((sk[attr] || 0) <= 0) return
+    update({ skeletonPoints: { ...sk, [attr]: (sk[attr] || 0) - 1 } })
+  }
+
+  return (
+    <div className="bg-emerald-400/[0.06] border border-emerald-400/20 rounded-xl px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-400">◆</span>
+          <span className="text-emerald-300 text-[12px] font-semibold">Pontos de Esqueleto</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-300/70 text-[10px]">{skelBase} base{sysSkillBonuses.skeletonPoints > 0 ? ` + ${sysSkillBonuses.skeletonPoints} Skills` : ''} = <strong className="text-emerald-300">{skelTotal}</strong></span>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${remaining > 0 ? 'bg-emerald-400/15 text-emerald-300' : 'bg-sep/10 text-txt-dim/50'}`}>{remaining} restantes</span>
+          <button onClick={() => setOpen(false)} className="text-txt-dim/40 hover:text-txt-dim text-xs ml-2">✕</button>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {ATTR_KEYS.map(a => {
+          const v = adjustedAttrs[a] || 0
+          const pts = sk[a] || 0
+          return (
+            <div key={a} className="flex flex-col items-center bg-void/40 border border-sep/15 rounded-lg p-2">
+              <span className="font-mono text-txt-dim/60 uppercase text-[9px]">{ATTR_ICONS[a]} {a}</span>
+              <span className="font-mono text-emerald-300 text-lg">{v}</span>
+              <div className="flex items-center gap-1 mt-1">
+                <button onClick={() => handleRemove(a)} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-err hover:border-err/30 text-[10px] transition-colors">-</button>
+                <span className="text-[9px] text-txt-dim/40 w-4 text-center">{pts}</span>
+                <button onClick={() => handleAdd(a)} disabled={remaining <= 0 || v >= attrCap} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-emerald-300 hover:border-emerald-400/30 text-[10px] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
