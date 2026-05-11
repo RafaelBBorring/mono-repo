@@ -20,6 +20,8 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-red-400/10',
     borderClass: 'border-red-400/30',
     badgeClass: 'bg-red-400/10 text-red-400 border-red-400/20',
+    miniBonus: '+2 em Bloqueio enquanto ao menos uma peca Guerreiro estiver equipada.',
+    miniPassive: '1 PE para firmar postura e ignorar o primeiro empurrao fraco da cena.',
     desc: 'Proteção física, postura de linha de frente e controle de impacto.',
     bonuses: [
       { pieces: 3, label: 'Linha de Frente', bonus: '+5 Vida temporária ao iniciar combate e +2 em Bloqueio', passive: 'Pode gastar 2 PE ao sofrer dano para reduzir 1d6 do impacto.' },
@@ -34,6 +36,8 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-purple-400/10',
     borderClass: 'border-purple-400/30',
     badgeClass: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
+    miniBonus: '+2 em Furtividade enquanto ao menos uma peca Furtivo estiver equipada.',
+    miniPassive: '1 PE para nao gerar ruido em um deslocamento curto.',
     desc: 'Mobilidade silenciosa, ocultação e evasão.',
     bonuses: [
       { pieces: 3, label: 'Sombra Viva', bonus: '+10 em Furtividade', passive: 'Pode gastar 3 PE para receber Vantagem em uma esquiva até o fim do turno.' },
@@ -48,6 +52,8 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-cyan-400/10',
     borderClass: 'border-cyan-400/30',
     badgeClass: 'bg-cyan-400/10 text-cyan-400 border-cyan-400/20',
+    miniBonus: '+2 em Tecnologia enquanto ao menos uma peca Tecnologico estiver equipada.',
+    miniPassive: '1 PE para identificar a fonte de um sinal eletronico proximo.',
     desc: 'Sensores, interfaces e contramedidas eletrônicas.',
     bonuses: [
       { pieces: 3, label: 'Interface Neural', bonus: '+10 em Tecnologia', passive: 'Scan passivo: identifica eletrônicos, rastreadores e armadilhas simples em 10m.' },
@@ -62,6 +68,8 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-emerald-400/10',
     borderClass: 'border-emerald-400/30',
     badgeClass: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+    miniBonus: '+2 em Medicina enquanto ao menos uma peca Medico estiver equipada.',
+    miniPassive: '1 PE para estabilizar sangramento leve sem consumir carga de kit.',
     desc: 'Primeiros socorros, estabilização e suporte de campo.',
     bonuses: [
       { pieces: 3, label: 'Resposta Rápida', bonus: '+10 em Medicina', passive: 'Pode gastar 3 PE para estabilizar um aliado adjacente como ação bônus.' },
@@ -76,6 +84,8 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-amber-400/10',
     borderClass: 'border-amber-400/30',
     badgeClass: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
+    miniBonus: '+2 em testes com explosivos ou arrombamento preparado.',
+    miniPassive: '1 PE para reduzir o tempo de preparar uma carga simples.',
     desc: 'Explosivos, arrombamento, brecha e controle de área.',
     bonuses: [
       { pieces: 3, label: 'Carga Controlada', bonus: '+10 em testes com explosivos e arrombamento', passive: 'Pode gastar 3 PE para reduzir em 1 dado o dano colateral de uma explosão que preparou.' },
@@ -90,6 +100,8 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-sky-400/10',
     borderClass: 'border-sky-400/30',
     badgeClass: 'bg-sky-400/10 text-sky-400 border-sky-400/20',
+    miniBonus: '+2 em Sobrevivencia ou Atletismo de travessia.',
+    miniPassive: '1 PE para improvisar apoio em escalada, queda curta ou terreno ruim.',
     desc: 'Travessia, escalada, sobrevivência e ferramentas de campo.',
     bonuses: [
       { pieces: 3, label: 'Kit de Campo', bonus: '+10 em Sobrevivência ou Atletismo situacional', passive: 'Pode gastar 2 PE para ignorar terreno difícil por 1 rodada.' },
@@ -213,6 +225,8 @@ export const SET_BONUSES = ARMOR_TYPES.map(type => ({
   id: type.id,
   name: type.label,
   desc: type.desc,
+  miniBonus: type.miniBonus,
+  miniPassive: type.miniPassive,
   bonuses: type.bonuses,
   colorClass: type.colorClass,
   bgClass: type.bgClass,
@@ -270,7 +284,7 @@ export function canEquipRank(nivel, rank) {
 }
 
 export function calcEquipStats(equipamentos) {
-  if (!Array.isArray(equipamentos)) return { totalArmor: 0, totalArmorMax: 0, totalExtraLife: 0, totalCrit: 0, totalDamage: 0, totalShield: 0, totalSpeedPenalty: 0, activeSetBonuses: [] }
+  if (!Array.isArray(equipamentos)) return { totalArmor: 0, totalArmorMax: 0, totalExtraLife: 0, totalCrit: 0, totalDamage: 0, totalShield: 0, totalSpeedPenalty: 0, activeCategoryBonuses: [], activeSetBonuses: [] }
 
   let totalArmor = 0
   let totalArmorMax = 0
@@ -309,9 +323,13 @@ export function calcEquipStats(equipamentos) {
     }
   })
 
+  const activeCategoryBonuses = []
   const activeSetBonuses = []
   for (const at of ARMOR_TYPES) {
     const count = setCounts[at.id] || 0
+    if (count >= 1) {
+      activeCategoryBonuses.push({ type: at, count, bonus: at.miniBonus, passive: at.miniPassive })
+    }
     if (count >= 3) {
       const applicableBonuses = at.bonuses.filter(b => count >= b.pieces)
       const best = applicableBonuses[applicableBonuses.length - 1]
@@ -321,7 +339,7 @@ export function calcEquipStats(equipamentos) {
     }
   }
 
-  return { totalArmor, totalArmorMax, totalExtraLife, totalCrit, totalDamage, totalShield, totalSpeedPenalty, activeSetBonuses }
+  return { totalArmor, totalArmorMax, totalExtraLife, totalCrit, totalDamage, totalShield, totalSpeedPenalty, activeCategoryBonuses, activeSetBonuses }
 }
 
 export function estimateEquipmentWeight(item = {}) {

@@ -22,6 +22,14 @@ function getArmorType(item = {}) {
   return ARMOR_TYPES.find(t => t.id === item.armorType)
 }
 
+const WEAPON_LOCATION_OPTIONS = [
+  { id: 'equipado', label: 'Equipado', desc: 'Na mao, coldre ou pronto para combate', counts: true },
+  { id: 'mochila', label: 'Mochila', desc: 'Carregado pelo personagem', counts: true },
+  { id: 'veiculo', label: 'Veiculo', desc: 'Fica fora da carga pessoal', counts: false },
+  { id: 'base', label: 'Base', desc: 'Guardado em base segura', counts: false },
+  { id: 'case', label: 'Case', desc: 'Guardado em maleta ou estojo', counts: false },
+]
+
 function enforceSingleSlot(items, incoming, incomingIdx = -1) {
   const type = getEquipmentType(incoming)
   if (!incoming?.equipado || !type?.slot) return items
@@ -75,7 +83,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const { isAdmin } = useAuth()
   const weapon = WEAPONS.find(w => w.id === char.arma)
   const weaponRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
-  const weaponEquipped = !!weapon && char.armaEquipada !== false
+  const weaponEquipped = !!weapon && (char.armaLocal ? char.armaLocal === 'equipado' : char.armaEquipada !== false)
   const equipamentos = char.equipamentos || []
   const equipmentStats = calcEquipStats(equipamentos)
   const legendaryAssigned = char.armasLendarias || []
@@ -133,6 +141,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       arma: null,
       armaRank: 'Comum',
       armaEquipada: true,
+      armaLocal: 'equipado',
       armaHabilidades: [],
       armaNome: '',
       armaImagem: null,
@@ -230,7 +239,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
         </div>
 
         <div className="space-y-2">
-          {(equipmentStats.totalArmor || equipmentStats.totalExtraLife || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.totalShield || equipmentStats.activeSetBonuses.length > 0) ? (
+          {(equipmentStats.totalArmor || equipmentStats.totalExtraLife || equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.totalShield || equipmentStats.activeCategoryBonuses.length > 0 || equipmentStats.activeSetBonuses.length > 0) ? (
             <div className="rounded-lg border border-primary/15 bg-void/45 p-3">
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <ArmoryStat label="Armadura" value={equipmentStats.totalArmorMax ? `${equipmentStats.totalArmor}/${equipmentStats.totalArmorMax}` : 0} tone="text-primary" />
@@ -239,6 +248,15 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                 <ArmoryStat label="Crit" value={`${equipmentStats.totalCrit}%`} tone="text-purple-400" />
                 <ArmoryStat label="Dano" value={equipmentStats.totalDamage ? `+${equipmentStats.totalDamage}` : 0} tone="text-red-400" />
               </div>
+              {equipmentStats.activeCategoryBonuses.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {equipmentStats.activeCategoryBonuses.map(({ type, count, bonus }) => (
+                    <span key={type.id} className={`text-[9px] px-2 py-1 rounded border ${type.badgeClass}`}>
+                      {type.label} {count}: {bonus}
+                    </span>
+                  ))}
+                </div>
+              )}
               {equipmentStats.activeSetBonuses.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
@@ -262,6 +280,8 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   image={char.armaImagem}
                   displayName={char.armaNome || weapon.name}
                   equipped={weaponEquipped}
+                  canEdit={canEdit}
+                  onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'mochila' : 'equipado' })}
                   onClick={() => setShowWeaponDrawer(true)}
                 />
               )}
@@ -322,6 +342,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           canEdit={canEdit}
           onUpdate={updatePrimaryWeapon}
           onDelete={removePrimaryWeapon}
+          onTransfer={onTransfer ? () => onTransfer('armaPrincipal', null) : null}
           onClose={() => setShowWeaponDrawer(false)}
         />,
         document.body
@@ -350,25 +371,27 @@ function ArmoryStat({ label, value, tone }) {
   )
 }
 
-function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displayName, equipped, onClick }) {
+function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displayName, equipped, canEdit, onToggleEquipped, onClick }) {
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   return (
-    <button type="button" onClick={onClick}
+    <div
       className={`armory-card armory-card-weapon w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left`}>
       <div className="armory-rank-rail" />
-      <div className={`armory-icon ${rc.badge}`}>
+      <button type="button" onClick={onToggleEquipped} disabled={!canEdit}
+        title={equipped ? 'Desequipar arma' : 'Equipar arma'}
+        className={`armory-icon ${rc.badge} transition-transform ${canEdit ? 'hover:scale-[1.03] cursor-pointer' : 'cursor-default'} ${equipped ? 'ring-1 ring-emerald-300/40' : 'opacity-80'}`}>
         {image ? <img src={image} alt="" className="w-full h-full object-cover" /> : <span>ARM</span>}
-      </div>
-      <div className="flex-1 min-w-0">
+      </button>
+      <button type="button" onClick={onClick} className="flex-1 min-w-0 text-left">
         <span className="text-txt-main text-sm font-semibold truncate block">{displayName || weapon.name}</span>
         <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{weapon.dano}{rank.danoBonus ? ` ${rank.danoBonus}` : ''}</span>
         <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${equipped ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>{equipped ? 'equipada' : 'guardada'}</span>
-      </div>
-    </button>
+      </button>
+    </div>
   )
 }
 
-function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onClose }) {
+function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onTransfer, onClose }) {
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
@@ -383,6 +406,15 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
   const assassinBonus = getAssassinReactionBonus(char)
   const editRankDef = WEAPON_RANKS.find(r => r.rank === editRank) || rank
   const editUsedSlots = editHabilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+  const weaponLocal = char.armaLocal || (char.armaEquipada === false ? 'guardado' : 'equipado')
+  const selectedLocation = WEAPON_LOCATION_OPTIONS.find(opt => opt.id === weaponLocal) || WEAPON_LOCATION_OPTIONS[0]
+
+  function updateWeaponLocation(local) {
+    onUpdate?.({
+      armaLocal: local,
+      armaEquipada: local === 'equipado',
+    })
+  }
 
   async function handleAnalyze() {
     setAnalyzing(true)
@@ -426,6 +458,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
       armaNome: editName,
       armaRank: editRank,
       armaEquipada: editEquipped,
+      armaLocal: editEquipped ? 'equipado' : (weaponLocal === 'equipado' ? 'mochila' : weaponLocal),
       armaHabilidades: editHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()),
     })
     setEditMode(false)
@@ -479,11 +512,37 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {canEdit && !editMode && (
-            <button type="button"
-              onClick={() => onUpdate?.({ armaEquipada: char.armaEquipada === false })}
-              className={`w-full text-[10px] px-3 py-2 rounded-lg border transition-colors ${char.armaEquipada !== false ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15'}`}>
-              {char.armaEquipada !== false ? 'Desequipar arma e remover da carga' : 'Equipar arma e contabilizar carga'}
-            </button>
+            <div className="rounded-lg border border-primary/15 bg-void/45 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-txt-dim/50 text-[9px] uppercase tracking-wider">Local da arma</span>
+                  <p className="text-txt-main text-xs mt-0.5">{selectedLocation.label}</p>
+                </div>
+                <span className={`text-[9px] px-2 py-1 rounded border ${selectedLocation.counts ? 'text-emerald-300 border-emerald-400/25 bg-emerald-400/10' : 'text-txt-dim/60 border-sep/30 bg-black/20'}`}>
+                  {selectedLocation.counts ? 'conta carga' : 'fora da carga'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {WEAPON_LOCATION_OPTIONS.map(opt => (
+                  <button key={opt.id} type="button" onClick={() => updateWeaponLocation(opt.id)}
+                    title={opt.desc}
+                    className={`text-[10px] px-2 py-1.5 rounded border transition-colors ${weaponLocal === opt.id ? 'border-gold/55 bg-gold/10 text-gold' : 'border-sep/30 bg-black/15 text-txt-dim/70 hover:border-gold/30 hover:text-gold/80'}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button type="button"
+                onClick={() => updateWeaponLocation(char.armaEquipada !== false ? 'mochila' : 'equipado')}
+                className={`w-full text-[10px] px-3 py-2 rounded-lg border transition-colors ${char.armaEquipada !== false ? 'border-emerald-400/30 text-emerald-300 bg-emerald-400/10 hover:bg-emerald-400/15' : 'border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15'}`}>
+                {char.armaEquipada !== false ? 'Desequipar para mochila' : 'Equipar e contabilizar carga'}
+              </button>
+              {onTransfer && (
+                <button type="button" onClick={onTransfer}
+                  className="w-full text-[10px] px-3 py-2 rounded-lg border border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15 transition-colors">
+                  Transferir arma
+                </button>
+              )}
+            </div>
           )}
 
           {editMode && canEdit && (
@@ -916,6 +975,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
   const usedSlots = habilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const currentLevel = char?.nivel || 1
   const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
+  const detailStep = itemCategory === 'Equipamento' ? 3 : 2
 
   async function handleAIEquip() {
     if (!equipType) return
@@ -1079,7 +1139,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
           <h3 className="font-cinzel text-primary text-sm">Novo Equipamento</h3>
           <div className="flex items-center gap-2">
-            {[0, 1, 2].map(s => (
+            {Array.from({ length: detailStep + 1 }, (_, s) => (
               <div key={s} className={`w-2 h-2 rounded-full transition-colors ${step >= s ? 'bg-gold' : 'bg-sep/50'}`} />
             ))}
           </div>
@@ -1135,17 +1195,6 @@ function EquipCreateModal({ char, onSave, onClose }) {
                       <div className="text-[9px] mt-1 text-primary/60 font-mono">Armadura: {et.caBase}{et.penalty ? ` | DES ${et.penalty}` : ''}</div>
                     </button>
                   ))}
-                  <div className="col-span-2 mt-2">
-                    <h5 className="text-txt-dim text-[10px] uppercase tracking-wider mb-1">Categoria (opcional)</h5>
-                    <div className="flex flex-wrap gap-1">
-                      {SET_BONUSES.map(s => (
-                        <button key={s.id} onClick={() => setArmorType(armorType === s.id ? null : s.id)}
-                          className={`text-[9px] px-2 py-1 rounded border transition-colors ${armorType === s.id ? `${s.borderClass} ${s.bgClass} ${s.colorClass}` : 'border-sep/30 text-txt-dim/50 hover:border-sep/50'}`}>
-                          {s.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -1217,7 +1266,50 @@ function EquipCreateModal({ char, onSave, onClose }) {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 2 && itemCategory === 'Equipamento' && (
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-txt-dim text-xs uppercase tracking-wider">Categoria do equipamento</h4>
+                <p className="text-txt-dim/55 text-[10px] mt-1">A primeira peÃ§a ativa o mini-bonus; 3 peÃ§as da mesma categoria liberam o bonus maior.</p>
+              </div>
+              <button type="button" onClick={() => setArmorType(null)}
+                className={`w-full text-left border rounded-lg p-3 transition-all ${armorType === null ? 'border-gold/50 bg-gold/5' : 'border-sep/40 bg-void/40 hover:border-gold/30'}`}>
+                <span className="text-txt-main text-[11px] font-semibold">Sem categoria</span>
+                <span className="block text-txt-dim/50 text-[10px] mt-0.5">Nao conta para bonus de conjunto.</span>
+              </button>
+              <div className="grid grid-cols-1 gap-2">
+                {SET_BONUSES.map(s => {
+                  const mainBonus = s.bonuses?.find(b => b.pieces === 3) || s.bonuses?.[0]
+                  return (
+                    <button key={s.id} type="button" onClick={() => setArmorType(s.id)}
+                      className={`text-left border rounded-lg p-3 transition-all ${armorType === s.id ? `${s.borderClass} ${s.bgClass}` : 'border-sep/40 bg-void/40 hover:border-sep/70'}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-xs font-semibold ${s.colorClass}`}>{s.name}</span>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded border ${s.badgeClass}`}>1+ / 3+</span>
+                      </div>
+                      <p className="text-txt-dim/60 text-[10px] mt-1 leading-snug">{s.desc}</p>
+                      <div className="mt-2 grid gap-1.5">
+                        <div className="rounded border border-white/5 bg-black/15 px-2 py-1.5">
+                          <span className="block text-txt-dim/45 text-[8px] uppercase">Mini-bonus</span>
+                          <span className="text-txt-main/80 text-[10px]">{s.miniBonus}</span>
+                          {s.miniPassive && <span className="block text-txt-dim/55 text-[9px] mt-0.5">{s.miniPassive}</span>}
+                        </div>
+                        {mainBonus && (
+                          <div className="rounded border border-white/5 bg-black/15 px-2 py-1.5">
+                            <span className="block text-txt-dim/45 text-[8px] uppercase">Com 3 peÃ§as</span>
+                            <span className="text-txt-main/80 text-[10px]">{mainBonus.label}: {mainBonus.bonus}</span>
+                            <span className="block text-txt-dim/55 text-[9px] mt-0.5">{mainBonus.passive}</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {step === detailStep && (
             <div className="space-y-4">
               <div className="flex items-start gap-4">
                 <button onClick={() => fileRef.current?.click()}
@@ -1271,6 +1363,7 @@ function EquipCreateModal({ char, onSave, onClose }) {
                   <option value="mochila">Mochila</option>
                   <option value="veiculo">Veículo</option>
                   <option value="base">Base/Casa</option>
+                  <option value="case">Case</option>
                   <option value="guardado">Guardado</option>
                 </select>
               </div>
@@ -1373,9 +1466,9 @@ function EquipCreateModal({ char, onSave, onClose }) {
           ) : <div />}
           <div className="flex gap-2">
             <button onClick={onClose} className="text-txt-dim text-xs hover:text-txt-main px-3 py-1.5 transition-colors">Cancelar</button>
-            {step < 2 ? (
-              <button onClick={() => setStep(step + 1)} disabled={step === 0 && !selectedType}
-                className={`text-xs px-4 py-1.5 rounded-lg font-semibold transition-colors ${(step === 0 && !selectedType) ? 'bg-gold/20 text-void/40 cursor-not-allowed' : 'bg-gold text-void hover:bg-gold-light'}`}>
+            {step < detailStep ? (
+              <button onClick={() => setStep(step + 1)} disabled={(step === 0 && !selectedType) || (step === 1 && !rankAllowed)}
+                className={`text-xs px-4 py-1.5 rounded-lg font-semibold transition-colors ${((step === 0 && !selectedType) || (step === 1 && !rankAllowed)) ? 'bg-gold/20 text-void/40 cursor-not-allowed' : 'bg-gold text-void hover:bg-gold-light'}`}>
                 Próximo →
               </button>
             ) : (
@@ -1516,6 +1609,7 @@ function EquipDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit
                     <option value="mochila">Mochila</option>
                     <option value="veiculo">Veículo</option>
                     <option value="base">Base/Casa</option>
+                    <option value="case">Case</option>
                     <option value="guardado">Guardado</option>
                   </select>
                 </div>

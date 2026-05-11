@@ -25,6 +25,7 @@ import CharacterWorkspace from './components/CharacterWorkspace'
 import { ATTRIBUTES } from './data/attributes'
 import { PROGRESSION } from './data/progression'
 import { RACES } from './data/races'
+import { WEAPONS } from './data/weapons'
 import { calcExtraAbilities, calcExtraAbilitiesTypes } from './utils/calculator'
 
 const STEPS = [
@@ -183,6 +184,50 @@ function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
   )
 }
 
+function TransferItemModal({ item, targets, onConfirm, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-2xl shadow-2xl shadow-black/60 max-h-[86vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
+          <div>
+            <h3 className="font-cinzel text-primary text-sm">Transferir Item</h3>
+            <p className="text-txt-dim/60 text-[10px] mt-1">{item?.nome || 'Item'} vai para Armas e Equipamentos quando for arma.</p>
+          </div>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
+        </div>
+        <div className="p-5 overflow-y-auto space-y-4">
+          <div className="flex items-center gap-3 rounded-lg border border-primary/15 bg-void/45 p-3">
+            <div className="w-14 h-14 rounded-lg border border-sep/40 bg-black/25 overflow-hidden grid place-items-center shrink-0">
+              {item?.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span className="text-txt-dim/45 text-[10px]">ITEM</span>}
+            </div>
+            <div className="min-w-0">
+              <p className="text-txt-main text-sm font-semibold truncate">{item?.nome || 'Item'}</p>
+              <p className="text-txt-dim/55 text-[10px]">{item?.categoria || 'Inventario'} {item?.rank ? `- ${item.rank}` : ''}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {targets.map(target => (
+              <div key={target.id} className="rounded-lg border border-sep/35 bg-void/40 p-3 flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full border border-gold/30 bg-black/25 overflow-hidden grid place-items-center shrink-0">
+                  {target.data?.avatar ? <img src={target.data.avatar} alt="" className="w-full h-full object-cover" /> : <span className="text-txt-dim/45 text-sm">?</span>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-txt-main text-sm font-semibold truncate">{target.data?.nome || target.name || 'Sem Nome'}</p>
+                  <p className="text-txt-dim/55 text-[10px] truncate">{target.data?.classe || 'Classe'} - Nivel {target.data?.nivel || 1}</p>
+                </div>
+                <button onClick={() => onConfirm(target)}
+                  className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors shrink-0">
+                  Transferir
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function FullSheetViewer({ sheetId, onBack }) {
   const { user, profile, isAdmin } = useAuth()
   const [sheet, setSheet] = useState(null)
@@ -191,6 +236,7 @@ function FullSheetViewer({ sheetId, onBack }) {
   const [mode, setMode] = useState('sheet')
   const [saveError, setSaveError] = useState('')
   const [transferTargets, setTransferTargets] = useState([])
+  const [transferRequest, setTransferRequest] = useState(null)
 
   const client = isAdmin ? getSupabaseAdmin() : supabase
 
@@ -277,35 +323,88 @@ function FullSheetViewer({ sheetId, onBack }) {
     setShowLevelUp(false)
   }
 
-  async function handleTransferItem(collection, index) {
-    if (!sheet || !['inventario', 'equipamentos'].includes(collection)) return
-    const sourceItems = sheet.data?.[collection] || []
-    const item = sourceItems[index]
-    if (!item) return
+  function getTransferItem(collection, index) {
+    if (!sheet) return null
+    if (collection === 'armaPrincipal') {
+      const weapon = WEAPONS.find(w => w.id === sheet.data?.arma)
+      if (!weapon) return null
+      return {
+        id: sheet.data?.arma,
+        nome: sheet.data?.armaNome || weapon.name,
+        imagem: sheet.data?.armaImagem || null,
+        rank: sheet.data?.armaRank || 'Comum',
+        categoria: 'Arma',
+      }
+    }
+    if (!['inventario', 'equipamentos'].includes(collection)) return null
+    return (sheet.data?.[collection] || [])[index] || null
+  }
+
+  function handleTransferItem(collection, index) {
+    const previewItem = getTransferItem(collection, index)
+    if (!previewItem) return
     if (!transferTargets.length) {
-      alert('Nenhuma outra ficha disponível para receber o item.')
+      alert('Nenhuma outra ficha disponivel para receber o item.')
       return
     }
-    const label = transferTargets.map((target, i) => `${i + 1}. ${target.data?.nome || target.name || 'Sem Nome'}`).join('\n')
-    const choice = prompt(`Transferir "${item.nome || 'Item'}" para qual ficha?\n\n${label}`)
-    const targetIndex = Number(choice) - 1
-    const target = transferTargets[targetIndex]
-    if (!target) return
+    setTransferRequest({ collection, index, item: previewItem })
+  }
 
-    const movedItem = {
-      ...item,
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      equipado: false,
-      local: 'guardado',
+  async function confirmTransferItem(target) {
+    if (!sheet || !transferRequest || !target) return
+    const { collection, index } = transferRequest
+    const item = getTransferItem(collection, index)
+    if (!item) return
+
+    let nextSourceData = sheet.data
+    let targetCollection = collection
+    let movedItem
+
+    if (collection === 'armaPrincipal') {
+      const weapon = WEAPONS.find(w => w.id === sheet.data?.arma)
+      targetCollection = 'equipamentos'
+      movedItem = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        nome: sheet.data?.armaNome || weapon?.name || 'Arma',
+        imagem: sheet.data?.armaImagem || null,
+        descricao: weapon?.mec || '',
+        dano: weapon?.dano || '',
+        efeitos: weapon?.mec || '',
+        categoria: 'Arma',
+        armaId: sheet.data?.arma || null,
+        rank: sheet.data?.armaRank || 'Comum',
+        habilidades: sheet.data?.armaHabilidades || [],
+        equipado: false,
+        local: 'guardado',
+      }
+      nextSourceData = {
+        ...sheet.data,
+        arma: null,
+        armaRank: 'Comum',
+        armaEquipada: true,
+        armaLocal: 'equipado',
+        armaHabilidades: [],
+        armaNome: '',
+        armaImagem: null,
+      }
+    } else {
+      const sourceItems = sheet.data?.[collection] || []
+      movedItem = {
+        ...item,
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        equipado: false,
+        local: 'guardado',
+      }
+      nextSourceData = {
+        ...sheet.data,
+        [collection]: sourceItems.filter((_, i) => i !== index),
+      }
     }
-    const nextSourceData = {
-      ...sheet.data,
-      [collection]: sourceItems.filter((_, i) => i !== index),
-    }
+
     const targetData = target.data || {}
     const nextTargetData = {
       ...targetData,
-      [collection]: [...(targetData[collection] || []), movedItem],
+      [targetCollection]: [...(targetData[targetCollection] || []), movedItem],
     }
 
     const { error: targetError } = await client.from('characters').update({
@@ -323,6 +422,7 @@ function FullSheetViewer({ sheetId, onBack }) {
       return next
     })
     setTransferTargets(prev => prev.map(t => t.id === target.id ? { ...t, data: nextTargetData } : t))
+    setTransferRequest(null)
   }
 
   if (!sheet) return <p className="text-txt-dim p-8">Carregando...</p>
@@ -388,6 +488,14 @@ function FullSheetViewer({ sheetId, onBack }) {
         transferTargets={transferTargets}
         onTransferItem={handleTransferItem}
       />
+      {transferRequest && (
+        <TransferItemModal
+          item={transferRequest.item}
+          targets={transferTargets}
+          onConfirm={confirmTransferItem}
+          onClose={() => setTransferRequest(null)}
+        />
+      )}
       {showLevelUp && (
         <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
       )}

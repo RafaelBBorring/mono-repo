@@ -42,6 +42,7 @@ const initialState = {
   arma: null,
   armaRank: 'Comum',
   armaEquipada: true,
+  armaLocal: 'equipado',
   armaHabilidades: [],
   arteMarcial: null,
   arteMarcialGrau: 0,
