@@ -9,7 +9,7 @@ export default function Step4SkeletonPoints({ char, update }) {
   const attrCap = getAttrCap(char.nivel)
 
   const totalAvailable = char.classe
-    ? calcSkeletonPointsAvailable(char.classe, char.nivel, char.choices)
+    ? calcSkeletonPointsAvailable(char.classe, char.nivel, char.choices, char)
     : 0
 
   const totalSpent = ATTRIBUTES.reduce((sum, a) => sum + (sk[a] || 0), 0)

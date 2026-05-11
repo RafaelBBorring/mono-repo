@@ -76,6 +76,8 @@ const initialState = {
   notas: '',
   inventario: [],
   equipamentos: [],
+  systemSkills: [],
+  systemSkillNotifications: [],
   dolares: 50,
   dracmas: 5,
 }

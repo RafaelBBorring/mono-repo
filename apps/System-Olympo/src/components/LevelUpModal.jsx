@@ -26,10 +26,10 @@ export default function LevelUpModal({ char, onApply, onClose }) {
   const hasChoice = newLevelEntry?.rewards?.some(r => r.type === 'escolha') || false
   const choiceReward = newLevelEntry?.rewards?.find(r => r.type === 'escolha')
 
-  const oldSk = calcSkeletonPointsAvailable(classe, oldNivel, char.choices)
+  const oldSk = calcSkeletonPointsAvailable(classe, oldNivel, char.choices, char)
   const oldMods = calcModulesAvailable(classe, oldNivel, char.choices, char)
   const oldPer = calcPericiasAvailable(classe, oldNivel, char.choices, char.modulosAdquiridos, char)
-  const newSk = calcSkeletonPointsAvailable(classe, newNivel, working.choices)
+  const newSk = calcSkeletonPointsAvailable(classe, newNivel, working.choices, working)
   const newMods = calcModulesAvailable(classe, newNivel, working.choices, working)
   const newPer = calcPericiasAvailable(classe, newNivel, working.choices, working.modulosAdquiridos, working)
 
@@ -187,7 +187,7 @@ function SkeletonPhase({ working, deltaSk, onUpdate }) {
   const totalAttr = (a) => adjustedAttrs[a] || 0
   const attrCap = getAttrCap(working.nivel)
 
-  const totalAvailable = calcSkeletonPointsAvailable(working.classe, working.nivel, working.choices)
+  const totalAvailable = calcSkeletonPointsAvailable(working.classe, working.nivel, working.choices, working)
   const totalSpent = ATTRIBUTES.reduce((sum, a) => sum + (sk[a] || 0), 0)
   const remaining = totalAvailable - totalSpent
 

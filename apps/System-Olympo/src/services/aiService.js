@@ -22,6 +22,7 @@ import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
 import { calcEquipStats, getEquipmentRarity, EQUIPMENT_TYPES, ARMOR_TYPES } from '../data/equipment'
 import { CLASSES } from '../data/classes'
+import { SYSTEM_SKILLS } from '../data/systemSkills'
 
 // ─── Infra (Supabase Edge Function com fallback para env key direto) ────────
 
@@ -425,7 +426,7 @@ Responda SEMPRE em JSON válido, sem markdown, sem code blocks.`
 export async function analyzeBalance(char) {
   const stats  = computeCharStats(char)
   const evoCtx = buildEvolucaoContext(char.habilidades, char.nivel || 1)
-  const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [])
+  const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
   const pehSpent = calcPEHSpent(char.habilidades)
 
   const fichaCompleta = `
@@ -492,6 +493,9 @@ ${JSON.stringify(habilidadesData, null, 2)}
 HABILIDADES DA ARMA:
 ${JSON.stringify(armaHabs, null, 2)}
 
+CATALOGO DE SKILLS SISTEMICAS DISPONIVEIS AO MESTRE:
+${JSON.stringify(SYSTEM_SKILLS.map(s => ({ id: s.id, name: s.name, category: s.category, short: s.short })), null, 2)}
+
   INSTRUÇÕES CRÍTICAS:
 - Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
 - O dano da habilidade é EXTRA ao dano base+arma+atributo que o personagem já possui.
@@ -509,6 +513,8 @@ ANTES de responder, VOCÊ DEVE:
 5. Para CADA habilidade, verificar: dano vs HP Cross-Class (40% do Guerreiro HP = limite de atenção).
 6. Verificar COMBOS: habilidade A amplifica habilidade B. Qual o pior cenário? Está dentro de 150% TDH?
 7. Se uma habilidade for INERENTEMENTE QUEBRADA (multiplicador sem limite, amplificador global sem contrapeso viável), marque status "irbalanceavel" e explique no feedback o que o jogador deve alterar no CONCEITO.
+
+Se uma Passiva altera progressao, recursos permanentes, criacao de armas/equipamentos ou outro subsistema, sugira uma Skill em "systemSkillSuggestions". Use apenas IDs do catalogo; se nenhuma encaixar, use "integracao_manual".
 
 Responda EXCLUSIVAMENTE com JSON:
 {
@@ -534,6 +540,16 @@ Responda EXCLUSIVAMENTE com JSON:
       "tipo": "Ativa ou Passiva",
       "custo": "custo ajustado",
       "feedback": "explicação"
+    }
+  ],
+  "systemSkillSuggestions": [
+    {
+      "skillId": "id_da_skill_do_catalogo",
+      "abilityIndex": 0,
+      "title": "titulo curto para o mestre",
+      "message": "por que esta passiva precisa ou se beneficia dessa Skill",
+      "details": "detalhes da passiva e impacto esperado",
+      "source": "ai"
     }
   ]
 }`
@@ -1090,7 +1106,7 @@ RESPONDA EXCLUSIVAMENTE COM JSON VALIDO
 
 export async function chatAboutAbility(char, userMessage, history = []) {
   const stats = computeCharStats(char)
-  const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [])
+  const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
   const pehSpent = calcPEHSpent(char.habilidades)
 
   const LCP_CAPS = { 'N1-7': { atk: 18, def: 18, ca: 4, extra: 1 }, 'N8-15': { atk: 26, def: 26, ca: 6, extra: 1 }, 'N16-22': { atk: 30, def: 30, ca: 6, extra: 1 }, 'N23-30': { atk: 42, def: 42, ca: 10, extra: 2 } }

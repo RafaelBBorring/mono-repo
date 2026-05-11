@@ -14,6 +14,8 @@ import RuneAdminPanel from './RuneAdminPanel'
 import MagicAdminPanel from './MagicAdminPanel'
 import MysticWeaponAdminPanel from './MysticWeaponAdminPanel'
 import GrimoireAdminPage from './GrimoireAdminPage'
+import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, getSystemSkillById } from '../data/systemSkills'
+import { createSystemSkillAssignment, createSystemSkillNotification, summarizeSystemSkillBonuses } from '../utils/systemSkills'
 
 const STATUS_COLORS_ADMIN = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -99,6 +101,10 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
     return (data.habilidades || []).filter(h => h.status === status).length
   }
 
+  function countOpenSkillNotifications(data) {
+    return (data?.systemSkillNotifications || []).filter(n => n.status !== 'closed').length
+  }
+
   async function handleDeleteSheet(id) {
     if (!confirm('Excluir este personagem permanentemente?')) return
     await getSupabaseAdmin().from('characters').delete().eq('id', id)
@@ -178,6 +184,7 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
           {[
             { key: 'sheets', label: 'Fichas' },
             { key: 'abilities', label: 'Habilidades' },
+            { key: 'skills', label: `Skills${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0) ? ` (${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0)})` : ''}` },
             { key: 'grimoire', label: 'Grimório' },
             { key: 'mysticWeapons', label: 'Forja Lendária' },
             { key: 'users', label: 'Usuários' },
@@ -316,6 +323,15 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
         </div>
       )}
 
+      {tab === 'skills' && (
+        <AdminSkillsPanel
+          sheets={sheets}
+          getUserName={getUserName}
+          onPatch={handlePatch}
+          onViewSheet={onViewSheet}
+        />
+      )}
+
       {tab === 'users' && (
         <div className="space-y-4">
           <h3 className="text-txt-main text-sm font-semibold">Usuários Cadastrados</h3>
@@ -353,6 +369,116 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
   )
 }
 
+function AdminSkillsPanel({ sheets, getUserName, onPatch, onViewSheet }) {
+  const [expanded, setExpanded] = useState(null)
+  const openNotices = sheets.flatMap(sheet => (sheet.data?.systemSkillNotifications || [])
+    .filter(n => n.status !== 'closed')
+    .map(notice => ({ sheet, notice })))
+  const assignedCount = sheets.reduce((sum, sheet) => sum + (sheet.data?.systemSkills || []).length, 0)
+
+  function assignFromNotice(sheet, notice) {
+    const current = sheet.data?.systemSkills || []
+    const already = current.some(s => s.skillId === notice.skillId && s.sourceAbilityIndex === notice.abilityIndex)
+    const nextSkills = already ? current : [
+      ...current,
+      createSystemSkillAssignment(notice.skillId, {
+        sourceAbilityIndex: notice.abilityIndex ?? null,
+        notes: notice.message || '',
+      }),
+    ]
+    const nextNotices = (sheet.data?.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n)
+    onPatch(sheet, { systemSkills: nextSkills, systemSkillNotifications: nextNotices })
+  }
+
+  function closeNotice(sheet, noticeId) {
+    onPatch(sheet, {
+      systemSkillNotifications: (sheet.data?.systemSkillNotifications || []).map(n => n.id === noticeId ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n),
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="rounded-lg border border-sky-300/20 bg-sky-300/5 p-3">
+          <span className="text-sky-200 text-[10px] uppercase tracking-wider">Skills disponiveis</span>
+          <strong className="block text-txt-main text-xl font-mono mt-1">{SYSTEM_SKILLS.length}</strong>
+        </div>
+        <div className="rounded-lg border border-warn/20 bg-warn/5 p-3">
+          <span className="text-warn text-[10px] uppercase tracking-wider">Notificacoes abertas</span>
+          <strong className="block text-txt-main text-xl font-mono mt-1">{openNotices.length}</strong>
+        </div>
+        <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/5 p-3">
+          <span className="text-emerald-300 text-[10px] uppercase tracking-wider">Atribuidas</span>
+          <strong className="block text-txt-main text-xl font-mono mt-1">{assignedCount}</strong>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-sep/30 bg-deep/70 p-4">
+        <h3 className="font-cinzel text-gold text-sm mb-3">Catalogo de Skills</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {SYSTEM_SKILLS.map(skill => {
+            const cat = SYSTEM_SKILL_CATEGORIES.find(c => c.id === skill.category)
+            return (
+              <div key={skill.id} className="rounded-lg border border-sep/25 bg-void/40 p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-txt-main text-xs font-semibold">{skill.name}</span>
+                  <span className="text-[9px] border border-gold/20 text-gold/80 rounded px-1.5 py-0.5">{cat?.label || skill.category}</span>
+                  <span className="text-[9px] border border-sky-300/20 text-sky-200/70 rounded px-1.5 py-0.5">{skill.rarity}</span>
+                </div>
+                <p className="text-txt-dim/75 text-[11px] leading-relaxed">{skill.short}</p>
+                <p className="text-txt-dim/45 text-[10px] mt-1">{skill.adminNotes}</p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-txt-main text-sm font-semibold">Notificacoes do Mestre</h3>
+        {openNotices.length === 0 && <p className="text-txt-dim/50 text-xs italic">Nenhuma passiva aguardando decisao sistemica.</p>}
+        {openNotices.map(({ sheet, notice }) => {
+          const skill = getSystemSkillById(notice.skillId)
+          const isOpen = expanded === notice.id
+          return (
+            <div key={notice.id} className="rounded-lg border border-warn/20 bg-warn/5 overflow-hidden">
+              <button type="button" onClick={() => setExpanded(isOpen ? null : notice.id)}
+                className="w-full p-3 flex items-center justify-between text-left hover:bg-void/20 transition-colors">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-txt-main text-sm font-semibold">{notice.title}</span>
+                    <span className="text-[9px] bg-gold/10 text-gold px-1.5 py-0.5 rounded">{skill?.name || 'Skill'}</span>
+                  </div>
+                  <p className="text-txt-dim text-xs mt-0.5">{sheet.name} - {getUserName(sheet.user_id)}</p>
+                </div>
+                <span className="text-txt-dim/50 text-xs">{isOpen ? '▲' : '▼'}</span>
+              </button>
+              {isOpen && (
+                <div className="border-t border-sep/25 p-3 space-y-3">
+                  <p className="text-txt-main/80 text-xs leading-relaxed">{notice.message}</p>
+                  {notice.details && <p className="text-txt-dim/70 text-[11px] leading-relaxed bg-void/45 border border-sep/20 rounded p-2">{notice.details}</p>}
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => assignFromNotice(sheet, notice)} className="text-xs bg-gold text-void px-3 py-1.5 rounded font-semibold hover:bg-gold-light transition-colors">
+                      Atribuir Skill
+                    </button>
+                    <button onClick={() => closeNotice(sheet, notice.id)} className="text-xs border border-err/30 text-err px-3 py-1.5 rounded hover:bg-err/10 transition-colors">
+                      Excluir notificacao
+                    </button>
+                    {onViewSheet && (
+                      <button onClick={() => onViewSheet(sheet.id)} className="text-xs border border-sky-300/30 text-sky-200 px-3 py-1.5 rounded hover:bg-sky-300/10 transition-colors">
+                        Ver ficha
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function AdminSheetView({ sheet, onPatch }) {
   const char = sheet.data || {}
   const attrs = char.atributos || {}
@@ -366,6 +492,7 @@ function AdminSheetView({ sheet, onPatch }) {
   const periciasArr = Object.entries(char.pericias || {}).filter(([, v]) => v > 0)
   const equipamentos = char.equipamentos || []
   const legendaryAssigned = char.armasLendarias || []
+  const systemSkillSummary = summarizeSystemSkillBonuses(char)
 
   return (
     <div className="space-y-4">
@@ -480,6 +607,32 @@ function AdminSheetView({ sheet, onPatch }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {((char.systemSkills || []).length > 0 || (char.systemSkillNotifications || []).some(n => n.status !== 'closed')) && (
+        <div>
+          <h4 className="text-txt-dim text-xs font-semibold mb-2 uppercase tracking-wider">Skills Sistêmicas</h4>
+          {(char.systemSkills || []).length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {(char.systemSkills || []).map((entry, i) => {
+                const skill = getSystemSkillById(entry.skillId)
+                return (
+                  <span key={entry.id || i} className="text-[10px] bg-sky-300/10 text-sky-200 px-2 py-0.5 rounded border border-sky-300/20">
+                    {skill?.name || entry.skillId}{entry.active === false ? ' (inativa)' : ''}
+                  </span>
+                )
+              })}
+            </div>
+          )}
+          {systemSkillSummary.length > 0 && (
+            <p className="text-emerald-300/80 text-[11px] mb-2">{systemSkillSummary.join(' | ')}</p>
+          )}
+          {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').length > 0 && (
+            <p className="text-warn text-[11px]">
+              {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').length} notificacao(oes) aguardando decisao do mestre.
+            </p>
+          )}
         </div>
       )}
 
@@ -726,6 +879,7 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
     { id: 'arteMarcial', label: 'Arte Marcial', icon: '👊', color: 'bg-orange-400' },
     { id: 'modulos', label: 'Módulos', icon: '⚙', color: 'bg-yellow-400' },
     { id: 'habilidades', label: 'Habilidades', icon: '✦', color: 'bg-indigo-400' },
+    { id: 'skills', label: 'Skills', icon: '◆', color: 'bg-sky-300' },
     { id: 'inventario', label: 'Inventário', icon: '🎒', color: 'bg-teal-400' },
     { id: 'equipamentos', label: 'Equipamentos', icon: '🗡', color: 'bg-orange-400' },
     { id: 'lendarias', label: 'Lendárias', icon: '★', color: 'bg-lime-300' },
@@ -801,6 +955,50 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
     setData(prev => ({
       ...prev,
       habilidades: (prev.habilidades || []).filter((_, i) => i !== index),
+    }))
+  }
+
+  function assignSystemSkill(skillId, sourceAbilityIndex = null) {
+    setData(prev => ({
+      ...prev,
+      systemSkills: [...(prev.systemSkills || []), createSystemSkillAssignment(skillId, { sourceAbilityIndex })],
+    }))
+  }
+
+  function updateSystemSkill(index, patch) {
+    setData(prev => {
+      const arr = [...(prev.systemSkills || [])]
+      arr[index] = { ...arr[index], ...patch }
+      return { ...prev, systemSkills: arr }
+    })
+  }
+
+  function removeSystemSkill(index) {
+    setData(prev => ({
+      ...prev,
+      systemSkills: (prev.systemSkills || []).filter((_, i) => i !== index),
+    }))
+  }
+
+  function closeSystemNotice(noticeId) {
+    setData(prev => ({
+      ...prev,
+      systemSkillNotifications: (prev.systemSkillNotifications || []).map(n => n.id === noticeId ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n),
+    }))
+  }
+
+  function createManualSystemNotice() {
+    setData(prev => ({
+      ...prev,
+      systemSkillNotifications: [
+        ...(prev.systemSkillNotifications || []),
+        createSystemSkillNotification({
+          skillId: 'integracao_manual',
+          title: 'Passiva requer avaliacao sistemica',
+          message: 'O mestre marcou esta ficha para revisar uma possivel Skill personalizada.',
+          source: 'admin',
+        }),
+      ],
     }))
   }
 
@@ -1231,6 +1429,97 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
             })}
           </div>
         </SectionCard>
+
+        <SectionCard
+          id="skills"
+          icon="◆"
+          title={'Skills Sistêmicas (' + (data.systemSkills || []).length + ')'}
+          color="bg-sky-300"
+          rightSlot={
+            <button onClick={createManualSystemNotice} className="text-[9px] bg-warn/10 text-warn border border-warn/20 px-2 py-0.5 rounded hover:bg-warn/20 transition-colors">
+              + Pendencia
+            </button>
+          }
+        >
+          <div className="rounded-lg border border-sky-300/15 bg-sky-300/5 px-3 py-2">
+            <p className="text-sky-100/80 text-[11px] leading-relaxed">
+              Skills sao integracoes raras de passivas no sistema. Somente o Mestre atribui, remove ou resolve pendencias.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-3">
+            <div className="space-y-2">
+              {(data.systemSkills || []).length === 0 && (
+                <p className="text-txt-dim/45 text-xs italic">Nenhuma Skill atribuida.</p>
+              )}
+              {(data.systemSkills || []).map((entry, i) => {
+                const skill = getSystemSkillById(entry.skillId)
+                return (
+                  <div key={entry.id || i} className="rounded-lg border border-sky-300/20 bg-void/45 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <select value={entry.skillId || ''} onChange={e => updateSystemSkill(i, { skillId: e.target.value })}
+                        className="admin-input text-xs flex-1">
+                        {SYSTEM_SKILLS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                      <label className="flex items-center gap-1.5 text-[10px] text-txt-dim">
+                        <input type="checkbox" checked={entry.active !== false} onChange={e => updateSystemSkill(i, { active: e.target.checked })} />
+                        ativa
+                      </label>
+                      <button onClick={() => removeSystemSkill(i)} className="text-err/60 hover:text-err text-xs px-2">x</button>
+                    </div>
+                    <p className="text-txt-dim/70 text-[11px]">{skill?.short || 'Skill desconhecida.'}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select value={entry.sourceAbilityIndex ?? ''} onChange={e => updateSystemSkill(i, { sourceAbilityIndex: e.target.value === '' ? null : Number(e.target.value) })}
+                        className="admin-input text-xs">
+                        <option value="">Sem passiva vinculada</option>
+                        {(data.habilidades || []).map((h, hi) => <option key={hi} value={hi}>{hi + 1}. {h.nome || h.tipo}</option>)}
+                      </select>
+                      <input type="text" value={entry.notes || ''} onChange={e => updateSystemSkill(i, { notes: e.target.value })}
+                        className="admin-input text-xs" placeholder="Notas do mestre" />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="space-y-2">
+              <select onChange={e => { if (e.target.value) { assignSystemSkill(e.target.value); e.target.value = '' } }} className="admin-input text-xs">
+                <option value="">Atribuir Skill...</option>
+                {SYSTEM_SKILL_CATEGORIES.map(cat => (
+                  <optgroup key={cat.id} label={cat.label}>
+                    {SYSTEM_SKILLS.filter(s => s.category === cat.id).map(skill => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              {summarizeSystemSkillBonuses(data).length > 0 && (
+                <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 p-2 space-y-1">
+                  {summarizeSystemSkillBonuses(data).map((line, i) => (
+                    <p key={i} className="text-emerald-300/80 text-[10px]">{line}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {(data.systemSkillNotifications || []).filter(n => n.status !== 'closed').length > 0 && (
+            <div className="space-y-2 border-t border-sep/20 pt-3">
+              <h5 className="text-warn text-[10px] uppercase tracking-wider">Notificacoes abertas</h5>
+              {(data.systemSkillNotifications || []).filter(n => n.status !== 'closed').map(notice => (
+                <div key={notice.id} className="rounded-lg border border-warn/20 bg-warn/5 p-2">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-txt-main text-xs font-semibold">{notice.title}</p>
+                      <p className="text-txt-dim/75 text-[11px] mt-0.5">{notice.message}</p>
+                    </div>
+                    <button onClick={() => { assignSystemSkill(notice.skillId, notice.abilityIndex); closeSystemNotice(notice.id) }} className="text-[10px] bg-gold text-void px-2 py-1 rounded font-semibold">Atribuir</button>
+                    <button onClick={() => closeSystemNotice(notice.id)} className="text-[10px] border border-err/25 text-err px-2 py-1 rounded">Excluir</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
         <SectionCard id="inventario" icon="🎒" title="Inventário" color="bg-teal-400">
           {(data.inventario || []).map((item, i) => (
             <div key={i} className="flex gap-2 items-start">

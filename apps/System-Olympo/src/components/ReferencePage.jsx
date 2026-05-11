@@ -16,6 +16,7 @@ import { RUNE_TRAINING_RULES } from '../utils/runeRules'
 import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
 import { normalizeProgressionLabel } from '../utils/progressionUtils'
 import { ARMOR_ABSORPTION_HARD_CAP, ARMOR_ABSORPTION_SOFT_CAP, ARMOR_TYPES, ARMOR_SLOTS, EQUIPMENT_RARITIES, EQUIPMENT_TYPES, EQUIPMENT_STAT_LABELS, SIMPLE_ITEMS } from '../data/equipment'
+import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES } from '../data/systemSkills'
 import { useState, useMemo, useEffect, useRef } from 'react'
 
 const SECTION_CATEGORIES = [
@@ -65,7 +66,7 @@ const SECTION_CATEGORIES = [
     icon: '⚙️',
     color: 'text-gold border-gold/30 bg-gold/5',
     activeColor: 'bg-gold text-void',
-    sections: ['Balanceamento'],
+    sections: ['Balanceamento', 'Skills Sistemicas'],
   },
 ]
 
@@ -97,6 +98,7 @@ const SECTION_VERSIONS = {
   'Grimórios': 'v2.0',
   'Criação de Personagem': 'v2.0',
   'Balanceamento': 'v2.0',
+  'Skills Sistemicas': 'v2.2 - Mai 2026',
 }
 
 const CATEGORY_DESCRIPTIONS = {
@@ -150,6 +152,7 @@ export default function ReferencePage() {
       'Grimórios': ['grimorio', 'grimoire', 'tom', 'livro'],
       'Criação de Personagem': ['criacao', 'criar', 'personagem', 'guia', 'passo a passo'],
       'Balanceamento': ['balanceamento', 'balance', 'scp', 'tdh', 'pp', 'ipl', 'calibracao', 'protocolo'],
+      'Skills Sistemicas': ['skill', 'skills', 'sistemica', 'passiva', 'pendencia', 'mestre', 'forja', 'hefesto', 'zeus', 'esqueleto'],
     }
     return ALL_SECTIONS.filter(s => {
       const kws = keywords[s] || []
@@ -328,6 +331,7 @@ export default function ReferencePage() {
                 {section === 'Grimórios' && <GrimoriosSection />}
                 {section === 'Criação de Personagem' && <CreationGuideSection />}
                 {section === 'Balanceamento' && <BalanceProtocolSection />}
+                {section === 'Skills Sistemicas' && <SystemSkillsRulesSection />}
               </div>
             </div>
           )}
@@ -2543,6 +2547,58 @@ function CreationGuideSection() {
 }
 
 // ─── SEÇÃO: PROTOCOLO DE BALANCEAMENTO ───────────────────────────────────────
+
+function SystemSkillsRulesSection() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <SectionTitle>Skills Sistemicas</SectionTitle>
+        <p className="text-txt-dim text-sm leading-relaxed">
+          Skills sao integracoes raras entre uma passiva narrativa e uma regra que o sistema consegue executar. O jogador continua escrevendo a passiva livremente, mas somente o Mestre pode atribuir uma Skill quando aquela passiva altera progressao, recursos, forja, equipamentos ou outro subsistema.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {[
+          ['Texto livre', 'O jogador descreve fantasia, origem e estilo da passiva sem preencher formulario mecanico extra.'],
+          ['Skill atribuida', 'O Mestre escolhe uma Skill do catalogo e vincula a passiva quando existe impacto automatizavel.'],
+          ['Pendencia', 'Quando nao ha Skill adequada, o sistema cria uma notificacao para futura implementacao ou decisao manual.'],
+        ].map(([title, text]) => (
+          <div key={title} className="rounded-xl border border-sky-300/20 bg-sky-300/5 p-4">
+            <h3 className="font-cinzel text-sky-200 text-sm mb-2">{title}</h3>
+            <p className="text-txt-dim text-xs leading-relaxed">{text}</p>
+          </div>
+        ))}
+      </div>
+
+      <TableCard title="Fluxo de Governanca" color="sky">
+        <div className="p-4 space-y-2 text-xs text-txt-dim">
+          <p><strong className="text-sky-200">1.</strong> A IA de balanceamento pode sugerir uma Skill quando notar que uma passiva mexe no sistema.</p>
+          <p><strong className="text-sky-200">2.</strong> A sugestao vira notificacao na Mesa do Mestre, nunca aplicacao automatica.</p>
+          <p><strong className="text-sky-200">3.</strong> O Mestre pode atribuir a Skill, excluir a notificacao ou marcar como Integracao Manual.</p>
+          <p><strong className="text-sky-200">4.</strong> Skills ativas aparecem na ficha e seus bonus entram nos calculos suportados.</p>
+        </div>
+      </TableCard>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {SYSTEM_SKILLS.map(skill => {
+          const cat = SYSTEM_SKILL_CATEGORIES.find(c => c.id === skill.category)
+          return (
+            <div key={skill.id} className="rounded-xl border border-sep/30 bg-void/70 p-4">
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <h3 className="text-txt-main text-sm font-semibold">{skill.name}</h3>
+                <span className="text-[9px] border border-gold/25 text-gold rounded px-1.5 py-0.5">{cat?.label || skill.category}</span>
+                <span className="text-[9px] border border-sky-300/20 text-sky-200 rounded px-1.5 py-0.5">{skill.rarity}</span>
+              </div>
+              <p className="text-txt-dim text-xs leading-relaxed">{skill.description}</p>
+              <p className="text-sky-200/70 text-[11px] mt-2">{skill.adminNotes}</p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function TableCard({ title, color = 'gold', children }) {
   const borderMap = { gold: 'border-gold/30', purple: 'border-purple-400/30', sky: 'border-sky-400/30', emerald: 'border-emerald-400/30', amber: 'border-amber-300/30' }

@@ -52,7 +52,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
   const [previewIdx,    setPreviewIdx]    = useState(null)
 
   // PEH split by source
-  const pehFromProgressao = calcPEHTotal(char.classe, nivel, char.choices || {}, [])  // no modules
+  const pehFromProgressao = calcPEHTotal(char.classe, nivel, char.choices || {}, [], char)  // no modules
   const aumentoPoder = (char.modulosAdquiridos || []).find(m => m.id === 'aumento_poder')
   const pehFromModulo = aumentoPoder ? (aumentoPoder.boughtCount || 1) : 0
   const pehTotal = pehFromProgressao + pehFromModulo

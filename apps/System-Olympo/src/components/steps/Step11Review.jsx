@@ -34,6 +34,8 @@ import { analyzeAlchemyRitualDraft, analyzeSpellDraft, analyzeRuneDraft, analyze
 import { calcEquipStats } from '../../data/equipment'
 import { uploadGrimorioImage } from '../../services/uploadService'
 import ImageUploadField from '../ImageUploadField'
+import { getSystemSkillById } from '../../data/systemSkills'
+import { summarizeSystemSkillBonuses } from '../../utils/systemSkills'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -202,7 +204,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
   const costReduction = calcAbilityCostReduction(char.triagemPrincipal, char.triagemPrincipalNivel || 0, char.subTriagem, char.subTriagemNivel || 0)
 
-  const pehTotal = cls ? calcPEHTotal(cls, char.nivel, char.choices, char.modulosAdquiridos) : 0
+  const pehTotal = cls ? calcPEHTotal(cls, char.nivel, char.choices, char.modulosAdquiridos, char) : 0
   const pehSpent = calcPEHSpent(char.habilidades)
   const pehRemaining = pehTotal - pehSpent
 
@@ -321,6 +323,17 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         }
       })
       update({ armaHabilidades: arHabs })
+    }
+    if (result._systemSkillNotifications?.length) {
+      const existing = char.systemSkillNotifications || []
+      const seen = new Set(existing.map(n => `${n.skillId}:${n.abilityIndex}:${n.status}`))
+      const incoming = result._systemSkillNotifications.filter(n => {
+        const key = `${n.skillId}:${n.abilityIndex}:open`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      if (incoming.length) update({ systemSkillNotifications: [...existing, ...incoming] })
     }
   }
 
@@ -747,6 +760,44 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   ))}
                 </div>
               </section>
+
+              {((char.systemSkills || []).length > 0 || (char.systemSkillNotifications || []).some(n => n.status !== 'closed')) && (
+                <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
+                  <SectionHeader icon="◆" title="Skills Sistêmicas" color="bg-sky-300" />
+                  <div className="space-y-2">
+                    {(char.systemSkills || []).length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(char.systemSkills || []).map((entry, i) => {
+                          const skill = getSystemSkillById(entry.skillId)
+                          return (
+                            <div key={entry.id || i} className={`rounded-lg border p-2.5 ${entry.active === false ? 'border-sep/25 bg-void/30 opacity-60' : 'border-sky-300/20 bg-sky-300/5'}`}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sky-200 text-xs font-semibold">{skill?.name || entry.skillId}</span>
+                                <span className="text-[8px] border border-sky-300/20 text-sky-200/65 rounded px-1.5 py-0.5">{entry.active === false ? 'inativa' : 'ativa'}</span>
+                              </div>
+                              <p className="text-txt-dim/70 text-[10px] mt-1 leading-relaxed">{skill?.short || 'Integracao sistemica definida pelo mestre.'}</p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-txt-dim/45 text-xs italic">Nenhuma Skill atribuida pelo Mestre.</p>
+                    )}
+                    {summarizeSystemSkillBonuses(char).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {summarizeSystemSkillBonuses(char).map((line, i) => (
+                          <span key={i} className="text-[9px] bg-emerald-400/10 text-emerald-300 border border-emerald-400/15 rounded px-2 py-0.5">{line}</span>
+                        ))}
+                      </div>
+                    )}
+                    {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').length > 0 && (
+                      <p className="text-warn/80 text-[10px] leading-relaxed">
+                        Existem notificacoes sistemicas aguardando decisao do Mestre.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {/* NOTAS */}
               <section className={visible('inventory') ? 'sheet-panel' : 'hidden'}>

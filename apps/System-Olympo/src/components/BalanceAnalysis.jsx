@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { analyzeBalance } from '../services/aiService'
+import { createSystemSkillNotification, suggestSystemSkillsForCharacter } from '../utils/systemSkills'
+import { getSystemSkillById } from '../data/systemSkills'
 
 export default function BalanceAnalysis({ char, onApply, characterId }) {
   const [analyzing, setAnalyzing] = useState(false)
@@ -24,7 +26,18 @@ export default function BalanceAnalysis({ char, onApply, characterId }) {
 
   function handleApplyResult() {
     if (!result) return
-    onApply(result)
+    const aiSuggestions = result.systemSkillSuggestions || []
+    const localSuggestions = suggestSystemSkillsForCharacter(char)
+    const existingKeys = new Set((char.systemSkillNotifications || []).map(n => `${n.skillId}:${n.abilityIndex}:${n.status}`))
+    const notifications = [...aiSuggestions, ...localSuggestions]
+      .map(s => createSystemSkillNotification(s))
+      .filter(n => {
+        const key = `${n.skillId}:${n.abilityIndex}:open`
+        if (existingKeys.has(key)) return false
+        existingKeys.add(key)
+        return true
+      })
+    onApply({ ...result, _systemSkillNotifications: notifications })
     setResult(null)
     setShowConfirm(false)
   }
@@ -123,6 +136,21 @@ export default function BalanceAnalysis({ char, onApply, characterId }) {
                   {h.feedback && <p className="text-gold/60 text-[9px] mt-1 italic">💡 {h.feedback}</p>}
                 </div>
               ))}
+              {[...(result.systemSkillSuggestions || []), ...suggestSystemSkillsForCharacter(char)].length > 0 && (
+                <div className="bg-sky-300/5 border border-sky-300/20 rounded-lg p-3">
+                  <h4 className="text-sky-200 text-xs font-semibold mb-2">Sugestoes de Skills para o Mestre</h4>
+                  <div className="space-y-1.5">
+                    {[...(result.systemSkillSuggestions || []), ...suggestSystemSkillsForCharacter(char)].slice(0, 6).map((s, i) => {
+                      const skill = getSystemSkillById(s.skillId)
+                      return (
+                        <div key={`${s.skillId}-${s.abilityIndex}-${i}`} className="text-[10px] text-txt-dim/80">
+                          <span className="text-sky-200 font-semibold">{skill?.name || s.skillId}</span> - {s.message || s.reason || 'A passiva pode precisar de integracao sistemica.'}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 justify-end border-t border-sep/30 pt-3">
               <button onClick={() => setResult(null)} className="text-txt-dim text-xs px-3 py-1.5 hover:text-txt-main transition-colors">
