@@ -342,7 +342,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           ) : null}
 
           {(weapon || visibleEquipamentos.length > 0 || outfits.length > 0 || enrichedLegendary.length > 0) && (
-            <div className={outfits.length ? 'grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start' : ''}>
+            <div className={outfits.length ? 'grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)] gap-3 items-start' : ''}>
               {outfits.length > 0 && (
                 <div className="space-y-3 lg:sticky lg:top-4">
                   {outfits.map((item) => {
@@ -361,7 +361,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                   })}
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className={outfits.length ? 'grid grid-cols-1 md:grid-cols-2 gap-3 auto-rows-min content-start' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3'}>
                 {weapon && (
                   <WeaponCard
                     weapon={weapon}
