@@ -182,6 +182,7 @@ export function summarizeSystemSkillBonuses(char = {}) {
   if (b.forgeQualityBonus) parts.push(`Qualidade Forja +${b.forgeQualityBonus}`)
   if (b.forgeUnlocks.length) parts.push(`Técnicas: ${b.forgeUnlocks.join(', ')}`)
   if (b.knowledgeUnlocks.length) parts.push(`Acessos: ${b.knowledgeUnlocks.join(', ')}`)
+  if (b.manualFlags.length) parts.push(...b.manualFlags)
   return parts
 }
 
