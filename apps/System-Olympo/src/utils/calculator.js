@@ -109,7 +109,7 @@ export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, tri
     vidaPorNivelTotal += def.vidaPorNivel(getModifier(con))
   }
   const tankBonus = getTankBonus(triagemPrincipal, triagemPrincipalNivel || 0, nivel)
-  return base + vidaPorNivelTotal + prog.vida + tankBonus + (raceContext ? calculateRaceBonus(raceContext).hp : 0) + calcSystemSkillBonuses(raceContext).vida
+  return base + vidaPorNivelTotal + prog.vida + tankBonus + (raceContext ? calculateRaceBonus(raceContext).hp : 0) + calcSystemSkillBonuses(raceContext || {}).vida
 }
 
 export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
@@ -129,14 +129,14 @@ export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, 
   if (subTriagem === 'INTUITIVO' && (subTriagemNivel || 0) >= 0.1) {
     intuitivoBonus += Math.floor(am * 0.5) * Math.floor(nivel / 5)
   }
-  return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + calcSystemSkillBonuses(raceContext).energia
+  return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + calcSystemSkillBonuses(raceContext || {}).energia
 }
 
 export function calcPeTotal(classe, nivel, choices, raceContext) {
   const def = getClassDef(classe)
   if (!def) return 0
   const prog = getProgressionRewards(classe, nivel, choices)
-  return def.peBase + (def.pePorNivel * nivel) + prog.pe + (raceContext ? calculateRaceBonus(raceContext).pe : 0) + calcSystemSkillBonuses(raceContext).pe
+  return def.peBase + (def.pePorNivel * nivel) + prog.pe + (raceContext ? calculateRaceBonus(raceContext).pe : 0) + calcSystemSkillBonuses(raceContext || {}).pe
 }
 
 export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
@@ -147,7 +147,7 @@ export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
   const reflexoGrau = pericias?.Reflexo || 0
   const bloqueioGrau = pericias?.Bloqueio || 0
   const treino = Math.max(getGrauBonus(reflexoGrau), getGrauBonus(bloqueioGrau))
-  return 10 + treino + Math.max(modCON, modDES) + calcSystemSkillBonuses(raceContext).armadura + calcSystemSkillBonuses(raceContext).ca
+  return 10 + treino + Math.max(modCON, modDES) + calcSystemSkillBonuses(raceContext || {}).armadura + calcSystemSkillBonuses(raceContext || {}).ca
 }
 
 export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
@@ -194,14 +194,14 @@ export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, s
     parts.push(`+${maior} (maior attr)`)
   }
 
-  const systemDamage = calcSystemSkillBonuses(raceContext).dano
+  const systemDamage = calcSystemSkillBonuses(raceContext || {}).dano
   if (systemDamage) parts.push(`+${systemDamage} (Skill)`)
   return parts.join(' ')
 }
 
 export function calcSkeletonPointsAvailable(classe, nivel, choices, raceContext) {
   const prog = getProgressionRewards(classe, nivel, choices)
-  return prog.esqueleto + calcSystemSkillBonuses(raceContext).skeletonPoints
+  return prog.esqueleto + calcSystemSkillBonuses(raceContext || {}).skeletonPoints
 }
 
 export function calcModulesAvailable(classe, nivel, choices, raceContext) {
@@ -252,7 +252,7 @@ export function calcPEHTotal(classe, nivel, choices, modulosAdquiridos, raceCont
   // Aumento de Poder: cada compra concede 1 PEH adicional (representa o slot de evolução grant)
   const aumentoPoder = (modulosAdquiridos || []).find(m => m.id === 'aumento_poder')
   if (aumentoPoder) total += (aumentoPoder.boughtCount || 1)
-  total += calcSystemSkillBonuses(raceContext).peh
+  total += calcSystemSkillBonuses(raceContext || {}).peh
   return total
 }
 

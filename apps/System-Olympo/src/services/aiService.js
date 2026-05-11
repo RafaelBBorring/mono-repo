@@ -312,8 +312,8 @@ function buildCrossClassContext(nivel) {
   const choices = {}
   const results = {}
   for (const [id, cls] of Object.entries(CLASSES)) {
-    const hp = calcVidaTotal(id, nivel, refAttrs, sk, choices, null, 0, null)
-    const en = calcEnergiaTotal(id, nivel, refAttrs, sk, choices, null, 0, null, 0, null)
+    const hp = calcVidaTotal(id, nivel, refAttrs, sk, choices, null, 0, undefined)
+    const en = calcEnergiaTotal(id, nivel, refAttrs, sk, choices, null, 0, null, 0, undefined)
     results[id] = { hp, energia: en, name: cls.name }
   }
   return results
