@@ -16,7 +16,7 @@ import { RUNE_TRAINING_RULES } from '../utils/runeRules'
 import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
 import { normalizeProgressionLabel } from '../utils/progressionUtils'
 import { ARMOR_TYPES, ARMOR_SLOTS, EQUIPMENT_RARITIES, EQUIPMENT_TYPES, EQUIPMENT_STAT_LABELS, SIMPLE_ITEMS } from '../data/equipment'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 
 const SECTION_CATEGORIES = [
   {
@@ -49,7 +49,7 @@ const SECTION_CATEGORIES = [
     icon: '🛡️',
     color: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/5',
     activeColor: 'bg-emerald-400 text-void',
-    sections: ['Armas', 'Ranks de Arma', 'Equipamentos', 'Limites de Equipamento', 'Armas Lendárias', 'Artes Marciais'],
+    sections: ['Armas', 'Ranks de Arma', 'Equipamentos', 'Limites de Equipamento', 'Armas Lendárias', 'Artes Marciais', 'Durabilidade', 'Criação & Forja'],
   },
   {
     id: 'magic',
@@ -71,16 +71,55 @@ const SECTION_CATEGORIES = [
 
 const ALL_SECTIONS = SECTION_CATEGORIES.flatMap(c => c.sections)
 
+const SECTION_VERSIONS = {
+  'Fórmulas Rápidas': 'v2.1 — Mai 2026',
+  'Regras de Combate': 'v2.1 — Mai 2026',
+  'Raças': 'v2.0',
+  'Atributos': 'v2.0',
+  'Classes': 'v2.0',
+  'Progressão': 'v2.0',
+  'Perícias': 'v2.0',
+  'Triagens': 'v2.1 — Mai 2026',
+  'Módulos Passivos': 'v2.0',
+  'Módulos Especiais': 'v2.0',
+  'Módulos Ativos': 'v2.0',
+  'Armas': 'v2.0',
+  'Ranks de Arma': 'v2.0',
+  'Equipamentos': 'v2.1 — Mai 2026',
+  'Limites de Equipamento': 'v2.0',
+  'Durabilidade': 'v2.1 — Mai 2026',
+  'Criação & Forja': 'v2.1 — Mai 2026',
+  'Armas Lendárias': 'v2.0',
+  'Artes Marciais': 'v2.0',
+  'Alquimia': 'v2.0',
+  'Feitiços': 'v2.0',
+  'Runas': 'v2.0',
+  'Grimórios': 'v2.0',
+  'Criação de Personagem': 'v2.0',
+  'Balanceamento': 'v2.0',
+}
+
+const CATEGORY_DESCRIPTIONS = {
+  quickref: 'Fórmulas, regras de combate e referência rápida para consultas durante a sessão.',
+  character: 'Raças, atributos, classes, progressão e criação de personagem.',
+  combat: 'Triagens e módulos que definem o estilo de combate do personagem.',
+  equipment: 'Armas, armaduras, categorias de set e artes marciais.',
+  magic: 'Alquimia, feitiços, runas e grimórios — todo conhecimento místico.',
+  system: 'Protocolo de balanceamento SCP/TDH e calibração de poder.',
+}
+
 function getSectionCategory(sectionId) {
   return SECTION_CATEGORIES.find(c => c.sections.includes(sectionId))
 }
 
 export default function ReferencePage() {
-  const [section, setSection] = useState('Fórmulas Rápidas')
+  const [section, setSection] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedCategory, setExpandedCategory] = useState('quickref')
+  const [fadeKey, setFadeKey] = useState(0)
+  const contentRef = useRef(null)
 
-  const category = getSectionCategory(section)
+  const category = section ? getSectionCategory(section) : null
 
   const searchResults = useMemo(() => {
     if (!searchTerm.trim()) return null
@@ -101,6 +140,8 @@ export default function ReferencePage() {
       'Ranks de Arma': ['rank', 'patente', 'comum', 'incomum', 'raro', 'epico', 'heroico', 'ancestral', 'mitico', 'transcendente'],
       'Equipamentos': ['equipamento', 'equipment', 'armadura', 'peitoral', 'elmo', 'calca', 'bota', 'categoria', 'set', 'bonus', 'guerreiro', 'furtivo', 'medico', 'tecnologico', 'demolidor', 'exploracao', 'escudo', 'durabilidade'],
       'Limites de Equipamento': ['limite', 'equipamento', 'rank maximo'],
+      'Durabilidade': ['durabilidade', 'quebrar', 'reparo', 'consertar', 'ferraria', 'repair', 'broken', 'desgaste'],
+      'Criação & Forja': ['criacao', 'forja', 'crafting', 'craft', 'criar equipamento', 'materia prima', 'ferraria', 'forjar'],
       'Armas Lendárias': ['lendario', 'legendary', 'forja'],
       'Artes Marciais': ['arte marcial', 'boxe', 'karate', 'muay thai', 'judo', 'taekwondo', 'aikido', 'desarmado'],
       'Alquimia': ['alquimia', 'alchemy', 'ritual', 'circulo', 'reagente', 'veu', 'abismo'],
@@ -119,9 +160,16 @@ export default function ReferencePage() {
   const handleSectionClick = (s) => {
     setSection(s)
     setSearchTerm('')
+    setFadeKey(k => k + 1)
     const cat = getSectionCategory(s)
     if (cat) setExpandedCategory(cat.id)
   }
+
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [section, fadeKey])
+
+  const showHome = section === null
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -165,19 +213,24 @@ export default function ReferencePage() {
       <div className="flex gap-4">
         <nav className="hidden lg:block w-56 shrink-0">
           <div className="sticky top-20 space-y-1">
+            <button onClick={() => setSection(null)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors mb-1 ${showHome ? 'text-gold bg-gold/10 border border-gold/20' : 'text-txt-dim hover:text-txt-main hover:bg-void/40'}`}>
+              <span>🏠</span>
+              <span>Painel Inicial</span>
+            </button>
             {SECTION_CATEGORIES.map(cat => (
               <div key={cat.id}>
                 <button
-                  onClick={() => { setExpandedCategory(expandedCategory === cat.id ? cat.id : cat.id); if (!cat.sections.includes(section)) setSection(cat.sections[0]) }}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${expandedCategory === cat.id ? cat.color : 'text-txt-dim hover:text-txt-main hover:bg-void/40'}`}
+                  onClick={() => { setExpandedCategory(cat.id); if (!cat.sections.includes(section)) setSection(cat.sections[0]) }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${expandedCategory === cat.id && !showHome ? cat.color : 'text-txt-dim hover:text-txt-main hover:bg-void/40'}`}
                 >
                   <span>{cat.icon}</span>
                   <span>{cat.label}</span>
                 </button>
-                {expandedCategory === cat.id && (
+                {expandedCategory === cat.id && !showHome && (
                   <div className="ml-3 pl-3 border-l border-sep/30 space-y-0.5 mt-1 mb-2">
                     {cat.sections.map(s => (
-                      <button key={s} onClick={() => setSection(s)}
+                      <button key={s} onClick={() => handleSectionClick(s)}
                         className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${section === s ? 'text-primary font-semibold bg-primary/10' : 'text-txt-dim hover:text-txt-main hover:bg-void/30'}`}>
                         {s}
                       </button>
@@ -189,49 +242,95 @@ export default function ReferencePage() {
           </div>
         </nav>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0" ref={contentRef}>
           <div className="lg:hidden flex flex-wrap gap-1.5 mb-4">
+            <button onClick={() => setSection(null)}
+              className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${showHome ? 'bg-gold text-void border-gold' : 'text-txt-dim border-sep/30 hover:border-gold/30'}`}>
+              🏠 Início
+            </button>
             {SECTION_CATEGORIES.map(cat => (
-              <button key={cat.id} onClick={() => { setExpandedCategory(cat.id); if (!cat.sections.includes(section)) setSection(cat.sections[0]) }}
-                className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${expandedCategory === cat.id ? cat.activeColor : 'text-txt-dim border-sep/30 hover:border-primary/30'}`}>
+              <button key={cat.id} onClick={() => { setExpandedCategory(cat.id); if (!cat.sections.includes(section)) handleSectionClick(cat.sections[0]) }}
+                className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${category?.id === cat.id && !showHome ? cat.activeColor : 'text-txt-dim border-sep/30 hover:border-primary/30'}`}>
                 {cat.icon} {cat.label}
               </button>
             ))}
           </div>
           <div className="lg:hidden flex flex-wrap gap-1 mb-4">
-            {(getSectionCategory(section)?.sections || []).map(s => (
-              <button key={s} onClick={() => setSection(s)}
+            {(category?.sections || []).map(s => (
+              <button key={s} onClick={() => handleSectionClick(s)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${section === s ? 'bg-primary text-on-primary' : 'border border-outline/30 text-on-surface-variant hover:border-primary hover:text-primary'}`}>
                 {s}
               </button>
             ))}
           </div>
 
-          <div className="codex-card p-6">
-            {section === 'Fórmulas Rápidas' && <QuickFormulasSection />}
-            {section === 'Regras de Combate' && <CombatRulesSection />}
-            {section === 'Raças' && <RacasSection />}
-            {section === 'Atributos' && <AttributesSection />}
-            {section === 'Classes' && <ClassesSection />}
-            {section === 'Progressão' && <ProgressionSection />}
-            {section === 'Perícias' && <PericiasSection />}
-            {section === 'Triagens' && <TriagesSection />}
-            {section === 'Módulos Passivos' && <ModulesSection items={MODULES_PASSIVE} title="Módulos Passivos" />}
-            {section === 'Módulos Especiais' && <ModulesSection items={MODULES_SPECIAL} title="Módulos Especiais" special />}
-            {section === 'Módulos Ativos' && <ModulesSection items={MODULES_ACTIVE} title="Módulos Ativos" active />}
-            {section === 'Armas' && <WeaponsSection />}
-            {section === 'Ranks de Arma' && <RanksSection />}
-            {section === 'Limites de Equipamento' && <EquipLimitsSection />}
-            {section === 'Equipamentos' && <EquipmentSection />}
-            {section === 'Armas Lendárias' && <LegendaryWeaponsSection />}
-            {section === 'Artes Marciais' && <MartialArtsSection />}
-            {section === 'Alquimia' && <AlchemySection />}
-            {section === 'Feitiços' && <SpellsSection />}
-            {section === 'Runas' && <RunesSection />}
-            {section === 'Grimórios' && <GrimoriosSection />}
-            {section === 'Criação de Personagem' && <CreationGuideSection />}
-            {section === 'Balanceamento' && <BalanceProtocolSection />}
-          </div>
+          {showHome ? (
+            <div>
+              <div className="text-center mb-8">
+                <h1 className="font-cinzel text-primary text-2xl tracking-wider mb-2">Livro de Regras</h1>
+                <p className="text-txt-dim text-sm max-w-lg mx-auto">Selecione uma categoria para explorar as regras do Sistema Olympo, ou use a busca acima para encontrar informações específicas.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {SECTION_CATEGORIES.map(cat => (
+                  <button key={cat.id} onClick={() => handleSectionClick(cat.sections[0])}
+                    className={`group rounded-xl border p-5 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5 ${cat.color}`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-3xl">{cat.icon}</span>
+                      <div>
+                        <h3 className={`font-cinzel text-base font-bold ${cat.color.split(' ')[0]}`}>{cat.label}</h3>
+                        <span className="text-txt-dim text-[10px]">{cat.sections.length} seções</span>
+                      </div>
+                    </div>
+                    <p className="text-txt-dim text-xs leading-relaxed mb-3">{CATEGORY_DESCRIPTIONS[cat.id]}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {cat.sections.map(s => (
+                        <span key={s} className="text-[10px] px-2 py-0.5 rounded bg-void/40 text-txt-dim border border-sep/20 group-hover:border-primary/20 group-hover:text-primary/80 transition-colors">{s}</span>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div key={fadeKey} className="animate-[fadeIn_0.2s_ease-out]">
+              <div className="sticky top-16 z-10 -mx-6 px-6 py-3 mb-4 bg-background/90 backdrop-blur-md border-b border-sep/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{category?.icon}</span>
+                    <h2 className="font-cinzel text-primary text-lg tracking-wider">{section}</h2>
+                  </div>
+                  <span className="text-txt-dim/50 text-[10px] font-mono">{SECTION_VERSIONS[section] || 'v2.0'}</span>
+                </div>
+              </div>
+              <div className="codex-card p-6">
+                {section === 'Fórmulas Rápidas' && <QuickFormulasSection />}
+                {section === 'Regras de Combate' && <CombatRulesSection />}
+                {section === 'Raças' && <RacasSection />}
+                {section === 'Atributos' && <AttributesSection />}
+                {section === 'Classes' && <ClassesSection />}
+                {section === 'Progressão' && <ProgressionSection />}
+                {section === 'Perícias' && <PericiasSection />}
+                {section === 'Triagens' && <TriagesSection />}
+                {section === 'Módulos Passivos' && <ModulesSection items={MODULES_PASSIVE} title="Módulos Passivos" />}
+                {section === 'Módulos Especiais' && <ModulesSection items={MODULES_SPECIAL} title="Módulos Especiais" special />}
+                {section === 'Módulos Ativos' && <ModulesSection items={MODULES_ACTIVE} title="Módulos Ativos" active />}
+                {section === 'Armas' && <WeaponsSection />}
+                {section === 'Ranks de Arma' && <RanksSection />}
+                {section === 'Limites de Equipamento' && <EquipLimitsSection />}
+                {section === 'Durabilidade' && <DurabilitySection />}
+                {section === 'Criação & Forja' && <CraftingSection />}
+                {section === 'Equipamentos' && <EquipmentSection />}
+                {section === 'Armas Lendárias' && <LegendaryWeaponsSection />}
+                {section === 'Artes Marciais' && <MartialArtsSection />}
+                {section === 'Alquimia' && <AlchemySection />}
+                {section === 'Feitiços' && <SpellsSection />}
+                {section === 'Runas' && <RunesSection />}
+                {section === 'Grimórios' && <GrimoriosSection />}
+                {section === 'Criação de Personagem' && <CreationGuideSection />}
+                {section === 'Balanceamento' && <BalanceProtocolSection />}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1374,6 +1473,279 @@ function EquipmentSection() {
         <p>• Fichas salvas podem transferir itens e equipamentos entre personagens.</p>
         <p>• A IA balanceia passivas de equipamento usando os mesmos limites SCP/TDH de habilidades.</p>
         <p>• Equipamento pesado impõe −1 DES por peça. Peças leves e comuns não têm penalidade.</p>
+      </div>
+    </div>
+  )
+}
+
+function DurabilitySection() {
+  const durabilityByWeight = [
+    { weight: 'Leve', baseHP: 8, repairCost: 'Rank × 5 PO', repairTime: '30 min', desc: 'Couro, tecido reforçado. Durabilidade baixa, reparo rápido.' },
+    { weight: 'Comum', baseHP: 14, repairCost: 'Rank × 8 PO', repairTime: '1 hora', desc: 'Cota de malha, couro endurecido. Equilibrado.' },
+    { weight: 'Pesado', baseHP: 22, repairCost: 'Rank × 12 PO', repairTime: '2 horas', desc: 'Placas de metal. Alta durabilidade, reparo demorado.' },
+  ]
+
+  const damageTypes = [
+    { tipo: 'Corte/Perfuração', dano: '1 ponto', desc: 'Espadas, lanças, garras' },
+    { tipo: 'Impacto/Concussão', dano: '1 ponto', desc: 'Martelos, quedas, explosões' },
+    { tipo: 'Ataque focado na armadura', dano: '1d4 pontos', desc: 'Habilidade direcionada ao equipamento' },
+    { tipo: 'Explosão em área', dano: '1d6 pontos', desc: 'Granadas, magias de área' },
+    { tipo: 'Dano elemental (fogo/geada/ácido)', dano: '1d4 pontos', desc: 'Elementos que corroem ou derretem' },
+    { tipo: 'Crítico direcionado', dano: '2d4 pontos', desc: 'Crítico com intenção de destruir equipamento' },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Sistema de Durabilidade</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Cada peça de equipamento possui pontos de <strong className="text-primary">Durabilidade</strong> independentes da Armadura (absorção).
+        Quando a Durabilidade chega a 0, a peça quebra e perde todas as suas propriedades até ser reparada.
+      </p>
+
+      <div className="bg-void rounded-xl border border-amber-300/20 p-4">
+        <h3 className="text-amber-300 text-sm font-semibold mb-3">Durabilidade por Peso</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Peso</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Durabilidade</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Custo Reparo</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Tempo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {durabilityByWeight.map(d => (
+                <tr key={d.weight} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 text-txt-main font-semibold capitalize">{d.weight}</td>
+                  <td className="py-2 px-3 font-mono text-primary">{d.baseHP} pontos</td>
+                  <td className="py-2 px-3 font-mono text-amber-300">{d.repairCost}</td>
+                  <td className="py-2 px-3 font-mono text-sky-400">{d.repairTime}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-txt-dim text-xs mt-2">Fórmula de Durabilidade: Base do Peso + (Bônus de Rank × 2). Acessórios e itens de utilidade não possuem durabilidade.</p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-red-400/20 p-4">
+        <h3 className="text-red-400 text-sm font-semibold mb-3">Perda de Durabilidade por Tipo de Dano</h3>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {damageTypes.map((d, i) => (
+            <div key={i} className="bg-void/60 border border-red-400/15 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-txt-main text-xs font-semibold">{d.tipo}</span>
+                <span className="text-red-400 font-mono text-xs">−{d.dano}</span>
+              </div>
+              <p className="text-txt-dim text-[11px]">{d.desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-txt-dim text-xs mt-2">O Mestre decide quando o dano recebido afeta a durabilidade do equipamento. Em geral, apenas ataques direcionados ou dano massivo causam desgaste.</p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Regras de Quebra & Reparo</h3>
+        <div className="space-y-2 text-xs text-txt-dim">
+          <div className="flex gap-2 items-start">
+            <span className="text-red-400 font-bold shrink-0">Quebra:</span>
+            <span>Ao atingir 0 Durabilidade, a peça quebra. Perde-se armadura (absorção), escudo, vida temporária e habilidades da peça até reparo.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-emerald-400 font-bold shrink-0">Reparo em Campo:</span>
+            <span>Teste de Tecnologia CD 12 + Rank × 2. Sucesso restaura 1d4+INT de durabilidade. Falha não causa dano. 1 tentativa por cena por peça.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-sky-400 font-bold shrink-0">Reparo em Ferraria:</span>
+            <span>Restaura durabilidade completa. Custo e tempo conforme tabela acima. Transcendente exige ferraria especializada (250 PO + 4h).</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-amber-300 font-bold shrink-0">Destruição Total:</span>
+            <span>Se a durabilidade cair para −5 ou menos, a peça é destruída permanentemente e não pode ser reparada.</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sky-400/20 p-4">
+        <h3 className="text-sky-400 text-sm font-semibold mb-3">Durabilidade por Rank de Equipamento</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Bônus Durabilidade</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Resistência Elemental</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { rank: 'Comum', bonus: '+0', resist: 'Normal' },
+                { rank: 'Incomum', bonus: '+2', resist: 'Normal' },
+                { rank: 'Raro', bonus: '+4', resist: '+2 contra elemento aleatório' },
+                { rank: 'Épico', bonus: '+6', resist: '+4 contra elemento aleatório' },
+                { rank: 'Heroico', bonus: '+8', resist: '+6 contra 2 elementos' },
+                { rank: 'Ancestral', bonus: '+10', resist: '+8 contra 2 elementos' },
+                { rank: 'Mítico', bonus: '+12', resist: '+10 contra 3 elementos' },
+                { rank: 'Transcendente', bonus: '+15', resist: 'Imune a desgaste elemental' },
+              ].map((r, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
+                  <td className="py-2 px-3 font-mono text-primary">{r.bonus}</td>
+                  <td className="py-2 px-3 text-txt-dim text-xs">{r.resist}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CraftingSection() {
+  const craftingSkills = [
+    { skill: 'Tecnologia', cd: 12, desc: 'Armaduras, upgrades eletrônicos, dispositivos' },
+    { skill: 'Sobrevivência', cd: 14, desc: 'Armaduras rústicas, armadilhas, itens de campo' },
+    { skill: 'Alquimia', cd: 15, desc: 'Poções, elixires, compostos alquímicos' },
+    { skill: 'Poder', cd: 15, desc: 'Itens encantados, runas gravadas, artefatos mágicos' },
+  ]
+
+  const materials = [
+    { tipo: 'Metal Comum', peso: 2, preco: 10, desc: 'Ferro, aço, bronze. Para equipamentos Comum e Incomum.' },
+    { tipo: 'Metal Refinado', peso: 1.5, preco: 50, desc: 'Aço liga, titânio. Para equipamentos Raro e Épico.' },
+    { tipo: 'Metal Precioso', peso: 1, preco: 200, desc: 'Mithril, oricalco. Para equipamentos Heroico e Ancestral.' },
+    { tipo: 'Matéria Primordial', peso: 0.5, preco: 1000, desc: 'Abisso, éter condensado. Para equipamentos Mítico e Transcendente.' },
+    { tipo: 'Couro/Courino', peso: 1, preco: 5, desc: 'Para armaduras leves de qualquer rank.' },
+    { tipo: 'Reagente Alquímico', peso: 0.2, preco: 30, desc: 'Base para poções, elixires e compostos.' },
+    { tipo: 'Essência Mágica', peso: 0.1, preco: 150, desc: 'Cristal de energia. Para encantamentos e runas.' },
+  ]
+
+  const recipes = [
+    { nome: 'Peitoral Leve', rank: 'Comum', materiais: '4 Metal Comum + 2 Couro', tempo: '4h', cd: 12 },
+    { nome: 'Peitoral Comum', rank: 'Comum', materiais: '6 Metal Comum + 3 Couro', tempo: '6h', cd: 14 },
+    { nome: 'Peitoral Pesado', rank: 'Incomum', materiais: '8 Metal Refinado + 2 Couro', tempo: '10h', cd: 16 },
+    { nome: 'Elmo de Qualidade', rank: 'Raro', materiais: '3 Metal Refinado + 1 Essência Mágica', tempo: '6h', cd: 16 },
+    { nome: 'Armadura Encantada', rank: 'Épico', materiais: '5 Metal Precioso + 3 Essência Mágica', tempo: '16h', cd: 18 },
+    { nome: 'Peça Ancestral', rank: 'Ancestral', materiais: '8 Metal Precioso + 5 Essência Mágica + 1 Reagente Raro', tempo: '24h', cd: 20 },
+    { nome: 'Kit Médico', rank: 'Comum', materiais: '2 Reagente Alquímico + 1 Couro', tempo: '1h', cd: 12 },
+    { nome: 'Granada Improvisada', rank: 'Comum', materiais: '3 Metal Comum + 2 Reagente Alquímico', tempo: '2h', cd: 14 },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Criação & Forja</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Personagens podem criar equipamentos, itens de utilidade e consumíveis usando perícia, materiais e tempo. A perícia
+        utilizada define o tipo de item que pode ser criado e a CD do teste de criação.
+      </p>
+
+      <div className="bg-void rounded-xl border border-amber-300/20 p-4">
+        <h3 className="text-amber-300 text-sm font-semibold mb-3">Perícias de Criação</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {craftingSkills.map((s, i) => (
+            <div key={i} className="bg-void/60 border border-amber-300/15 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-amber-200 font-semibold text-sm">{s.skill}</span>
+                <span className="text-amber-300 font-mono text-xs">CD {s.cd}+</span>
+              </div>
+              <p className="text-txt-dim text-xs">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-txt-dim text-xs mt-2">A CD base é para rank Comum. Cada rank acima de Comum adiciona +2 à CD. Módulo "Forja Pessoal" reduz a CD em 2.</p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-sky-400/20 p-4">
+        <h3 className="text-sky-400 text-sm font-semibold mb-3">Matérias-Primas</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Material</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Peso (un.)</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Preço (PO)</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Uso</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materials.map((m, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 text-txt-main font-semibold">{m.tipo}</td>
+                  <td className="py-2 px-3 font-mono text-txt-dim">{m.peso} kg</td>
+                  <td className="py-2 px-3 font-mono text-amber-300">{m.preco} PO</td>
+                  <td className="py-2 px-3 text-txt-dim text-xs">{m.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Receitas de Exemplo</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-sep/40">
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Item</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Materiais</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Tempo</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">CD</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recipes.map((r, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-2 px-3 text-txt-main font-semibold">{r.nome}</td>
+                  <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
+                  <td className="py-2 px-3 text-txt-dim text-xs">{r.materiais}</td>
+                  <td className="py-2 px-3 font-mono text-sky-400">{r.tempo}</td>
+                  <td className="py-2 px-3 font-mono text-primary">{r.cd}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-purple-400/20 p-4">
+        <h3 className="text-purple-400 text-sm font-semibold mb-3">Regras de Criação</h3>
+        <div className="space-y-2 text-xs text-txt-dim">
+          <div className="flex gap-2 items-start">
+            <span className="text-purple-300 font-bold shrink-0">1. Preparação:</span>
+            <span>O personagem precisa ter os materiais, ferramentas básicas e acesso a uma bancada/ferraria (ou ambiente adequado).</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-purple-300 font-bold shrink-0">2. Teste:</span>
+            <span>Teste da perícia relevante contra a CD do item. O grau de treinamento limita o rank máximo criável (Treinado=Comum/Incomum, Veterano=Raro/Épico, Especialista=Heroico/Ancestral, Mestre=Mítico/Transcendente).</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-emerald-400 font-bold shrink-0">Sucesso:</span>
+            <span>O item é criado com propriedades completas. Sucesso com margem ≥5: o item recebe +1 em um atributo à escolha.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-amber-300 font-bold shrink-0">Sucesso parcial (falha por 1-3):</span>
+            <span>O item é criado, mas com −2 em um atributo aleatório. Pode ser rerolado como reparo.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-red-400 font-bold shrink-0">Falha (por 4+):</span>
+            <span>Os materiais são desperdiçados. Metade do custo em PO é perdido.</span>
+          </div>
+          <div className="flex gap-2 items-start">
+            <span className="text-sky-400 font-bold shrink-0">Assistência:</span>
+            <span>Até 2 aliados podem ajudar, cada um concedendo +2 no teste desde que tenham a mesma perícia treinada.</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
+        <p className="text-primary font-semibold text-sm mb-1">Notas</p>
+        <p>• O Mestre pode criar receitas customizadas ou ajustar CDs conforme a complexidade do item.</p>
+        <p>• Itens mágicos (encantados) exigem o dobro de Essência Mágica e perícia Poder ou Alquimia.</p>
+        <p>• O Módulo "Forja Pessoal" concede proficiência em criação, reduz CD em 2 e permite criar 1 item por descanso longo sem teste.</p>
+        <p>• Armas seguem as mesmas regras, usando perícia adequada (Tecnologia para armas de fogo, Sobrevivência para arcos, etc.).</p>
       </div>
     </div>
   )

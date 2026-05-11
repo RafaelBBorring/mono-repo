@@ -518,7 +518,7 @@ export default function App() {
 
 function AppInner() {
   const { user, profile, loading, logout, isAdmin } = useAuth()
-  const { char, update, updateNested, updateHabilidade, reset } = useCharacter()
+  const { char, update, updateNested, updateHabilidade, reset, clearDraft, hasDraft } = useCharacter()
   const [currentStep, setCurrentStep] = useState(0)
   const [view, setView] = useState('home')
   const [validationError, setValidationError] = useState(null)
@@ -714,6 +714,10 @@ function AppInner() {
     setValidationError(null)
   }
 
+  function handleResumeDraft() {
+    setView('wizard')
+  }
+
   const reviewProps = currentStep === TOTAL_STEPS - 1
     ? { char, update, updateHabilidade, onSave: handleSave, onEdit: () => setView('wizard'), onNew: handleNew, characterId: null }
     : stepProps
@@ -786,12 +790,12 @@ function AppInner() {
              sheetsCount={sheets.length}
              sheets={sheets}
              onNew={() => { handleNew(); setView('wizard') }}
-             onContinue={() => setView('wizard')}
+              onContinue={handleResumeDraft}
              onLibrary={() => setView('library')}
              onReference={() => setView('reference')}
              onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
              onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
-             hasDraft={!!char.nome || !!char.classe}
+              hasDraft={hasDraft}
              isAdmin={isAdmin}
             />
          </div>

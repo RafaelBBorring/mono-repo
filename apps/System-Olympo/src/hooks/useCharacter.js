@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { ATTRIBUTES } from '../data/attributes'
+
+const DRAFT_KEY = 'olympo_char_draft'
 
 const initialHabilidade = (tipo) => ({
   tipo,
@@ -78,31 +80,72 @@ const initialState = {
   dracmas: 5,
 }
 
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || (!parsed.nome && !parsed.classe)) return null
+    return { ...initialState, ...parsed, habilidades: parsed.habilidades || initialState.habilidades }
+  } catch { return null }
+}
+
+function saveDraft(state) {
+  try {
+    if (!state.nome && !state.classe) {
+      localStorage.removeItem(DRAFT_KEY)
+      return
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(state))
+  } catch {}
+}
+
 export function useCharacter() {
-  const [char, setChar] = useState(initialState)
+  const draft = useRef(loadDraft())
+  const [char, setChar] = useState(draft.current || initialState)
+  const [hasDraft, setHasDraft] = useState(!!draft.current)
+
+  const persist = (next) => {
+    setHasDraft(!!next.nome || !!next.classe)
+    saveDraft(next)
+  }
 
   const update = useCallback((patch) => {
-    setChar(prev => ({ ...prev, ...patch }))
+    setChar(prev => {
+      const next = { ...prev, ...patch }
+      persist(next)
+      return next
+    })
   }, [])
 
   const updateNested = useCallback((key, patch) => {
-    setChar(prev => ({
-      ...prev,
-      [key]: { ...prev[key], ...patch },
-    }))
+    setChar(prev => {
+      const next = { ...prev, [key]: { ...prev[key], ...patch } }
+      persist(next)
+      return next
+    })
   }, [])
 
   const updateHabilidade = useCallback((index, patch) => {
     setChar(prev => {
       const habs = [...prev.habilidades]
       habs[index] = { ...habs[index], ...patch }
-      return { ...prev, habilidades: habs }
+      const next = { ...prev, habilidades: habs }
+      persist(next)
+      return next
     })
+  }, [])
+
+  const clearDraft = useCallback(() => {
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+    setHasDraft(false)
   }, [])
 
   const reset = useCallback(() => {
     setChar(initialState)
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+    setHasDraft(false)
   }, [])
 
-  return { char, update, updateNested, updateHabilidade, reset }
+  return { char, update, updateNested, updateHabilidade, reset, clearDraft, hasDraft }
 }
