@@ -128,6 +128,11 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
 
   function addOutfitPiece(outfitId, item) {
     const nextItem = { ...item, trajeId: outfitId }
+    const nextType = getEquipmentType(nextItem)
+    if (nextType?.slot) {
+      const slotTaken = equipamentos.some(piece => piece.trajeId === outfitId && getEquipmentType(piece)?.slot === nextType.slot)
+      if (slotTaken) return
+    }
     const next = enforceSingleSlot([...equipamentos, nextItem], nextItem, equipamentos.length)
     onUpdate(next)
     setPieceOutfitId(null)
@@ -164,6 +169,10 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       .filter(item => item.id !== outfitId)
       .map(item => item.trajeId === outfitId ? { ...item, trajeId: null } : item))
     closeDrawer()
+  }
+
+  function removePieceFromOutfit(idx) {
+    updateEquip(idx, { trajeId: null })
   }
 
   function removeEquip(idx) {
@@ -259,6 +268,12 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const viewingOutfit = viewOutfitIdx !== null ? equipamentos[viewOutfitIdx] : null
   const outfits = equipamentos.filter(isOutfit)
   const visibleEquipamentos = equipamentos.filter(item => !isOutfit(item) && !item.trajeId)
+  const pieceOutfitUsedSlots = pieceOutfitId
+    ? equipamentos
+        .filter(item => item.trajeId === pieceOutfitId)
+        .map(item => getEquipmentType(item)?.slot)
+        .filter(Boolean)
+    : []
 
   return (
     <>
@@ -327,50 +342,56 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           ) : null}
 
           {(weapon || visibleEquipamentos.length > 0 || outfits.length > 0 || enrichedLegendary.length > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {weapon && (
-                <WeaponCard
-                  weapon={weapon}
-                  rank={weaponRank}
-                  habilidades={char.armaHabilidades || []}
-                  triagemBonus={getWeaponTriagemBonus(char)}
-                  image={char.armaImagem}
-                  displayName={char.armaNome || weapon.name}
-                  equipped={weaponEquipped}
-                  canEdit={canEdit}
-                  onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'guardado' : 'equipado' })}
-                  onClick={() => setShowWeaponDrawer(true)}
-                />
+            <div className={outfits.length ? 'grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-4 items-start' : ''}>
+              {outfits.length > 0 && (
+                <div className="space-y-3 lg:sticky lg:top-4">
+                  {outfits.map((item) => {
+                    const idx = equipamentos.indexOf(item)
+                    const pieces = equipamentos.filter(piece => piece.trajeId === item.id)
+                    return (
+                      <OutfitPortraitCard
+                        key={item.id || idx}
+                        item={item}
+                        pieces={pieces}
+                        canEdit={canEdit}
+                        onToggle={() => setOutfitEquipped(item.id, !item.equipado)}
+                        onClick={() => openOutfitDrawer(idx)}
+                      />
+                    )
+                  })}
+                </div>
               )}
-              {outfits.map((item) => {
-                const idx = equipamentos.indexOf(item)
-                const pieces = equipamentos.filter(piece => piece.trajeId === item.id)
-                return (
-                  <OutfitCard
-                    key={item.id || idx}
-                    item={item}
-                    pieces={pieces}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {weapon && (
+                  <WeaponCard
+                    weapon={weapon}
+                    rank={weaponRank}
+                    habilidades={char.armaHabilidades || []}
+                    triagemBonus={getWeaponTriagemBonus(char)}
+                    image={char.armaImagem}
+                    displayName={char.armaNome || weapon.name}
+                    equipped={weaponEquipped}
                     canEdit={canEdit}
-                    onToggle={() => setOutfitEquipped(item.id, !item.equipado)}
-                    onClick={() => openOutfitDrawer(idx)}
+                    onToggleEquipped={() => updatePrimaryWeapon({ armaEquipada: !weaponEquipped, armaLocal: weaponEquipped ? 'guardado' : 'equipado' })}
+                    onClick={() => setShowWeaponDrawer(true)}
                   />
-                )
-              })}
-              {visibleEquipamentos.map((item) => {
-                const idx = equipamentos.indexOf(item)
-                return (
-                <EquipCard
-                  key={item.id || idx}
-                  item={item}
-                  canEdit={canEdit}
-                  onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'guardado' : 'equipado' })}
-                  onClick={() => openDrawer(idx)}
-                />
-                )
-              })}
-              {enrichedLegendary.map((item, idx) => (
-                <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
-              ))}
+                )}
+                {visibleEquipamentos.map((item) => {
+                  const idx = equipamentos.indexOf(item)
+                  return (
+                    <EquipCard
+                      key={item.id || idx}
+                      item={item}
+                      canEdit={canEdit}
+                      onToggle={() => updateEquip(idx, { equipado: !item.equipado, local: item.equipado ? 'guardado' : 'equipado' })}
+                      onClick={() => openDrawer(idx)}
+                    />
+                  )
+                })}
+                {enrichedLegendary.map((item, idx) => (
+                  <LegendaryAssignedCard key={item.id || idx} item={item} onClick={() => setViewLegendaryIdx(idx)} />
+                ))}
+              </div>
             </div>
           )}
 
@@ -386,7 +407,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       )}
 
       {showCreateOutfit && createPortal(
-        <OutfitCreateModal onSave={addOutfit} onClose={() => setShowCreateOutfit(false)} />,
+        <OutfitCreateModalClean onSave={addOutfit} onClose={() => setShowCreateOutfit(false)} />,
         document.body
       )}
 
@@ -397,7 +418,8 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           onClose={() => setPieceOutfitId(null)}
           initialCategory="Equipamento"
           lockCategory
-          title="Nova PeÃ§a do Traje"
+          title="Nova Peca do Traje"
+          unavailableSlots={pieceOutfitUsedSlots}
         />,
         document.body
       )}
@@ -432,7 +454,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       )}
 
       {viewingOutfit && createPortal(
-        <OutfitDrawer
+        <OutfitDrawerClean
           outfit={viewingOutfit}
           pieces={equipamentos
             .map((item, idx) => ({ item, idx }))
@@ -442,6 +464,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
           onToggleOutfit={() => setOutfitEquipped(viewingOutfit.id, !viewingOutfit.equipado)}
           onTogglePiece={(idx, piece) => updateEquip(idx, { equipado: !piece.equipado, local: piece.equipado ? 'guardado' : 'equipado' })}
           onOpenPiece={(idx) => openDrawer(idx)}
+          onRemovePiece={removePieceFromOutfit}
           onDissolve={() => dissolveOutfit(viewingOutfit.id)}
           onClose={closeDrawer}
         />,
@@ -490,13 +513,18 @@ function OutfitCard({ item, pieces = [], canEdit, onToggle, onClick }) {
   const stats = calcEquipStats(pieces.map(piece => ({ ...piece, equipado: true })))
   const equippedPieces = pieces.filter(piece => piece.equipado).length
   const completeSlots = new Set(pieces.map(piece => getEquipmentType(piece)?.slot).filter(Boolean)).size
+  const previewPieces = pieces.slice(0, 4)
   return (
-    <div className="armory-card w-full rounded-lg border border-sky-300/35 bg-sky-300/6 text-sky-100 shadow-lg shadow-sky-300/8 p-3 text-left">
+    <div className="relative rounded-lg border border-sky-300/35 bg-sky-300/6 text-sky-100 shadow-lg shadow-sky-300/8 p-3 overflow-hidden">
       <div className="armory-rank-rail" style={{ background: 'rgba(125, 211, 252, 0.55)' }} />
       <button type="button" onClick={onToggle} disabled={!canEdit}
         title={item.equipado ? 'Desequipar traje' : 'Equipar traje'}
-        className={`armory-icon bg-sky-300/10 text-sky-200 border-sky-300/25 transition-transform ${canEdit ? 'hover:scale-[1.03] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/40' : 'opacity-85'}`}>
-        {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span>TRJ</span>}
+        className={`w-full aspect-[2/3] rounded-lg border bg-sky-300/10 text-sky-200 border-sky-300/25 overflow-hidden transition-transform ${canEdit ? 'hover:scale-[1.01] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/50' : 'opacity-90'}`}>
+        {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover object-top" /> : (
+          <span className="w-full h-full grid place-items-center">
+            <span className="material-symbols-outlined text-sky-200/70 text-4xl">checkroom</span>
+          </span>
+        )}
       </button>
       <button type="button" onClick={onClick} className="flex-1 min-w-0 text-left">
         <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Traje'}</span>
@@ -508,6 +536,51 @@ function OutfitCard({ item, pieces = [], canEdit, onToggle, onClick }) {
           {item.equipado ? 'traje equipado' : 'traje guardado'}
         </span>
       </button>
+    </div>
+  )
+}
+
+function OutfitPortraitCard({ item, pieces = [], canEdit, onToggle, onClick }) {
+  const stats = calcEquipStats(pieces.map(piece => ({ ...piece, equipado: true })))
+  const equippedPieces = pieces.filter(piece => piece.equipado).length
+  const completeSlots = new Set(pieces.map(piece => getEquipmentType(piece)?.slot).filter(Boolean)).size
+  const previewPieces = pieces.slice(0, 4)
+  return (
+    <div className="relative rounded-lg border border-sky-300/35 bg-sky-300/6 text-sky-100 shadow-lg shadow-sky-300/8 p-3 overflow-hidden">
+      <div className="armory-rank-rail" style={{ background: 'rgba(125, 211, 252, 0.55)' }} />
+      <button type="button" onClick={onToggle} disabled={!canEdit}
+        title={item.equipado ? 'Desequipar traje' : 'Equipar traje'}
+        className={`w-full aspect-[2/3] rounded-lg border bg-sky-300/10 text-sky-200 border-sky-300/25 overflow-hidden transition-transform ${canEdit ? 'hover:scale-[1.01] cursor-pointer' : 'cursor-default'} ${item.equipado ? 'ring-1 ring-emerald-300/50' : 'opacity-90'}`}>
+        {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover object-top" /> : (
+          <span className="w-full h-full grid place-items-center">
+            <span className="material-symbols-outlined text-sky-200/70 text-4xl">checkroom</span>
+          </span>
+        )}
+      </button>
+      <div className="mt-3">
+        <button type="button" onClick={onClick} className="w-full min-w-0 text-left">
+          <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Traje'}</span>
+          <span className="text-sky-200/65 text-[11px] mt-0.5 block">{pieces.length} pecas - {equippedPieces} equipadas - {completeSlots}/4 slots</span>
+          <span className="text-emerald-300/75 text-[10px] font-mono mt-1 block">
+            ARM {stats.totalArmor || 0} - DUR {stats.totalDurabilityMax ? `${stats.totalDurability}/${stats.totalDurabilityMax}` : '0'}
+          </span>
+        </button>
+        {previewPieces.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {previewPieces.map((piece, index) => {
+              const type = getEquipmentType(piece)
+              return (
+                <span key={piece.id || index} className="text-[8px] px-1.5 py-0.5 rounded border border-sky-300/15 bg-sky-300/8 text-sky-100/75">
+                  {type?.label || piece.nome || 'Peca'}
+                </span>
+              )
+            })}
+          </div>
+        )}
+        <span className={`text-[9px] mt-2 inline-flex px-1.5 py-0.5 rounded border ${item.equipado ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>
+          {item.equipado ? 'traje equipado' : 'traje guardado'}
+        </span>
+      </div>
     </div>
   )
 }
@@ -1071,7 +1144,7 @@ function LegendaryCatalogModal({ items, assigned, isAdmin, onAssign, onClose }) 
   )
 }
 
-function OutfitDrawer({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit, onTogglePiece, onOpenPiece, onDissolve, onClose }) {
+function OutfitDrawerClean({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit, onTogglePiece, onOpenPiece, onRemovePiece, onDissolve, onClose }) {
   const pieceItems = pieces.map(({ item }) => item)
   const stats = calcEquipStats(pieceItems.map(piece => ({ ...piece, equipado: true })))
   return (
@@ -1088,7 +1161,123 @@ function OutfitDrawer({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit
               <span className="text-txt-dim/60 text-[10px]">{pieces.length} pecas vinculadas</span>
             </div>
           </div>
-          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">âœ•</button>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">x</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {outfit.imagem && (
+            <img src={outfit.imagem} alt="" className="w-full aspect-[2/3] max-h-[520px] rounded-lg object-cover object-top border border-sky-300/20" />
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Armadura</span>
+              <p className="text-primary text-sm font-mono mt-0.5">{stats.totalArmor || 0}</p>
+            </div>
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Durabilidade</span>
+              <p className="text-emerald-300 text-sm font-mono mt-0.5">{stats.totalDurabilityMax ? `${stats.totalDurability}/${stats.totalDurabilityMax}` : 0}</p>
+            </div>
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Penalidade</span>
+              <p className="text-amber-300 text-sm font-mono mt-0.5">{stats.totalSpeedPenalty ? `${stats.totalSpeedPenalty} DES` : '0'}</p>
+            </div>
+            <div className="bg-void/50 border border-sky-300/15 rounded-lg px-3 py-2">
+              <span className="text-txt-dim/50 text-[9px] uppercase">Estado</span>
+              <p className="text-txt-main text-sm font-mono mt-0.5">{outfit.equipado ? 'equipado' : 'guardado'}</p>
+            </div>
+          </div>
+
+          {outfit.descricao && <p className="text-txt-dim/75 text-xs leading-relaxed">{outfit.descricao}</p>}
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-txt-dim text-[10px] uppercase tracking-wider">Pecas do traje</span>
+              {canEdit && (
+                <button onClick={onAddPiece} className="text-[10px] border border-sky-300/30 text-sky-200 px-2 py-1 rounded hover:bg-sky-300/10 transition-colors">
+                  + Peca
+                </button>
+              )}
+            </div>
+            {pieces.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-sky-300/20 bg-sky-300/5 px-3 py-6 text-center">
+                <span className="material-symbols-outlined text-sky-200/50 text-3xl">inventory_2</span>
+                <p className="text-txt-dim/55 text-[11px] mt-1">Crie as pecas internas para este traje.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pieces.map(({ item, idx }) => {
+                  const type = getEquipmentType(item)
+                  const armorType = getArmorType(item)
+                  return (
+                    <div key={item.id || idx} className="rounded-lg border border-sky-300/15 bg-void/45 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => onTogglePiece(idx, item)} disabled={!canEdit}
+                          title={item.equipado ? 'Desequipar peca' : 'Equipar peca'}
+                          className={`w-11 h-11 rounded border bg-sky-300/8 grid place-items-center overflow-hidden shrink-0 transition-transform ${canEdit ? 'hover:scale-[1.04]' : ''} ${item.equipado ? 'border-emerald-400/35 ring-1 ring-emerald-300/25' : 'border-sky-300/20 opacity-75'}`}>
+                          {item.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span className="text-sky-100/70 text-[10px]">EQP</span>}
+                        </button>
+                        <button type="button" onClick={() => onOpenPiece(idx)} className="min-w-0 flex-1 text-left">
+                          <span className="text-txt-main text-xs font-semibold truncate block">{item.nome || 'Peca'}</span>
+                          <span className="text-txt-dim/55 text-[10px] block">{type?.label || item.categoria}{armorType ? ` - ${armorType.label}` : ''}</span>
+                        </button>
+                        {canEdit && (
+                          <button onClick={() => onRemovePiece(idx)}
+                            title="Tirar do traje"
+                            className="w-7 h-7 grid place-items-center rounded border border-amber-300/25 text-amber-200/75 hover:bg-amber-300/10 hover:text-amber-100 transition-colors">
+                            <span className="material-symbols-outlined text-[15px]">logout</span>
+                          </button>
+                        )}
+                      </div>
+                      {item.categoria === 'Equipamento' && (
+                        <div className="mt-2 flex flex-wrap gap-1.5 text-[9px] font-mono">
+                          <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/15">ARM {getEquipmentArmorValue(item)}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-300 border border-emerald-400/15">DUR {getEquipmentDurabilityCurrent(item)}/{getEquipmentDurabilityMax(item)}</span>
+                          {type?.penalty ? <span className="px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 border border-amber-400/15">{type.penalty} DES</span> : null}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-t border-sep/30 flex gap-2 shrink-0">
+          {canEdit && (
+            <>
+              <button onClick={onToggleOutfit}
+                className={`text-[10px] border px-3 py-1.5 rounded-lg transition-colors ${outfit.equipado ? 'border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10' : 'border-sky-400/30 text-sky-300 hover:bg-sky-400/10'}`}>
+                {outfit.equipado ? 'Desequipar traje' : 'Equipar traje'}
+              </button>
+              <button onClick={onDissolve} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Desfazer traje</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OutfitDrawer({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit, onTogglePiece, onOpenPiece, onRemovePiece, onDissolve, onClose }) {
+  const pieceItems = pieces.map(({ item }) => item)
+  const stats = calcEquipStats(pieceItems.map(piece => ({ ...piece, equipado: true })))
+  return (
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/40 drawer-overlay" onClick={onClose} />
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[420px] bg-deep border-l border-sky-300/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
+        <div className="px-4 py-3 border-b border-sep/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-sky-300/10 border border-sky-300/20 grid place-items-center overflow-hidden">
+              {outfit.imagem ? <img src={outfit.imagem} alt="" className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-sky-200 text-[18px]">checkroom</span>}
+            </div>
+            <div>
+              <h3 className="font-cinzel text-sky-100 text-xs uppercase tracking-wider">{outfit.nome || 'Traje'}</h3>
+              <span className="text-txt-dim/60 text-[10px]">{pieces.length} pecas vinculadas</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">x</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -1180,6 +1369,108 @@ function OutfitDrawer({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit
               <button onClick={onDissolve} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Desfazer traje</button>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OutfitCreateModalClean({ onSave, onClose }) {
+  const [nome, setNome] = useState('Traje Completo')
+  const [descricao, setDescricao] = useState('')
+  const [imagem, setImagem] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const fileRef = useRef(null)
+
+  function processImageFile(file) {
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        const size = 320
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = Math.round(size * 1.5)
+        const ctx = canvas.getContext('2d')
+        const scale = Math.max(canvas.width / img.width, canvas.height / img.height)
+        const w = img.width * scale
+        const h = img.height * scale
+        ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h)
+        const dataUrl = canvas.toDataURL('image/webp', 0.8)
+        setImagem(dataUrl)
+        setPreview(dataUrl)
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function handleImage(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processImageFile(file)
+    e.target.value = ''
+  }
+
+  function handlePaste(e) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault()
+        processImageFile(item.getAsFile())
+        return
+      }
+    }
+  }
+
+  function handleSave() {
+    onSave({
+      id: Date.now(),
+      categoria: 'Traje',
+      nome: nome.trim() || 'Traje Completo',
+      descricao,
+      imagem,
+      equipado: false,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose} onPaste={handlePaste}>
+      <div className="codex-card !bg-deep border-sky-300/25 rounded-xl w-full max-w-md shadow-2xl shadow-black/50 modal-content" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between">
+          <h3 className="font-cinzel text-sky-200 text-sm">Novo Traje</h3>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">x</button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <button onClick={() => fileRef.current?.click()}
+              className="w-28 h-40 rounded-lg border-2 border-dashed border-sky-300/25 flex flex-col items-center justify-center hover:border-sky-300/50 transition-colors shrink-0 bg-void/50 overflow-hidden group">
+              {preview ? <img src={preview} alt="" className="w-full h-full object-cover object-top" /> : (
+                <>
+                  <span className="material-symbols-outlined text-sky-200/60 text-3xl">checkroom</span>
+                  <span className="text-txt-dim/45 text-[9px] mt-1">Imagem do traje</span>
+                </>
+              )}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+            <div className="flex-1 space-y-2">
+              <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome do traje"
+                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-sky-300/45 focus:outline-none" autoFocus />
+              <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descricao visual, origem, detalhes..." rows={5}
+                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-sky-300/45 focus:outline-none leading-relaxed" />
+            </div>
+          </div>
+          <div className="rounded-lg border border-sky-300/15 bg-sky-300/5 px-3 py-2">
+            <p className="text-sky-100/80 text-[11px] leading-relaxed">O traje funciona como uma pasta visual. As pecas criadas dentro dele continuam calculando armadura, durabilidade, penalidade e carga normalmente.</p>
+          </div>
+        </div>
+        <div className="px-6 py-3 border-t border-sep/30 flex justify-end gap-2">
+          <button onClick={onClose} className="text-txt-dim text-xs hover:text-txt-main px-3 py-1.5 transition-colors">Cancelar</button>
+          <button onClick={handleSave}
+            className="text-xs px-4 py-1.5 rounded-lg font-semibold bg-gold text-void hover:bg-gold-light transition-colors">
+            Criar Traje
+          </button>
         </div>
       </div>
     </div>
@@ -1288,7 +1579,7 @@ function OutfitCreateModal({ onSave, onClose }) {
   )
 }
 
-function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', lockCategory = false, title = 'Novo Equipamento' }) {
+function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', lockCategory = false, title = 'Novo Equipamento', unavailableSlots = [] }) {
   const [step, setStep] = useState(0)
   const [itemCategory, setItemCategory] = useState(initialCategory)
   const [equipType, setEquipType] = useState(null)
@@ -1503,7 +1794,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
         <div className="flex-1 overflow-y-auto p-6">
           {step === 0 && (
             <div className="space-y-3">
-              <h4 className="text-txt-dim text-xs uppercase tracking-wider">{lockCategory ? 'PeÃ§a do traje' : 'Categoria'}</h4>
+              <h4 className="text-txt-dim text-xs uppercase tracking-wider">{lockCategory ? 'Peca do traje' : 'Categoria'}</h4>
               {!lockCategory && <div className="grid grid-cols-3 gap-2">
                 {[
                   { cat: 'Arma', icon: '⚔', desc: 'Espadas, armas de fogo' },
@@ -1541,9 +1832,12 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
 
               {itemCategory === 'Equipamento' && (
                 <div className="grid grid-cols-2 gap-2">
-                  {EQUIPMENT_TYPES.filter(t => t.id !== 'utilidade').map(et => (
-                    <button key={et.id} onClick={() => { setEquipType(et.id); setSelectedType(et.id); setNome(et.label); setEfeitos(et.desc); setDano(''); setPeso(String(estimateEquipmentWeight({ categoria: 'Equipamento', tipoEquip: et.id, nome: et.label, descricao: et.desc }))); setStep(1) }}
-                      className={`text-left border rounded-lg p-2.5 transition-all hover:border-gold/40 ${equipType === et.id ? 'border-primary/50 bg-primary/5' : 'border-sep/40 bg-void/40'}`}>
+                  {EQUIPMENT_TYPES.filter(t => t.id !== 'utilidade').map(et => {
+                    const slotUnavailable = !!et.slot && unavailableSlots.includes(et.slot)
+                    return (
+                    <button key={et.id} disabled={slotUnavailable} title={slotUnavailable ? 'Este traje ja possui uma peca nesse slot.' : et.label}
+                      onClick={() => { if (slotUnavailable) return; setEquipType(et.id); setSelectedType(et.id); setNome(et.label); setEfeitos(et.desc); setDano(''); setPeso(String(estimateEquipmentWeight({ categoria: 'Equipamento', tipoEquip: et.id, nome: et.label, descricao: et.desc }))); setStep(1) }}
+                      className={`text-left border rounded-lg p-2.5 transition-all ${slotUnavailable ? 'border-sep/15 bg-void/20 opacity-40 cursor-not-allowed' : equipType === et.id ? 'border-primary/50 bg-primary/5 hover:border-gold/40' : 'border-sep/40 bg-void/40 hover:border-gold/40'}`}>
                       <span className="text-txt-main text-[11px] font-semibold">{et.label}</span>
                       <div className="text-[10px] mt-0.5 text-txt-dim/50">{et.desc}</div>
                       <div className="text-[10px] mt-1 text-primary/70 font-mono">
@@ -1551,7 +1845,8 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                       </div>
                       <div className="text-[9px] mt-0.5 text-amber-300/65 font-mono">{et.penalty ? `Penalidade: ${et.penalty} DES` : 'Sem penalidade'}</div>
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
