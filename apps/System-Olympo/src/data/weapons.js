@@ -21,14 +21,14 @@ export const WEAPONS = [
 ]
 
 export const WEAPON_RANKS = [
-  { rank: 'Comum', danoBonus: '', caBonus: 2, slots: 0 },
-  { rank: 'Incomum', danoBonus: '+1d6', caBonus: 3, slots: 1 },
-  { rank: 'Raro', danoBonus: '+2d6', caBonus: 4, slots: 2 },
-  { rank: 'Épico', danoBonus: '+3d8', caBonus: 5, slots: 3 },
-  { rank: 'Heroico', danoBonus: '+4d8', caBonus: 6, slots: 4 },
-  { rank: 'Ancestral', danoBonus: '+5d10', caBonus: 7, slots: 5 },
-  { rank: 'Mítico', danoBonus: '+6d12', caBonus: 9, slots: 6 },
-  { rank: 'Transcendente', danoBonus: '+8d12', caBonus: 12, slots: 8 },
+  { rank: 'Comum', danoBonus: '', caBonus: 0, slots: 0 },
+  { rank: 'Incomum', danoBonus: '+1d6', caBonus: 0, slots: 1 },
+  { rank: 'Raro', danoBonus: '+2d6', caBonus: 0, slots: 2 },
+  { rank: 'Épico', danoBonus: '+3d8', caBonus: 0, slots: 3 },
+  { rank: 'Heroico', danoBonus: '+4d8', caBonus: 0, slots: 4 },
+  { rank: 'Ancestral', danoBonus: '+5d10', caBonus: 0, slots: 5 },
+  { rank: 'Mítico', danoBonus: '+6d12', caBonus: 0, slots: 6 },
+  { rank: 'Transcendente', danoBonus: '+8d12', caBonus: 0, slots: 8 },
 ]
 
 export const WEAPON_ABILITY_COST = { Fraca: 1, Média: 2, Forte: 3 }
@@ -45,10 +45,13 @@ export const RANK_LEVEL_BAND = {
 }
 
 export const WEAPON_LIMITS = [
-  { minLevel: 1, maxWeapons: 1, maxRank: 'Raro' },
-  { minLevel: 8, maxWeapons: 1, maxRank: 'Épico' },
+  { minLevel: 1, maxWeapons: 1, maxRank: 'Comum' },
+  { minLevel: 4, maxWeapons: 1, maxRank: 'Incomum' },
+  { minLevel: 7, maxWeapons: 1, maxRank: 'Raro' },
+  { minLevel: 10, maxWeapons: 2, maxRank: 'Épico' },
   { minLevel: 14, maxWeapons: 2, maxRank: 'Heroico' },
-  { minLevel: 20, maxWeapons: 2, maxRank: 'Ancestral' },
+  { minLevel: 18, maxWeapons: 2, maxRank: 'Ancestral' },
+  { minLevel: 22, maxWeapons: 3, maxRank: 'Mítico' },
   { minLevel: 26, maxWeapons: 3, maxRank: 'Transcendente' },
 ]
 
@@ -77,7 +80,21 @@ export function canEquipRank(nivel, rank) {
   const limit = getWeaponLimitForLevel(nivel)
   const maxIdx = getRankIndex(limit.maxRank)
   const rankIdx = getRankIndex(rank)
-  return rankIdx <= maxIdx
+  return rankIdx >= 0 && rankIdx <= maxIdx
+}
+
+export function getWeaponWeight(weaponId, name = '', description = '') {
+  const weapon = WEAPONS.find(w => w.id === weaponId)
+  const text = `${weapon?.name || ''} ${name || ''} ${description || ''}`.toLowerCase()
+  if (!text.trim()) return 1
+  if (/adaga|punhal|faca/.test(text)) return 0.5
+  if (/pistola|taser|chicote/.test(text)) return 1
+  if (/espada|katana|arco|besta|manopla|foice/.test(text)) return 1.8
+  if (/lança|lanca|rifle|escopeta|sub-?metralhadora/.test(text)) return 3.5
+  if (/sniper|machado|martelo|mangual/.test(text)) return 5
+  if (/escudo grande|torre/.test(text)) return 7
+  if (/escudo/.test(text)) return 4
+  return 1.5
 }
 
 export const LEGENDARY_WEAPONS = []

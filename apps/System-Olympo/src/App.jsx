@@ -190,12 +190,17 @@ function FullSheetViewer({ sheetId, onBack }) {
   const [showRaceEvolve, setShowRaceEvolve] = useState(false)
   const [mode, setMode] = useState('sheet')
   const [saveError, setSaveError] = useState('')
+  const [transferTargets, setTransferTargets] = useState([])
 
   const client = isAdmin ? getSupabaseAdmin() : supabase
 
   useEffect(() => {
     if (sheetId) loadSheet()
   }, [sheetId])
+
+  useEffect(() => {
+    if (sheetId) loadTransferTargets()
+  }, [sheetId, isAdmin])
 
   async function loadSheet() {
     const { data, error } = await client.from('characters').select('*').eq('id', sheetId).single()
@@ -204,6 +209,14 @@ function FullSheetViewer({ sheetId, onBack }) {
     } else {
       setSheet(data)
     }
+  }
+
+  async function loadTransferTargets() {
+    if (!user?.id) return
+    let query = client.from('characters').select('id,name,data,user_id').neq('id', sheetId).order('updated_at', { ascending: false })
+    if (!isAdmin) query = query.eq('user_id', user.id)
+    const { data } = await query
+    setTransferTargets(data || [])
   }
 
   const saveTimerRef = useRef(null)
@@ -262,6 +275,54 @@ function FullSheetViewer({ sheetId, onBack }) {
       return next
     })
     setShowLevelUp(false)
+  }
+
+  async function handleTransferItem(collection, index) {
+    if (!sheet || !['inventario', 'equipamentos'].includes(collection)) return
+    const sourceItems = sheet.data?.[collection] || []
+    const item = sourceItems[index]
+    if (!item) return
+    if (!transferTargets.length) {
+      alert('Nenhuma outra ficha disponível para receber o item.')
+      return
+    }
+    const label = transferTargets.map((target, i) => `${i + 1}. ${target.data?.nome || target.name || 'Sem Nome'}`).join('\n')
+    const choice = prompt(`Transferir "${item.nome || 'Item'}" para qual ficha?\n\n${label}`)
+    const targetIndex = Number(choice) - 1
+    const target = transferTargets[targetIndex]
+    if (!target) return
+
+    const movedItem = {
+      ...item,
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      equipado: false,
+      local: 'guardado',
+    }
+    const nextSourceData = {
+      ...sheet.data,
+      [collection]: sourceItems.filter((_, i) => i !== index),
+    }
+    const targetData = target.data || {}
+    const nextTargetData = {
+      ...targetData,
+      [collection]: [...(targetData[collection] || []), movedItem],
+    }
+
+    const { error: targetError } = await client.from('characters').update({
+      name: nextTargetData.nome || target.name || 'Sem Nome',
+      data: nextTargetData,
+    }).eq('id', target.id)
+    if (targetError) {
+      setSaveError('Falha ao transferir: ' + targetError.message)
+      return
+    }
+
+    setSheet(prev => {
+      const next = { ...prev, data: nextSourceData }
+      debouncedSave(next)
+      return next
+    })
+    setTransferTargets(prev => prev.map(t => t.id === target.id ? { ...t, data: nextTargetData } : t))
   }
 
   if (!sheet) return <p className="text-txt-dim p-8">Carregando...</p>
@@ -324,6 +385,8 @@ function FullSheetViewer({ sheetId, onBack }) {
         onNew={() => {}}
         characterId={sheet.id}
         normalizeAbilities={false}
+        transferTargets={transferTargets}
+        onTransferItem={handleTransferItem}
       />
       {showLevelUp && (
         <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />

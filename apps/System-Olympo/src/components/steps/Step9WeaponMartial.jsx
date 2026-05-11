@@ -26,7 +26,7 @@ export default function Step9WeaponMartial({ char, update, updateNested }) {
   }
 
   function handleWeaponChange(armaId) {
-    update({ arma: armaId || null, armaRank: 'Comum', armaHabilidades: [] })
+    update({ arma: armaId || null, armaRank: 'Comum', armaEquipada: true, armaHabilidades: [] })
     setShowAIPanel(false)
     setAiDesc('')
     setGenError('')

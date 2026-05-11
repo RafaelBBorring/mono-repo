@@ -41,6 +41,7 @@ const initialState = {
   modulosSpecialBought: {},
   arma: null,
   armaRank: 'Comum',
+  armaEquipada: true,
   armaHabilidades: [],
   arteMarcial: null,
   arteMarcialGrau: 0,

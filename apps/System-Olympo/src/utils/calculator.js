@@ -3,7 +3,8 @@ import { CLASSES } from '../data/classes'
 import { PROGRESSION } from '../data/progression'
 import { TRIAGES } from '../data/triages'
 import { getMaxGrauForLevel, getGrauBonus } from '../data/pericias'
-import { WEAPON_RANKS } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, getWeaponWeight } from '../data/weapons'
+import { estimateEquipmentWeight } from '../data/equipment'
 import { calculateRaceBonus } from './raceCalculator'
 import { scaleTrainedSkillsReward } from './progressionUtils'
 
@@ -269,6 +270,39 @@ export function calcCarryCapacity(atributos, skeletonPoints, char) {
     if (eq.some(e => /bolsa.*dimens|bag.*holding/i.test(e.nome || ''))) capacity += 20
   }
   return capacity
+}
+
+export function estimateInventoryItemWeight(item = {}) {
+  if (item.peso !== '' && item.peso != null && !Number.isNaN(Number(item.peso))) return Number(item.peso)
+  const text = `${item.nome || ''} ${item.descricao || ''}`.toLowerCase()
+  if (!text.trim()) return 0
+  if (/moeda|anel|amuleto|chave|gema|po[cç][aã]o|frasco/.test(text)) return 0.2
+  if (/granada|rastreador|taser|lente/.test(text)) return 0.4
+  if (/c4|carga|kit|corda|drone|jammer|gancho/.test(text)) return 1
+  if (/livro|grim[oó]rio|manto|roupa/.test(text)) return 1
+  if (/armadura|escudo|machado|rifle|escopeta|lan[cç]a/.test(text)) return 4
+  if (/ba[uú]|estatua|barril|caixa|reliquia grande/.test(text)) return 8
+  return 0.5
+}
+
+export function calcCarriedLoad(char = {}) {
+  const inventoryLoad = (char.inventario || []).reduce((sum, item) => {
+    const location = item.local || 'carregado'
+    if (location === 'guardado' || location === 'base' || location === 'veiculo') return sum
+    return sum + estimateInventoryItemWeight(item) * (Number(item.quantidade) || 1)
+  }, 0)
+
+  const equipmentLoad = (char.equipamentos || []).reduce((sum, item) => {
+    const location = item.local || (item.equipado ? 'equipado' : 'guardado')
+    if (location === 'guardado' || location === 'base' || location === 'veiculo') return sum
+    return sum + estimateEquipmentWeight(item) * (Number(item.quantidade) || 1)
+  }, 0)
+
+  const primaryWeapon = WEAPONS.find(w => w.id === char.arma)
+  const primaryWeaponEquipped = char.arma && char.armaEquipada !== false
+  const primaryWeaponLoad = primaryWeaponEquipped ? getWeaponWeight(char.arma, char.armaNome || primaryWeapon?.name, '') : 0
+
+  return Math.round((inventoryLoad + equipmentLoad + primaryWeaponLoad) * 10) / 10
 }
 
 export function calcStartingEconomy(level) {

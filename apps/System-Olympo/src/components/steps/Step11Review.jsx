@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useDeferredValue, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes, calcCarryCapacity } from '../../utils/calculator'
+import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes, calcCarryCapacity, calcCarriedLoad } from '../../utils/calculator'
 import { exportSheet } from '../../utils/exporter'
 import { ATTR_ICONS, getModifier } from '../../data/attributes'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
@@ -70,8 +70,8 @@ function mergeBonuses(items) {
   }, { ataque: 0, ca: 0, vida: 0, energia: 0, dano: 0 })
 }
 
-export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities = true }) {
-  return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} characterId={characterId} normalizeAbilities={normalizeAbilities} />
+export default function Step11Review({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities = true, transferTargets = [], onTransferItem }) {
+  return <ReviewContent char={char} onSave={onSave} onEdit={onEdit} onNew={onNew} update={update} updateHabilidade={updateHabilidade} characterId={characterId} normalizeAbilities={normalizeAbilities} transferTargets={transferTargets} onTransferItem={onTransferItem} />
 }
 
 function SectionHeader({ icon, title, color }) {
@@ -133,7 +133,7 @@ function HeroMetric({ label, value, tone = 'gold' }) {
   )
 }
 
-function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities }) {
+function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, characterId, normalizeAbilities, transferTargets, onTransferItem }) {
   const sk = char.skeletonPoints || {}
   const avatarInputRef = useRef(null)
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
@@ -177,6 +177,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const activeItems = [...activeAbilityItems, ...activeModuleItems]
   const activeBonuses = mergeBonuses(activeItems)
   const equipmentStats = calcEquipStats(char.equipamentos || [])
+  const carryCapacity = calcCarryCapacity(char.atributos, sk, char)
+  const carriedLoad = calcCarriedLoad(char)
 
   const derived = {
     vida: cls ? calcVidaTotal(cls, char.nivel, char.atributos, sk, char.choices, char.triagemPrincipal, char.triagemPrincipalNivel, char) : 0,
@@ -511,7 +513,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
-                  {equipmentStats.totalArmor ? <CombatStat label="Armadura" value={equipmentStats.totalArmor} isGold /> : null}
+                  {equipmentStats.totalArmorMax ? <CombatStat label="Armadura" value={`${equipmentStats.totalArmor}/${equipmentStats.totalArmorMax}`} isGold /> : null}
                   {activeBonuses.ataque ? <CombatStat label="Ataque Ativo" value={`${activeBonuses.ataque > 0 ? '+' : ''}${activeBonuses.ataque}`} isGold /> : null}
                   <div className="text-center">
                     <span className="text-txt-dim/50 text-[10px] uppercase block">Reações</span>
@@ -595,6 +597,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   onUpdate={(eq) => update({ equipamentos: eq })}
                   onCharacterUpdate={update}
                   onDrawerToggle={() => {}}
+                  onTransfer={onTransferItem}
                 />
                 <div className="border-t border-sep/25 pt-5">
                   <InventorySection
@@ -604,9 +607,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                     wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
                     onWalletUpdate={(patch) => update(patch)}
                     onDrawerToggle={() => {}}
-                    maxCarry={calcCarryCapacity(char.atributos, sk, char)}
+                    maxCarry={carryCapacity}
+                    totalCarryWeight={carriedLoad}
                     level={char.nivel || 1}
                     modules={char.modulosAdquiridos || []}
+                    onTransfer={onTransferItem ? (idx) => onTransferItem('inventario', idx) : null}
                   />
                 </div>
               </section>
@@ -639,7 +644,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                       { key: 'combat', label: 'Combate', value: `${derived.ca} CA`, desc: `${derived.reacoes} reações` },
                       { key: 'powers', label: 'Poderes', value: abilityCount, desc: `${acquiredModules.length} módulos` },
                       { key: 'traits', label: 'Traços', value: periciasArr.length, desc: primaryTriage },
-                      { key: 'inventory', label: 'Bolsa', value: inventoryCount, desc: `${mysticCount} registros místicos` },
+                      { key: 'inventory', label: 'Bolsa', value: `${carriedLoad}/${carryCapacity} kg`, desc: `${inventoryCount} itens` },
                     ].map(item => (
                       <button key={item.key} type="button" onClick={() => setSheetView(item.key)} className="sheet-focus-card">
                         <span>{item.label}</span>
@@ -2356,7 +2361,7 @@ function WeaponMartialPanel({ char, update, canEdit }) {
   function handleWeaponChange(armaId) {
     if (!canEdit) return
     const w = WEAPONS.find(x => x.id === armaId)
-    update({ arma: armaId || null, armaRank: 'Comum', armaHabilidades: [] })
+    update({ arma: armaId || null, armaRank: 'Comum', armaEquipada: true, armaHabilidades: [] })
     setShowWeaponSelector(false)
   }
 
@@ -2485,7 +2490,7 @@ function WeaponMartialPanel({ char, update, canEdit }) {
                 ))}
               </div>
               {selectedWeapon && (
-                <button onClick={() => { update({ arma: null, armaRank: 'Comum', armaHabilidades: [] }); setShowWeaponSelector(false) }}
+                <button onClick={() => { update({ arma: null, armaRank: 'Comum', armaEquipada: true, armaHabilidades: [] }); setShowWeaponSelector(false) }}
                   className="text-err/60 hover:text-err text-[10px]">Remover Arma</button>
               )}
             </div>

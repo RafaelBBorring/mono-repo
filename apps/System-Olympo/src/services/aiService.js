@@ -1206,7 +1206,7 @@ EQUIPAMENTO:
 - Slot: ${typeDef?.slot || 'utilidade'} | Peso: ${typeDef?.weight || 'n/a'} | Set: ${armorTypeDef?.label || 'sem set'}
 - Rank: ${equipRank}
 - Armadura base da peca: ${typeDef?.caBase || 0} | Vida extra base: ${typeDef?.extraLife || 0} | Penalidade: ${typeDef?.penalty || 0}
-- Bonus por rank: Armadura +${rarity.armorBonus} | Vida +${rarity.extraLife} | Escudo ${rarity.shieldAmount} | Crit +${rarity.critBonus}% | Dano +${rarity.damageBonus}
+- Bonus por rank: Armadura +${rarity.armorBonus} | Vida temporaria +${rarity.extraLife} | Escudo ${rarity.shieldAmount}
 - Slots disponiveis: ${activeSlots} ativa(s), ${passiveSlots} passiva(s)
 ${userDesc ? `- Descrição do jogador: ${userDesc}` : ''}
 
@@ -1214,14 +1214,15 @@ REGRAS DE BALANCEAMENTO PARA EQUIPAMENTOS:
 1. PASSIVAS devem ser SUTIS — equipamentos NÃO são armas. Eles oferecem:
    - Sobrevida: redução de dano fixa (máx 3/nível band), +Vida temporária, resistência a condição
    - Utilidade: vantagem em testes específicos, movimento especial, sense amplificado
-   - Sinergia: bônus quando condição X acontece (ex: "+2 CA quando adjacente a aliado")
+   - Sinergia: bônus quando condição X acontece (ex: "+5 em Bloqueio contra projéteis")
 2. NÃO crie passivas que adicionam dano direto — isso é para armas
 3. Coletes balísticos: redução de dano balístico, absorção de impacto
-4. Armaduras: CA bonus + resistência a tipo de dano
+4. Armaduras: nao concedem CA numerica por rank. Elas usam Armadura como durabilidade/absorção antes da Vida; ao chegar a 0, a peça quebra até reparo.
 5. Escudos: bloqueio ativo (REAÇÃO), proteção contra projéteis
 6. Acessórios: bônus passivos sutis (sentidos, resistência mental, etc.)
 7. MÁXIMO de efeitos por passiva: 1 efeito principal + 1 condição
 8. Use formato de dano do sistema: NdN+mod (ex: reduz 1d6 de dano balístico)
+9. Nao gere bonus permanente de CA. Se precisar de defesa passiva, use Armadura, Escudo, reducao de dano, cobertura, Vantagem em esquiva com custo de PE ou bonus situacional pequeno.
 
 LIMITES POR RANK:
 - Comum: sem passiva
@@ -1233,7 +1234,7 @@ LIMITES POR RANK:
 CONCESSAO DE HABILIDADES POR RANK:
 - Gere exatamente ${activeSlots} habilidade(s) Ativa(s) e ${passiveSlots} Passiva(s), total ${totalSlots}.
 - Ativas de equipamento precisam ter gatilho, duracao, custo/recarga e efeito defensivo/utilitario claro.
-- Passivas permanentes devem ser menores que ativas e nao devem somar CA; prefira absorcao, escudo pequeno, critico leve, movimento ou resistencia situacional.
+- Passivas permanentes devem ser menores que ativas e nao devem somar CA; prefira absorcao, escudo pequeno, movimento, resistencia situacional ou bonus de pericia.
 
 Responda APENAS com JSON:
 {

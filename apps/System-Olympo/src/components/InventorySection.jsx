@@ -2,25 +2,23 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ITEM_COLORS } from '../data/colors'
 import { suggestItemWeight } from '../services/aiService'
-import { calcStartingEconomy } from '../utils/calculator'
+import { calcStartingEconomy, estimateInventoryItemWeight } from '../utils/calculator'
 
 function estimateItemWeight(item = {}) {
-  if (item.peso !== '' && item.peso != null && !Number.isNaN(Number(item.peso))) return Number(item.peso)
-  const text = `${item.nome || ''} ${item.descricao || ''}`.toLowerCase()
-  if (!text.trim()) return 0
-  if (/moeda|anel|amuleto|chave|gema|po[cç][aã]o|frasco/.test(text)) return 0.2
-  if (/livro|grim[oó]rio|manto|roupa|kit|corda/.test(text)) return 1
-  if (/armadura|escudo|machado|rifle|escopeta|lan[cç]a/.test(text)) return 4
-  if (/ba[uú]|estatua|barril|caixa|reliquia grande/.test(text)) return 8
-  return 0.5
+  return estimateInventoryItemWeight(item)
 }
 
-export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate, maxCarry, level = 1, modules = [] }) {
+export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate, maxCarry, level = 1, modules = [], totalCarryWeight = null, onTransfer }) {
   const [showCreate, setShowCreate] = useState(false)
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const editImgRef = useRef(null)
-  const totalWeight = items.reduce((sum, item) => sum + estimateItemWeight(item) * (Number(item.quantidade) || 1), 0)
+  const totalWeight = items.reduce((sum, item) => {
+    const location = item.local || 'carregado'
+    if (location === 'guardado' || location === 'base' || location === 'veiculo') return sum
+    return sum + estimateItemWeight(item) * (Number(item.quantidade) || 1)
+  }, 0)
+  const displayedLoad = totalCarryWeight ?? totalWeight
 
   const basePoints = calcStartingEconomy(level)
   const fortunaBonus = modules.filter(m => m.id === 'fortuna_inicial').length * 2000
@@ -135,7 +133,7 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
 
         <div className="inventory-load-footer">
           <span>Carga</span>
-          <strong className={maxCarry && totalWeight > maxCarry ? 'text-red-400' : ''}>{totalWeight.toFixed(1)} kg{maxCarry ? ` / ${maxCarry} kg` : ''}</strong>
+          <strong className={maxCarry && displayedLoad > maxCarry ? 'text-red-400' : ''}>{displayedLoad.toFixed(1)} kg{maxCarry ? ` / ${maxCarry} kg` : ''}</strong>
         </div>
       </section>
 
@@ -153,6 +151,7 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
           onCancelEdit={() => setEditMode(false)}
           onSaveEdit={(patch) => updateItem(viewIdx, patch)}
           onDelete={() => removeItem(viewIdx)}
+          onTransfer={onTransfer ? () => onTransfer(viewIdx) : null}
           onClose={closeDrawer}
           onImageChange={handleDrawerImage}
           imgRef={editImgRef}
@@ -167,6 +166,7 @@ function ItemCreateModal({ onSave, onClose }) {
   const [nome, setNome] = useState('')
   const [descricao, setDescricao] = useState('')
   const [peso, setPeso] = useState('')
+  const [local, setLocal] = useState('carregado')
   const [cor, setCor] = useState('gray')
   const [imagem, setImagem] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -212,7 +212,7 @@ function ItemCreateModal({ onSave, onClose }) {
   }
 
   function save() {
-    onSave({ nome, descricao, imagem, cor, peso: peso === '' ? estimateItemWeight({ nome, descricao }) : Number(peso) })
+    onSave({ nome, descricao, imagem, cor, local, peso: peso === '' ? estimateItemWeight({ nome, descricao }) : Number(peso) })
   }
 
   return (
@@ -242,6 +242,14 @@ function ItemCreateModal({ onSave, onClose }) {
                   {aiLoading ? '...' : 'IA'}
                 </button>
               </div>
+              <select value={local} onChange={e => setLocal(e.target.value)}
+                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
+                <option value="carregado">Carregado</option>
+                <option value="mochila">Mochila</option>
+                <option value="veiculo">Veículo</option>
+                <option value="base">Base/Casa</option>
+                <option value="guardado">Guardado</option>
+              </select>
             </div>
           </div>
           <div className="flex gap-1.5 mt-1.5">
@@ -266,11 +274,12 @@ function ItemCreateModal({ onSave, onClose }) {
   )
 }
 
-function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onClose, onImageChange, imgRef }) {
+function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
   const [editNome, setEditNome] = useState(item.nome || '')
   const [editDesc, setEditDesc] = useState(item.descricao || '')
   const [editCor, setEditCor] = useState(item.cor || 'gray')
   const [editPeso, setEditPeso] = useState(item.peso ?? '')
+  const [editLocal, setEditLocal] = useState(item.local || 'carregado')
   const [aiLoading, setAiLoading] = useState(false)
   const cc = ITEM_COLORS.find(c => c.id === (item.cor || 'gray')) || ITEM_COLORS[0]
 
@@ -285,7 +294,7 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
   }
 
   function handleSave() {
-    onSaveEdit({ nome: editNome, descricao: editDesc, cor: editCor, peso: editPeso === '' ? estimateItemWeight({ nome: editNome, descricao: editDesc }) : Number(editPeso) })
+    onSaveEdit({ nome: editNome, descricao: editDesc, cor: editCor, local: editLocal, peso: editPeso === '' ? estimateItemWeight({ nome: editNome, descricao: editDesc }) : Number(editPeso) })
     onCancelEdit()
   }
 
@@ -323,11 +332,20 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
                   {aiLoading ? '...' : 'IA'}
                 </button>
               </div>
+              <select value={editLocal} onChange={e => setEditLocal(e.target.value)}
+                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
+                <option value="carregado">Carregado</option>
+                <option value="mochila">Mochila</option>
+                <option value="veiculo">Veículo</option>
+                <option value="base">Base/Casa</option>
+                <option value="guardado">Guardado</option>
+              </select>
             </>
           ) : (
             <>
               {item.imagem && <img src={item.imagem} alt="" className="w-full aspect-[4/3] rounded-lg object-cover border border-sep/30" />}
               <h4 className="text-txt-main text-sm font-semibold">{item.nome || 'Item'}</h4>
+              <span className="inline-flex text-[9px] text-txt-dim/70 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{item.local || 'carregado'}</span>
               {item.descricao ? <p className="text-txt-dim/80 text-xs leading-relaxed">{item.descricao}</p> : <p className="text-txt-dim/30 text-xs italic">Sem descrição</p>}
               <div className="inventory-drawer-weight"><span>Peso</span><strong>{estimateItemWeight(item).toFixed(1)} kg</strong></div>
             </>
@@ -339,6 +357,7 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
             <>
               <button onClick={onEdit} className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">Editar</button>
               <button onClick={onDelete} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Excluir</button>
+              {onTransfer && <button onClick={onTransfer} className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors">Transferir</button>}
             </>
           )}
           {editMode && (

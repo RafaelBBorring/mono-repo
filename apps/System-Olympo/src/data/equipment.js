@@ -20,26 +20,24 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-red-400/10',
     borderClass: 'border-red-400/30',
     badgeClass: 'bg-red-400/10 text-red-400 border-red-400/20',
-    desc: 'Força bruta e resistência. Foco em sobrevida e dano corpo-a-corpo.',
+    desc: 'Proteção física, postura de linha de frente e controle de impacto.',
     bonuses: [
-      { pieces: 2, label: 'Resistência Marcial', bonus: '+5 Vida Extra, +1 em testes de FOR', passive: 'Golpes consecutivos no mesmo alvo causam +1d4 (max 3x).' },
-      { pieces: 3, label: 'Vontade de Ferro', bonus: '+15 Vida Extra, +2 FOR, Redução de dano 3/turno', passive: 'Ao receber dano > 20, recebe metade no próximo turno.' },
-      { pieces: 4, label: 'Bastião Inabalável', bonus: '+30 Vida Extra, +3 FOR, Redução de dano 5/turno, Imunidade a Atordoamento', passive: 'Uma vez por combate, ao cair a 0 HP, recupera 25% da vida máxima.' },
+      { pieces: 3, label: 'Linha de Frente', bonus: '+5 Vida temporária ao iniciar combate e +2 em Bloqueio', passive: 'Pode gastar 2 PE ao sofrer dano para reduzir 1d6 do impacto.' },
+      { pieces: 4, label: 'Bastião', bonus: '+10 Vida temporária ao iniciar combate e +5 em testes contra empurrão/queda', passive: '1x por combate, ao bloquear, a armadura perde 2 de durabilidade a menos.' },
     ],
   },
   {
-    id: 'assassino',
-    label: 'Assassino',
+    id: 'furtivo',
+    label: 'Furtivo',
     color: 'purple',
     colorClass: 'text-purple-400',
     bgClass: 'bg-purple-400/10',
     borderClass: 'border-purple-400/30',
     badgeClass: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
-    desc: 'Agilidade e letalidade. Foco em crítico e furtividade.',
+    desc: 'Mobilidade silenciosa, ocultação e evasão.',
     bonuses: [
-      { pieces: 2, label: 'Passos Silenciosos', bonus: '+5% Chance de Crítico, +1 DES em Furtividade', passive: 'Após matar um inimigo, próximo ataque tem vantagem.' },
-      { pieces: 3, label: 'Sombra Viva', bonus: '+10% Chance de Crítico, +2 DES, Vantagem em Furtividade', passive: 'Pode se mover como ação bônus após um ataque crítico.' },
-      { pieces: 4, label: 'Morte Silenciosa', bonus: '+15% Chance de Crítico, +3 DES, Invisibilidade 1/combate (2 turnos)', passive: 'Críticos em furtividade causam dano máximo dos dados.' },
+      { pieces: 3, label: 'Sombra Viva', bonus: '+10 em Furtividade', passive: 'Pode gastar 3 PE para receber Vantagem em uma esquiva até o fim do turno.' },
+      { pieces: 4, label: 'Fantasma Operacional', bonus: '+10 em Furtividade e +5 em Prestidigitação', passive: '1x por cena, após se mover sem ser visto, o próximo teste de Furtividade tem Vantagem.' },
     ],
   },
   {
@@ -50,11 +48,52 @@ export const ARMOR_TYPES = [
     bgClass: 'bg-cyan-400/10',
     borderClass: 'border-cyan-400/30',
     badgeClass: 'bg-cyan-400/10 text-cyan-400 border-cyan-400/20',
-    desc: 'Tecnologia avançada. Foco em escudo de energia e utilidade.',
+    desc: 'Sensores, interfaces e contramedidas eletrônicas.',
     bonuses: [
-      { pieces: 2, label: 'Interface Neural', bonus: '+5 Escudo de Energia, +1 INT em Tecnologia', passive: 'Scan passivo: identifica armadilhas e inimigos em 10m.' },
-      { pieces: 3, label: 'Sentido Ampliado', bonus: '+15 Escudo de Energia, +2 INT, Scanner passivo 20m', passive: 'Escudo absorve 100% de dano de área uma vez por combate.' },
-      { pieces: 4, label: 'Nexo Cibernético', bonus: '+25 Escudo de Energia, +3 INT, Escudo regenera 5/turno', passive: 'Pode usar uma habilidade como ação livre 1x por combate.' },
+      { pieces: 3, label: 'Interface Neural', bonus: '+10 em Tecnologia', passive: 'Scan passivo: identifica eletrônicos, rastreadores e armadilhas simples em 10m.' },
+      { pieces: 4, label: 'Nexo Cibernético', bonus: '+10 em Tecnologia e +5 em Investigação', passive: 'Pode gastar 4 PE para desativar interferência ou rastreamento por 1 rodada.' },
+    ],
+  },
+  {
+    id: 'medico',
+    label: 'Médico',
+    color: 'emerald',
+    colorClass: 'text-emerald-400',
+    bgClass: 'bg-emerald-400/10',
+    borderClass: 'border-emerald-400/30',
+    badgeClass: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+    desc: 'Primeiros socorros, estabilização e suporte de campo.',
+    bonuses: [
+      { pieces: 3, label: 'Resposta Rápida', bonus: '+10 em Medicina', passive: 'Pode gastar 3 PE para estabilizar um aliado adjacente como ação bônus.' },
+      { pieces: 4, label: 'Suporte de Trauma', bonus: '+10 em Medicina e +5 em Sobrevivência', passive: 'Curas de item ou equipamento recuperam +1d6 Vida.' },
+    ],
+  },
+  {
+    id: 'demolidor',
+    label: 'Demolidor',
+    color: 'amber',
+    colorClass: 'text-amber-400',
+    bgClass: 'bg-amber-400/10',
+    borderClass: 'border-amber-400/30',
+    badgeClass: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
+    desc: 'Explosivos, arrombamento, brecha e controle de área.',
+    bonuses: [
+      { pieces: 3, label: 'Carga Controlada', bonus: '+10 em testes com explosivos e arrombamento', passive: 'Pode gastar 3 PE para reduzir em 1 dado o dano colateral de uma explosão que preparou.' },
+      { pieces: 4, label: 'Brecha Limpa', bonus: '+10 em explosivos e +5 em Tecnologia', passive: '1x por cena, uma carga plantada por você impõe Desvantagem no teste de resistência.' },
+    ],
+  },
+  {
+    id: 'exploracao',
+    label: 'Exploração',
+    color: 'sky',
+    colorClass: 'text-sky-400',
+    bgClass: 'bg-sky-400/10',
+    borderClass: 'border-sky-400/30',
+    badgeClass: 'bg-sky-400/10 text-sky-400 border-sky-400/20',
+    desc: 'Travessia, escalada, sobrevivência e ferramentas de campo.',
+    bonuses: [
+      { pieces: 3, label: 'Kit de Campo', bonus: '+10 em Sobrevivência ou Atletismo situacional', passive: 'Pode gastar 2 PE para ignorar terreno difícil por 1 rodada.' },
+      { pieces: 4, label: 'Operador de Terreno', bonus: '+10 em Sobrevivência e +5 em Percepção', passive: '1x por cena, encontra rota segura sem teste em terreno conhecido.' },
     ],
   },
 ]
@@ -66,39 +105,39 @@ export const EQUIPMENT_RARITIES = [
     desc: 'Equipamento básico sem melhorias.',
   },
   {
-    rank: 'Incomum', extraLife: 3, armorBonus: 1, activeSkills: 0, passiveSkills: 0,
+    rank: 'Incomum', extraLife: 2, armorBonus: 1, activeSkills: 0, passiveSkills: 0,
     critBonus: 0, damageBonus: 0, shieldAmount: 0, color: 'emerald',
-    desc: 'Vida Permanente: +3 HP (mantido mesmo sem equipamento).',
+    desc: 'Reforço menor. A vida extra é temporária de sessão enquanto a peça estiver utilizável.',
   },
   {
-    rank: 'Raro', extraLife: 5, armorBonus: 1, activeSkills: 0, passiveSkills: 0,
-    critBonus: 1, damageBonus: 0, shieldAmount: 2, color: 'sky',
-    desc: 'Vida Permanente +3→5. Escudo: 2 (absorve dano antes do HP, regenera a cada turno).',
+    rank: 'Raro', extraLife: 4, armorBonus: 1, activeSkills: 0, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 1, color: 'sky',
+    desc: 'Reforço de campo. Escudo pequeno e vida temporária de sessão.',
   },
   {
-    rank: 'Épico', extraLife: 8, armorBonus: 2, activeSkills: 1, passiveSkills: 0,
-    critBonus: 2, damageBonus: 1, shieldAmount: 4, color: 'purple',
-    desc: 'Vida Permanente: +8. Escudo: 4 (regenera/turno). 1 habilidade ativa. Armadura aumenta absorção.',
+    rank: 'Épico', extraLife: 6, armorBonus: 2, activeSkills: 1, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 2, color: 'purple',
+    desc: '1 habilidade ativa. Armadura aumenta durabilidade/absorção, não soma CA.',
   },
   {
-    rank: 'Heroico', extraLife: 12, armorBonus: 2, activeSkills: 1, passiveSkills: 0,
-    critBonus: 3, damageBonus: 1, shieldAmount: 6, color: 'rose',
-    desc: 'Vida Permanente: +12. Escudo: 6. +1 habilidade ativa. Se a peça quebrar, perde armadura e escudo até reparar (1h + materiais).',
+    rank: 'Heroico', extraLife: 8, armorBonus: 2, activeSkills: 1, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 3, color: 'rose',
+    desc: '1 habilidade ativa. Se a peça quebrar, perde armadura, escudo e habilidade até reparar.',
   },
   {
-    rank: 'Ancestral', extraLife: 15, armorBonus: 3, activeSkills: 2, passiveSkills: 0,
-    critBonus: 4, damageBonus: 2, shieldAmount: 8, color: 'amber',
-    desc: 'Vida Permanente: +15. Escudo: 8. 2 habilidades ativas. Armadura é absorção de dano (não CA). Reparo: rank × 10 PO + 1h.',
+    rank: 'Ancestral', extraLife: 10, armorBonus: 3, activeSkills: 2, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 4, color: 'amber',
+    desc: '2 habilidades ativas. Armadura é absorção/durabilidade, não CA. Reparo: rank × 10 PO + 1h.',
   },
   {
-    rank: 'Mítico', extraLife: 20, armorBonus: 4, activeSkills: 2, passiveSkills: 0,
-    critBonus: 5, damageBonus: 2, shieldAmount: 10, color: 'fuchsia',
-    desc: 'Vida Permanente: +20. Escudo: 10 (regenera/turno). Armadura: absorção de dano por golpe. Escudo é camada extra antes do HP.',
+    rank: 'Mítico', extraLife: 12, armorBonus: 4, activeSkills: 2, passiveSkills: 0,
+    critBonus: 0, damageBonus: 0, shieldAmount: 5, color: 'fuchsia',
+    desc: '2 habilidades ativas. Escudo e armadura são camadas defensivas antes da Vida.',
   },
   {
-    rank: 'Transcendente', extraLife: 25, armorBonus: 5, activeSkills: 2, passiveSkills: 1,
-    critBonus: 7, damageBonus: 3, shieldAmount: 12, color: 'cyan',
-    desc: 'Vida Permanente: +25. Escudo: 12. 2 ativas + 1 passiva. Dano absorvido por armadura não ignora escudo. Reparo: 250 PO + 4h de ferraria.',
+    rank: 'Transcendente', extraLife: 15, armorBonus: 4, activeSkills: 2, passiveSkills: 1,
+    critBonus: 0, damageBonus: 0, shieldAmount: 6, color: 'cyan',
+    desc: '2 ativas + 1 passiva. Não concede CA. Reparo: 250 PO + 4h de ferraria especializada.',
   },
 ]
 
@@ -110,10 +149,10 @@ export const EQUIPMENT_STAT_LABELS = {
     lose: 'Se o equipamento quebrar ou for removido, perde-se temporariamente a armadura daquela peça.',
   },
   extraLife: {
-    label: 'Vida Permanente',
+    label: 'Vida Temporária',
     icon: '❤',
-    desc: 'Adicionado ao HP máximo do personagem. Permanece mesmo que o equipamento seja removido.',
-    lose: 'Não perdido ao desequipar. É uma melhoria permanente no corpo do personagem.',
+    desc: 'Concedida na primeira utilização da peça na sessão. Remove-se ao desequipar, quebrar ou encerrar a sessão.',
+    lose: 'Perdida ao desequipar ou quando a peça quebra.',
   },
   shieldAmount: {
     label: 'Escudo de Energia',
@@ -160,10 +199,13 @@ export const EQUIPMENT_TYPES = [
 ]
 
 export const EQUIPMENT_LIMITS = [
-  { minLevel: 1, maxRank: 'Raro' },
-  { minLevel: 8, maxRank: 'Épico' },
+  { minLevel: 1, maxRank: 'Comum' },
+  { minLevel: 4, maxRank: 'Incomum' },
+  { minLevel: 7, maxRank: 'Raro' },
+  { minLevel: 10, maxRank: 'Épico' },
   { minLevel: 14, maxRank: 'Heroico' },
-  { minLevel: 20, maxRank: 'Ancestral' },
+  { minLevel: 18, maxRank: 'Ancestral' },
+  { minLevel: 22, maxRank: 'Mítico' },
   { minLevel: 26, maxRank: 'Transcendente' },
 ]
 
@@ -186,6 +228,16 @@ export const SIMPLE_ITEMS = [
   { id: 'kit_ladroin', nome: 'Kit de Ladrão', desc: 'Gazua, grampo, tensiómetro e alfinetes.', efeito: 'Vantagem em testes de prestidigitação e arrombamento', peso: 0.3 },
   { id: 'lente_noite', nome: 'Lente de Visão Noturna', desc: 'Óculos compactos com amplificação de luz.', efeito: 'Visão no escuro até 30m. Desvantagem em luz forte.', peso: 0.2 },
   { id: 'granada_fumaca', nome: 'Granada de Fumaça', desc: 'Cilindro que libera nuvem densa em 5m de raio.', efeito: 'Área obscurecida por 3 turnos. Vantagem em Furtividade na área.', peso: 0.4 },
+  { id: 'granada_frag', nome: 'Granada de Fragmentação', desc: 'Explosivo de arremesso com estilhaços em área curta.', efeito: '4d8 perfurante em raio 4m. DES CD 15 reduz metade. Barulho alto.', peso: 0.4 },
+  { id: 'granada_luz', nome: 'Granada Flashbang', desc: 'Dispositivo de luz e som para entrada tática.', efeito: 'Raio 5m. CON CD 15 ou cego/surdo por 1 turno; sucesso reduz para Desvantagem em Percepção.', peso: 0.35 },
+  { id: 'granada_incendiaria', nome: 'Granada Incendiária', desc: 'Composto incendiário de dispersão rápida.', efeito: '3d8 fogo em raio 3m e terreno em chamas por 2 turnos. DES CD 15 evita ignição.', peso: 0.5 },
+  { id: 'granada_emp', nome: 'Granada EMP', desc: 'Pulso eletromagnético compacto contra eletrônicos.', efeito: 'Desativa dispositivos comuns em 6m por 2 turnos. Tecnologia CD 16 para resistir/reativar.', peso: 0.45 },
+  { id: 'c4', nome: 'Carga C4', desc: 'Explosivo plástico moldável com detonador remoto.', efeito: '6d10 explosivo em raio 6m; dobra dano contra estruturas. Requer 1 ação para plantar.', peso: 1.2 },
+  { id: 'carga_brecha', nome: 'Carga de Brecha', desc: 'Carga direcionada para portas, cofres leves e paredes frágeis.', efeito: 'Abre uma barreira preparada. Alvos adjacentes sofrem 3d8 explosivo, DES CD 14 metade.', peso: 0.8 },
+  { id: 'mina_claymore', nome: 'Mina Claymore', desc: 'Mina direcional com disparo remoto ou fio de tropeço.', efeito: 'Cone 8m, 5d8 perfurante. Percepção CD 16 para notar; DES CD 15 metade.', peso: 1.6 },
+  { id: 'drone_batedor', nome: 'Drone Batedor', desc: 'Drone pequeno com câmera e microfone.', efeito: '+10 em reconhecimento a até 80m; 1 PV, CA 12, vulnerável a EMP.', peso: 0.6 },
+  { id: 'jammer', nome: 'Jammer Portátil', desc: 'Bloqueador de sinal de curto alcance.', efeito: 'Interfere rádio, GPS e rastreadores em 15m por 10 minutos. Tecnologia CD 16 para contornar.', peso: 0.9 },
+  { id: 'rastreador', nome: 'Rastreador Magnético', desc: 'Beacon discreto para veículos e cargas.', efeito: 'Marca alvo por 24h em até 2km urbanos. Percepção ou Tecnologia CD 15 para encontrar.', peso: 0.1 },
   { id: 'corda_aco', nome: 'Corda de Aço (10m)', desc: 'Corda resistente para escalada ou contenção.', efeito: 'Suporta 200kg. Pode ser usada para imobilizar (FOR vs FOR).', peso: 1 },
 ]
 
@@ -218,9 +270,10 @@ export function canEquipRank(nivel, rank) {
 }
 
 export function calcEquipStats(equipamentos) {
-  if (!Array.isArray(equipamentos)) return { totalArmor: 0, totalExtraLife: 0, totalCrit: 0, totalDamage: 0, totalShield: 0, totalSpeedPenalty: 0, activeSetBonuses: [] }
+  if (!Array.isArray(equipamentos)) return { totalArmor: 0, totalArmorMax: 0, totalExtraLife: 0, totalCrit: 0, totalDamage: 0, totalShield: 0, totalSpeedPenalty: 0, activeSetBonuses: [] }
 
   let totalArmor = 0
+  let totalArmorMax = 0
   let totalExtraLife = 0
   let totalCrit = 0
   let totalDamage = 0
@@ -234,12 +287,19 @@ export function calcEquipStats(equipamentos) {
     const rarity = getEquipmentRarity(eq.rank)
     if (!type || !rarity) continue
 
-    totalArmor += (type.caBase || 0) + (rarity.armorBonus || 0)
-    totalExtraLife += (type.extraLife || 0) + (rarity.extraLife || 0)
-    totalCrit += rarity.critBonus || 0
-    totalDamage += rarity.damageBonus || 0
-    totalShield += rarity.shieldAmount || 0
-    totalSpeedPenalty += type.penalty || 0
+    const armorMax = (type.caBase || 0) + (rarity.armorBonus || 0)
+    const armorCurrent = eq.armorAtual == null ? armorMax : Math.max(0, Number(eq.armorAtual) || 0)
+    const broken = eq.quebrado || armorCurrent <= 0
+
+    totalArmorMax += armorMax
+    totalArmor += broken ? 0 : Math.min(armorCurrent, armorMax)
+    if (!broken) {
+      totalExtraLife += (type.extraLife || 0) + (rarity.extraLife || 0)
+      totalCrit += rarity.critBonus || 0
+      totalDamage += rarity.damageBonus || 0
+      totalShield += rarity.shieldAmount || 0
+      totalSpeedPenalty += type.penalty || 0
+    }
   }
 
   const setCounts = {}
@@ -252,7 +312,7 @@ export function calcEquipStats(equipamentos) {
   const activeSetBonuses = []
   for (const at of ARMOR_TYPES) {
     const count = setCounts[at.id] || 0
-    if (count >= 2) {
+    if (count >= 3) {
       const applicableBonuses = at.bonuses.filter(b => count >= b.pieces)
       const best = applicableBonuses[applicableBonuses.length - 1]
       if (best) {
@@ -261,7 +321,22 @@ export function calcEquipStats(equipamentos) {
     }
   }
 
-  return { totalArmor, totalExtraLife, totalCrit, totalDamage, totalShield, totalSpeedPenalty, activeSetBonuses }
+  return { totalArmor, totalArmorMax, totalExtraLife, totalCrit, totalDamage, totalShield, totalSpeedPenalty, activeSetBonuses }
+}
+
+export function estimateEquipmentWeight(item = {}) {
+  if (item.peso !== '' && item.peso != null && !Number.isNaN(Number(item.peso))) return Number(item.peso)
+  const type = EQUIPMENT_TYPES.find(t => t.id === item.tipoEquip)
+  const text = `${item.nome || ''} ${item.descricao || ''} ${type?.label || ''}`.toLowerCase()
+  if (/peitoral.*pesado|placas|armadura pesada/.test(text)) return 12
+  if (/peitoral|cota|colete/.test(text)) return 6
+  if (/elmo|capacete/.test(text)) return 1.5
+  if (/cal[cç]as|grevas/.test(text)) return 3
+  if (/botas/.test(text)) return 1.8
+  if (/anel|amuleto|acess[oó]rio/.test(text)) return 0.2
+  if (/granada|carga|c4|mina/.test(text)) return 0.8
+  if (/drone|jammer|kit|corda|gancho/.test(text)) return 1
+  return item.categoria === 'Equipamento' ? 2 : 0.5
 }
 
 export function getEquipmentBySlot(equipamentos, slotId) {

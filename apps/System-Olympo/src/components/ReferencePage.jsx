@@ -719,7 +719,7 @@ function RanksSection() {
               <th className="py-2 px-3 text-left">Rank</th>
               <th className="py-2 px-3 text-left">Faixa Equiv.</th>
               <th className="py-2 px-3 text-left">Dano Bônus</th>
-              <th className="py-2 px-3 text-left">CA Bônus</th>
+              <th className="py-2 px-3 text-left">Defesa</th>
               <th className="py-2 px-3 text-left">Slots</th>
             </tr>
           </thead>
@@ -729,14 +729,14 @@ function RanksSection() {
                 <td className={`py-2 px-3 font-cinzel font-bold ${rankColorMap[i] || 'text-gold'}`}>{r.rank}</td>
                 <td className="py-2 px-3 font-mono text-gold/70 text-xs">{RANK_LEVEL_BAND[r.rank]}</td>
                 <td className="py-2 px-3 font-mono text-red-400">{r.danoBonus || '—'}</td>
-                <td className="py-2 px-3 font-mono text-sky-400">+{r.caBonus}</td>
+                <td className="py-2 px-3 font-mono text-sky-400">sem CA</td>
                 <td className="py-2 px-3 font-mono text-orange-400">{r.slots}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-txt-dim text-sm mt-3">Custo de slot por tipo de habilidade: Fraca=1 | Média=2 | Forte=3</p>
+      <p className="text-txt-dim text-sm mt-3">Custo de slot por tipo de habilidade: Fraca=1 | Média=2 | Forte=3. Ranks de arma não somam CA; defesa passiva vem de CA base, escudos específicos, habilidades temporárias e armaduras.</p>
     </div>
   )
 }
@@ -819,21 +819,22 @@ function EquipmentSection() {
       </p>
 
       <p className="text-txt-dim text-sm mb-4">
-        Na revisão atual, armaduras não inflam CA diretamente: cada peça equipada soma Armadura como absorção de dano,
-        Vida Extra e possíveis bônus de crítico, dano leve ou escudo. Peitoral, Elmo, Calças e Botas podem formar sets
-        Guerreiro, Assassino ou Tecnológico, com bônus progressivos em 2, 3 e 4 peças.
+        Na revisão atual, armaduras não aumentam CA diretamente. CA é defesa passiva contra ataques; Armadura é uma
+        camada separada de absorção/durabilidade antes da Vida. Ao chegar a 0, a peça quebra até reparo. Peitoral,
+        Elmo, Calças e Botas podem receber categorias como Guerreiro, Furtivo, Tecnológico, Médico, Demolidor ou Exploração,
+        com bônus ativados a partir de 3 peças equipadas da mesma categoria.
       </p>
 
       <div className="bg-void rounded-xl border border-primary/20 p-4">
         <h3 className="text-primary text-sm font-semibold mb-3">Tipos de Equipamento</h3>
         <div className="grid gap-3">
           {[
-            { nome: 'Armadura Leve', ca: '+1 CA', desc: 'Couro, tecido reforçado. Ocupa Torso. Sem penalidade.' },
-            { nome: 'Armadura Média', ca: '+3 CA', desc: 'Cota de malha. Ocupa Torso + Pernas. −1 DES.' },
-            { nome: 'Armadura Pesada', ca: '+5 CA', desc: 'Placas completas. Ocupa Torso + Pernas + Braços. −2 DES.' },
-            { nome: 'Elmo', ca: '+1 CA', desc: 'Proteção craniana. Ocupa Cabeça.' },
-            { nome: 'Escudo', ca: '+2 CA', desc: 'Ocupa uma mão. Pode ser usado para ataque ou defesa.' },
-            { nome: 'Acessório', ca: '+0 CA', desc: 'Anéis, amuletos, capas. Concedem passivas. Ocupa Acessório.' },
+            { nome: 'Peitoral Leve', ca: '4 Armadura', desc: 'Couro, tecido reforçado. Sem penalidade.' },
+            { nome: 'Peitoral Comum', ca: '7 Armadura', desc: 'Cota de malha ou couro endurecido. Equilibrado.' },
+            { nome: 'Peitoral Pesado', ca: '10 Armadura', desc: 'Placas completas. Penalidade de mobilidade.' },
+            { nome: 'Elmo', ca: '2-6 Armadura', desc: 'Proteção craniana conforme peso.' },
+            { nome: 'Botas/Calças', ca: '1-6 Armadura', desc: 'Proteção segmentada e durabilidade da peça.' },
+            { nome: 'Acessório', ca: '0 Armadura', desc: 'Anéis, amuletos, capas. Concedem habilidades ou categoria.' },
             { nome: 'Item de Utilidade', ca: '—', desc: 'Escutas, ganchos, tasers, kits. Efeitos situacionais. Não ocupa slot.' },
           ].map((eq, i) => (
             <div key={i} className="bg-void/60 border border-sep/30 rounded-lg p-3">
@@ -854,20 +855,20 @@ function EquipmentSection() {
             <thead>
               <tr className="border-b border-sep/40">
                 <th className="py-2 px-3 text-left text-txt-dim font-medium">Rank</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">+CA Bônus</th>
-                <th className="py-2 px-3 text-left text-txt-dim font-medium">Slots de Passiva</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Armadura</th>
+                <th className="py-2 px-3 text-left text-txt-dim font-medium">Habilidades</th>
               </tr>
             </thead>
             <tbody>
               {[
-                { rank: 'Comum', ca: 0, slots: 0 },
-                { rank: 'Incomum', ca: 1, slots: 1 },
-                { rank: 'Raro', ca: 2, slots: 1 },
-                { rank: 'Epico', ca: 3, slots: 2 },
-                { rank: 'Heroico', ca: 4, slots: 2 },
-                { rank: 'Ancestral', ca: 5, slots: 3 },
-                { rank: 'Mitico', ca: 7, slots: 3 },
-                { rank: 'Transcendente', ca: 10, slots: 4 },
+                { rank: 'Comum', ca: 0, slots: '0' },
+                { rank: 'Incomum', ca: 1, slots: '0' },
+                { rank: 'Raro', ca: 1, slots: '0' },
+                { rank: 'Epico', ca: 2, slots: '1 ativa' },
+                { rank: 'Heroico', ca: 2, slots: '1 ativa' },
+                { rank: 'Ancestral', ca: 3, slots: '2 ativas' },
+                { rank: 'Mitico', ca: 4, slots: '2 ativas' },
+                { rank: 'Transcendente', ca: 4, slots: '2 ativas + 1 passiva' },
               ].map((r, i) => (
                 <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
                   <td className="py-2 px-3 font-cinzel text-amber-300">{r.rank}</td>
@@ -878,17 +879,18 @@ function EquipmentSection() {
             </tbody>
           </table>
         </div>
-        <p className="text-txt-dim text-xs mt-2">Equipamentos recebem passivas conforme o rank. Apenas uma peça do set pode ter passiva ativa — sets completos concedem bônus extra.</p>
+        <p className="text-txt-dim text-xs mt-2">Esses valores aumentam a camada de Armadura/durabilidade, não a CA. Vida extra é temporária de sessão enquanto a peça estiver equipada e íntegra.</p>
       </div>
 
       <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
-        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Set</h3>
+        <h3 className="text-emerald-400 text-sm font-semibold mb-3">Bônus de Categoria</h3>
         <div className="grid gap-3">
           {[
-            { name: 'Guardião', pieces: 3, bonus: '+2 CA, Redução de dano 2/passou', desc: 'A proteção completa reforça a determinação.' },
-            { name: 'Sombra', pieces: 3, bonus: '+1 DES, Vantagem em Furtividade', desc: 'As peças se fundem à escuridão.' },
-            { name: 'Arcano', pieces: 3, bonus: '+3 Energia, Redução custo mágico 10%', desc: 'O tecido pulsa com energia latente.' },
-            { name: 'Guerreiro', pieces: 2, bonus: '+5 Vida, +1 Ataque', desc: 'Herança de batalhas antigas.' },
+            { name: 'Furtivo', pieces: 3, bonus: '+10 em Furtividade', desc: 'Pode gastar 3 PE para receber Vantagem em uma esquiva até o fim do turno.' },
+            { name: 'Guerreiro', pieces: 3, bonus: '+5 Vida temporária e +2 em Bloqueio', desc: 'Pode gastar 2 PE ao sofrer dano para reduzir 1d6 do impacto.' },
+            { name: 'Tecnológico', pieces: 3, bonus: '+10 em Tecnologia', desc: 'Scan passivo identifica eletrônicos, rastreadores e armadilhas simples em 10m.' },
+            { name: 'Demolidor', pieces: 3, bonus: '+10 em explosivos/arrombamento', desc: 'Permite controlar dano colateral de cargas preparadas.' },
+            { name: 'Médico', pieces: 3, bonus: '+10 em Medicina', desc: 'Permite estabilizar um aliado como ação bônus gastando 3 PE.' },
           ].map((s, i) => (
             <div key={i} className="bg-void/60 border border-emerald-400/15 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
@@ -912,6 +914,11 @@ function EquipmentSection() {
             { nome: 'Kit de Ladrão', efeito: 'Vantagem em prestidigitação e arrombamento', peso: '0.3 kg' },
             { nome: 'Lente de Visão Noturna', efeito: 'Visão no escuro 30m', peso: '0.2 kg' },
             { nome: 'Granada de Fumaça', efeito: 'Área 5m obscurecida por 3 turnos', peso: '0.4 kg' },
+            { nome: 'Granada de Fragmentação', efeito: '4d8 em raio 4m, DES CD 15 metade', peso: '0.4 kg' },
+            { nome: 'Flashbang', efeito: 'CON CD 15 ou cego/surdo por 1 turno', peso: '0.35 kg' },
+            { nome: 'Carga C4', efeito: '6d10 em raio 6m, dobra contra estruturas', peso: '1.2 kg' },
+            { nome: 'Drone Batedor', efeito: '+10 em reconhecimento a até 80m', peso: '0.6 kg' },
+            { nome: 'Jammer Portátil', efeito: 'Bloqueia sinais em 15m por 10 minutos', peso: '0.9 kg' },
             { nome: 'Corda de Aço (10m)', efeito: 'Suporta 200kg, imobilizar FOR vs FOR', peso: '1 kg' },
           ].map((item, i) => (
             <div key={i} className="flex items-center justify-between bg-void/40 border border-sep/20 rounded px-3 py-2">
@@ -931,7 +938,7 @@ function EquipmentSection() {
         <div className="bg-void/60 border border-sep/30 rounded p-3 text-sm text-txt-main font-mono">
           Carga Máxima = 10 + (FOR × 2) + ⌊CON × 0.5⌋ kg
         </div>
-        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada) e itens especiais podem aumentar a capacidade. Exceder a carga impede ações atléticas.</p>
+        <p className="text-txt-dim text-xs mt-2">Módulos de Evolução (ex: Mochila Avançada) e itens especiais podem aumentar a capacidade. Apenas itens carregados, em mochila ou equipados entram na carga; itens em base, casa ou veículo ficam registrados, mas não pesam na ficha ativa.</p>
       </div>
 
       <div className="bg-void/40 border border-sep/30 rounded-lg p-3 text-xs text-txt-dim space-y-1">
@@ -939,7 +946,9 @@ function EquipmentSection() {
         <p>• Equipamentos seguem os mesmos ranks de armas para limites por nível.</p>
         <p>• Capacidade de moeda inicial: $50 Dólares + 5 Dracmas.</p>
         <p>• Peso corporal não conta para a capacidade de carga.</p>
-        <p>• Sets completos ativam automaticamente o bônus de set quando todas as peças estão equipadas.</p>
+        <p>• Categorias ativam bônus automaticamente quando 3+ peças da mesma categoria estão equipadas.</p>
+        <p>• Armas e equipamentos podem ser equipados, guardados, enviados para mochila, veículo ou base.</p>
+        <p>• Fichas salvas podem transferir itens e equipamentos entre personagens.</p>
         <p>• A IA balanceia passivas de equipamento usando os mesmos limites SCP/TDH de habilidades.</p>
       </div>
     </div>
