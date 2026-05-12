@@ -153,59 +153,51 @@ export default function DragDropInventory({
       return
     }
 
-    // If dragging an equipped item, unequip it first
+    // Handle equipped item being dropped - unequip it
     if (draggedItem.isEquipped) {
-      if (draggedItem.isWeapon && onUnequipItem) {
-        onUnequipItem('weapon')
-      } else if (onUnequipItem) {
-        onUnequipItem(draggedItem.id)
+      if (onUnequipItem) {
+        if (draggedItem.isWeapon) {
+          onUnequipItem('weapon')
+        } else {
+          onUnequipItem(draggedItem.id)
+        }
       }
       return
     }
 
-    const newItems = [...items]
+    // Handle drop within same inventory (rearranging)
+    if (draggedFromBackpackId === null || draggedFromBackpackId === undefined) {
+      const newItems = [...items]
+      const sourceSlot = draggedItem.slot ?? draggedItemIndex
+      const existingItemAtSlot = itemPositions.get(targetSlot)
 
-    if (draggedFromBackpackId !== null && draggedFromBackpackId !== undefined) {
-      // Item is being moved from a backpack to main inventory
-      // This will be handled by parent component
+      if (existingItemAtSlot && existingItemAtSlot.item.id !== draggedItem.id) {
+        // Swap items
+        const sourceIdx = existingItemAtSlot.idx
+        const targetIdx = draggedItemIndex
+        newItems[sourceIdx] = { ...existingItemAtSlot.item, slot: sourceSlot }
+        newItems[targetIdx] = { ...draggedItem, slot: targetSlot }
+      } else {
+        // Move to empty slot
+        newItems[draggedItemIndex] = { ...draggedItem, slot: targetSlot }
+      }
+
+      onUpdate(newItems)
+    } else {
+      // Moving from backpack to main inventory
       if (onTransfer) {
         onTransfer('backpack', draggedFromBackpackId, draggedItemIndex, targetSlot)
       }
-      return
     }
 
-    // Moving within same inventory
-    const sourceSlot = draggedItem.slot ?? draggedItemIndex
-
-    // If dropping on empty slot, move item there (free allocation!)
-    const existingItemAtSlot = itemPositions.get(targetSlot)
-
-    if (existingItemAtSlot && existingItemAtSlot.item.id !== draggedItem.id) {
-      // Swap items
-      newItems[existingItemAtSlot.idx] = { ...existingItemAtSlot.item, slot: sourceSlot }
-      newItems[draggedItemIndex] = { ...draggedItem, slot: targetSlot }
-    } else {
-      // Just move to new slot (free allocation!)
-      newItems[draggedItemIndex] = { ...draggedItem, slot: targetSlot }
-    }
-
-    onUpdate(newItems)
     setDraggedItem(null)
     setDraggedFromBackpack(null)
     setDraggedItemIndex(null)
   }
 
   function handleItemClick(item, idx) {
-    if (item.isEquipped) {
-      // Clicking equipped item shows details or could be used to unequip
-      if (onItemView) onItemView(item, idx)
-      return
-    }
-
-    if (item.tipo === 'mochila') {
-      // Open backpack view
-      setOpenBackpackId(item.id === openBackpackId ? null : item.id)
-    } else if (onItemView) {
+    // Clicking equipped item shows details or can unequip
+    if (onItemView) {
       onItemView(item, idx)
     }
   }
@@ -263,7 +255,7 @@ export default function DragDropInventory({
           >
             {item ? (
               <div
-                draggable={canEdit && !item.isEquipped}
+                draggable={canEdit}
                 onDragStart={(e) => handleDragStart(e, item, idx)}
                 onDragEnd={handleDragEnd}
                 className={`inventory-item ${ITEM_COLORS.find(c => c.id === (item.cor || 'gray'))?.cls || ''}`}
