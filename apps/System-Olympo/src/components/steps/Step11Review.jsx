@@ -39,6 +39,7 @@ import { getSystemSkillById, SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, EFFECT_PARA
 import { summarizeSystemSkillBonuses, createDefaultEffectsForSkill, calcSystemSkillBonuses } from '../../utils/systemSkills'
 import { getRaceDevelopmentEffects, getTriageDevelopmentEffects } from '../../utils/developmentEffects'
 import { flattenRaceMilestones, formatRaceBonusParts, parseRaceEffectText } from '../../utils/raceMilestones'
+import { SPECIAL_MATERIALS, getAvailableForgeMaterials, getMaterialIcon } from '../../data/materials'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -448,7 +449,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
       <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
 
       {cls && skelTotal > 0 && (
-        <SkeletonPointAllocator char={char} update={update} sk={sk} skelTotal={skelTotal} skelSpent={skelSpent} sysSkillBonuses={sysSkillBonuses} skelBase={skelBase} />
+        <SkeletonPointAllocator char={char} update={update} sk={sk} skelTotal={skelTotal} skelSpent={skelSpent} sysSkillBonuses={sysSkillBonuses} skelBase={skelBase} isAdmin={isAdmin} />
       )}
 
       {skillCatalogOpen && isAdmin && (
@@ -463,6 +464,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
           char={char}
           update={update}
           canEdit={canEdit}
+          isAdmin={isAdmin}
           onClose={() => setForgeMenuOpen(false)}
         />
       )}
@@ -515,7 +517,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {canEdit ? (
                 <input type="number" value={vidaAtual}
                   onChange={e => update({ vidaAtual: Number(e.target.value) || 0 })}
-                  className={`font-mono leading-none bg-transparent border-b border-white/10 text-center outline-none focus:border-gold/50 transition-colors min-w-[80px] ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}
+                  className={`hero-resource-input font-mono leading-none bg-transparent text-center outline-none transition-colors min-w-[80px] ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}
                   style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
               ) : (
                 <span className={`font-mono leading-none ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`} style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaAtual}</span>
@@ -527,7 +529,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {canEdit ? (
                 <input type="number" value={energiaAtual}
                   onChange={e => update({ energiaAtual: Number(e.target.value) || 0 })}
-                  className={`font-mono leading-none bg-transparent border-b border-white/10 text-center outline-none focus:border-gold/50 transition-colors min-w-[80px] ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}
+                  className={`hero-resource-input font-mono leading-none bg-transparent text-center outline-none transition-colors min-w-[80px] ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}
                   style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
               ) : (
                 <span className={`font-mono leading-none ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`} style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaAtual}</span>
@@ -539,7 +541,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {canEdit ? (
                 <input type="number" value={peAtual}
                   onChange={e => update({ peAtual: Number(e.target.value) || 0 })}
-                  className={`font-mono leading-none bg-transparent border-b border-white/10 text-center outline-none focus:border-gold/50 transition-colors min-w-[80px] ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}
+                  className={`hero-resource-input font-mono leading-none bg-transparent text-center outline-none transition-colors min-w-[80px] ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}
                   style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
               ) : (
                 <span className={`font-mono leading-none ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`} style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peAtual}</span>
@@ -3429,11 +3431,15 @@ function TriagemSection({ char, cls }) {
   )
 }
 
-function ForgeMasterMenu({ char, update, canEdit, onClose }) {
+function ForgeMasterMenu({ char, update, canEdit, isAdmin = false, onClose }) {
   const [draft, setDraft] = useState({ nome: '', tipo: 'Ativa', alvo: 'Ambos', custo: '', descricao: '' })
+  const [grantDraft, setGrantDraft] = useState({ materialId: 'ferro_hefestiano', unlimited: true, limit: 1 })
   const [analyzingId, setAnalyzingId] = useState(null)
   const [error, setError] = useState('')
   const enchantments = char.forgeEnchantments || []
+  const materialGrants = Array.isArray(char.forgeMaterialGrants) ? char.forgeMaterialGrants : []
+  const availableMaterials = getAvailableForgeMaterials(char || {})
+  const canManageMaterials = canEdit && isAdmin
 
   function patchEnchantments(next) {
     update?.({ forgeEnchantments: next })
@@ -3463,6 +3469,31 @@ function ForgeMasterMenu({ char, update, canEdit, onClose }) {
 
   function removeEnchant(id) {
     patchEnchantments(enchantments.filter(item => item.id !== id))
+  }
+
+  function patchMaterialGrants(next) {
+    update?.({ forgeMaterialGrants: next })
+  }
+
+  function upsertMaterialGrant() {
+    const materialId = grantDraft.materialId
+    if (!SPECIAL_MATERIALS[materialId]) return
+    const nextGrant = {
+      id: `mat_${materialId}`,
+      materialId,
+      unlimited: !!grantDraft.unlimited,
+      limit: grantDraft.unlimited ? null : Math.max(1, Number(grantDraft.limit) || 1),
+      grantedAt: new Date().toISOString(),
+    }
+    const exists = materialGrants.some(grant => grant.materialId === materialId)
+    patchMaterialGrants(exists
+      ? materialGrants.map(grant => grant.materialId === materialId ? nextGrant : grant)
+      : [...materialGrants, nextGrant]
+    )
+  }
+
+  function removeMaterialGrant(materialId) {
+    patchMaterialGrants(materialGrants.filter(grant => grant.materialId !== materialId))
   }
 
   async function analyzeEnchant(item) {
@@ -3506,14 +3537,64 @@ function ForgeMasterMenu({ char, update, canEdit, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <div className="rounded-xl border border-amber-300/15 bg-amber-300/5 p-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-amber-200 text-[11px] font-semibold">Ferro Hefestiano</span>
-              <span className="text-[9px] px-2 py-0.5 rounded border border-amber-300/20 bg-amber-300/10 text-amber-100/80">Material especial</span>
+          <div className="rounded-xl border border-amber-300/15 bg-amber-300/5 p-3 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="text-amber-200 text-[11px] font-semibold">Materiais Concedidos</span>
+                <p className="text-txt-dim/70 text-[11px] mt-1 leading-relaxed">
+                  O Mestre define quais materiais o personagem pode usar e quantas criacoes cada material permite. Ferro Hefestiano e o material de maior poder bruto, mas cada material tem uma especialidade.
+                </p>
+              </div>
+              <span className="text-[9px] px-2 py-0.5 rounded border border-amber-300/20 bg-amber-300/10 text-amber-100/80">Mestre da Forja</span>
             </div>
-            <p className="text-txt-dim/70 text-[11px] mt-1.5 leading-relaxed">
-              Armas recebem +1d6 de dano material. Equipamentos recebem +2 Armadura e +6 Durabilidade maxima. O rank continua controlando slots e escala.
-            </p>
+
+            {canManageMaterials && (
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_120px_120px] gap-2 rounded-lg border border-sep/20 bg-void/35 p-2">
+                <select value={grantDraft.materialId} onChange={e => setGrantDraft(prev => ({ ...prev, materialId: e.target.value }))}
+                  className="bg-[#11141c] border border-amber-300/20 rounded-lg px-2 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
+                  {Object.values(SPECIAL_MATERIALS).map(mat => (
+                    <option key={mat.id} value={mat.id} className="bg-[#11141c] text-txt-main">{mat.name}</option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-2 rounded-lg border border-sep/25 bg-void/50 px-3 py-2 text-[10px] text-txt-dim">
+                  <input type="checkbox" checked={grantDraft.unlimited} onChange={e => setGrantDraft(prev => ({ ...prev, unlimited: e.target.checked }))} className="accent-gold" />
+                  Ilimitado
+                </label>
+                <input type="number" min="1" value={grantDraft.limit} disabled={grantDraft.unlimited}
+                  onChange={e => setGrantDraft(prev => ({ ...prev, limit: e.target.value }))}
+                  className="bg-void/60 border border-sep/35 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/40 focus:outline-none disabled:opacity-35" />
+                <button onClick={upsertMaterialGrant}
+                  className="md:col-span-3 text-[10px] bg-amber-300 text-void px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-200 transition-colors">
+                  Conceder / Atualizar Material
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {availableMaterials.length === 0 ? (
+                <p className="md:col-span-2 text-txt-dim/45 text-[10px] italic">Nenhum material especial concedido ainda.</p>
+              ) : availableMaterials.map(grant => {
+                const mat = grant.material
+                return (
+                  <div key={mat.id} className="rounded-lg border border-amber-300/15 bg-black/15 p-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[15px] text-amber-200">{getMaterialIcon(mat.id)}</span>
+                      <span className="text-txt-main text-[11px] font-semibold">{mat.name}</span>
+                      <span className="ml-auto text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-txt-dim/75">
+                        {grant.unlimited ? 'ilimitado' : `${grant.used}/${grant.limit} usados`}
+                      </span>
+                      {canManageMaterials && (
+                        <button onClick={() => removeMaterialGrant(mat.id)} title="Remover concessao" className="w-6 h-6 grid place-items-center rounded border border-err/20 text-err/55 hover:bg-err/10 hover:text-err">
+                          <span className="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-txt-dim/65 text-[10px] mt-1 leading-relaxed">{mat.specialty}</p>
+                    <p className="text-amber-100/70 text-[9px] mt-1 font-mono">{mat.damageBonus} dano · +{mat.armorBonus} ARM · +{mat.durabilityBonus} DUR</p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {canEdit && (
@@ -3645,7 +3726,7 @@ function SkillCatalogModal({ assigned, onSelect, onClose }) {
   )
 }
 
-function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSkillBonuses, skelBase }) {
+function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSkillBonuses, skelBase, isAdmin = false }) {
   const [open, setOpen] = useState(false)
   if (!open) {
     return (
@@ -3663,12 +3744,14 @@ function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSki
   const attrLimit = (attr) => attrCap + (sysSkillBonuses.attrCapBonuses?.[attr] || 0)
 
   function handleAdd(attr) {
+    if (!isAdmin) return
     if (remaining <= 0) return
     if ((adjustedAttrs[attr] || 0) >= attrLimit(attr)) return
     const newVal = (sk[attr] || 0) + 1
     update({ skeletonPoints: { ...sk, [attr]: newVal } })
   }
   function handleRemove(attr) {
+    if (!isAdmin) return
     if ((sk[attr] || 0) <= 0) return
     update({ skeletonPoints: { ...sk, [attr]: (sk[attr] || 0) - 1 } })
   }
@@ -3679,6 +3762,7 @@ function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSki
         <div className="flex items-center gap-2">
           <span className="text-emerald-400">◆</span>
           <span className="text-emerald-300 text-[12px] font-semibold">Pontos de Esqueleto</span>
+          {!isAdmin && <span className="text-[9px] px-2 py-0.5 rounded border border-sky-300/20 bg-sky-300/10 text-sky-200/70">travado na ficha final</span>}
         </div>
         <div className="flex items-center gap-3">
           <span className="text-emerald-300/70 text-[10px]">{skelBase} base{sysSkillBonuses.skeletonPoints > 0 ? ` + ${sysSkillBonuses.skeletonPoints} Skills` : ''} = <strong className="text-emerald-300">{skelTotal}</strong></span>
@@ -3698,9 +3782,9 @@ function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSki
               <span className="font-mono text-emerald-300 text-lg">{v}</span>
               {capBonus > 0 && <span className="text-[8px] text-purple-300/70 font-mono">limite +{capBonus}</span>}
               <div className="flex items-center gap-1 mt-1">
-                <button onClick={() => handleRemove(a)} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-err hover:border-err/30 text-[10px] transition-colors">-</button>
+                <button onClick={() => handleRemove(a)} disabled={!isAdmin} title={!isAdmin ? 'Somente o Mestre pode ajustar pontos depois da criacao.' : 'Remover ponto'} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-err hover:border-err/30 text-[10px] transition-colors disabled:opacity-30 disabled:cursor-not-allowed">-</button>
                 <span className="text-[9px] text-txt-dim/40 w-4 text-center">{pts}</span>
-                <button onClick={() => handleAdd(a)} disabled={remaining <= 0 || v >= cap} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-emerald-300 hover:border-emerald-400/30 text-[10px] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
+                <button onClick={() => handleAdd(a)} disabled={!isAdmin || remaining <= 0 || v >= cap} title={!isAdmin ? 'Somente o Mestre pode ajustar pontos depois da criacao.' : 'Adicionar ponto'} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-emerald-300 hover:border-emerald-400/30 text-[10px] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
               </div>
             </div>
           )

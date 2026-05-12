@@ -8,7 +8,7 @@ import { calcSystemSkillBonuses } from '../utils/systemSkills'
 import { getModifier } from '../data/attributes'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchMysticWeapons } from '../services/alchemyService'
-import { SPECIAL_MATERIALS, getMaterialDamageBonus, getMaterialArmorBonus, getMaterialDurabilityBonus, getMaterialSpecial, getMaterialLabel, getMaterialIcon } from '../data/materials'
+import { getAvailableForgeMaterials, getMaterialDamageBonus, getMaterialArmorBonus, getMaterialDurabilityBonus, getMaterialSpecial, getMaterialLabel, getMaterialIcon } from '../data/materials'
 import { ARMOR_ABSORPTION_HARD_CAP, ARMOR_ABSORPTION_SOFT_CAP, ARMOR_TYPES, EQUIPMENT_TYPES, SIMPLE_ITEMS, SET_BONUSES, calcEquipStats, getEquipmentArmorValue, getEquipmentDurabilityCurrent, getEquipmentDurabilityMax, getEquipmentRarity, canEquipRank as canUseEquipRank, getEquipLimitForLevel, estimateEquipmentWeight } from '../data/equipment'
 
 function tagValue(tags = [], key) {
@@ -48,6 +48,106 @@ function getForgeEnchantmentLimit(rank, systemSkillBonuses = {}) {
 function canUseForgeEnchantment(enc = {}, category = 'Arma') {
   const target = enc.alvo || 'Ambos'
   return target === 'Ambos' || target === category
+}
+
+function getMaterialTone(materialId = '') {
+  if (materialId === 'ferro_hefestiano') return 'border-amber-300/30 bg-amber-300/10 text-amber-100'
+  if (materialId === 'ferro_tartaro') return 'border-indigo-400/30 bg-indigo-400/10 text-indigo-100'
+  if (materialId === 'aco_astrano') return 'border-purple-400/30 bg-purple-400/10 text-purple-100'
+  if (materialId === 'vibranium') return 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100'
+  if (materialId === 'aco_olimpiano') return 'border-yellow-400/30 bg-yellow-400/10 text-yellow-100'
+  return 'border-sep/30 bg-void/40 text-txt-main'
+}
+
+function ForgeMaterialPicker({ char, value, onChange, category = 'Arma', currentMaterial = '' }) {
+  const grants = getAvailableForgeMaterials(char || {})
+  const options = grants.filter(grant => grant.available || grant.material.id === value || grant.material.id === currentMaterial)
+  const selectedGrant = grants.find(grant => grant.material.id === value)
+
+  return (
+    <div className="rounded-xl border border-amber-300/15 bg-amber-300/[0.035] p-3 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <span className="text-amber-200 text-[10px] uppercase tracking-wider">Material Especial</span>
+          <p className="text-txt-dim/55 text-[10px] mt-0.5">Concessao do Mestre Forjador, consumida por item criado.</p>
+        </div>
+        {selectedGrant && (
+          <span className="text-[9px] px-2 py-1 rounded border border-amber-300/20 bg-black/20 text-amber-100/70">
+            {selectedGrant.unlimited ? 'ilimitado' : `${selectedGrant.remaining} restantes`}
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button type="button" onClick={() => onChange('')}
+          className={`text-left rounded-lg border p-2 transition-colors ${value === '' ? 'border-sep/60 bg-white/5 text-txt-main' : 'border-sep/25 bg-void/30 text-txt-dim/65 hover:border-sep/50'}`}>
+          <span className="text-[11px] font-semibold">Material comum</span>
+          <p className="text-[9px] text-txt-dim/50 mt-0.5">Sem bonus especial.</p>
+        </button>
+        {options.map(grant => {
+          const mat = grant.material
+          const selected = value === mat.id
+          const disabled = !grant.available && !selected
+          return (
+            <button key={mat.id} type="button" disabled={disabled} onClick={() => onChange(mat.id)}
+              className={`text-left rounded-lg border p-2.5 transition-colors ${getMaterialTone(mat.id)} ${selected ? 'ring-1 ring-amber-200/35' : disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/[0.045]'}`}>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[15px]">{getMaterialIcon(mat.id)}</span>
+                <span className="text-[11px] font-semibold truncate">{mat.name}</span>
+                <span className="ml-auto text-[8px] px-1.5 py-0.5 rounded bg-black/25 border border-white/10">
+                  {grant.unlimited ? 'ilimitado' : `${grant.remaining}/${grant.limit}`}
+                </span>
+              </div>
+              <p className="text-[9px] text-current/70 mt-1 leading-snug">{mat.specialty}</p>
+              <p className="text-[9px] text-current/65 mt-1 font-mono">
+                {category === 'Equipamento' ? `+${mat.armorBonus} ARM · +${mat.durabilityBonus} DUR` : `${mat.damageBonus} dano`}
+              </p>
+            </button>
+          )
+        })}
+      </div>
+      {options.length === 0 && (
+        <p className="text-txt-dim/45 text-[10px] italic">Nenhum material especial concedido pelo Mestre ainda.</p>
+      )}
+    </div>
+  )
+}
+
+function ForgeEnchantmentPicker({ library, selected, limit, onToggle }) {
+  return (
+    <div className="rounded-xl border border-amber-300/15 bg-void/45 p-3">
+      <div className="flex justify-between items-start gap-3 mb-2">
+        <div>
+          <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
+          <p className="text-txt-dim/55 text-[10px] leading-relaxed mt-0.5">Modulos especiais criados pelo Mestre Forjador.</p>
+        </div>
+        <span className={`text-[10px] font-mono px-2 py-1 rounded border ${selected.length > limit ? 'text-err border-err/25 bg-err/10' : 'text-amber-100/75 border-amber-300/20 bg-amber-300/10'}`}>
+          {selected.length}/{limit}
+        </span>
+      </div>
+      {library.length === 0 ? (
+        <p className="text-txt-dim/40 text-[10px] italic">Nenhum encantamento criado no Mestre Forjador.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+          {library.map(enc => {
+            const isSelected = selected.some(item => item.id === enc.id)
+            const locked = !isSelected && selected.length >= limit
+            return (
+              <button key={enc.id} type="button" onClick={() => !locked && onToggle(enc)} disabled={locked}
+                className={`text-left rounded-lg border p-3 transition-colors ${isSelected ? 'border-amber-300/45 bg-amber-300/12' : locked ? 'border-sep/15 bg-void/25 opacity-45 cursor-not-allowed' : 'border-amber-300/18 bg-amber-300/5 hover:border-amber-300/35'}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-amber-100 text-[12px] font-semibold truncate">{enc.nome || 'Encantamento'}</span>
+                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-txt-dim/65">{enc.tipo || 'Ativa'}</span>
+                  {isSelected && <span className="material-symbols-outlined text-[14px] text-emerald-300 ml-auto">check_circle</span>}
+                </div>
+                <p className="text-txt-dim/65 text-[10px] mt-1.5 leading-relaxed line-clamp-3">{enc.descricao || 'Sem descricao.'}</p>
+                {enc.custo && <p className="text-gold/70 text-[9px] font-mono mt-1">{enc.custo}</p>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function getMaterialDamageDisplay(item = {}) {
@@ -741,6 +841,7 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
 }
 
 function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onTransfer, onClose }) {
+  const { isAdmin } = useAuth()
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
@@ -805,7 +906,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
   function saveEdit() {
     onUpdate?.({
       armaNome: editName,
-      armaRank: editRank,
+      armaRank: isAdmin ? editRank : rank.rank,
       armaEquipada: editEquipped,
       armaLocal: editEquipped ? 'equipado' : 'guardado',
       armaHabilidades: editHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()),
@@ -901,7 +1002,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
                       const c = RANK_COLORS[r.rank]
                       const allowed = canUseWeaponRank(char.nivel || 1, r.rank, weaponRankAllowance)
                       return (
-                        <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
+                        <button key={r.rank} onClick={() => isAdmin && allowed && setEditRank(r.rank)} disabled={!isAdmin || !allowed}
                           title={!allowed ? `Requer nível maior. Limite atual: ${getWeaponLimitForLevel(char.nivel || 1).maxRank}` : r.rank}
                           className={`text-[9px] px-2 py-0.5 rounded border transition-colors ${editRank === r.rank ? `${c.badge}` : allowed ? 'border-sep/30 text-txt-dim/50 hover:border-sep/60' : 'border-sep/10 text-txt-dim/20 cursor-not-allowed'}`}>
                           {r.rank}
@@ -1111,8 +1212,10 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
           </span>
         )}
         {item.materialEspecial && (
-          <span className={`text-[9px] mt-1 ml-1 inline-flex px-1.5 py-0.5 rounded border ${item.materialEspecial === 'ferro_hefestiano' ? 'text-amber-100 border-amber-300/20 bg-amber-300/10' : item.materialEspecial === 'ferro_tartaro' ? 'text-indigo-200 border-indigo-400/20 bg-indigo-400/10' : item.materialEspecial === 'aco_astrano' ? 'text-purple-200 border-purple-400/20 bg-purple-400/10' : item.materialEspecial === 'vibranium' ? 'text-cyan-200 border-cyan-400/20 bg-cyan-400/10' : item.materialEspecial === 'aco_olimpiano' ? 'text-yellow-200 border-yellow-400/20 bg-yellow-400/10' : 'text-gray-300 border-gray-400/20 bg-gray-400/10'}`}>
+          <span className={`text-[9px] mt-1 ml-1 inline-flex items-center px-1.5 py-0.5 rounded border ${item.materialEspecial === 'ferro_hefestiano' ? 'text-amber-100 border-amber-300/20 bg-amber-300/10' : item.materialEspecial === 'ferro_tartaro' ? 'text-indigo-200 border-indigo-400/20 bg-indigo-400/10' : item.materialEspecial === 'aco_astrano' ? 'text-purple-200 border-purple-400/20 bg-purple-400/10' : item.materialEspecial === 'vibranium' ? 'text-cyan-200 border-cyan-400/20 bg-cyan-400/10' : item.materialEspecial === 'aco_olimpiano' ? 'text-yellow-200 border-yellow-400/20 bg-yellow-400/10' : 'text-gray-300 border-gray-400/20 bg-gray-400/10'}`}>
+            <span className="material-symbols-outlined text-[12px] leading-none">
             {getMaterialIcon(item.materialEspecial)}
+            </span>
           </span>
         )}
       </button>
@@ -1770,6 +1873,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   const forgeRankBonus = systemSkillBonuses.forgeRankBonus || 0
   const forgeEnchantmentSlots = (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? getForgeEnchantmentLimit(selectedRank, systemSkillBonuses) : 0
   const forgeQualityBonus = systemSkillBonuses.forgeQualityBonus || 0
+  const forgeMaterials = getAvailableForgeMaterials(char || {})
   const weaponRankAllowance = getWeaponRankBonus(char) + forgeRankBonus
   const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank, weaponRankAllowance) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
   const detailStep = itemCategory === 'Equipamento' ? 3 : 2
@@ -1948,7 +2052,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose} onPaste={handlePaste}>
-      <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()} onDrop={handleDrop} onDragOver={handleDragOver}>
+      <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-2xl shadow-2xl shadow-black/50 max-h-[90vh] flex flex-col modal-content" onClick={e => e.stopPropagation()} onDrop={handleDrop} onDragOver={handleDragOver}>
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between shrink-0">
           <h3 className="font-cinzel text-primary text-sm">{title}</h3>
           <div className="flex items-center gap-2">
@@ -2091,11 +2195,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                     {systemSkillBonuses.forgeRankLabels?.map(label => <span key={label} className="text-[9px] text-gold/80 bg-gold/10 border border-gold/15 rounded px-2 py-0.5">{label}</span>)}
                     {forgeEnchantmentSlots > 0 && <span className="text-[9px] text-sky-200/80 bg-sky-300/10 border border-sky-300/15 rounded px-2 py-0.5">{forgeEnchantmentSlots} encantamento(s)</span>}
                     {forgeQualityBonus > 0 && <span className="text-[9px] text-emerald-200/80 bg-emerald-300/10 border border-emerald-300/15 rounded px-2 py-0.5">Qualidade +{forgeQualityBonus}</span>}
-                    <span className="text-[9px] text-amber-100/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">⚒️ Ferro Hefestiano</span>
-                    <span className="text-[9px] text-indigo-100/80 bg-indigo-300/10 border border-indigo-400/15 rounded px-2 py-0.5">🔥 Ferro do Tártaro</span>
-                    <span className="text-[9px] text-purple-100/80 bg-purple-300/10 border border-purple-400/15 rounded px-2 py-0.5">✨ Aço Astrano</span>
-                    <span className="text-[9px] text-cyan-100/80 bg-cyan-300/10 border border-cyan-400/15 rounded px-2 py-0.5">💎 Vibranium</span>
-                    <span className="text-[9px] text-yellow-100/80 bg-yellow-300/10 border border-yellow-400/15 rounded px-2 py-0.5">🏛️ Aço Olimpiano</span>
+                    {forgeMaterials.length > 0 && <span className="text-[9px] text-amber-100/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">{forgeMaterials.length} material(is) concedido(s)</span>}
                   </div>
                 </div>
               )}
@@ -2182,17 +2282,16 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                       Equipada
                     </label>
                   )}
-                  {(itemCategory === 'Arma' || itemCategory === 'Equipamento') && systemSkillBonuses.forgeEnchantmentSlots > 0 && (
-                    <select value={materialEspecial} onChange={e => setMaterialEspecial(e.target.value)}
-                      className="w-full bg-[#11141c] border border-amber-300/25 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
-                      <option value="" className="bg-[#11141c] text-txt-main">Material comum</option>
-                      {Object.entries(SPECIAL_MATERIALS).map(([key, mat]) => (
-                        <option key={key} value={key} className="bg-[#11141c] text-txt-main">{mat.icon} {mat.name}</option>
-                      ))}
-                    </select>
-                  )}
                 </div>
               </div>
+              {(itemCategory === 'Arma' || itemCategory === 'Equipamento') && (forgeMaterials.length > 0 || materialEspecial) && (
+                <ForgeMaterialPicker
+                  char={char}
+                  value={materialEspecial}
+                  onChange={setMaterialEspecial}
+                  category={itemCategory}
+                />
+              )}
               <div className={`grid gap-2 ${itemCategory === 'Utilidade' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <div className="flex gap-1.5">
                   <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg"
@@ -2271,37 +2370,12 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
               )}
 
               {(itemCategory === 'Arma' || itemCategory === 'Equipamento') && forgeEnchantmentSlots > 0 && (
-                <div className="border-t border-amber-300/15 pt-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
-                    <span className={`text-[10px] font-mono ${encantamentos.length > forgeEnchantmentSlots ? 'text-err' : 'text-amber-200/70'}`}>
-                      {encantamentos.length}/{forgeEnchantmentSlots}
-                    </span>
-                  </div>
-                  <p className="text-txt-dim/55 text-[10px] leading-relaxed mb-2">
-                    Selecione encantamentos criados no menu Mestre Forjador. O limite vem do rank do item e da Skill.
-                  </p>
-                  {forgeLibrary.length === 0 ? (
-                    <p className="text-txt-dim/40 text-[10px] italic">Crie encantamentos clicando no card Mestre Forjador da ficha.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {forgeLibrary.map(enc => {
-                        const selected = encantamentos.some(item => item.id === enc.id)
-                        const locked = !selected && encantamentos.length >= forgeEnchantmentSlots
-                        return (
-                          <button key={enc.id} type="button" onClick={() => !locked && toggleEncantamento(enc)} disabled={locked}
-                            className={`text-left rounded-lg border p-2 transition-colors ${selected ? 'border-amber-300/45 bg-amber-300/12' : locked ? 'border-sep/15 bg-void/25 opacity-45 cursor-not-allowed' : 'border-amber-300/18 bg-amber-300/5 hover:border-amber-300/35'}`}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-amber-100 text-[11px] font-semibold truncate">{enc.nome || 'Encantamento'}</span>
-                              <span className="text-[8px] px-1 rounded bg-white/5 text-txt-dim/65">{enc.tipo || 'Ativa'}</span>
-                            </div>
-                            <p className="text-txt-dim/60 text-[9px] mt-1 line-clamp-2">{enc.descricao || 'Sem descricao.'}</p>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
+                <ForgeEnchantmentPicker
+                  library={forgeLibrary}
+                  selected={encantamentos}
+                  limit={forgeEnchantmentSlots}
+                  onToggle={toggleEncantamento}
+                />
               )}
 
               {itemCategory === 'Equipamento' && (
@@ -2365,6 +2439,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
 }
 
 function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
+  const { isAdmin } = useAuth()
   const rc = RANK_COLORS[item.rank] || RANK_COLORS.Comum
   const equipType = getEquipmentType(item)
   const armorTypeMeta = getArmorType(item)
@@ -2392,6 +2467,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const forgeEnchantmentSlots = (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? getForgeEnchantmentLimit(editRank, systemSkillBonuses) : 0
   const weaponRankAllowance = getWeaponRankBonus(char) + forgeRankBonus
   const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank, weaponRankAllowance) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
+  const editRankSaveAllowed = isAdmin ? editRankAllowed : true
   const editWeaponRank = WEAPON_RANKS.find(r => r.rank === editRank) || WEAPON_RANKS[0]
   const editWeaponUsedSlots = editItemHabilidades.reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const editEquipRarity = getEquipmentRarity(editRank)
@@ -2399,6 +2475,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const editEquipUsedSlots = editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()).length
   const editAbilityOverflow = (item.categoria === 'Arma' && (editWeaponUsedSlots > editWeaponRank.slots || editEncantamentos.length > forgeEnchantmentSlots)) || (item.categoria === 'Equipamento' && (editEquipUsedSlots > editEquipSlots || editEncantamentos.length > forgeEnchantmentSlots))
   const forgeLibrary = (char?.forgeEnchantments || []).filter(enc => canUseForgeEnchantment(enc, item.categoria))
+  const editForgeMaterials = getAvailableForgeMaterials(char || {})
 
   function updateEditItemHab(index, patch) {
     const next = [...editItemHabilidades]
@@ -2446,7 +2523,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
       descricao: editDesc,
       dano: editDano,
       efeitos: editEfeitos,
-      rank: editRank,
+      rank: isAdmin ? editRank : item.rank,
       materialEspecial: (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? editMaterialEspecial : '',
       equipado: editEquipado,
       habilidades: item.categoria === 'Arma' ? editItemHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.habilidades,
@@ -2466,7 +2543,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/40 drawer-overlay" onClick={onClose} />
-      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[360px] bg-deep border-l border-primary/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[460px] bg-deep border-l border-primary/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
         <div className="px-4 py-3 border-b border-sep/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <h3 className="font-cinzel text-primary text-xs uppercase tracking-wider">Equipamento</h3>
@@ -2512,14 +2589,14 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                   Equipada
                 </label>
               )}
-              {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && systemSkillBonuses.forgeEnchantmentSlots > 0 && (
-                <select value={editMaterialEspecial} onChange={e => setEditMaterialEspecial(e.target.value)}
-                  className="w-full bg-[#11141c] border border-amber-300/25 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
-                  <option value="" className="bg-[#11141c] text-txt-main">Material comum</option>
-                  {Object.entries(SPECIAL_MATERIALS).map(([key, mat]) => (
-                    <option key={key} value={key} className="bg-[#11141c] text-txt-main">{mat.icon} {mat.name}</option>
-                  ))}
-                </select>
+              {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && (editForgeMaterials.length > 0 || editMaterialEspecial) && (
+                <ForgeMaterialPicker
+                  char={char}
+                  value={editMaterialEspecial}
+                  onChange={setEditMaterialEspecial}
+                  category={item.categoria}
+                  currentMaterial={item.materialEspecial || ''}
+                />
               )}
               <div>
                 <label className="text-txt-dim/50 text-[9px] uppercase">Rank</label>
@@ -2528,7 +2605,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                     const c = RANK_COLORS[r.rank]
                     const allowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, weaponRankAllowance) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, r.rank) : true
                     return (
-                      <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
+                      <button key={r.rank} onClick={() => isAdmin && allowed && setEditRank(r.rank)} disabled={!isAdmin || !allowed}
                         title={!allowed ? `Limite atual: ${item.categoria === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}` : r.rank}
                         className={`text-[9px] px-2 py-0.5 rounded border transition-colors ${editRank === r.rank ? `${c.badge}` : allowed ? 'border-sep/30 text-txt-dim/50 hover:border-sep/60' : 'border-sep/10 text-txt-dim/20 cursor-not-allowed'}`}>
                         {r.rank}
@@ -2611,32 +2688,12 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                 </div>
               )}
               {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && forgeEnchantmentSlots > 0 && (
-                <div className="border-t border-amber-300/15 pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
-                    <span className={`text-[10px] font-mono ${editEncantamentos.length > forgeEnchantmentSlots ? 'text-err' : 'text-amber-200/70'}`}>{editEncantamentos.length}/{forgeEnchantmentSlots}</span>
-                  </div>
-                  {forgeLibrary.length === 0 ? (
-                    <p className="text-txt-dim/40 text-[10px] italic">Nenhum encantamento criado no Mestre Forjador.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2">
-                      {forgeLibrary.map(enc => {
-                        const selected = editEncantamentos.some(item => item.id === enc.id)
-                        const locked = !selected && editEncantamentos.length >= forgeEnchantmentSlots
-                        return (
-                          <button key={enc.id} type="button" onClick={() => !locked && toggleEditEncantamento(enc)} disabled={locked}
-                            className={`text-left rounded-lg border p-2 transition-colors ${selected ? 'border-amber-300/45 bg-amber-300/12' : locked ? 'border-sep/15 bg-void/25 opacity-45 cursor-not-allowed' : 'border-amber-300/18 bg-amber-300/5 hover:border-amber-300/35'}`}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-amber-100 text-[11px] font-semibold truncate">{enc.nome || 'Encantamento'}</span>
-                              <span className="text-[8px] px-1 rounded bg-white/5 text-txt-dim/65">{enc.tipo || 'Ativa'}</span>
-                            </div>
-                            <p className="text-txt-dim/60 text-[9px] mt-1 line-clamp-2">{enc.descricao || 'Sem descricao.'}</p>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
+                <ForgeEnchantmentPicker
+                  library={forgeLibrary}
+                  selected={editEncantamentos}
+                  limit={forgeEnchantmentSlots}
+                  onToggle={toggleEditEncantamento}
+                />
               )}
               {item.categoria === 'Equipamento' && (
                 <div className="border-t border-sep/20 pt-3">
@@ -2828,7 +2885,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
           )}
           {editMode && (
             <>
-              <button onClick={handleSave} disabled={!editRankAllowed || editAbilityOverflow}
+              <button onClick={handleSave} disabled={!editRankSaveAllowed || editAbilityOverflow}
                 className="text-[10px] bg-gold text-void px-3 py-1.5 rounded-lg hover:bg-gold-light transition-colors font-semibold disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
               <button onClick={onCancelEdit} className="text-[10px] text-txt-dim hover:text-txt-main px-3 py-1.5 transition-colors">Cancelar</button>
             </>

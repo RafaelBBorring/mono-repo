@@ -399,6 +399,23 @@ button:active:not(:disabled) {
   .sheet-hero-metric.is-guard { border-color: rgba(251, 113, 133, 0.24); background: rgba(251, 113, 133, 0.06); }
   .sheet-hero-metric.is-gold { border-color: rgba(201, 168, 76, 0.32); background: rgba(201, 168, 76, 0.07); }
 
+  .hero-resource-input {
+    border: 0;
+    box-shadow: none;
+    appearance: textfield;
+    width: min(9rem, 100%);
+  }
+
+  .hero-resource-input:focus {
+    text-shadow: 0 0 18px currentColor;
+  }
+
+  .hero-resource-input::-webkit-outer-spin-button,
+  .hero-resource-input::-webkit-inner-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
   .sheet-body-grid > div > section:not(.hidden),
   .sheet-body-grid > div > details:not(.hidden),
   .sheet-panel {
