@@ -43,19 +43,48 @@ export default function DragDropInventory({
   const containerRef = useRef(null)
   const modalRef = useRef(null)
 
-  // Combine regular items with equipped items for display
-  const combinedItems = [
-    ...items,
-    ...equippedItems.map(eq => ({ ...eq, isEquipped: true })),
-    ...(equippedWeapon ? [{ ...equippedWeapon, isEquipped: true, isWeapon: true }] : []),
-  ]
+  // Separate regular items from equipped items - each type has its own index range
+  // Regular items: indices 0 to items.length - 1
+  // Equipped weapons: virtual index starting at items.length
+  // Equipped items: virtual index starting at items.length + (equippedWeapon ? 1 : 0)
+  const weaponOffset = equippedWeapon ? 1 : 0
+  const equippedItemOffset = items.length + weaponOffset
 
-  // Calculate item positions (slot indices)
+  // Create unified positions map that includes all items
   const itemPositions = new Map()
-  combinedItems.forEach((item, idx) => {
-    const slot = item.slot ?? idx
-    itemPositions.set(slot, { item, idx })
+
+  // Add regular items with their original indices
+  items.forEach((item, idx) => {
+    const slot = item.slot
+    if (slot !== null && slot !== undefined) {
+      itemPositions.set(slot, { item, idx, source: 'items' })
+    }
   })
+
+  // Add equipped items with their virtual indices
+  equippedItems.forEach((item, idx) => {
+    const slot = item.slot
+    const virtualIdx = equippedItemOffset + idx
+    if (slot !== null && slot !== undefined) {
+      itemPositions.set(slot, { item, idx: virtualIdx, source: 'equipped' })
+    }
+  })
+
+  // Add equipped weapon with virtual index
+  if (equippedWeapon) {
+    const slot = equippedWeapon.slot
+    const virtualIdx = equippedItemOffset
+    if (slot !== null && slot !== undefined) {
+      itemPositions.set(slot, { item: equippedWeapon, idx: virtualIdx, source: 'weapon' })
+    }
+  }
+
+  // Combine all items for display - maintain their original virtual indices
+  const combinedItems = [
+    ...items.map((item, idx) => ({ ...item, idx, source: 'items' })),
+    ...equippedItems.map((item, idx) => ({ ...item, idx: equippedItemOffset + idx, source: 'equipped' })),
+    ...(equippedWeapon ? [{ ...equippedWeapon, idx: weaponOffset, source: 'weapon' }] : []),
+  ]
 
   const totalWeight = combinedItems.reduce((sum, item) => {
     const location = item.local || 'carregado'
@@ -64,14 +93,14 @@ export default function DragDropInventory({
   }, 0)
   const displayedLoad = totalCarryWeight ?? totalWeight
 
-  const occupiedSlots = new Set(combinedItems.map((item, idx) => item.slot ?? idx))
+  const occupiedSlots = new Set(combinedItems.map(item => item.slot))
 
-  function handleDragStart(e, item, idx, fromBackpackId = null) {
+  function handleDragStart(e, item, idx, source = 'items') {
     setDraggedItem(item)
-    setDraggedFromBackpack(fromBackpackId)
+    setDraggedFromBackpack(source === 'equipped' ? 'equipped' : source)
     setDraggedItemIndex(idx)
     e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', JSON.stringify({ itemId: item.id, idx, fromBackpackId }))
+    e.dataTransfer.setData('text/plain', JSON.stringify({ itemId: item.id, idx, source }))
 
     // Add drag styling to actual element
     const dragElement = e.target.closest('.inventory-item')
@@ -102,7 +131,7 @@ export default function DragDropInventory({
     e.preventDefault()
 
     // Check if dropping into same backpack (prevent recursion)
-    if (isBackpack && draggedFromBackpackId === parentBackpackId) {
+    if (isBackpack && draggedFromBackpack === parentBackpackId) {
       e.dataTransfer.dropEffect = 'none'
       return
     }
@@ -143,7 +172,7 @@ export default function DragDropInventory({
     if (!draggedItem) return
 
     // Check if dropping into same backpack (prevent recursion)
-    if (isBackpack && draggedFromBackpackId === parentBackpackId) {
+    if (isBackpack && draggedFromBackpack === parentBackpackId) {
       return
     }
 
@@ -153,7 +182,7 @@ export default function DragDropInventory({
       return
     }
 
-    // Handle equipped item being dropped - unequip it
+    // Handle equipped item being dropped - unequip it first
     if (draggedItem.isEquipped) {
       if (onUnequipItem) {
         if (draggedItem.isWeapon) {
@@ -165,28 +194,77 @@ export default function DragDropInventory({
       return
     }
 
-    // Handle drop within same inventory (rearranging)
-    if (draggedFromBackpackId === null || draggedFromBackpackId === undefined) {
-      const newItems = [...items]
-      const sourceSlot = draggedItem.slot ?? draggedItemIndex
-      const existingItemAtSlot = itemPositions.get(targetSlot)
-
-      if (existingItemAtSlot && existingItemAtSlot.item.id !== draggedItem.id) {
-        // Swap items
-        const sourceIdx = existingItemAtSlot.idx
-        const targetIdx = draggedItemIndex
-        newItems[sourceIdx] = { ...existingItemAtSlot.item, slot: sourceSlot }
-        newItems[targetIdx] = { ...draggedItem, slot: targetSlot }
-      } else {
-        // Move to empty slot
-        newItems[draggedItemIndex] = { ...draggedItem, slot: targetSlot }
-      }
-
-      onUpdate(newItems)
-    } else {
+    // Handle drop within different types of inventory
+    if (draggedFromBackpack !== null && draggedFromBackpack !== undefined) {
       // Moving from backpack to main inventory
       if (onTransfer) {
-        onTransfer('backpack', draggedFromBackpackId, draggedItemIndex, targetSlot)
+        onTransfer('backpack', draggedFromBackpack, draggedItemIndex, targetSlot)
+      }
+      return
+    }
+
+    // Moving within main inventory (regular items or equipped items)
+    const sourceData = itemPositions.get(draggedItem.slot)
+    const targetData = itemPositions.get(targetSlot)
+
+    if (targetData && targetData.item.id !== draggedItem.id) {
+      // Swap with item in target slot
+      const sourceType = sourceData.source
+      const targetType = targetData.source
+
+      if (sourceType === targetType || (sourceType === 'items' && targetType === 'equipped') || (sourceType === 'equipped' && targetType === 'items')) {
+        // Same type - swap within same array
+        if (sourceType === 'items') {
+          const newItems = [...items]
+          const sourceRealIdx = sourceData.idx
+          const targetRealIdx = items.findIndex(i => i.id === targetData.item.id)
+
+          newItems[sourceRealIdx] = { ...targetData.item, slot: draggedItem.slot }
+          newItems[targetRealIdx] = { ...draggedItem, slot: targetSlot }
+          onUpdate(newItems)
+        } else if (sourceType === 'equipped') {
+          // Swap within equipped items
+          const realIdx = sourceData.idx - equippedItemOffset
+          const targetRealIdx = targetData.idx - equippedItemOffset
+          const newEquippedItems = [...equippedItems]
+          newEquippedItems[realIdx] = { ...targetData.item, slot: draggedItem.slot }
+          newEquippedItems[targetRealIdx] = { ...draggedItem, slot: targetSlot }
+
+          // Call onUnequipItem with the ID of the item being moved
+          onUnequipItem(draggedItem.id)
+
+          // Need to re-equip the moved item
+          onEquipItem(draggedItem.id)
+        } else if (sourceType === 'weapon') {
+          // Swap with equipped weapon (not implemented as weapon can't be unequipped this way)
+          // For now, just don't allow swapping with weapon
+          return
+        }
+      } else {
+        // Different types - move from equipped to regular items or vice versa
+        if (sourceType === 'items') {
+          // Moving regular item to equipped item slot
+          // This unequips the target item and equips the dragged one
+          if (targetData.item.isEquipped) {
+            onUnequipItem(draggedItem.id)
+            onEquipItem(targetData.item.id)
+          }
+        } else if (sourceType === 'equipped') {
+          // Moving equipped item to regular item slot
+          onUnequipItem(draggedItem.id)
+        }
+      }
+    } else {
+      // Drop on empty slot - move item there
+      if (sourceData?.source === 'items') {
+        const newItems = [...items]
+        newItems[sourceData.idx] = { ...draggedItem, slot: targetSlot }
+        onUpdate(newItems)
+      } else if (sourceData?.source === 'equipped') {
+        // Move equipped item to empty slot in regular items area
+        onUnequipItem(draggedItem.id)
+        const newItems = [...items, { ...draggedItem, local: 'carregado', slot: targetSlot }]
+        onUpdate(newItems)
       }
     }
 
@@ -195,10 +273,37 @@ export default function DragDropInventory({
     setDraggedItemIndex(null)
   }
 
-  function handleItemClick(item, idx) {
+  function handleItemClick(item, idx, source) {
     // Clicking equipped item shows details or can unequip
-    if (onItemView) {
-      onItemView(item, idx)
+    if (item.isEquipped) {
+      // Show details of equipped item
+      if (onItemView) {
+        onItemView(item, idx)
+      }
+    } else if (source === 'equipped') {
+      // Clicking equipped item - quick unequip
+      if (onUnequipItem) {
+        onUnequipItem(item.id)
+      }
+    } else {
+      // Clicking regular item - show details
+      if (onItemView) {
+        onItemView(item, idx)
+      }
+    }
+
+    // Clicking backpack - open it
+    if (item.tipo === 'mochila') {
+      setOpenBackpackId(item.id === openBackpackId ? null : item.id)
+    }
+  }
+
+  function handleQuickUnequip(item, source) {
+    if (item.isEquipped && onUnequipItem) {
+      e.stopPropagation()
+      if (source === 'equipped') {
+        onUnequipItem(item.id)
+      }
     }
   }
 
@@ -210,11 +315,11 @@ export default function DragDropInventory({
     }
   }, [openBackpackId])
 
-  // Generate grid slots
+  // Generate grid slots - target specific slot number
   const slots = []
   for (let i = 0; i < inventorySize; i++) {
     const itemData = itemPositions.get(i)
-    slots.push({ slot: i, item: itemData?.item, idx: itemData?.idx })
+    slots.push({ slot: i, item: itemData?.item, idx: itemData?.idx, source: itemData?.source })
   }
 
   return (
@@ -242,26 +347,26 @@ export default function DragDropInventory({
           gridTemplateRows: `repeat(${Math.ceil(inventorySize / (isBackpack ? 3 : 6))}, 1fr)`
         }}
       >
-        {slots.map(({ slot, item, idx }) => (
+        {slots.map(({ slot, item, idx, source }) => (
           <div
             key={slot}
             className={`inventory-slot ${item ? 'has-item' : 'empty'} ${item?.tipo === 'mochila' ? 'is-backpack' : ''} ${item?.isEquipped ? 'is-equipped' : ''} ${dragOverSlot === slot ? 'drag-over' : ''}`}
             onDragOver={(e) => handleDragOver(e, slot)}
             onDragLeave={(e) => handleDragLeave(e, slot)}
             onDrop={(e) => handleDrop(e, slot)}
-            onClick={item ? (e) => handleItemClick(item, idx) : undefined}
+            onClick={item ? (e) => handleItemClick(item, idx, source) : undefined}
             onMouseEnter={() => setHoveredItem(item)}
             onMouseLeave={() => setHoveredItem(null)}
           >
             {item ? (
               <div
                 draggable={canEdit}
-                onDragStart={(e) => handleDragStart(e, item, idx)}
+                onDragStart={(e) => handleDragStart(e, item, idx, source)}
                 onDragEnd={handleDragEnd}
                 className={`inventory-item ${ITEM_COLORS.find(c => c.id === (item.cor || 'gray'))?.cls || ''}`}
               >
                 {item.isEquipped && (
-                  <div className="inventory-item-badge equipped">
+                  <div className="inventory-item-badge equipped" onClick={(e) => handleQuickUnequip(item, source)}>
                     <span className="material-symbols-outlined">check_circle</span>
                   </div>
                 )}
@@ -277,8 +382,8 @@ export default function DragDropInventory({
                     {item.tipo === 'mochila' ? <span className="material-symbols-outlined">backpack</span> : item.isWeapon ? '⚔' : '▢'}
                   </div>
                 )}
-                {/* Details shown on hover */}
-                {(hoveredItem?.id === item.id || hoveredItem === item) && !item.isEquipped && (
+                {/* Details shown on hover - always show for equipped items too */}
+                {(hoveredItem?.id === item.id || hoveredItem === item || item.isEquipped) && (
                   <div className="inventory-item-tooltip">
                     <span className="inventory-item-name-tooltip">{item.nome || 'Item'}</span>
                     {item.tipo !== 'mochila' && (
@@ -328,29 +433,14 @@ export default function DragDropInventory({
                 return i
               })
 
-              // Find available slot in main inventory - try to use targetSlot first
-              const mainItems = items.filter(i => i.id !== openBackpackId)
-              const occupiedSlots = new Set(mainItems.map((item, idx) => item.slot ?? idx))
-
-              let targetSlotInMain = targetSlot
-              if (targetSlotInMain === null || targetSlotInMain === undefined || occupiedSlots.has(targetSlotInMain)) {
-                // If target slot is invalid, find any available slot
-                for (let s = 0; s < DEFAULT_INVENTORY_SIZE; s++) {
-                  if (!occupiedSlots.has(s)) {
-                    targetSlotInMain = s
-                    break
-                  }
-                }
-              }
-
-              if (targetSlotInMain !== null && targetSlotInMain !== undefined) {
-                onUpdate([...newItems, { ...item, slot: targetSlotInMain, local: 'carregado' }])
-              }
+              // Use targetSlot directly - allow placing in any slot
+              onUpdate([...newItems, { ...item, slot: targetSlot, local: 'carregado' }])
             }
           }}
           onItemView={onItemView}
           onItemEdit={onItemEdit}
           onItemDelete={onItemDelete}
+          onUnequipItem={onUnequipItem}
           parentBackpackId={openBackpackId}
         />,
         document.body
@@ -359,7 +449,7 @@ export default function DragDropInventory({
   )
 }
 
-const BackpackModal = React.forwardRef(({ backpackId, items, onClose, canEdit, onUpdate, onTransfer, onItemView, onItemEdit, onItemDelete, parentBackpackId }, ref) => {
+const BackpackModal = React.forwardRef(({ backpackId, items, onClose, canEdit, onUpdate, onTransfer, onItemView, onItemEdit, onItemDelete, onUnequipItem, parentBackpackId }, ref) => {
   const backpack = items.find(i => i.id === backpackId)
   if (!backpack) return null
 
@@ -374,12 +464,6 @@ const BackpackModal = React.forwardRef(({ backpackId, items, onClose, canEdit, o
       return i
     })
     onUpdate(newItems)
-  }
-
-  function handleMoveToMainInventory(item, idx) {
-    if (onTransfer) {
-      onTransfer('backpack', backpackId, idx, null)
-    }
   }
 
   return (
@@ -404,11 +488,26 @@ const BackpackModal = React.forwardRef(({ backpackId, items, onClose, canEdit, o
 
           <DragDropInventory
             items={backpackContents}
+            equippedWeapon={null}
+            equippedItems={[]}
             canEdit={canEdit}
             onUpdate={handleBackpackUpdate}
             onTransfer={(sourceType, sourceBackpackId, itemIdx, targetSlot) => {
               if (sourceType === 'backpack' && sourceBackpackId === backpackId) {
-                handleMoveToMainInventory(backpackContents[itemIdx], itemIdx)
+                // Use targetSlot directly - allow placing in any slot
+                const backpack = items.find(i => i.id === backpackId)
+                if (!backpack?.contents) return
+
+                const item = backpack.contents[itemIdx]
+                const newContents = backpack.contents.filter((_, i) => i !== itemIdx)
+                const newItems = items.map(i => {
+                  if (i.id === backpackId) {
+                    return { ...i, contents: newContents }
+                  }
+                  return i
+                })
+
+                onUpdate([...newItems, { ...item, slot: targetSlot, local: 'carregado' }])
               }
             }}
             inventorySize={backpackSize}
@@ -417,6 +516,7 @@ const BackpackModal = React.forwardRef(({ backpackId, items, onClose, canEdit, o
             onItemView={onItemView}
             onItemEdit={onItemEdit}
             onItemDelete={onItemDelete}
+            onUnequipItem={onUnequipItem}
           />
         </div>
 

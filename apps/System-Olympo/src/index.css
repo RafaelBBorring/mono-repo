@@ -4184,6 +4184,12 @@ body {
 .inventory-item-badge.equipped {
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(16, 185, 129, 0.4);
+  cursor: pointer;
+}
+
+.inventory-item-badge.equipped:hover {
+  background: rgba(220, 38, 38, 0.3);
+  border-color: rgba(220, 38, 38, 0.5);
 }
 
 .inventory-item-badge.equipped .material-symbols-outlined {
