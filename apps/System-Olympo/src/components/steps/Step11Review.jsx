@@ -687,6 +687,32 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   onCharacterUpdate={update}
                   onDrawerToggle={() => {}}
                   onTransfer={onTransferItem}
+                  onEquipItem={(itemId) => {
+                    if (itemId === 'weapon') {
+                      update({ armaEquipada: false, armaLocal: 'guardado' })
+                    } else {
+                      const equipamentos = (char.equipamentos || []).map(eq => {
+                        if (eq.id === itemId) {
+                          return { ...eq, equipado: false, local: 'guardado' }
+                        }
+                        return eq
+                      })
+                      update({ equipamentos })
+                    }
+                  }}
+                  onUnequipItem={(itemId) => {
+                    if (itemId === 'weapon') {
+                      update({ armaEquipada: true, armaLocal: 'equipado' })
+                    } else {
+                      const equipamentos = (char.equipamentos || []).map(eq => {
+                        if (eq.id === itemId) {
+                          return { ...eq, equipado: true, local: 'equipado' }
+                        }
+                        return eq
+                      })
+                      update({ equipamentos })
+                    }
+                  }}
                 />
                 <div className="border-t border-sep/25 pt-5">
                   <InventorySection
@@ -696,6 +722,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                       nome: char.armaNome || WEAPONS.find(w => w.id === char.arma)?.name,
                       imagem: char.armaImagem,
                       cor: 'gray',
+                      local: char.armaEquipada ? 'equipado' : 'guardado',
                     } : null}
                     equippedItems={(char.equipamentos || []).filter(eq => eq.equipado)}
                     canEdit={canEdit}
@@ -708,6 +735,41 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                     level={char.nivel || 1}
                     modules={char.modulosAdquiridos || []}
                     onTransfer={onTransferItem ? (idx) => onTransferItem('inventario', idx) : null}
+                    onItemEdit={(idx, patch) => {
+                      const inventario = [...(char.inventario || [])]
+                      inventario[idx] = { ...inventario[idx], ...patch }
+                      update({ inventario })
+                    }}
+                    onItemDelete={(idx) => {
+                      const inventario = char.inventario || []
+                      update({ inventario: inventario.filter((_, i) => i !== idx) })
+                    }}
+                    onEquipItem={(itemId) => {
+                      if (itemId === 'weapon') {
+                        update({ armaEquipada: true, armaLocal: 'equipado' })
+                      } else {
+                        const equipamentos = (char.equipamentos || []).map(eq => {
+                          if (eq.id === itemId) {
+                            return { ...eq, equipado: true, local: 'equipado' }
+                          }
+                          return eq
+                        })
+                        update({ equipamentos })
+                      }
+                    }}
+                    onUnequipItem={(itemId) => {
+                      if (itemId === 'weapon') {
+                        update({ armaEquipada: false, armaLocal: 'guardado' })
+                      } else {
+                        const equipamentos = (char.equipamentos || []).map(eq => {
+                          if (eq.id === itemId) {
+                            return { ...eq, equipado: false, local: 'guardado' }
+                          }
+                          return eq
+                        })
+                        update({ equipamentos })
+                      }
+                    }}
                   />
                 </div>
               </section>
