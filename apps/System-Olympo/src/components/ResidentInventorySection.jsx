@@ -7,8 +7,8 @@ import { estimateInventoryItemWeight } from '../utils/calculator'
 import { suggestItemWeight } from '../services/aiService'
 import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer } from './EquipmentSection'
 
-const GRID_COLS = 9
-const GRID_ROWS = 7
+const GRID_COLS = 8
+const GRID_ROWS = 6
 const BASE_LOCATIONS = [
   { id: 'carregado', label: 'Personagem', icon: 'person' },
   { id: 'quarto', label: 'Quarto', icon: 'bed' },
@@ -145,6 +145,8 @@ export default function ResidentInventorySection({
   const [newLocationName, setNewLocationName] = useState('')
   const [dragging, setDragging] = useState(null)
   const [itemDrawer, setItemDrawer] = useState(null)
+  const [backpackDrawer, setBackpackDrawer] = useState(null)
+  const [backpackDragging, setBackpackDragging] = useState(null)
   const [itemEditMode, setItemEditMode] = useState(false)
   const [equipDrawer, setEquipDrawer] = useState(null)
   const [outfitDrawer, setOutfitDrawer] = useState(null)
@@ -245,6 +247,9 @@ export default function ResidentInventorySection({
     } else if (entry.source === 'equipment') {
       setEquipDrawer(entry)
       setEquipEditMode(false)
+    } else if (entry.item.tipo === 'mochila') {
+      setBackpackDrawer(entry)
+      setItemEditMode(false)
     } else {
       setItemDrawer(entry)
       setItemEditMode(false)
@@ -341,6 +346,45 @@ export default function ResidentInventorySection({
     } else {
       patchInventoryItem(entry.idx, { inventoryGrid: rect })
     }
+  }
+
+  function moveIntoBackpack(backpackEntry, draggedEntry) {
+    if (!backpackEntry || !draggedEntry || draggedEntry.source !== 'inventory' || backpackEntry.source !== 'inventory') return
+    if (backpackEntry.idx === draggedEntry.idx) return
+    const inventario = [...(char.inventario || [])]
+    const backpack = inventario[backpackEntry.idx]
+    const dragged = inventario[draggedEntry.idx]
+    if (!backpack || backpack.tipo !== 'mochila' || !dragged) return
+    const capacity = Number(backpack.slotSize || backpack.capacidade || 12)
+    const contents = Array.isArray(backpack.contents) ? backpack.contents : []
+    if (contents.length >= capacity) return
+    inventario[backpackEntry.idx] = {
+      ...backpack,
+      contents: [...contents, { ...dragged, local: 'mochila', inventoryGrid: null }],
+    }
+    const next = inventario.filter((_, idx) => idx !== draggedEntry.idx)
+    update({ inventario: next })
+    setDragging(null)
+  }
+
+  function removeFromBackpack(contentIdx) {
+    if (!backpackDrawer) return
+    const inventario = [...(char.inventario || [])]
+    const backpack = inventario[backpackDrawer.idx]
+    const contents = Array.isArray(backpack?.contents) ? backpack.contents : []
+    const item = contents[contentIdx]
+    if (!backpack || !item) return
+    inventario[backpackDrawer.idx] = {
+      ...backpack,
+      contents: contents.filter((_, idx) => idx !== contentIdx),
+    }
+    update({
+      inventario: [
+        ...inventario,
+        { ...item, id: item.id || Date.now(), local: activeLocation, inventoryGrid: null },
+      ],
+    })
+    setBackpackDragging(null)
   }
 
   function handleItemImage(e) {
@@ -444,6 +488,7 @@ export default function ResidentInventorySection({
                     onToggle={() => toggleEquipped(entry)}
                     onMove={() => moveEntry(entry, activeLocation === 'carregado' ? 'quarto' : 'carregado')}
                     onMoveTo={(location) => moveEntry(entry, location)}
+                    onDropInto={() => moveIntoBackpack(entry, dragging?.entry)}
                     onRotate={() => rotateEntry(entry)}
                     moveLabel={activeLocation === 'carregado' ? 'Guardar' : 'Pegar'}
                     locations={locations}
@@ -521,6 +566,23 @@ export default function ResidentInventorySection({
           onClose={() => setItemDrawer(null)}
           onImageChange={handleItemImage}
           imgRef={itemImgRef}
+        />,
+        document.body
+      )}
+
+      {backpackDrawer && createPortal(
+        <BackpackDrawer
+          backpack={char.inventario?.[backpackDrawer.idx] || backpackDrawer.item}
+          canEdit={canEdit}
+          draggingIdx={backpackDragging}
+          onDragStart={setBackpackDragging}
+          onDropOut={() => backpackDragging != null && removeFromBackpack(backpackDragging)}
+          onClose={() => { setBackpackDrawer(null); setBackpackDragging(null) }}
+          onEdit={() => {
+            setItemDrawer(backpackDrawer)
+            setBackpackDrawer(null)
+            setItemEditMode(true)
+          }}
         />,
         document.body
       )}
@@ -610,7 +672,7 @@ function EquippedQuickSlot({ label, entry, detail, icon, onClick }) {
   )
 }
 
-function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMove, onMoveTo, onRotate, moveLabel, locations, onDragStart, onDragEnd }) {
+function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMove, onMoveTo, onDropInto, onRotate, moveLabel, locations, onDragStart, onDragEnd }) {
   const item = entry.item || {}
   const image = item.imagem || item.image
   const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento' || item.categoria === 'Traje'
@@ -622,7 +684,7 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
 
   return (
     <div
-      className={`resident-grid-card ${item.equipado ? 'is-equipped' : ''} ${dragging ? 'is-dragging' : ''}`}
+      className={`resident-grid-card ${item.equipado ? 'is-equipped' : ''} ${rect.rotated ? 'is-rotated' : ''} ${item.tipo === 'mochila' ? 'is-backpack' : ''} ${dragging ? 'is-dragging' : ''}`}
       style={{
         '--item-cols': rect.w,
         '--item-rows': rect.h,
@@ -634,6 +696,8 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
       draggable={canEdit}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragOver={item.tipo === 'mochila' ? (event) => event.preventDefault() : undefined}
+      onDrop={item.tipo === 'mochila' ? (event) => { event.preventDefault(); onDropInto?.() } : undefined}
     >
       <button type="button" onClick={onOpen} className="resident-grid-card-main">
         {image ? <img src={image} alt="" /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : 'inventory_2'}</span>}
@@ -666,6 +730,60 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
             {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.label}</option>)}
           </select>
         )}
+      </div>
+    </div>
+  )
+}
+
+function BackpackDrawer({ backpack, canEdit, draggingIdx, onDragStart, onDropOut, onClose, onEdit }) {
+  const contents = Array.isArray(backpack?.contents) ? backpack.contents : []
+  const capacity = Number(backpack?.slotSize || backpack?.capacidade || 12)
+  return (
+    <div className="fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/50 drawer-overlay" onClick={onClose} />
+      <div className="absolute right-0 top-0 bottom-0 w-full max-w-[430px] bg-deep border-l border-primary/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
+        <div className="px-4 py-3 border-b border-sep/30 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-sm">backpack</span>
+            <h3 className="font-cinzel text-primary text-xs uppercase tracking-wider">{backpack?.nome || 'Mochila'}</h3>
+            <span className="text-[10px] text-txt-dim/65">{contents.length}/{capacity}</span>
+          </div>
+          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="backpack-grid">
+            {Array.from({ length: capacity }).map((_, idx) => {
+              const item = contents[idx]
+              return item ? (
+                <div key={idx} className="backpack-slot has-item" draggable={canEdit} onDragStart={() => onDragStart(idx)}>
+                  {item.imagem ? <img src={item.imagem} alt="" /> : <span className="material-symbols-outlined">inventory_2</span>}
+                  <strong>{item.nome || 'Item'}</strong>
+                  <small>{estimateInventoryItemWeight(item).toFixed(1)} kg</small>
+                </div>
+              ) : (
+                <div key={idx} className="backpack-slot" />
+              )
+            })}
+          </div>
+
+          {canEdit && (
+            <div
+              className={`backpack-drop-out ${draggingIdx != null ? 'is-ready' : ''}`}
+              onDragOver={event => event.preventDefault()}
+              onDrop={onDropOut}
+            >
+              <span className="material-symbols-outlined">outbox</span>
+              <strong>Arraste aqui para tirar da mochila</strong>
+              <p>O item volta para o inventario aberto no momento.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-4 py-3 border-t border-sep/30 flex gap-2 shrink-0">
+          {canEdit && <button onClick={onEdit} className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">Editar mochila</button>}
+          <button onClick={onClose} className="text-[10px] text-txt-dim hover:text-txt-main px-3 py-1.5 transition-colors">Fechar</button>
+        </div>
       </div>
     </div>
   )
@@ -723,6 +841,11 @@ function CreateHub({ onClose, onChooseEquipment, onChooseOutfit, onChooseItem })
             <strong>Item Livre</strong>
             <p>Anotacoes, chaves, documentos, tesouros e objetos narrativos.</p>
           </button>
+          <button type="button" onClick={() => onChooseItem('mochila')}>
+            <span className="material-symbols-outlined">backpack</span>
+            <strong>Mochila</strong>
+            <p>Container portatil para guardar itens menores por arrastar e soltar.</p>
+          </button>
           <button type="button" onClick={() => onChooseItem('consumivel')}>
             <span className="material-symbols-outlined">local_drink</span>
             <strong>Consumivel Rapido</strong>
@@ -746,7 +869,13 @@ const CONSUMABLE_PRESETS = [
 ]
 
 function InventoryItemCreateModal({ kind, onSave, onClose }) {
-  const [draft, setDraft] = useState(kind === 'consumivel' ? CONSUMABLE_PRESETS[0] : { nome: '', descricao: '', peso: 0.1, cor: 'gray' })
+  const [draft, setDraft] = useState(
+    kind === 'consumivel'
+      ? CONSUMABLE_PRESETS[0]
+      : kind === 'mochila'
+        ? { nome: 'Mochila', descricao: 'Espaco portatil para armazenar itens menores.', peso: 0.5, cor: 'amber', tipo: 'mochila', slotSize: 12, contents: [] }
+        : { nome: '', descricao: '', peso: 0.1, cor: 'gray' }
+  )
   const [aiLoading, setAiLoading] = useState(false)
 
   async function suggestWeight() {
@@ -766,7 +895,7 @@ function InventoryItemCreateModal({ kind, onSave, onClose }) {
         <header>
           <div>
             <span className="material-symbols-outlined">{kind === 'consumivel' ? 'local_drink' : 'inventory_2'}</span>
-            <h3>{kind === 'consumivel' ? 'Consumivel Rapido' : 'Item Livre'}</h3>
+            <h3>{kind === 'consumivel' ? 'Consumivel Rapido' : kind === 'mochila' ? 'Mochila' : 'Item Livre'}</h3>
           </div>
           <button type="button" onClick={onClose}>×</button>
         </header>
@@ -784,6 +913,9 @@ function InventoryItemCreateModal({ kind, onSave, onClose }) {
           <input value={draft.nome || ''} onChange={e => setDraft({ ...draft, nome: e.target.value })} placeholder="Nome" />
           <input type="number" step="0.1" value={draft.peso ?? ''} onChange={e => setDraft({ ...draft, peso: Number(e.target.value) })} placeholder="Peso kg" />
           <textarea value={draft.descricao || ''} onChange={e => setDraft({ ...draft, descricao: e.target.value })} placeholder="Descricao, efeito, usos..." />
+          {kind === 'mochila' && (
+            <input type="number" min="4" max="30" value={draft.slotSize || 12} onChange={e => setDraft({ ...draft, slotSize: Number(e.target.value) })} placeholder="Slots" />
+          )}
           <select value={draft.cor || 'gray'} onChange={e => setDraft({ ...draft, cor: e.target.value })}>
             {ITEM_COLORS.map(color => <option key={color.id} value={color.id}>{color.label}</option>)}
           </select>
