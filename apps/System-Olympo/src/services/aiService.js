@@ -660,6 +660,54 @@ Responda EXCLUSIVAMENTE com JSON:
 
 // ─── generateAbilitiesFromDescription ────────────────────────────────────
 
+export async function analyzeForgeEnchantment(char, enchantment) {
+  const sk = char.skeletonPoints || {}
+  const attrs = char.atributos || {}
+  const totalAttr = (a) => getAttrValue(attrs, a, sk, char)
+  const stats = computeCharStats(char)
+  const prompt = `
+VOCE E O ORACULO - ANALISE DE ENCANTAMENTOS DO MESTRE FORJADOR.
+
+Encantamentos funcionam como modulos de evolucao para armas/equipamentos. Eles sao extras ao rank do item, entao precisam ser fortes, mas nao podem substituir habilidades principais do personagem.
+
+PERSONAGEM:
+Nome: ${char.nome || 'Sem nome'} | Classe: ${char.classe || 'N/A'} | Nivel: ${char.nivel || 1}
+FOR ${totalAttr('FOR')} | DES ${totalAttr('DES')} | CON ${totalAttr('CON')} | INT ${totalAttr('INT')} | APA ${totalAttr('APA')} | AM ${totalAttr('AM')}
+Dano Base: ${stats.danoBase} | Vida: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | CA: ${stats.caBase}
+
+ENCANTAMENTO:
+${JSON.stringify(enchantment, null, 2)}
+
+REGRAS:
+- Se for Ativa, defina custo em PE/Energia e limite de uso.
+- Se for Passiva, use efeito menor e condicional.
+- Pode servir para Arma, Equipamento ou Ambos.
+- Preserve o conceito do jogador, mas ajuste numeros abusivos.
+- Ferro Hefestiano ja existe como material especial e nao deve ser repetido como encantamento.
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "nome": "nome final",
+  "tipo": "Ativa|Passiva",
+  "alvo": "Arma|Equipamento|Ambos",
+  "custo": "custo final ou vazio",
+  "descricaoBalanceada": "texto final balanceado com numeros e limites",
+  "status": "Aprovada|Ajustada|Revisao necessaria",
+  "feedback": "explicacao curta do balanceamento"
+}`
+
+  const response = await callAI([
+    { role: 'system', content: buildSystemContext() },
+    { role: 'user', content: prompt },
+  ], { maxTokens: 1200 })
+  try {
+    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    return JSON.parse(cleaned)
+  } catch {
+    throw new Error('A IA retornou um formato invalido para o encantamento.')
+  }
+}
+
 export async function generateAbilitiesFromDescription(char, description) {
   const sk     = char.skeletonPoints || {}
   const attrs  = char.atributos || {}

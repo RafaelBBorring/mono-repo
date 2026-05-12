@@ -14,7 +14,7 @@ import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
 import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus, getSelectedSubrace, ATTR_KEYS } from '../../utils/raceCalculator'
 import { RACES, RACE_CATEGORIES } from '../../data/races'
-import { generateWeaponAbilities } from '../../services/aiService'
+import { generateWeaponAbilities, analyzeForgeEnchantment } from '../../services/aiService'
 import InventorySection from '../InventorySection'
 import EquipmentSection from '../EquipmentSection'
 import AbilityAnalysisChat from '../AbilityAnalysisChat'
@@ -204,6 +204,9 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
     danoBase: cls ? calcDanoBase(cls, char.atributos, sk, char.nivel, char.subTriagem, char.subTriagemNivel, char.triagemPrincipal, char.triagemPrincipalNivel, char) : '',
   }
 
+  if (sysSkillBonuses.dano && derived.danoBase && !String(derived.danoBase).includes('(Skill)')) {
+    derived.danoBase = `${derived.danoBase} +${sysSkillBonuses.dano} (Skill)`
+  }
   if (activeBonuses.dano && derived.danoBase) derived.danoBase = `${derived.danoBase} + ${activeBonuses.dano}`
 
   const vidaNow = char.vidaOverride ?? (derived.vida + (char.vidaBonus || 0) + activeBonuses.vida)
@@ -238,6 +241,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const magicEnabled = magicProfile.hasAccess && (systemOptIn.magic || (char.magics || []).length > 0)
   const [sheetView, setSheetView] = useState('full')
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false)
+  const [forgeMenuOpen, setForgeMenuOpen] = useState(false)
 
   function toggleKnowledge(key, currentlyEnabled) {
     if (!update) return
@@ -421,6 +425,14 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
           assigned={char.systemSkills || []}
           onSelect={(skillId) => { const effects = createDefaultEffectsForSkill(skillId); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId, active: true, sourceAbilityIndex: null, notes: '', effects, createdAt: new Date().toISOString() }] }); setSkillCatalogOpen(false) }}
           onClose={() => setSkillCatalogOpen(false)}
+        />
+      )}
+      {forgeMenuOpen && (
+        <ForgeMasterMenu
+          char={char}
+          update={update}
+          canEdit={canEdit}
+          onClose={() => setForgeMenuOpen(false)}
         />
       )}
 
@@ -813,7 +825,13 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                           const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || repeatableTypes.includes(t))
                           const isActive = entry.active !== false
                           return (
-                            <div key={entry.id || i} className={`rounded-xl border overflow-visible transition-opacity ${isActive ? 'border-sky-400/25 bg-gradient-to-br from-sky-400/5 via-sky-400/[0.02] to-transparent opacity-100' : 'border-sep/20 bg-void/40 opacity-50'}`}>
+                            <div
+                              key={entry.id || i}
+                              onClick={(e) => {
+                                if (entry.skillId === 'forge_master' && !e.target.closest('button,input,select,textarea')) setForgeMenuOpen(true)
+                              }}
+                              className={`rounded-xl border overflow-visible transition-opacity ${entry.skillId === 'forge_master' ? 'cursor-pointer hover:border-amber-300/35' : ''} ${isActive ? 'border-sky-400/25 bg-gradient-to-br from-sky-400/5 via-sky-400/[0.02] to-transparent opacity-100' : 'border-sep/20 bg-void/40 opacity-50'}`}
+                            >
                               <div className="px-3.5 pt-3 pb-2">
                                 <div className="flex items-start gap-2">
                                   <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.4)]' : 'bg-sep/40'}`} />
@@ -829,8 +847,18 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                                   </div>
                                   {isAdmin && (
                                     <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                                      {entry.skillId === 'forge_master' && (
+                                        <button onClick={() => setForgeMenuOpen(true)}
+                                          className="w-6 h-6 grid place-items-center rounded border border-amber-300/25 text-amber-200/70 hover:text-amber-100 hover:bg-amber-300/10 transition-colors"
+                                          title="Abrir encantamentos">
+                                          <span className="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                                        </button>
+                                      )}
                                       <button onClick={() => { if (confirm(`Remover a skill "${skill?.name || entry.skillId}"? Os efeitos serão perdidos.`)) update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) }) }}
-                                        className="text-[10px] px-2 py-0.5 rounded text-err/40 hover:text-err hover:bg-err/10 transition-colors border border-transparent hover:border-err/20">Excluir</button>
+                                        className="w-6 h-6 grid place-items-center rounded text-err/45 hover:text-err hover:bg-err/10 transition-colors border border-transparent hover:border-err/20"
+                                        title="Excluir Skill">
+                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                      </button>
                                     </div>
                                   )}
                                 </div>
@@ -862,8 +890,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                                               <div key={pKey} className="flex items-center gap-2 mt-1">
                                                 <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
                                                 <select value={effect[pKey] ?? pDef.default} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
-                                                  className="flex-1 bg-void/60 text-txt-dim text-[10px] border border-sep/20 rounded px-2 py-0.5 focus:border-gold/30 focus:outline-none">
-                                                  {(pDef.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                  className="flex-1 bg-[#11141c] text-txt-main text-[10px] border border-sky-300/25 rounded px-2 py-1 focus:border-gold/45 focus:outline-none">
+                                                  {(pDef.options || []).map(o => <option key={o.value} value={o.value} className="bg-[#11141c] text-txt-main">{o.label}</option>)}
                                                 </select>
                                               </div>
                                             )
@@ -871,7 +899,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                                               <div key={pKey} className="flex items-center gap-2 mt-1">
                                                 <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
                                                 <input type="number" value={effect[pKey] ?? pDef.default} min={pDef.min} max={pDef.max}
-                                                  onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: Number(e.target.value) || pDef.default } : ef) } : s) })}
+                                                  onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value === '' ? '' : Number(e.target.value) } : ef) } : s) })}
                                                   className="w-16 bg-void/60 text-txt-dim text-[10px] border border-sep/20 rounded px-2 py-0.5 text-center focus:border-gold/30 focus:outline-none" />
                                               </div>
                                             )
@@ -3204,6 +3232,165 @@ function TriagemSection({ char, cls }) {
         </div>
       )}
     </div>
+  )
+}
+
+function ForgeMasterMenu({ char, update, canEdit, onClose }) {
+  const [draft, setDraft] = useState({ nome: '', tipo: 'Ativa', alvo: 'Ambos', custo: '', descricao: '' })
+  const [analyzingId, setAnalyzingId] = useState(null)
+  const [error, setError] = useState('')
+  const enchantments = char.forgeEnchantments || []
+
+  function patchEnchantments(next) {
+    update?.({ forgeEnchantments: next })
+  }
+
+  function addEnchantment() {
+    if (!draft.nome.trim() && !draft.descricao.trim()) return
+    patchEnchantments([
+      ...enchantments,
+      {
+        id: `enc_${Date.now()}`,
+        nome: draft.nome.trim() || 'Novo Encantamento',
+        tipo: draft.tipo,
+        alvo: draft.alvo,
+        custo: draft.custo,
+        descricao: draft.descricao,
+        status: 'Pendente',
+        createdAt: new Date().toISOString(),
+      },
+    ])
+    setDraft({ nome: '', tipo: 'Ativa', alvo: 'Ambos', custo: '', descricao: '' })
+  }
+
+  function updateEnchant(id, patch) {
+    patchEnchantments(enchantments.map(item => item.id === id ? { ...item, ...patch } : item))
+  }
+
+  function removeEnchant(id) {
+    patchEnchantments(enchantments.filter(item => item.id !== id))
+  }
+
+  async function analyzeEnchant(item) {
+    setAnalyzingId(item.id)
+    setError('')
+    try {
+      const result = await analyzeForgeEnchantment(char, item)
+      updateEnchant(item.id, {
+        ...result,
+        nome: result.nome || item.nome,
+        tipo: result.tipo || item.tipo,
+        alvo: result.alvo || item.alvo,
+        custo: result.custo || item.custo,
+        descricao: result.descricaoBalanceada || result.descricao || item.descricao,
+        status: result.status || 'Aprovada',
+        analyzedAt: new Date().toISOString(),
+      })
+    } catch (err) {
+      setError(err.message || 'Nao foi possivel analisar o encantamento.')
+    } finally {
+      setAnalyzingId(null)
+    }
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-4xl max-h-[88vh] bg-[#0c0e14] border border-amber-300/25 rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-amber-300/15 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg border border-amber-300/25 bg-amber-300/10 text-amber-200 grid place-items-center">
+            <span className="material-symbols-outlined text-[19px]">auto_fix_high</span>
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-cinzel text-amber-100 text-sm uppercase tracking-wider">Mestre Forjador</h3>
+            <p className="text-txt-dim/70 text-[11px] mt-1 leading-relaxed">
+              Encantamentos funcionam como modulos de evolucao para armas e equipamentos. Ferro Hefestiano fica como material especial: ele nao cria um novo rank, ele reforca o item por cima do rank atual.
+            </p>
+          </div>
+          <button onClick={onClose} className="ml-auto w-8 h-8 grid place-items-center text-txt-dim/50 hover:text-err transition-colors">
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="rounded-xl border border-amber-300/15 bg-amber-300/5 p-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-amber-200 text-[11px] font-semibold">Ferro Hefestiano</span>
+              <span className="text-[9px] px-2 py-0.5 rounded border border-amber-300/20 bg-amber-300/10 text-amber-100/80">Material especial</span>
+            </div>
+            <p className="text-txt-dim/70 text-[11px] mt-1.5 leading-relaxed">
+              Armas recebem +1d6 de dano material. Equipamentos recebem +2 Armadura e +6 Durabilidade maxima. O rank continua controlando slots e escala.
+            </p>
+          </div>
+
+          {canEdit && (
+            <div className="rounded-xl border border-sep/25 bg-void/45 p-3 space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_120px_120px_120px] gap-2">
+                <input value={draft.nome} onChange={e => setDraft(prev => ({ ...prev, nome: e.target.value }))} placeholder="Nome do encantamento"
+                  className="bg-void/70 border border-sep/35 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/40 focus:outline-none" />
+                <select value={draft.tipo} onChange={e => setDraft(prev => ({ ...prev, tipo: e.target.value }))}
+                  className="bg-[#11141c] border border-amber-300/20 rounded-lg px-2 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
+                  <option className="bg-[#11141c] text-txt-main">Ativa</option>
+                  <option className="bg-[#11141c] text-txt-main">Passiva</option>
+                </select>
+                <select value={draft.alvo} onChange={e => setDraft(prev => ({ ...prev, alvo: e.target.value }))}
+                  className="bg-[#11141c] border border-amber-300/20 rounded-lg px-2 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
+                  <option className="bg-[#11141c] text-txt-main">Ambos</option>
+                  <option className="bg-[#11141c] text-txt-main">Arma</option>
+                  <option className="bg-[#11141c] text-txt-main">Equipamento</option>
+                </select>
+                <input value={draft.custo} onChange={e => setDraft(prev => ({ ...prev, custo: e.target.value }))} placeholder="Custo"
+                  className="bg-void/70 border border-sep/35 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/40 focus:outline-none" />
+              </div>
+              <textarea value={draft.descricao} onChange={e => setDraft(prev => ({ ...prev, descricao: e.target.value }))} rows={2}
+                placeholder="Efeito, gatilho, custo, limites e escala..."
+                className="w-full bg-void/70 border border-sep/35 rounded-lg px-3 py-2 text-xs text-txt-main resize-none focus:border-amber-300/40 focus:outline-none" />
+              <button onClick={addEnchantment} className="text-[10px] bg-amber-300 text-void px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-200 transition-colors">
+                + Criar Encantamento
+              </button>
+              {error && <p className="text-err text-[10px]">{error}</p>}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {enchantments.length === 0 ? (
+              <div className="md:col-span-2 rounded-xl border border-dashed border-amber-300/20 bg-amber-300/5 px-4 py-8 text-center">
+                <p className="text-txt-dim/55 text-xs">Nenhum encantamento criado ainda.</p>
+              </div>
+            ) : enchantments.map(item => (
+              <div key={item.id} className="rounded-xl border border-amber-300/18 bg-gradient-to-br from-amber-300/6 to-transparent p-3">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-amber-100 text-sm font-semibold truncate">{item.nome || 'Encantamento'}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded border border-amber-300/20 bg-amber-300/10 text-amber-100/75">{item.tipo || 'Ativa'}</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded border border-sky-300/20 bg-sky-300/10 text-sky-100/75">{item.alvo || 'Ambos'}</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded border ${item.status === 'Aprovada' ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-200' : 'border-warn/20 bg-warn/10 text-warn'}`}>{item.status || 'Pendente'}</span>
+                    </div>
+                    {item.custo && <p className="text-gold/70 text-[10px] font-mono mt-1">{item.custo}</p>}
+                  </div>
+                  {canEdit && (
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => analyzeEnchant(item)} disabled={analyzingId === item.id}
+                        title="Analisar com IA"
+                        className="w-7 h-7 grid place-items-center rounded border border-indigo-300/25 text-indigo-200/75 hover:bg-indigo-300/10 disabled:opacity-40">
+                        <span className="material-symbols-outlined text-[15px]">{analyzingId === item.id ? 'hourglass_top' : 'psychology'}</span>
+                      </button>
+                      <button onClick={() => removeEnchant(item.id)} title="Remover"
+                        className="w-7 h-7 grid place-items-center rounded border border-err/20 text-err/60 hover:bg-err/10 hover:text-err">
+                        <span className="material-symbols-outlined text-[15px]">close</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-txt-dim/70 text-[11px] mt-2 leading-relaxed whitespace-pre-wrap">{item.descricao || 'Sem descricao.'}</p>
+                {item.feedback && <p className="text-indigo-200/70 text-[10px] mt-2 leading-relaxed border-t border-indigo-300/10 pt-2">{item.feedback}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   )
 }
 

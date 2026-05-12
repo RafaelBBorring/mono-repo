@@ -27,6 +27,32 @@ function isOutfit(item = {}) {
   return item.categoria === 'Traje'
 }
 
+const FORGE_RANK_ENCHANTMENT_LIMIT = {
+  Comum: 0,
+  Incomum: 1,
+  Raro: 1,
+  'Ã‰pico': 2,
+  Heroico: 2,
+  Ancestral: 3,
+  'MÃ­tico': 3,
+  Transcendente: 4,
+}
+
+function getForgeEnchantmentLimit(rank, systemSkillBonuses = {}) {
+  const skillLimit = systemSkillBonuses.forgeEnchantmentSlots || 0
+  const rankLimit = FORGE_RANK_ENCHANTMENT_LIMIT[rank] || 0
+  return Math.min(skillLimit, rankLimit)
+}
+
+function canUseForgeEnchantment(enc = {}, category = 'Arma') {
+  const target = enc.alvo || 'Ambos'
+  return target === 'Ambos' || target === category
+}
+
+function getHephaestianDamageBonus(item = {}) {
+  return item.materialEspecial === 'ferro_hefestiano' ? '+1d6' : ''
+}
+
 function enforceSingleSlot(items, incoming, incomingIdx = -1) {
   const type = getEquipmentType(incoming)
   if (!incoming?.equipado || !type?.slot) return items
@@ -434,7 +460,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
                     <Fragment key={card.key}>{cardNode}</Fragment>
                   )
                 })}
-                {outfits.length && Array.from({ length: Math.max(0, armorySlotCount - orderedArmoryCards.length) }).map((_, idx) => (
+                {outfits.length > 0 && Array.from({ length: Math.max(0, armorySlotCount - orderedArmoryCards.length) }).map((_, idx) => (
                   <ArmoryEmptySlot key={`empty-slot-${idx}`} />
                 ))}
               </div>
@@ -1032,6 +1058,7 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
   const armorType = getArmorType(item)
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
   const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
+  const materialDamageBonus = getHephaestianDamageBonus(item)
   return (
     <div
       className={`armory-card w-full rounded-lg border ${isLegendaryItem ? 'border-lime-300/45 bg-lime-300/8 text-lime-300 shadow-lg shadow-lime-300/10' : `${rc.border} ${rc.bg} ${rc.text} ${rc.glow}`} p-3 text-left`}>
@@ -1043,13 +1070,18 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
       </button>
       <button type="button" onClick={onClick} className="flex-1 min-w-0 text-left">
         <span className="text-txt-main text-sm font-semibold truncate block">{item.nome || 'Equipamento'}</span>
-        {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}</span>}
+        {item.dano && <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}{materialDamageBonus ? ` ${materialDamageBonus}` : ''}</span>}
         <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${item.equipado ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>
           {item.equipado ? 'equipado' : 'guardado'}
         </span>
         {(item.encantamentos || []).length > 0 && (
           <span className="text-[9px] mt-1 ml-1 inline-flex px-1.5 py-0.5 rounded border text-amber-200 border-amber-300/20 bg-amber-300/10">
             ENC {item.encantamentos.length}
+          </span>
+        )}
+        {item.materialEspecial === 'ferro_hefestiano' && (
+          <span className="text-[9px] mt-1 ml-1 inline-flex px-1.5 py-0.5 rounded border text-amber-100 border-amber-300/20 bg-amber-300/10">
+            FH
           </span>
         )}
       </button>
@@ -1681,6 +1713,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   const [preview, setPreview] = useState(null)
   const [armorType, setArmorType] = useState(null)
   const [equipado, setEquipado] = useState(false)
+  const [materialEspecial, setMaterialEspecial] = useState('')
   const [peso, setPeso] = useState('')
   const [local, setLocal] = useState('guardado')
   const fileRef = useRef(null)
@@ -1704,11 +1737,12 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   const currentLevel = char?.nivel || 1
   const systemSkillBonuses = calcSystemSkillBonuses(char || {})
   const forgeRankBonus = systemSkillBonuses.forgeRankBonus || 0
-  const forgeEnchantmentSlots = itemCategory === 'Arma' ? (systemSkillBonuses.forgeEnchantmentSlots || 0) : 0
+  const forgeEnchantmentSlots = (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? getForgeEnchantmentLimit(selectedRank, systemSkillBonuses) : 0
   const forgeQualityBonus = systemSkillBonuses.forgeQualityBonus || 0
   const weaponRankAllowance = getWeaponRankBonus(char) + forgeRankBonus
   const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank, weaponRankAllowance) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
   const detailStep = itemCategory === 'Equipamento' ? 3 : 2
+  const forgeLibrary = (char?.forgeEnchantments || []).filter(enc => canUseForgeEnchantment(enc, itemCategory))
 
   async function handleAIEquip() {
     if (!equipType) return
@@ -1819,19 +1853,14 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
 
   function removeHab(i) { setHabilidades(habilidades.filter((_, j) => j !== i)) }
 
-  function addEncantamento() {
+  function toggleEncantamento(enc) {
+    const exists = encantamentos.some(item => item.id === enc.id)
+    if (exists) {
+      setEncantamentos(encantamentos.filter(item => item.id !== enc.id))
+      return
+    }
     if (encantamentos.length >= forgeEnchantmentSlots) return
-    setEncantamentos([...encantamentos, { nome: '', descricao: '', custo: '' }])
-  }
-
-  function updateEncantamento(i, patch) {
-    const arr = [...encantamentos]
-    arr[i] = { ...arr[i], ...patch }
-    setEncantamentos(arr)
-  }
-
-  function removeEncantamento(i) {
-    setEncantamentos(encantamentos.filter((_, j) => j !== i))
+    setEncantamentos([...encantamentos, { ...enc }])
   }
 
   async function handleAIGenerate() {
@@ -1864,7 +1893,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   }
 
   function handleSave() {
-    const equipmentDraft = { categoria: itemCategory, tipoEquip: equipType, rank: selectedRank, nome, descricao, armorType, setId: armorType }
+    const equipmentDraft = { categoria: itemCategory, tipoEquip: equipType, rank: selectedRank, nome, descricao, armorType, setId: armorType, materialEspecial }
     const durabilityMax = itemCategory === 'Equipamento' ? getEquipmentDurabilityMax(equipmentDraft) : 0
     onSave({
       id: Date.now(), nome, descricao, imagem, dano, efeitos,
@@ -1872,10 +1901,11 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
       armaId: itemCategory === 'Arma' ? (selectedType === 'custom' ? null : selectedType) : null,
       tipoEquip: itemCategory === 'Equipamento' ? equipType : (itemCategory === 'Utilidade' ? 'utilidade' : null),
       rank: selectedRank,
+      materialEspecial: (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? materialEspecial : '',
       peso: peso === '' ? (itemCategory === 'Arma' ? getWeaponWeight(selectedType, nome, descricao || efeitos) : estimateEquipmentWeight({ categoria: itemCategory, tipoEquip: equipType, nome, descricao })) : Number(peso),
       local: (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? (equipado ? 'equipado' : 'guardado') : local,
       habilidades: itemCategory === 'Arma' ? habilidades.filter(h => h.nome.trim()) : [],
-      encantamentos: itemCategory === 'Arma' ? encantamentos.filter(h => h.nome?.trim() || h.descricao?.trim()) : [],
+      encantamentos: (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? encantamentos.filter(h => h.nome?.trim() || h.descricao?.trim()).slice(0, forgeEnchantmentSlots) : [],
       equipHabilidades: itemCategory === 'Equipamento' ? passivas.filter(h => h.nome?.trim()) : [],
       passivas: itemCategory === 'Equipamento' ? passivas.filter(h => (h.tipo || '').includes('Passiva')) : [],
       armorType: itemCategory === 'Equipamento' ? armorType : null,
@@ -2022,14 +2052,15 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                   })}
                 </div>
               )}
-              {itemCategory === 'Arma' && (forgeRankBonus > 0 || forgeEnchantmentSlots > 0 || forgeQualityBonus > 0) && (
+              {(itemCategory === 'Arma' || itemCategory === 'Equipamento') && (forgeRankBonus > 0 || forgeEnchantmentSlots > 0 || forgeQualityBonus > 0) && (
                 <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 px-3 py-2">
                   <div className="text-amber-200 text-[11px] font-semibold">Mestre Forjador ativo</div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {forgeRankBonus > 0 && <span className="text-[9px] text-amber-200/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">+{forgeRankBonus} rank no limite</span>}
+                    {itemCategory === 'Arma' && forgeRankBonus > 0 && <span className="text-[9px] text-amber-200/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">+{forgeRankBonus} rank no limite</span>}
                     {systemSkillBonuses.forgeRankLabels?.map(label => <span key={label} className="text-[9px] text-gold/80 bg-gold/10 border border-gold/15 rounded px-2 py-0.5">{label}</span>)}
                     {forgeEnchantmentSlots > 0 && <span className="text-[9px] text-sky-200/80 bg-sky-300/10 border border-sky-300/15 rounded px-2 py-0.5">{forgeEnchantmentSlots} encantamento(s)</span>}
                     {forgeQualityBonus > 0 && <span className="text-[9px] text-emerald-200/80 bg-emerald-300/10 border border-emerald-300/15 rounded px-2 py-0.5">Qualidade +{forgeQualityBonus}</span>}
+                    <span className="text-[9px] text-amber-100/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">Ferro Hefestiano disponivel</span>
                   </div>
                 </div>
               )}
@@ -2116,6 +2147,13 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                       Equipada
                     </label>
                   )}
+                  {(itemCategory === 'Arma' || itemCategory === 'Equipamento') && systemSkillBonuses.forgeEnchantmentSlots > 0 && (
+                    <select value={materialEspecial} onChange={e => setMaterialEspecial(e.target.value)}
+                      className="w-full bg-[#11141c] border border-amber-300/25 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
+                      <option value="" className="bg-[#11141c] text-txt-main">Material comum</option>
+                      <option value="ferro_hefestiano" className="bg-[#11141c] text-txt-main">Ferro Hefestiano</option>
+                    </select>
+                  )}
                 </div>
               </div>
               <div className={`grid gap-2 ${itemCategory === 'Utilidade' ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -2195,7 +2233,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                 </div>
               )}
 
-              {itemCategory === 'Arma' && forgeEnchantmentSlots > 0 && (
+              {(itemCategory === 'Arma' || itemCategory === 'Equipamento') && forgeEnchantmentSlots > 0 && (
                 <div className="border-t border-amber-300/15 pt-3">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
@@ -2204,23 +2242,27 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                     </span>
                   </div>
                   <p className="text-txt-dim/55 text-[10px] leading-relaxed mb-2">
-                    Encantamentos sao habilidades extras liberadas pela Skill Mestre Forjador e nao consomem os slots normais do rank.
+                    Selecione encantamentos criados no menu Mestre Forjador. O limite vem do rank do item e da Skill.
                   </p>
-                  {encantamentos.map((enc, i) => (
-                    <div key={i} className="bg-amber-300/5 border border-amber-300/20 rounded-lg p-2 mb-1.5 space-y-1.5">
-                      <div className="flex gap-1.5">
-                        <input type="text" value={enc.nome || ''} onChange={e => updateEncantamento(i, { nome: e.target.value })} placeholder="Nome do encantamento"
-                          className="min-w-0 flex-1 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
-                        <input type="text" value={enc.custo || ''} onChange={e => updateEncantamento(i, { custo: e.target.value })} placeholder="Custo"
-                          className="w-20 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
-                        <button onClick={() => removeEncantamento(i)} className="text-err/50 hover:text-err text-xs px-1 shrink-0">x</button>
-                      </div>
-                      <textarea value={enc.descricao || ''} onChange={e => updateEncantamento(i, { descricao: e.target.value })} placeholder="Descricao do efeito encantado..." rows={2}
-                        className="w-full bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[9px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
+                  {forgeLibrary.length === 0 ? (
+                    <p className="text-txt-dim/40 text-[10px] italic">Crie encantamentos clicando no card Mestre Forjador da ficha.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {forgeLibrary.map(enc => {
+                        const selected = encantamentos.some(item => item.id === enc.id)
+                        const locked = !selected && encantamentos.length >= forgeEnchantmentSlots
+                        return (
+                          <button key={enc.id} type="button" onClick={() => !locked && toggleEncantamento(enc)} disabled={locked}
+                            className={`text-left rounded-lg border p-2 transition-colors ${selected ? 'border-amber-300/45 bg-amber-300/12' : locked ? 'border-sep/15 bg-void/25 opacity-45 cursor-not-allowed' : 'border-amber-300/18 bg-amber-300/5 hover:border-amber-300/35'}`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-amber-100 text-[11px] font-semibold truncate">{enc.nome || 'Encantamento'}</span>
+                              <span className="text-[8px] px-1 rounded bg-white/5 text-txt-dim/65">{enc.tipo || 'Ativa'}</span>
+                            </div>
+                            <p className="text-txt-dim/60 text-[9px] mt-1 line-clamp-2">{enc.descricao || 'Sem descricao.'}</p>
+                          </button>
+                        )
+                      })}
                     </div>
-                  ))}
-                  {encantamentos.length < forgeEnchantmentSlots && (
-                    <button onClick={addEncantamento} className="text-amber-200/70 hover:text-amber-200 text-[10px]">+ Encantamento</button>
                   )}
                 </div>
               )}
@@ -2292,6 +2334,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
   const equipHabilidades = item.equipHabilidades || item.passivas || []
   const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
+  const materialDamageBonus = getHephaestianDamageBonus(item)
   const [editNome, setEditNome] = useState(item.nome || '')
   const [editDesc, setEditDesc] = useState(item.descricao || '')
   const [editDano, setEditDano] = useState(item.dano || '')
@@ -2299,6 +2342,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const [editRank, setEditRank] = useState(item.rank || 'Comum')
   const [editEquipado, setEditEquipado] = useState(!!item.equipado)
   const [editArmorType, setEditArmorType] = useState(item.armorType || item.setId || null)
+  const [editMaterialEspecial, setEditMaterialEspecial] = useState(item.materialEspecial || '')
   const [editPeso, setEditPeso] = useState(item.peso ?? '')
   const [editLocal, setEditLocal] = useState(item.local || (item.equipado ? 'equipado' : 'guardado'))
   const [editDurabilidadeAtual, setEditDurabilidadeAtual] = useState(item.durabilidadeAtual ?? item.durabilityAtual ?? item.armorAtual ?? '')
@@ -2308,7 +2352,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const currentLevel = char?.nivel || 1
   const systemSkillBonuses = calcSystemSkillBonuses(char || {})
   const forgeRankBonus = systemSkillBonuses.forgeRankBonus || 0
-  const forgeEnchantmentSlots = item.categoria === 'Arma' ? (systemSkillBonuses.forgeEnchantmentSlots || 0) : 0
+  const forgeEnchantmentSlots = (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? getForgeEnchantmentLimit(editRank, systemSkillBonuses) : 0
   const weaponRankAllowance = getWeaponRankBonus(char) + forgeRankBonus
   const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank, weaponRankAllowance) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
   const editWeaponRank = WEAPON_RANKS.find(r => r.rank === editRank) || WEAPON_RANKS[0]
@@ -2316,7 +2360,8 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const editEquipRarity = getEquipmentRarity(editRank)
   const editEquipSlots = item.categoria === 'Equipamento' ? ((editEquipRarity?.activeSkills || 0) + (editEquipRarity?.passiveSkills || 0)) : 0
   const editEquipUsedSlots = editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()).length
-  const editAbilityOverflow = (item.categoria === 'Arma' && (editWeaponUsedSlots > editWeaponRank.slots || editEncantamentos.length > forgeEnchantmentSlots)) || (item.categoria === 'Equipamento' && editEquipUsedSlots > editEquipSlots)
+  const editAbilityOverflow = (item.categoria === 'Arma' && (editWeaponUsedSlots > editWeaponRank.slots || editEncantamentos.length > forgeEnchantmentSlots)) || (item.categoria === 'Equipamento' && (editEquipUsedSlots > editEquipSlots || editEncantamentos.length > forgeEnchantmentSlots))
+  const forgeLibrary = (char?.forgeEnchantments || []).filter(enc => canUseForgeEnchantment(enc, item.categoria))
 
   function updateEditItemHab(index, patch) {
     const next = [...editItemHabilidades]
@@ -2333,19 +2378,14 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
     setEditItemHabilidades(editItemHabilidades.filter((_, i) => i !== index))
   }
 
-  function updateEditEncantamento(index, patch) {
-    const next = [...editEncantamentos]
-    next[index] = { ...next[index], ...patch }
-    setEditEncantamentos(next)
-  }
-
-  function addEditEncantamento() {
+  function toggleEditEncantamento(enc) {
+    const exists = editEncantamentos.some(item => item.id === enc.id)
+    if (exists) {
+      setEditEncantamentos(editEncantamentos.filter(item => item.id !== enc.id))
+      return
+    }
     if (editEncantamentos.length >= forgeEnchantmentSlots) return
-    setEditEncantamentos([...editEncantamentos, { nome: '', descricao: '', custo: '' }])
-  }
-
-  function removeEditEncantamento(index) {
-    setEditEncantamentos(editEncantamentos.filter((_, i) => i !== index))
+    setEditEncantamentos([...editEncantamentos, { ...enc }])
   }
 
   function updateEditEquipHab(index, patch) {
@@ -2370,9 +2410,10 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
       dano: editDano,
       efeitos: editEfeitos,
       rank: editRank,
+      materialEspecial: (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? editMaterialEspecial : '',
       equipado: editEquipado,
       habilidades: item.categoria === 'Arma' ? editItemHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.habilidades,
-      encantamentos: item.categoria === 'Arma' ? editEncantamentos.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.encantamentos,
+      encantamentos: (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? editEncantamentos.filter(h => h.nome?.trim() || h.descricao?.trim()).slice(0, forgeEnchantmentSlots) : item.encantamentos,
       equipHabilidades: item.categoria === 'Equipamento' ? editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.equipHabilidades,
       passivas: item.categoria === 'Equipamento' ? editEquipHabilidades.filter(h => (h.tipo || '').includes('Passiva')) : item.passivas,
       armorType: editArmorType,
@@ -2433,6 +2474,13 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                   <input type="checkbox" checked={editEquipado} onChange={e => setEditEquipado(e.target.checked)} className="accent-gold" />
                   Equipada
                 </label>
+              )}
+              {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && systemSkillBonuses.forgeEnchantmentSlots > 0 && (
+                <select value={editMaterialEspecial} onChange={e => setEditMaterialEspecial(e.target.value)}
+                  className="w-full bg-[#11141c] border border-amber-300/25 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
+                  <option value="" className="bg-[#11141c] text-txt-main">Material comum</option>
+                  <option value="ferro_hefestiano" className="bg-[#11141c] text-txt-main">Ferro Hefestiano</option>
+                </select>
               )}
               <div>
                 <label className="text-txt-dim/50 text-[9px] uppercase">Rank</label>
@@ -2523,30 +2571,32 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                   </div>
                 </div>
               )}
-              {item.categoria === 'Arma' && forgeEnchantmentSlots > 0 && (
+              {(item.categoria === 'Arma' || item.categoria === 'Equipamento') && forgeEnchantmentSlots > 0 && (
                 <div className="border-t border-amber-300/15 pt-3">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
                     <span className={`text-[10px] font-mono ${editEncantamentos.length > forgeEnchantmentSlots ? 'text-err' : 'text-amber-200/70'}`}>{editEncantamentos.length}/{forgeEnchantmentSlots}</span>
                   </div>
-                  <div className="space-y-2">
-                    {editEncantamentos.map((enc, i) => (
-                      <div key={i} className="bg-amber-300/5 border border-amber-300/20 rounded-lg p-2 space-y-1.5">
-                        <div className="flex gap-1.5">
-                          <input type="text" value={enc.nome || ''} onChange={e => updateEditEncantamento(i, { nome: e.target.value })} placeholder="Nome"
-                            className="min-w-0 flex-1 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
-                          <input type="text" value={enc.custo || ''} onChange={e => updateEditEncantamento(i, { custo: e.target.value })} placeholder="Custo"
-                            className="w-20 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
-                          <button onClick={() => removeEditEncantamento(i)} className="text-err/55 hover:text-err text-xs px-1 shrink-0">x</button>
-                        </div>
-                        <textarea value={enc.descricao || ''} onChange={e => updateEditEncantamento(i, { descricao: e.target.value })} placeholder="Descricao do encantamento..." rows={2}
-                          className="w-full bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[9px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
-                      </div>
-                    ))}
-                    {editEncantamentos.length < forgeEnchantmentSlots && (
-                      <button onClick={addEditEncantamento} className="text-amber-200/70 hover:text-amber-200 text-[10px]">+ Encantamento</button>
-                    )}
-                  </div>
+                  {forgeLibrary.length === 0 ? (
+                    <p className="text-txt-dim/40 text-[10px] italic">Nenhum encantamento criado no Mestre Forjador.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                      {forgeLibrary.map(enc => {
+                        const selected = editEncantamentos.some(item => item.id === enc.id)
+                        const locked = !selected && editEncantamentos.length >= forgeEnchantmentSlots
+                        return (
+                          <button key={enc.id} type="button" onClick={() => !locked && toggleEditEncantamento(enc)} disabled={locked}
+                            className={`text-left rounded-lg border p-2 transition-colors ${selected ? 'border-amber-300/45 bg-amber-300/12' : locked ? 'border-sep/15 bg-void/25 opacity-45 cursor-not-allowed' : 'border-amber-300/18 bg-amber-300/5 hover:border-amber-300/35'}`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-amber-100 text-[11px] font-semibold truncate">{enc.nome || 'Encantamento'}</span>
+                              <span className="text-[8px] px-1 rounded bg-white/5 text-txt-dim/65">{enc.tipo || 'Ativa'}</span>
+                            </div>
+                            <p className="text-txt-dim/60 text-[9px] mt-1 line-clamp-2">{enc.descricao || 'Sem descricao.'}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
               {item.categoria === 'Equipamento' && (
@@ -2640,7 +2690,15 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
               {item.dano && (
                 <div className={`bg-void/50 border rounded-lg px-3 py-2 ${rc.border}`}>
                   <span className="text-txt-dim/50 text-[9px] uppercase">Dano</span>
-                  <p className="text-red-400/90 text-sm font-mono mt-0.5">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}</p>
+                  <p className="text-red-400/90 text-sm font-mono mt-0.5">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}{materialDamageBonus ? ` ${materialDamageBonus}` : ''}</p>
+                </div>
+              )}
+              {item.materialEspecial === 'ferro_hefestiano' && (
+                <div className="bg-amber-300/5 border border-amber-300/20 rounded-lg px-3 py-2">
+                  <span className="text-amber-200/70 text-[9px] uppercase">Material</span>
+                  <p className="text-amber-100/80 text-xs mt-0.5 leading-relaxed">
+                    Ferro Hefestiano: {item.categoria === 'Equipamento' ? '+2 Armadura e +6 Durabilidade maxima.' : '+1d6 de dano material.'}
+                  </p>
                 </div>
               )}
               {item.efeitos && (

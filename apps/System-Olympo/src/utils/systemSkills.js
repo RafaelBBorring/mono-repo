@@ -51,6 +51,7 @@ function resolveEffectParam(effect, paramName, defaultValue) {
 }
 
 function toNumber(value, fallback = 0) {
+  if (value === '' || value == null) return fallback
   const n = Number(value)
   return Number.isFinite(n) ? n : fallback
 }

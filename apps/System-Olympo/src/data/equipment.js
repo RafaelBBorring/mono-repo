@@ -380,7 +380,8 @@ export function getEquipmentArmorValue(item = {}) {
   const type = EQUIPMENT_TYPES.find(t => t.id === item.tipoEquip)
   const rarity = getEquipmentRarity(item.rank)
   if (!type || !rarity) return 0
-  return (type.caBase || 0) + (rarity.armorBonus || 0)
+  const materialBonus = item.materialEspecial === 'ferro_hefestiano' ? 2 : 0
+  return (type.caBase || 0) + (rarity.armorBonus || 0) + materialBonus
 }
 
 export function getEquipmentDurabilityMax(item = {}) {
@@ -389,7 +390,8 @@ export function getEquipmentDurabilityMax(item = {}) {
   const baseByWeight = { leve: 8, comum: 12, pesado: 18 }
   const rankBonus = DURABILITY_RANK_BONUSES[item.rank] ?? DURABILITY_RANK_BONUSES[getEquipmentRarity(item.rank).rank] ?? 0
   const categoryBonus = item.armorType === 'guerreiro' || item.setId === 'guerreiro' ? 2 : 0
-  return (baseByWeight[type.weight] || 0) + rankBonus + categoryBonus
+  const materialBonus = item.materialEspecial === 'ferro_hefestiano' ? 6 : 0
+  return (baseByWeight[type.weight] || 0) + rankBonus + categoryBonus + materialBonus
 }
 
 export function getEquipmentDurabilityCurrent(item = {}) {

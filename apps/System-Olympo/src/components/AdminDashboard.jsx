@@ -1545,8 +1545,8 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                                   <div key={pKey} className="flex items-center gap-1.5">
                                     <label className="text-txt-dim/50 text-[9px] w-28 shrink-0">{pDef.label}</label>
                                     <select value={effect[pKey] ?? pDef.default} onChange={e => updateSkillEffect(i, ei, { [pKey]: e.target.value })}
-                                      className="admin-input !text-[10px] !py-0.5 flex-1">
-                                      {(pDef.options || []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                      className="admin-input !text-[10px] !py-1 flex-1 !bg-[#11141c] !text-txt-main !border-sky-300/25">
+                                      {(pDef.options || []).map(o => <option key={o.value} value={o.value} className="bg-[#11141c] text-txt-main">{o.label}</option>)}
                                     </select>
                                   </div>
                                 )
@@ -1557,7 +1557,7 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                                     <label className="text-txt-dim/50 text-[9px] w-28 shrink-0">{pDef.label}</label>
                                     <input type="number" value={effect[pKey] ?? pDef.default}
                                       min={pDef.min} max={pDef.max}
-                                      onChange={e => updateSkillEffect(i, ei, { [pKey]: Number(e.target.value) || pDef.default })}
+                                      onChange={e => updateSkillEffect(i, ei, { [pKey]: e.target.value === '' ? '' : Number(e.target.value) })}
                                       className="admin-input !text-[10px] !py-0.5 flex-1 text-center" />
                                   </div>
                                 )
