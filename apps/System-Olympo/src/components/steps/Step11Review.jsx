@@ -691,6 +691,13 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <div className="border-t border-sep/25 pt-5">
                   <InventorySection
                     items={char.inventario || []}
+                    equippedWeapon={char.armaEquipada && char.arma ? {
+                      id: char.arma,
+                      nome: char.armaNome || WEAPONS.find(w => w.id === char.arma)?.name,
+                      imagem: char.armaImagem,
+                      cor: 'gray',
+                    } : null}
+                    equippedItems={(char.equipamentos || []).filter(eq => eq.equipado)}
                     canEdit={canEdit}
                     onUpdate={(items) => update({ inventario: items })}
                     wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}

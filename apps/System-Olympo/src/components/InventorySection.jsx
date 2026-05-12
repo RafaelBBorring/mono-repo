@@ -9,24 +9,37 @@ function estimateItemWeight(item = {}) {
   return estimateInventoryItemWeight(item)
 }
 
-export default function InventorySection({ items = [], canEdit, onUpdate, onDrawerToggle, wallet = {}, onWalletUpdate, maxCarry, level = 1, modules = [], totalCarryWeight = null, onTransfer }) {
+export default function InventorySection({
+  items = [],
+  equippedWeapon = null,
+  equippedItems = [],
+  canEdit,
+  onUpdate,
+  onDrawerToggle,
+  wallet = {},
+  onWalletUpdate,
+  maxCarry,
+  level = 1,
+  modules = [],
+  totalCarryWeight = null,
+  onTransfer,
+  onEquipItem,
+  onUnequipItem,
+}) {
   const [showCreate, setShowCreate] = useState(false)
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const editImgRef = useRef(null)
 
-  if (!canEdit && items.length === 0) return null
+  if (!canEdit && items.length === 0 && !equippedWeapon && equippedItems.length === 0) return null
 
   function openDrawer(idx) { setViewIdx(idx); setEditMode(false); onDrawerToggle?.(true) }
   function closeDrawer() { setViewIdx(null); setEditMode(false); onDrawerToggle?.(false) }
 
   function addItem(item) {
-    // Find first available slot
-    const occupiedSlots = new Set(items.map((i, idx) => i.slot ?? idx))
-    let slot = 0
-    while (occupiedSlots.has(slot) && slot < 24) slot++
-
-    onUpdate([...items, { id: Date.now(), nome: '', descricao: '', imagem: null, cor: 'gray', slot, ...item }])
+    // Don't auto-assign slot - let user drag freely (free allocation!)
+    // Just add to inventory without slot, it will be displayed at the end
+    onUpdate([...items, { id: Date.now(), nome: '', descricao: '', imagem: null, cor: 'gray', ...item }])
     setShowCreate(false)
   }
 
@@ -83,6 +96,8 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
 
         <DragDropInventory
           items={items}
+          equippedWeapon={equippedWeapon}
+          equippedItems={equippedItems}
           canEdit={canEdit}
           onUpdate={onUpdate}
           onTransfer={onTransfer}
@@ -95,6 +110,8 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
           onItemView={(item, idx) => openDrawer(idx)}
           onItemEdit={() => setEditMode(true)}
           onItemDelete={(idx) => removeItem(idx)}
+          onEquipItem={onEquipItem}
+          onUnequipItem={onUnequipItem}
         />
       </section>
 
@@ -203,7 +220,7 @@ function ItemCreateModal({ itemType = 'normal', onSave, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose}>
-      <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-md shadow-2xl shadow-black/50 modal-content" onClick={e => e.stopPropagation()}>
+      <div ref={modalRef} tabIndex={-1} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-md shadow-2xl shadow-black/50 modal-content outline-none focus:outline-none" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between">
           <h3 className="font-cinzel text-primary text-sm">{isBackpack ? 'Nova Mochila' : 'Novo Item'}</h3>
           <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>

@@ -4175,6 +4175,71 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Equipped items styling */
+.inventory-slot.is-equipped {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.inventory-item-badge.equipped {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.inventory-item-badge.equipped .material-symbols-outlined {
+  font-size: 0.75rem;
+  color: #10b981;
+}
+
+/* Hover tooltip */
+.inventory-item-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem;
+  min-width: 100px;
+  z-index: 10;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.15s ease-out;
+  margin-bottom: 0.3rem;
+  white-space: nowrap;
+}
+
+.inventory-item-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.95);
+}
+
+.inventory-item-name-tooltip {
+  display: block;
+  color: #f4f1ff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 0.2rem;
+}
+
+.inventory-weight-chip-tooltip {
+  display: block;
+  color: rgba(166, 163, 186, 0.8);
+  font-size: 0.6rem;
+  text-align: center;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 /* Color variants for items */
 .inventory-item.bg-gray { background: rgba(107, 114, 128, 0.15); border-color: rgba(107, 114, 128, 0.25); }
 .inventory-item.bg-red { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.25); }

@@ -1,4 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import React from 'react'
 import { ITEM_COLORS } from '../data/colors'
 import { estimateInventoryItemWeight } from '../utils/calculator'
 
@@ -11,6 +13,8 @@ function estimateItemWeight(item = {}) {
 
 export default function DragDropInventory({
   items = [],
+  equippedWeapon = null,
+  equippedItems = [],
   canEdit,
   onUpdate,
   onDrawerToggle,
@@ -27,29 +31,40 @@ export default function DragDropInventory({
   onItemView,
   onItemEdit,
   onItemDelete,
+  onEquipItem,
+  onUnequipItem,
 }) {
   const [draggedItem, setDraggedItem] = useState(null)
   const [draggedFromBackpack, setDraggedFromBackpack] = useState(null)
   const [draggedItemIndex, setDraggedItemIndex] = useState(null)
   const [openBackpackId, setOpenBackpackId] = useState(null)
   const [dragOverSlot, setDragOverSlot] = useState(null)
+  const [hoveredItem, setHoveredItem] = useState(null)
   const containerRef = useRef(null)
+  const modalRef = useRef(null)
+
+  // Combine regular items with equipped items for display
+  const combinedItems = [
+    ...items,
+    ...equippedItems.map(eq => ({ ...eq, isEquipped: true })),
+    ...(equippedWeapon ? [{ ...equippedWeapon, isEquipped: true, isWeapon: true }] : []),
+  ]
 
   // Calculate item positions (slot indices)
   const itemPositions = new Map()
-  items.forEach((item, idx) => {
+  combinedItems.forEach((item, idx) => {
     const slot = item.slot ?? idx
     itemPositions.set(slot, { item, idx })
   })
 
-  const totalWeight = items.reduce((sum, item) => {
+  const totalWeight = combinedItems.reduce((sum, item) => {
     const location = item.local || 'carregado'
     if (location === 'guardado' || location === 'base' || location === 'veiculo') return sum
     return sum + estimateItemWeight(item) * (Number(item.quantidade) || 1)
   }, 0)
   const displayedLoad = totalCarryWeight ?? totalWeight
 
-  const occupiedSlots = new Set(items.map((item, idx) => item.slot ?? idx))
+  const occupiedSlots = new Set(combinedItems.map((item, idx) => item.slot ?? idx))
 
   function handleDragStart(e, item, idx, fromBackpackId = null) {
     setDraggedItem(item)
@@ -138,6 +153,16 @@ export default function DragDropInventory({
       return
     }
 
+    // If dragging an equipped item, unequip it first
+    if (draggedItem.isEquipped) {
+      if (draggedItem.isWeapon && onUnequipItem) {
+        onUnequipItem('weapon')
+      } else if (onUnequipItem) {
+        onUnequipItem(draggedItem.id)
+      }
+      return
+    }
+
     const newItems = [...items]
 
     if (draggedFromBackpackId !== null && draggedFromBackpackId !== undefined) {
@@ -152,7 +177,7 @@ export default function DragDropInventory({
     // Moving within same inventory
     const sourceSlot = draggedItem.slot ?? draggedItemIndex
 
-    // If dropping on empty slot, move item there
+    // If dropping on empty slot, move item there (free allocation!)
     const existingItemAtSlot = itemPositions.get(targetSlot)
 
     if (existingItemAtSlot && existingItemAtSlot.item.id !== draggedItem.id) {
@@ -160,7 +185,7 @@ export default function DragDropInventory({
       newItems[existingItemAtSlot.idx] = { ...existingItemAtSlot.item, slot: sourceSlot }
       newItems[draggedItemIndex] = { ...draggedItem, slot: targetSlot }
     } else {
-      // Just move to new slot
+      // Just move to new slot (free allocation!)
       newItems[draggedItemIndex] = { ...draggedItem, slot: targetSlot }
     }
 
@@ -171,6 +196,12 @@ export default function DragDropInventory({
   }
 
   function handleItemClick(item, idx) {
+    if (item.isEquipped) {
+      // Clicking equipped item shows details or could be used to unequip
+      if (onItemView) onItemView(item, idx)
+      return
+    }
+
     if (item.tipo === 'mochila') {
       // Open backpack view
       setOpenBackpackId(item.id === openBackpackId ? null : item.id)
@@ -178,6 +209,14 @@ export default function DragDropInventory({
       onItemView(item, idx)
     }
   }
+
+  // Scroll to modal when opened
+  useEffect(() => {
+    if (openBackpackId && modalRef.current) {
+      modalRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      modalRef.current.focus()
+    }
+  }, [openBackpackId])
 
   // Generate grid slots
   const slots = []
@@ -193,7 +232,7 @@ export default function DragDropInventory({
           <span className="material-symbols-outlined inventory-icon">inventory_2</span>
           {isBackpack ? 'Mochila' : 'Inventário Geral'}
           {!isBackpack && (
-            <span className="inventory-slots-info">{items.length}/{inventorySize} slots</span>
+            <span className="inventory-slots-info">{combinedItems.length}/{inventorySize} slots</span>
           )}
         </div>
         {!isBackpack && (
@@ -214,19 +253,26 @@ export default function DragDropInventory({
         {slots.map(({ slot, item, idx }) => (
           <div
             key={slot}
-            className={`inventory-slot ${item ? 'has-item' : 'empty'} ${item?.tipo === 'mochila' ? 'is-backpack' : ''} ${dragOverSlot === slot ? 'drag-over' : ''}`}
+            className={`inventory-slot ${item ? 'has-item' : 'empty'} ${item?.tipo === 'mochila' ? 'is-backpack' : ''} ${item?.isEquipped ? 'is-equipped' : ''} ${dragOverSlot === slot ? 'drag-over' : ''}`}
             onDragOver={(e) => handleDragOver(e, slot)}
             onDragLeave={(e) => handleDragLeave(e, slot)}
             onDrop={(e) => handleDrop(e, slot)}
             onClick={item ? (e) => handleItemClick(item, idx) : undefined}
+            onMouseEnter={() => setHoveredItem(item)}
+            onMouseLeave={() => setHoveredItem(null)}
           >
             {item ? (
               <div
-                draggable={canEdit}
+                draggable={canEdit && !item.isEquipped}
                 onDragStart={(e) => handleDragStart(e, item, idx)}
                 onDragEnd={handleDragEnd}
                 className={`inventory-item ${ITEM_COLORS.find(c => c.id === (item.cor || 'gray'))?.cls || ''}`}
               >
+                {item.isEquipped && (
+                  <div className="inventory-item-badge equipped">
+                    <span className="material-symbols-outlined">check_circle</span>
+                  </div>
+                )}
                 {item.tipo === 'mochila' && (
                   <div className="inventory-item-badge backpack">
                     <span className="material-symbols-outlined">backpack</span>
@@ -236,17 +282,20 @@ export default function DragDropInventory({
                   <img src={item.imagem} alt="" className="inventory-item-image" />
                 ) : (
                   <div className="inventory-item-empty-icon">
-                    {item.tipo === 'mochila' ? <span className="material-symbols-outlined">backpack</span> : '▢'}
+                    {item.tipo === 'mochila' ? <span className="material-symbols-outlined">backpack</span> : item.isWeapon ? '⚔' : '▢'}
                   </div>
                 )}
-                <div className="inventory-item-info">
-                  <span className="inventory-item-name">{item.nome || 'Item'}</span>
-                  {item.tipo !== 'mochila' && (
-                    <span className="inventory-weight-chip">{estimateItemWeight(item).toFixed(1)} kg</span>
-                  )}
-                </div>
+                {/* Details shown on hover */}
+                {(hoveredItem?.id === item.id || hoveredItem === item) && !item.isEquipped && (
+                  <div className="inventory-item-tooltip">
+                    <span className="inventory-item-name-tooltip">{item.nome || 'Item'}</span>
+                    {item.tipo !== 'mochila' && (
+                      <span className="inventory-weight-chip-tooltip">{estimateItemWeight(item).toFixed(1)} kg</span>
+                    )}
+                  </div>
+                )}
                 {item.tipo === 'mochila' && item.contents && (
-                  <span className="inventory-item-count">{item.contents.length} itens</span>
+                  <span className="inventory-item-count">{item.contents.length}</span>
                 )}
               </div>
             ) : (
@@ -264,8 +313,9 @@ export default function DragDropInventory({
       )}
 
       {/* Backpack Modal */}
-      {openBackpackId && (
+      {openBackpackId && createPortal(
         <BackpackModal
+          ref={modalRef}
           backpackId={openBackpackId}
           items={items}
           onClose={() => setOpenBackpackId(null)}
@@ -286,12 +336,13 @@ export default function DragDropInventory({
                 return i
               })
 
-              // Find available slot in main inventory
+              // Find available slot in main inventory - try to use targetSlot first
               const mainItems = items.filter(i => i.id !== openBackpackId)
               const occupiedSlots = new Set(mainItems.map((item, idx) => item.slot ?? idx))
 
               let targetSlotInMain = targetSlot
-              if (targetSlotInMain === null || targetSlotInMain === undefined) {
+              if (targetSlotInMain === null || targetSlotInMain === undefined || occupiedSlots.has(targetSlotInMain)) {
+                // If target slot is invalid, find any available slot
                 for (let s = 0; s < DEFAULT_INVENTORY_SIZE; s++) {
                   if (!occupiedSlots.has(s)) {
                     targetSlotInMain = s
@@ -309,13 +360,14 @@ export default function DragDropInventory({
           onItemEdit={onItemEdit}
           onItemDelete={onItemDelete}
           parentBackpackId={openBackpackId}
-        />
+        />,
+        document.body
       )}
     </div>
   )
 }
 
-function BackpackModal({ backpackId, items, onClose, canEdit, onUpdate, onTransfer, onItemView, onItemEdit, onItemDelete, parentBackpackId }) {
+const BackpackModal = React.forwardRef(({ backpackId, items, onClose, canEdit, onUpdate, onTransfer, onItemView, onItemEdit, onItemDelete, parentBackpackId }, ref) => {
   const backpack = items.find(i => i.id === backpackId)
   if (!backpack) return null
 
@@ -341,7 +393,7 @@ function BackpackModal({ backpackId, items, onClose, canEdit, onUpdate, onTransf
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 relative z-10">
+      <div ref={ref} tabIndex={-1} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-lg shadow-2xl shadow-black/50 relative z-10 outline-none focus:outline-none">
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-amber-300">backpack</span>
@@ -386,4 +438,6 @@ function BackpackModal({ backpackId, items, onClose, canEdit, onUpdate, onTransf
       </div>
     </div>
   )
-}
+})
+
+BackpackModal.displayName = 'BackpackModal'
