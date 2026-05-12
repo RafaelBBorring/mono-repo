@@ -3549,24 +3549,45 @@ function ForgeMasterMenu({ char, update, canEdit, isAdmin = false, onClose }) {
             </div>
 
             {canManageMaterials && (
-              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_120px_120px] gap-2 rounded-lg border border-sep/20 bg-void/35 p-2">
-                <select value={grantDraft.materialId} onChange={e => setGrantDraft(prev => ({ ...prev, materialId: e.target.value }))}
-                  className="bg-[#11141c] border border-amber-300/20 rounded-lg px-2 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
-                  {Object.values(SPECIAL_MATERIALS).map(mat => (
-                    <option key={mat.id} value={mat.id} className="bg-[#11141c] text-txt-main">{mat.name}</option>
-                  ))}
-                </select>
-                <label className="flex items-center gap-2 rounded-lg border border-sep/25 bg-void/50 px-3 py-2 text-[10px] text-txt-dim">
-                  <input type="checkbox" checked={grantDraft.unlimited} onChange={e => setGrantDraft(prev => ({ ...prev, unlimited: e.target.checked }))} className="accent-gold" />
-                  Ilimitado
-                </label>
-                <input type="number" min="1" value={grantDraft.limit} disabled={grantDraft.unlimited}
-                  onChange={e => setGrantDraft(prev => ({ ...prev, limit: e.target.value }))}
-                  className="bg-void/60 border border-sep/35 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/40 focus:outline-none disabled:opacity-35" />
-                <button onClick={upsertMaterialGrant}
-                  className="md:col-span-3 text-[10px] bg-amber-300 text-void px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-200 transition-colors">
-                  Conceder / Atualizar Material
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {Object.values(SPECIAL_MATERIALS).map(mat => {
+                  const grant = availableMaterials.find(item => item.material.id === mat.id)
+                  const selected = grantDraft.materialId === mat.id
+                  return (
+                    <div key={mat.id}
+                      className={`rounded-xl border p-3 transition-colors ${selected ? 'border-amber-300/45 bg-amber-300/10' : 'border-sep/20 bg-void/35 hover:border-amber-300/25'}`}>
+                      <button type="button" onClick={() => setGrantDraft(prev => ({ ...prev, materialId: mat.id, unlimited: grant?.unlimited ?? prev.unlimited, limit: grant?.limit ?? prev.limit }))}
+                        className="w-full text-left">
+                        <div className="flex items-start gap-2">
+                          <span className="material-symbols-outlined text-[17px] text-amber-200 mt-0.5">{getMaterialIcon(mat.id)}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-txt-main text-[12px] font-semibold truncate">{mat.name}</span>
+                              {grant && <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-400/10 border border-emerald-400/20 text-emerald-200">concedido</span>}
+                            </div>
+                            <p className="text-txt-dim/65 text-[10px] mt-1 leading-relaxed">{mat.specialty}</p>
+                            <p className="text-amber-100/70 text-[9px] mt-1 font-mono">{mat.damageBonus} dano · +{mat.armorBonus} ARM · +{mat.durabilityBonus} DUR</p>
+                          </div>
+                        </div>
+                      </button>
+                      {selected && (
+                        <div className="mt-3 grid grid-cols-[1fr_92px_auto] gap-2">
+                          <label className="flex items-center gap-2 rounded-lg border border-amber-300/15 bg-black/20 px-2 py-1.5 text-[10px] text-txt-dim">
+                            <input type="checkbox" checked={grantDraft.unlimited} onChange={e => setGrantDraft(prev => ({ ...prev, unlimited: e.target.checked }))} className="accent-gold" />
+                            Ilimitado
+                          </label>
+                          <input type="number" min="1" value={grantDraft.limit} disabled={grantDraft.unlimited}
+                            onChange={e => setGrantDraft(prev => ({ ...prev, limit: e.target.value }))}
+                            className="bg-void/70 border border-sep/35 rounded-lg px-2 py-1.5 text-xs text-txt-main focus:border-amber-300/40 focus:outline-none disabled:opacity-35" />
+                          <button onClick={upsertMaterialGrant}
+                            className="text-[10px] bg-amber-300 text-void px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-200 transition-colors">
+                            Aplicar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
 

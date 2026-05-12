@@ -135,12 +135,41 @@ export function getRaceProgressionBonus(char = {}) {
   return total
 }
 
+function getPrimaryAttrForMilestone(char = {}, currentBonus = {}) {
+  const attrs = char.atributos || {}
+  const skeleton = char.skeletonPoints || {}
+  return RACE_ATTR_KEYS
+    .map(attr => ({
+      attr,
+      value: (attrs[attr] || 0) + (skeleton[attr] || 0) + (currentBonus.attrs?.[attr] || 0),
+    }))
+    .sort((a, b) => b.value - a.value || RACE_ATTR_KEYS.indexOf(a.attr) - RACE_ATTR_KEYS.indexOf(b.attr))[0]?.attr || 'FOR'
+}
+
+function applyDynamicRaceMilestoneBonus(total, char = {}, rawText = '') {
+  const text = normalizeText(rawText)
+  const principalMatch = text.match(/\+\s*(\d+)\s+(?:no|em|ao)?\s*(?:atributo principal|principal atributo|atributo mais alto)/)
+  if (principalMatch) {
+    const value = Number(principalMatch[1])
+    if (Number.isFinite(value)) {
+      const attr = getPrimaryAttrForMilestone(char, total)
+      total.attrs[attr] = (total.attrs[attr] || 0) + value
+      total.notes.push(`Marco racial: +${value} ${attr} como atributo principal. Este bonus pode ultrapassar o limite normal.`)
+    }
+  }
+  return total
+}
+
 export function getGrantedRaceMilestoneBonus(char = {}, race, subrace) {
   const total = emptyRaceBonus()
   const granted = new Set(char.raceMilestonesGranted || [])
   flattenRaceMilestones(race, subrace)
     .filter(m => granted.has(m.key))
-    .forEach(m => mergeRaceBonus(total, parseRaceEffectText(`${m.title}. ${m.reward}`)))
+    .forEach(m => {
+      const text = `${m.title}. ${m.reward}`
+      mergeRaceBonus(total, parseRaceEffectText(text))
+      applyDynamicRaceMilestoneBonus(total, char, text)
+    })
   return total
 }
 

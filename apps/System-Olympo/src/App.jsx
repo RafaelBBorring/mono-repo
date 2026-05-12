@@ -518,7 +518,7 @@ export default function App() {
 
 function AppInner() {
   const { user, profile, loading, logout, isAdmin } = useAuth()
-  const { char, update, updateNested, updateHabilidade, reset, clearDraft, hasDraft } = useCharacter()
+  const { char, update, updateNested, updateHabilidade, reset, clearDraft, hasDraft, drafts, startNewDraft, loadDraftById, deleteDraft } = useCharacter()
   const [currentStep, setCurrentStep] = useState(0)
   const [view, setView] = useState('home')
   const [validationError, setValidationError] = useState(null)
@@ -547,6 +547,13 @@ function AppInner() {
   useEffect(() => {
     if (view === 'library' && user && profile) loadSheets()
   }, [view])
+
+  useEffect(() => {
+    if (view !== 'wizard') return
+    if (char.draftStep === currentStep) return
+    if (!char.nome && !char.classe && !char.raca) return
+    update({ draftStep: currentStep })
+  }, [currentStep, view])
 
   useEffect(() => {
     const wentBack = currentStep < prevStepRef.current
@@ -708,14 +715,22 @@ function AppInner() {
   }
 
   function handleNew() {
-    reset()
+    startNewDraft()
     setCurrentStep(0)
     setView('wizard')
     setValidationError(null)
   }
 
-  function handleResumeDraft() {
+  function handleResumeDraft(id) {
+    const record = id ? loadDraftById(id) : (drafts[0] ? loadDraftById(drafts[0].id) : null)
+    if (record) {
+      setCurrentStep(Math.min(TOTAL_STEPS - 1, Math.max(0, Number(record.step ?? record.data?.draftStep ?? 0) || 0)))
+    }
     setView('wizard')
+  }
+
+  function handleDeleteDraft(id) {
+    deleteDraft(id)
   }
 
   const reviewProps = currentStep === TOTAL_STEPS - 1
@@ -796,6 +811,9 @@ function AppInner() {
              onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
              onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
               hasDraft={hasDraft}
+             drafts={drafts}
+             onOpenDraft={handleResumeDraft}
+             onDeleteDraft={handleDeleteDraft}
              isAdmin={isAdmin}
             />
          </div>

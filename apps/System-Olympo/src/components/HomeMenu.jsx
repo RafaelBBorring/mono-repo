@@ -70,6 +70,34 @@ function CharacterCard({ sheet, onOpenSheet }) {
   )
 }
 
+function DraftCard({ draft, onOpen, onDelete }) {
+  const data = draft.data || {}
+  const name = draft.name || data.nome || 'Rascunho sem nome'
+  const step = Number(draft.step || data.draftStep || 0) + 1
+  const updated = draft.updatedAt ? new Date(draft.updatedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
+
+  return (
+    <div className="glass-card group p-4 flex items-center gap-4">
+      <button type="button" onClick={() => onOpen?.(draft.id)} className="min-w-0 flex-1 text-left">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-[18px]">edit_note</span>
+          <h3 className="font-cinzel text-on-surface text-sm truncate group-hover:text-primary transition-colors">{name}</h3>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-wider">
+          <span className="px-2 py-0.5 rounded border border-primary/20 bg-primary/10 text-primary">Etapa {step}</span>
+          {data.classe && <span className="px-2 py-0.5 rounded border border-white/10 bg-white/5 text-on-surface-variant">{data.classe}</span>}
+          {updated && <span className="px-2 py-0.5 rounded border border-white/10 bg-white/5 text-outline">{updated}</span>}
+        </div>
+      </button>
+      <button type="button" onClick={() => onDelete?.(draft.id)}
+        className="w-9 h-9 grid place-items-center rounded border border-err/25 text-err/70 hover:bg-err/10 hover:text-err transition-colors"
+        title="Excluir rascunho">
+        <span className="material-symbols-outlined text-[17px]">delete</span>
+      </button>
+    </div>
+  )
+}
+
 function getSheetRace(sheet) {
   return sheet.data?.raca || sheet.data?.racaTipo || 'Linhagem oculta'
 }
@@ -252,6 +280,9 @@ export default function HomeMenu({
   onOpenSheet,
   onAdminArea,
   hasDraft,
+  drafts = [],
+  onOpenDraft,
+  onDeleteDraft,
   isAdmin,
 }) {
   const recentSheets = sheets.slice(0, 6)
@@ -299,6 +330,26 @@ export default function HomeMenu({
       </section>
 
       {/* ── Character Selection ── */}
+      {drafts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 md:px-12 pb-6">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div>
+              <h2 className="font-cinzel text-primary-fixed tracking-[0.15em] uppercase text-lg">Rascunhos em Aberto</h2>
+              <p className="text-on-surface-variant text-xs mt-1">Fichas interrompidas ficam guardadas aqui ate serem salvas ou excluidas.</p>
+            </div>
+            <button type="button" onClick={onNew}
+              className="sigil-button px-4 py-2 bg-surface-container-low/40 rounded-lg font-cinzel text-xs text-primary tracking-widest">
+              Novo Rascunho
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {drafts.slice(0, 6).map(draft => (
+              <DraftCard key={draft.id} draft={draft} onOpen={onOpenDraft} onDelete={onDeleteDraft} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="max-w-7xl mx-auto px-6 md:px-12 py-16">
         <div className="flex items-center gap-4 mb-12">
           <div className="h-px flex-grow bg-gradient-to-r from-transparent to-primary/30" />

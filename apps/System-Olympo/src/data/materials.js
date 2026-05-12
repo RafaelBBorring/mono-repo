@@ -63,7 +63,12 @@ export const SPECIAL_MATERIALS = {
 
 export function getMaterialGrantUsage(char = {}, materialId) {
   const equipmentItems = Array.isArray(char.equipamentos) ? char.equipamentos : Object.values(char.equipamentos || {})
-  return equipmentItems.filter(item => item?.materialEspecial === materialId).length
+  return equipmentItems.reduce((count, item) => {
+    const self = item?.materialEspecial === materialId ? 1 : 0
+    const pieces = Array.isArray(item?.pieces) ? item.pieces : Array.isArray(item?.itens) ? item.itens : []
+    const nested = pieces.filter(piece => piece?.materialEspecial === materialId).length
+    return count + self + nested
+  }, 0)
 }
 
 export function getForgeMaterialGrants(char = {}) {

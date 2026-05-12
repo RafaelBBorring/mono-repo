@@ -41,7 +41,9 @@ const FORGE_RANK_ENCHANTMENT_LIMIT = {
 
 function getForgeEnchantmentLimit(rank, systemSkillBonuses = {}) {
   const skillLimit = systemSkillBonuses.forgeEnchantmentSlots || 0
-  const rankLimit = FORGE_RANK_ENCHANTMENT_LIMIT[rank] || 0
+  const rankIndex = WEAPON_RANKS.findIndex(r => r.rank === rank)
+  const rankLimitByIndex = [0, 1, 1, 2, 2, 3, 3, 4]
+  const rankLimit = rankLimitByIndex[rankIndex] || 0
   return Math.min(skillLimit, rankLimit)
 }
 
