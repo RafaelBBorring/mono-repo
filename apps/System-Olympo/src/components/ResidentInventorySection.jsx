@@ -7,8 +7,8 @@ import { estimateInventoryItemWeight } from '../utils/calculator'
 import { suggestItemWeight } from '../services/aiService'
 import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer } from './EquipmentSection'
 
-const GRID_COLS = 12
-const GRID_ROWS = 8
+const GRID_COLS = 9
+const GRID_ROWS = 7
 const BASE_LOCATIONS = [
   { id: 'carregado', label: 'Personagem', icon: 'person' },
   { id: 'quarto', label: 'Quarto', icon: 'bed' },
@@ -157,6 +157,8 @@ export default function ResidentInventorySection({
   const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
   const activeEntries = useMemo(() => allEntries.filter(entry => !entry.item.trajeId && normalizeLocation(entry.item.local, entry.item) === activeLocation), [allEntries, activeLocation])
   const gridEntries = useMemo(() => layoutEntries(activeEntries, activeLocation), [activeEntries, activeLocation])
+  const equippedWeapons = allEntries.filter(entry => entry.item.categoria === 'Arma' && entry.item.equipado).slice(0, 3)
+  const equippedOutfit = allEntries.find(entry => entry.item.categoria === 'Traje' && entry.item.equipado)
   const equipmentStats = calcEquipStats(char.equipamentos || [])
 
   function patchInventoryItem(idx, patch) {
@@ -316,6 +318,31 @@ export default function ResidentInventorySection({
     setDragging(current => current ? { ...current, rotated: !current.rotated } : null)
   }
 
+  function rotateEntry(entry) {
+    const currentRect = gridEntries.find(item => item.key === entry.key)?.rect || entry.rect
+    if (!currentRect) return
+    const nextRotated = !currentRect.rotated
+    const size = resolveSize(entry, nextRotated)
+    let rect = {
+      x: Math.min(currentRect.x, GRID_COLS - size.w),
+      y: Math.min(currentRect.y, GRID_ROWS - size.h),
+      w: size.w,
+      h: size.h,
+      rotated: nextRotated,
+    }
+    if (rect.x < 0 || rect.y < 0) return
+    const occupied = gridEntries.filter(item => item.key !== entry.key).map(item => item.rect)
+    if (occupied.some(other => rectsOverlap(rect, other))) return
+
+    if (entry.source === 'primary') {
+      update({ armaInventoryGrid: rect })
+    } else if (entry.source === 'equipment') {
+      patchEquipment(entry.idx, { inventoryGrid: rect })
+    } else {
+      patchInventoryItem(entry.idx, { inventoryGrid: rect })
+    }
+  }
+
   function handleItemImage(e) {
     const file = e.target.files?.[0]
     if (!file || !itemDrawer) return
@@ -371,6 +398,29 @@ export default function ResidentInventorySection({
           <MiniStat label="Durabilidade" value={equipmentStats.totalDurabilityMax ? `${equipmentStats.totalDurability}/${equipmentStats.totalDurabilityMax}` : 0} tone="text-emerald-300" />
         </div>
 
+        <div className="resident-equipped-strip">
+          <EquippedQuickSlot
+            label="Traje"
+            entry={equippedOutfit}
+            detail={equippedOutfit ? `${(char.equipamentos || []).filter(piece => piece.trajeId === equippedOutfit.item.id).length} pecas` : 'Nenhum'}
+            icon="checkroom"
+            onClick={() => equippedOutfit && openEntry(equippedOutfit)}
+          />
+          {[0, 1, 2].map(slot => {
+            const entry = equippedWeapons[slot]
+            return (
+              <EquippedQuickSlot
+                key={slot}
+                label={`Arma ${slot + 1}`}
+                entry={entry}
+                detail={entry ? `Dano ${entry.item.dano || entry.weapon?.dano || '-'}` : 'Vazio'}
+                icon="swords"
+                onClick={() => entry && openEntry(entry)}
+              />
+            )
+          })}
+        </div>
+
         <div className="resident-inventory-board">
           <div className="resident-grid-wrap">
             <div className="resident-grid" onWheel={handleGridWheel}>
@@ -393,7 +443,10 @@ export default function ResidentInventorySection({
                     onOpen={() => openEntry(entry)}
                     onToggle={() => toggleEquipped(entry)}
                     onMove={() => moveEntry(entry, activeLocation === 'carregado' ? 'quarto' : 'carregado')}
+                    onMoveTo={(location) => moveEntry(entry, location)}
+                    onRotate={() => rotateEntry(entry)}
                     moveLabel={activeLocation === 'carregado' ? 'Guardar' : 'Pegar'}
+                    locations={locations}
                     onDragStart={() => canEdit && setDragging({ entry, rotated: !!entry.rect.rotated })}
                     onDragEnd={() => setDragging(null)}
                   />
@@ -541,7 +594,23 @@ function MiniStat({ label, value, tone }) {
   )
 }
 
-function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMove, moveLabel, onDragStart, onDragEnd }) {
+function EquippedQuickSlot({ label, entry, detail, icon, onClick }) {
+  const image = entry?.item?.imagem || entry?.item?.image
+  return (
+    <button type="button" disabled={!entry} onClick={onClick} className={`resident-equipped-slot ${entry ? 'has-entry' : ''}`}>
+      <span className="resident-equipped-icon">
+        {image ? <img src={image} alt="" /> : <span className="material-symbols-outlined">{icon}</span>}
+      </span>
+      <span>
+        <em>{label}</em>
+        <strong>{entry?.item?.nome || entry?.item?.name || detail}</strong>
+        <small>{entry ? detail : 'Livre'}</small>
+      </span>
+    </button>
+  )
+}
+
+function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMove, onMoveTo, onRotate, moveLabel, locations, onDragStart, onDragEnd }) {
   const item = entry.item || {}
   const image = item.imagem || item.image
   const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento' || item.categoria === 'Traje'
@@ -569,9 +638,14 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
       <button type="button" onClick={onOpen} className="resident-grid-card-main">
         {image ? <img src={image} alt="" /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : 'inventory_2'}</span>}
         <span className="resident-grid-card-name">{item.nome || item.name || 'Item'}</span>
-        <span className="resident-grid-card-meta">{item.rank || item.categoria || `${weight.toFixed(1)} kg`}</span>
+        <span className="resident-grid-card-meta">{weight.toFixed(1)} kg</span>
       </button>
       <div className="resident-card-actions">
+        {canEdit && (
+          <button type="button" onClick={onRotate} title="Rotacionar">
+            <span className="material-symbols-outlined">screen_rotation</span>
+          </button>
+        )}
         {isEquippable && canEdit && (
           <button type="button" onClick={onToggle} title={item.equipado ? 'Desequipar' : 'Equipar'}>
             <span className="material-symbols-outlined">{item.equipado ? 'remove_done' : 'done_all'}</span>
@@ -581,6 +655,16 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
           <button type="button" onClick={onMove} title={moveLabel}>
             <span className="material-symbols-outlined">{moveLabel === 'Pegar' ? 'move_to_inbox' : 'outbox'}</span>
           </button>
+        )}
+        {canEdit && (
+          <select
+            title="Mover para"
+            value={normalizeLocation(item.local, item)}
+            onChange={(event) => onMoveTo(event.target.value)}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.label}</option>)}
+          </select>
         )}
       </div>
     </div>

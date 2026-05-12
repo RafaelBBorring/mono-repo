@@ -4352,6 +4352,77 @@ body {
   margin-bottom: 0.9rem;
 }
 
+.resident-equipped-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.resident-equipped-slot {
+  min-width: 0;
+  min-height: 4.5rem;
+  display: grid;
+  grid-template-columns: 3.05rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(255,255,255,0.075);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.22);
+  color: rgba(166, 163, 186, 0.72);
+  padding: 0.48rem;
+  text-align: left;
+}
+
+.resident-equipped-slot.has-entry {
+  border-color: rgba(52, 211, 153, 0.24);
+  background: rgba(52, 211, 153, 0.045);
+  color: #f4f1ff;
+}
+
+.resident-equipped-slot:not(:disabled):hover {
+  border-color: rgba(245, 200, 76, 0.32);
+  background: rgba(245, 200, 76, 0.06);
+}
+
+.resident-equipped-icon {
+  width: 3.05rem;
+  height: 3.05rem;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.055);
+  overflow: hidden;
+  color: rgba(245, 200, 76, 0.85);
+}
+
+.resident-equipped-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.resident-equipped-slot em,
+.resident-equipped-slot small {
+  display: block;
+  color: rgba(166, 163, 186, 0.68);
+  font-size: 0.58rem;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.resident-equipped-slot strong {
+  display: block;
+  color: inherit;
+  font-size: 0.76rem;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0.15rem 0;
+}
+
 .resident-mini-stat {
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 8px;
@@ -4402,15 +4473,15 @@ body {
 .resident-grid {
   position: relative;
   width: 100%;
-  aspect-ratio: 12 / 8;
-  min-height: 34rem;
+  aspect-ratio: 9 / 7;
+  min-height: 42rem;
   border: 1px solid rgba(245, 200, 76, 0.16);
   border-radius: 11px;
   background:
     linear-gradient(rgba(245,200,76,0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245,200,76,0.08) 1px, transparent 1px),
     rgba(8, 9, 12, 0.78);
-  background-size: calc(100% / 12) calc(100% / 8), calc(100% / 12) calc(100% / 8), auto;
+  background-size: calc(100% / 9) calc(100% / 7), calc(100% / 9) calc(100% / 7), auto;
   overflow: hidden;
 }
 
@@ -4422,8 +4493,8 @@ body {
 
 .resident-grid-cells {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: repeat(8, 1fr);
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(7, 1fr);
   z-index: 1;
 }
 
@@ -4446,7 +4517,7 @@ body {
 .resident-grid-card {
   position: absolute;
   pointer-events: auto;
-  padding: 0.22rem;
+  padding: 0.28rem;
   transition: opacity 150ms ease, transform 150ms ease;
 }
 
@@ -4465,7 +4536,7 @@ body {
     linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(0,0,0,0.22)),
     rgba(10, 14, 18, 0.94);
   color: #f4f1ff;
-  padding: 0.45rem;
+  padding: 0.28rem;
   display: block;
   text-align: left;
   overflow: hidden;
@@ -4481,7 +4552,7 @@ body {
     linear-gradient(90deg, rgba(255,255,255,0.11) 1px, transparent 1px);
   background-size: calc(100% / var(--item-cols, 1)) calc(100% / var(--item-rows, 1));
   pointer-events: none;
-  opacity: 0.34;
+  opacity: 0.22;
   z-index: 2;
 }
 
@@ -4495,7 +4566,7 @@ body {
   width: 100%;
   height: 100%;
   min-height: 2.6rem;
-  border-radius: 7px;
+  border-radius: 8px;
   object-fit: cover;
   object-position: center;
   display: grid;
@@ -4517,6 +4588,9 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease;
 }
 
 .resident-grid-card-meta {
@@ -4530,6 +4604,17 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.resident-grid-card:hover .resident-grid-card-name,
+.resident-grid-card:hover .resident-grid-card-meta,
+.resident-grid-card:focus-within .resident-grid-card-name,
+.resident-grid-card:focus-within .resident-grid-card-meta {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .resident-card-actions {
@@ -4538,8 +4623,10 @@ body {
   bottom: 0.45rem;
   display: flex;
   gap: 0.25rem;
+  align-items: center;
   opacity: 0;
   transition: opacity 150ms ease;
+  z-index: 4;
 }
 
 .resident-grid-card:hover .resident-card-actions {
@@ -4555,6 +4642,23 @@ body {
   border-radius: 5px;
   background: rgba(0,0,0,0.72);
   color: #f5c84c;
+}
+
+.resident-card-actions select {
+  width: 1.6rem;
+  height: 1.35rem;
+  border: 1px solid rgba(245, 200, 76, 0.22);
+  border-radius: 5px;
+  background: rgba(0,0,0,0.78);
+  color: #f5c84c;
+  font-size: 0;
+  cursor: pointer;
+}
+
+.resident-card-actions select option {
+  background: #151519;
+  color: #f4f1ff;
+  font-size: 0.75rem;
 }
 
 .resident-card-actions .material-symbols-outlined {
@@ -4717,12 +4821,13 @@ body {
 }
 
 @media (max-width: 900px) {
-  .resident-inventory-status {
+  .resident-inventory-status,
+  .resident-equipped-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .resident-grid {
-    min-height: 28rem;
+    min-height: 34rem;
   }
 }
 
@@ -4746,8 +4851,12 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 
+  .resident-equipped-strip {
+    grid-template-columns: 1fr;
+  }
+
   .resident-grid {
-    min-height: 22rem;
+    min-height: 28rem;
   }
 
   .resident-grid-card-name {
