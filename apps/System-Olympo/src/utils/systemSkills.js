@@ -1,4 +1,5 @@
 import { SYSTEM_SKILLS, getSystemSkillById, EFFECT_PARAM_DEFS } from '../data/systemSkills'
+import { getRaceAdjustedAttrs } from './raceCalculator'
 
 export function getAssignedSystemSkills(char = {}) {
   return (char.systemSkills || [])
@@ -24,10 +25,8 @@ export function createSystemSkillAssignment(skillId, patch = {}) {
 
 export function createDefaultEffectsForSkill(skillId) {
   const def = getSystemSkillById(skillId)
-  if (!def) return []
-  const defaults = def.defaults
-  if (!defaults) return []
-  return [{ ...defaults }]
+  if (!def?.defaults) return []
+  return [{ ...def.defaults }]
 }
 
 export function createSystemSkillNotification({ skillId = 'manual_integration', abilityIndex = null, title, message, details = '', source = 'manual', suggestedEffects = null }) {
@@ -38,8 +37,8 @@ export function createSystemSkillNotification({ skillId = 'manual_integration', 
     source,
     skillId: def?.id || 'manual_integration',
     abilityIndex,
-    title: title || `Possível Skill: ${def?.name || 'Integração Manual'}`,
-    message: message || def?.short || 'Esta passiva pode precisar de integração sistêmica.',
+    title: title || `Possivel Skill: ${def?.name || 'Pendencia de Skill'}`,
+    message: message || def?.short || 'Esta passiva pode precisar de uma Skill dedicada.',
     details,
     suggestedEffects: suggestedEffects || null,
     createdAt: new Date().toISOString(),
@@ -51,14 +50,32 @@ function resolveEffectParam(effect, paramName, defaultValue) {
   return defaultValue
 }
 
+function toNumber(value, fallback = 0) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
 function intervalBonus(nivel, every, amount) {
-  return Math.max(0, Math.floor((Number(nivel) || 1) / every) * amount)
+  const step = Math.max(1, toNumber(every, 1))
+  return Math.max(0, Math.floor((toNumber(nivel, 1)) / step) * toNumber(amount, 0))
+}
+
+function getAttributeSourceValue(char, attr, source) {
+  const sk = char.skeletonPoints || {}
+  if (source === 'skeleton') return toNumber(sk[attr], 0)
+  const adjusted = getRaceAdjustedAttrs(char.atributos || {}, sk, char)
+  return toNumber(adjusted[attr], 0)
 }
 
 function parseListParam(value) {
   if (Array.isArray(value)) return value
   if (typeof value === 'string') return value.split(',').map(s => s.trim()).filter(Boolean)
   return []
+}
+
+function addAttrCapBonus(bonuses, attr, amount) {
+  if (!attr || !amount) return
+  bonuses.attrCapBonuses[attr] = (bonuses.attrCapBonuses[attr] || 0) + amount
 }
 
 export function calcSystemSkillBonuses(char = {}) {
@@ -75,16 +92,16 @@ export function calcSystemSkillBonuses(char = {}) {
     ca: 0,
     equipmentDurability: 0,
     carryCapacity: 0,
-    forgeUnlocks: [],
+    attrCapBonuses: {},
     forgeRankBonus: 0,
+    forgeRankLabels: [],
     forgeEnchantmentSlots: 0,
-    forgeEnchantmentScaling: 'flat',
+    forgeEnchantmentScaling: [],
     forgeQualityBonus: 0,
-    knowledgeUnlocks: [],
     manualFlags: [],
   }
 
-  const nivel = Number(char.nivel) || 1
+  const nivel = toNumber(char.nivel, 1)
   for (const assigned of getAssignedSystemSkills(char)) {
     if (assigned.active === false) continue
     const effects = assigned.effects && assigned.effects.length > 0
@@ -92,22 +109,41 @@ export function calcSystemSkillBonuses(char = {}) {
       : assigned.definition?.defaults
         ? [assigned.definition.defaults]
         : []
+
     for (const effect of effects) {
       switch (effect.type) {
         case 'skeleton_points_per_level_interval':
           bonuses.skeletonPoints += intervalBonus(nivel, resolveEffectParam(effect, 'every', 5), resolveEffectParam(effect, 'amount', 1))
           break
         case 'skeleton_points_on_milestone': {
-          const levels = parseListParam(resolveEffectParam(effect, 'levels', '5,10,15,20,25,30')).map(Number).filter(n => !isNaN(n))
-          const amt = resolveEffectParam(effect, 'amount', 2)
-          bonuses.skeletonPoints += levels.filter(l => nivel >= l).length * amt
+          const levels = parseListParam(resolveEffectParam(effect, 'levels', '5,10,15,20,25,30')).map(Number).filter(n => Number.isFinite(n))
+          const amount = toNumber(resolveEffectParam(effect, 'amount', 2), 2)
+          bonuses.skeletonPoints += levels.filter(level => nivel >= level).length * amount
+          break
+        }
+        case 'damage_per_level_interval':
+          bonuses.dano += intervalBonus(nivel, resolveEffectParam(effect, 'every', 5), resolveEffectParam(effect, 'amount', 5))
+          break
+        case 'damage_per_attribute_interval': {
+          const attr = resolveEffectParam(effect, 'attr', 'FOR')
+          const source = resolveEffectParam(effect, 'source', 'skeleton')
+          const value = getAttributeSourceValue(char, attr, source)
+          bonuses.dano += intervalBonus(value, resolveEffectParam(effect, 'every', 5), resolveEffectParam(effect, 'amount', 10))
+          break
+        }
+        case 'resource_per_level': {
+          const resource = resolveEffectParam(effect, 'resource', 'energia')
+          const amount = nivel * toNumber(resolveEffectParam(effect, 'amount', 3), 3)
+          if (resource === 'vida') bonuses.vida += amount
+          else if (resource === 'pe') bonuses.pe += amount
+          else bonuses.energia += amount
           break
         }
         case 'hp_per_level':
-          bonuses.vida += nivel * resolveEffectParam(effect, 'amount', 3)
+          bonuses.vida += nivel * toNumber(resolveEffectParam(effect, 'amount', 3), 3)
           break
         case 'energy_per_level':
-          bonuses.energia += nivel * resolveEffectParam(effect, 'amount', 3)
+          bonuses.energia += nivel * toNumber(resolveEffectParam(effect, 'amount', 3), 3)
           break
         case 'pe_per_level_interval':
           bonuses.pe += intervalBonus(nivel, resolveEffectParam(effect, 'every', 5), resolveEffectParam(effect, 'amount', 1))
@@ -115,48 +151,60 @@ export function calcSystemSkillBonuses(char = {}) {
         case 'peh_per_level_interval':
           bonuses.peh += intervalBonus(nivel, resolveEffectParam(effect, 'every', 10), resolveEffectParam(effect, 'amount', 1))
           break
-        case 'attack_bonus':
-          bonuses.ataque += resolveEffectParam(effect, 'amount', 1)
-          break
         case 'damage_bonus':
-          bonuses.dano += resolveEffectParam(effect, 'amount', 2)
+          bonuses.dano += toNumber(resolveEffectParam(effect, 'amount', 2), 2)
+          break
+        case 'attack_bonus':
+          bonuses.ataque += toNumber(resolveEffectParam(effect, 'amount', 1), 1)
           break
         case 'armor_bonus':
-          bonuses.armadura += resolveEffectParam(effect, 'amount', 2)
+          bonuses.armadura += toNumber(resolveEffectParam(effect, 'amount', 2), 2)
           break
         case 'ca_bonus':
-          bonuses.ca += resolveEffectParam(effect, 'amount', 1)
+          bonuses.ca += toNumber(resolveEffectParam(effect, 'amount', 1), 1)
           break
         case 'equipment_durability_bonus':
-          bonuses.equipmentDurability += resolveEffectParam(effect, 'amount', 2)
+          bonuses.equipmentDurability += toNumber(resolveEffectParam(effect, 'amount', 2), 2)
           break
         case 'carry_capacity_bonus':
-          bonuses.carryCapacity += resolveEffectParam(effect, 'amount', 5)
+          bonuses.carryCapacity += toNumber(resolveEffectParam(effect, 'amount', 5), 5)
           break
-        case 'forge_rank_bonus':
-          bonuses.forgeRankBonus += resolveEffectParam(effect, 'rankBonus', 1)
+        case 'attribute_cap_bonus': {
+          const attr = resolveEffectParam(effect, 'attr', 'FOR')
+          const amount = toNumber(resolveEffectParam(effect, 'amount', 1), 1)
+          const purchases = Math.min(3, Math.max(1, toNumber(resolveEffectParam(effect, 'purchases', 1), 1)))
+          addAttrCapBonus(bonuses, attr, amount * purchases)
           break
-        case 'forge_enchantment_slots':
-          bonuses.forgeEnchantmentSlots += resolveEffectParam(effect, 'slots', 1)
-          bonuses.forgeEnchantmentScaling = resolveEffectParam(effect, 'scaling', 'flat')
+        }
+        case 'forge_rank_bonus': {
+          bonuses.forgeRankBonus += toNumber(resolveEffectParam(effect, 'rankBonus', 1), 1)
+          const label = resolveEffectParam(effect, 'label', '')
+          if (label) bonuses.forgeRankLabels.push(label)
           break
+        }
+        case 'forge_enchantment_slots': {
+          const base = toNumber(resolveEffectParam(effect, 'slots', 1), 1)
+          const scaling = resolveEffectParam(effect, 'scaling', 'flat')
+          const every = Math.max(1, toNumber(resolveEffectParam(effect, 'every', 5), 5))
+          const amount = toNumber(resolveEffectParam(effect, 'amount', 1), 1)
+          let scaled = 0
+          if (scaling === 'level_interval') scaled = Math.floor(nivel / every) * amount
+          if (scaling === 'int_interval') scaled = Math.floor(getAttributeSourceValue(char, 'INT', 'total') / every) * amount
+          bonuses.forgeEnchantmentSlots += Math.max(0, base + scaled)
+          bonuses.forgeEnchantmentScaling.push({ scaling, every, amount })
+          break
+        }
         case 'forge_quality_bonus':
-          bonuses.forgeQualityBonus += resolveEffectParam(effect, 'qualityBonus', 1)
-          break
-        case 'forge_unlock':
-          bonuses.forgeUnlocks.push(...parseListParam(resolveEffectParam(effect, 'unlocks', '')))
-          break
-        case 'knowledge_unlock':
-          bonuses.knowledgeUnlocks.push(...parseListParam(resolveEffectParam(effect, 'unlocks', '')))
+          bonuses.forgeQualityBonus += toNumber(resolveEffectParam(effect, 'qualityBonus', 1), 1)
           break
         case 'manual_flag':
-          bonuses.manualFlags.push(assigned.notes || assigned.definition?.name || 'Manual')
+          bonuses.manualFlags.push(resolveEffectParam(effect, 'label', assigned.notes || assigned.definition?.name || 'Pendencia manual'))
           break
       }
     }
   }
-  bonuses.forgeUnlocks = [...new Set(bonuses.forgeUnlocks)]
-  bonuses.knowledgeUnlocks = [...new Set(bonuses.knowledgeUnlocks)]
+
+  bonuses.forgeRankLabels = [...new Set(bonuses.forgeRankLabels)]
   return bonuses
 }
 
@@ -169,19 +217,20 @@ export function summarizeSystemSkillBonuses(char = {}) {
   if (b.pe) parts.push(`+${b.pe} PE`)
   if (b.peh) parts.push(`+${b.peh} PEH`)
   if (b.ataque) parts.push(`+${b.ataque} Ataque`)
-  if (b.dano) parts.push(`+${b.dano} Dano`)
+  if (b.dano) parts.push(`+${b.dano} Dano Base`)
   if (b.armadura) parts.push(`+${b.armadura} Armadura`)
   if (b.ca) parts.push(`+${b.ca} CA`)
   if (b.equipmentDurability) parts.push(`+${b.equipmentDurability} Durabilidade`)
   if (b.carryCapacity) parts.push(`+${b.carryCapacity} kg Carga`)
-  if (b.forgeRankBonus) parts.push(`Forja +${b.forgeRankBonus} rank`)
-  if (b.forgeEnchantmentSlots) {
-    const scaleLabel = b.forgeEnchantmentScaling === 'int_half' ? ' (INT/2)' : b.forgeEnchantmentScaling === 'level_half' ? ' (Nível/5)' : ''
-    parts.push(`Encantamentos: ${b.forgeEnchantmentSlots}${scaleLabel}`)
+  Object.entries(b.attrCapBonuses || {}).forEach(([attr, amount]) => {
+    if (amount) parts.push(`${attr} limite +${amount}`)
+  })
+  if (b.forgeRankBonus) {
+    const label = b.forgeRankLabels.length ? ` (${b.forgeRankLabels.join(', ')})` : ''
+    parts.push(`Forja +${b.forgeRankBonus} rank${label}`)
   }
+  if (b.forgeEnchantmentSlots) parts.push(`Encantamentos: ${b.forgeEnchantmentSlots}`)
   if (b.forgeQualityBonus) parts.push(`Qualidade Forja +${b.forgeQualityBonus}`)
-  if (b.forgeUnlocks.length) parts.push(`Técnicas: ${b.forgeUnlocks.join(', ')}`)
-  if (b.knowledgeUnlocks.length) parts.push(`Acessos: ${b.knowledgeUnlocks.join(', ')}`)
   if (b.manualFlags.length) parts.push(...b.manualFlags)
   return parts
 }
@@ -190,78 +239,81 @@ export function suggestSystemSkillsForCharacter(char = {}) {
   const suggestions = []
   ;(char.habilidades || []).forEach((h, index) => {
     if (h.tipo !== 'Passiva') return
-    const text = `${h.nome || ''} ${h.descricao || ''}`.toLowerCase()
+    const raw = `${h.nome || ''} ${h.descricao || ''}`
+    const text = raw.toLowerCase()
     const add = (skillId, reason, suggestedEffects = null) => suggestions.push({
       skillId,
       abilityIndex: index,
       title: `Passiva pode usar Skill: ${getSystemSkillById(skillId)?.name || skillId}`,
       message: reason,
-      details: `${h.nome || 'Passiva sem nome'}: ${h.descricao || 'Sem descrição'}`,
+      details: `${h.nome || 'Passiva sem nome'}: ${h.descricao || 'Sem descricao'}`,
       source: 'analysis',
       suggestedEffects,
     })
 
-    const numMatch = text.match(/(\d+)\s*pontos?\s*(de\s*)?esqueleto/i)
-    const intervalMatch = text.match(/cada\s*(\d+)?\s*n[ií]ve/i)
-    if (/esqueleto|atributo|evolu/i.test(text) && /n[ií]vel|level|progress/i.test(text)) {
-      const every = intervalMatch ? (intervalMatch[1] ? Number(intervalMatch[1]) : 1) : 5
-      const effects = [{ type: 'skeleton_points_per_level_interval', every, amount: numMatch ? Number(numMatch[1]) : 1 }]
-      add('skeleton_progression', 'A passiva altera progressão ou pontos de esqueleto.', effects)
-    }
-    if (/marco|milestone/i.test(text) && /esqueleto|atributo/i.test(text)) {
-      add('skeleton_progression', 'A passiva concede esqueleto em marcos específicos.', [{ type: 'skeleton_points_on_milestone', levels: '5,10,15,20,25,30', amount: numMatch ? Number(numMatch[1]) : 2 }])
-    }
-
-    const hpMatch = text.match(/(\d+)\s*(vida|hp)/i)
-    if (/vida|hp|vigor|resist|vital/i.test(text) && !(/armadura|escudo|durabilidade/i.test(text))) {
-      add('hp_boost', 'A passiva altera vida máxima.', [{ type: 'hp_per_level', amount: hpMatch ? Number(hpMatch[1]) : 3 }])
+    const numberMatch = text.match(/(\d+)/)
+    const everyMatch = text.match(/cada\s*(\d+)?\s*n[ií]ve/)
+    if (/esqueleto|atributo|evolu/.test(text) && /n[ií]vel|level|progress/.test(text)) {
+      add('skeleton_progression', 'A passiva altera progressao ou pontos de esqueleto.', [{
+        type: 'skeleton_points_per_level_interval',
+        every: everyMatch ? Number(everyMatch[1] || 1) : 5,
+        amount: numberMatch ? Number(numberMatch[1]) : 1,
+      }])
     }
 
-    const energyMatch = text.match(/(\d+)\s*energia/i)
-    if (/energia|mana|eter|arcana|mental/i.test(text)) {
-      add('energy_boost', 'A passiva altera energia máxima.', [{ type: 'energy_per_level', amount: energyMatch ? Number(energyMatch[1]) : 3 }])
+    if (/dano/.test(text) && (/n[ií]vel|level|for[cç]a|destreza|constitui|intelig|aparencia|alma|esqueleto|atributo/.test(text))) {
+      const attr = /destreza|des\b/.test(text) ? 'DES'
+        : /constitui|con\b/.test(text) ? 'CON'
+        : /intelig|int\b/.test(text) ? 'INT'
+        : /aparencia|apa\b/.test(text) ? 'APA'
+        : /alma|am\b/.test(text) ? 'AM'
+        : 'FOR'
+      const amount = numberMatch ? Number(numberMatch[1]) : 5
+      const every = text.match(/cada\s*(\d+)?\s*(pontos?|pts|de\s*for|de\s*des|de\s*con|de\s*int|de\s*apa|de\s*am)/i)
+      add('scaling_damage', 'A passiva transforma nivel ou atributo em dano permanente.', [{
+        type: /n[ií]vel|level/.test(text) && !/atributo|esqueleto|for[cç]a|destreza|constitui|intelig|aparencia|alma/.test(text)
+          ? 'damage_per_level_interval'
+          : 'damage_per_attribute_interval',
+        attr,
+        source: /esqueleto/.test(text) ? 'skeleton' : 'total',
+        every: every ? Number(every[1] || 5) : 5,
+        amount,
+      }])
     }
 
-    if (/peh|evolu[cç][aã]o de habilidade|trein/i.test(text)) {
-      add('peh_boost', 'A passiva acelera evolução de habilidades.')
+    if (/vida|hp|energia|mana|pe\b|reservatorio|reserva/.test(text)) {
+      const resource = /vida|hp/.test(text) ? 'vida' : /pe\b/.test(text) ? 'pe' : 'energia'
+      add('resource_growth', 'A passiva aumenta um recurso maximo diretamente na ficha.', [{
+        type: 'resource_per_level',
+        resource,
+        amount: numberMatch ? Number(numberMatch[1]) : 3,
+      }])
     }
 
-    if (/forja|ferreir|criar?\s*arma|forjar|metal|a[cç]o|encantamento/i.test(text)) {
-      const forgeEffects = []
-      if (/rank|superior/i.test(text)) forgeEffects.push({ type: 'forge_rank_bonus', rankBonus: 1 })
-      if (/encantamento|encantar/i.test(text)) {
-        const encMatch = text.match(/int\s*\/\s*2|intelig[eê]ncia\s*\/\s*2/i)
-        forgeEffects.push({ type: 'forge_enchantment_slots', slots: encMatch ? 1 : 2, scaling: encMatch ? 'int_half' : 'flat' })
-      }
-      if (/qualidade|afiado|melhor/i.test(text)) forgeEffects.push({ type: 'forge_quality_bonus', qualityBonus: 1 })
-      if (forgeEffects.length === 0) forgeEffects.push({ type: 'forge_quality_bonus', qualityBonus: 1 })
-      add('forge_master', 'A passiva modifica criação ou melhoria de armas/equipamentos.', forgeEffects)
+    if (/limite|ultrapass|teto|cap\b/.test(text) && /for[cç]a|destreza|constitui|intelig|aparencia|alma|atributo/.test(text)) {
+      const attr = /destreza|des\b/.test(text) ? 'DES'
+        : /constitui|con\b/.test(text) ? 'CON'
+        : /intelig|int\b/.test(text) ? 'INT'
+        : /aparencia|apa\b/.test(text) ? 'APA'
+        : /alma|am\b/.test(text) ? 'AM'
+        : 'FOR'
+      add('attribute_cap_break', 'A passiva permite superar o limite de um atributo.', [{
+        type: 'attribute_cap_bonus',
+        attr,
+        amount: numberMatch ? Number(numberMatch[1]) : 1,
+        purchases: 1,
+      }])
     }
 
-    if (/grim[oó]rio|runa|alquimia|magia|arcano|subsistema/i.test(text)) {
-      const unlocks = []
-      if (/grim[oó]rio/i.test(text)) unlocks.push('grimórios')
-      if (/runa/i.test(text)) unlocks.push('runas')
-      if (/alquimia/i.test(text)) unlocks.push('alquimia')
-      if (/magia/i.test(text)) unlocks.push('magia')
-      add('knowledge_access', 'A passiva acessa subsistemas místicos.', [{ type: 'knowledge_unlock', unlocks: unlocks.join(',') || 'grimórios,runas' }])
-    }
-
-    if (/carga|carregar|peso|kg/i.test(text)) {
-      const loadMatch = text.match(/(\d+)\s*kg/i)
-      add('load_mastery', 'A passiva altera capacidade de carga.', [{ type: 'carry_capacity_bonus', amount: loadMatch ? Number(loadMatch[1]) : 5 }])
-    }
-
-    if (/dano\s*\+|bonus.*dano|\+\d+.*dano|ataque\s*\+/i.test(text) && /passiv/i.test(text)) {
-      const dmgMatch = text.match(/\+(\d+).*dano/i)
-      const atkMatch = text.match(/\+(\d+).*ataque/i)
+    if (/forja|ferreir|criar?\s*arma|forjar|metal|a[cç]o|encantamento|encantar/.test(text)) {
       const effects = []
-      if (dmgMatch) effects.push({ type: 'damage_bonus', amount: Number(dmgMatch[1]) })
-      if (atkMatch) effects.push({ type: 'attack_bonus', amount: Number(atkMatch[1]) })
-      if (effects.length === 0) effects.push({ type: 'damage_bonus', amount: 2 })
-      add('combat_style', 'A passiva concede bônus permanente de combate.', effects)
+      if (/rank|metal|a[cç]o|superior/.test(text)) effects.push({ type: 'forge_rank_bonus', rankBonus: 1, label: 'Aco especial' })
+      if (/encantamento|encantar|habilidade extra/.test(text)) effects.push({ type: 'forge_enchantment_slots', slots: 1, scaling: 'flat', every: 5, amount: 1 })
+      if (/qualidade|afiado|melhor|obra-prima/.test(text)) effects.push({ type: 'forge_quality_bonus', qualityBonus: 1 })
+      add('forge_master', 'A passiva altera criacao de armas, ranks ou encantamentos.', effects.length ? effects : [{ type: 'forge_enchantment_slots', slots: 1, scaling: 'flat', every: 5, amount: 1 }])
     }
   })
+
   const known = new Set()
   return suggestions.filter(s => {
     const key = `${s.skillId}:${s.abilityIndex}`

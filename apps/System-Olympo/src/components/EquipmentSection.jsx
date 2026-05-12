@@ -4,6 +4,7 @@ import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_P
 import { RANK_COLORS } from '../data/colors'
 import { generateWeaponAbilities, generateEquipmentAbilities, analyzeBalance, suggestItemWeight } from '../services/aiService'
 import { getAttrValue } from '../utils/calculator'
+import { calcSystemSkillBonuses } from '../utils/systemSkills'
 import { getModifier } from '../data/attributes'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchMysticWeapons } from '../services/alchemyService'
@@ -697,6 +698,8 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
   const assassinBonus = getAssassinReactionBonus(char)
   const editRankDef = WEAPON_RANKS.find(r => r.rank === editRank) || rank
   const editUsedSlots = editHabilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+  const systemSkillBonuses = calcSystemSkillBonuses(char || {})
+  const weaponRankAllowance = getWeaponRankBonus(char) + (systemSkillBonuses.forgeRankBonus || 0)
 
   function updateWeaponEquipped(equipped) {
     onUpdate?.({
@@ -839,7 +842,7 @@ function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDe
                   <div className="flex flex-wrap gap-1">
                     {WEAPON_RANKS.map(r => {
                       const c = RANK_COLORS[r.rank]
-                      const allowed = canUseWeaponRank(char.nivel || 1, r.rank, getWeaponRankBonus(char))
+                      const allowed = canUseWeaponRank(char.nivel || 1, r.rank, weaponRankAllowance)
                       return (
                         <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
                           title={!allowed ? `Requer nível maior. Limite atual: ${getWeaponLimitForLevel(char.nivel || 1).maxRank}` : r.rank}
@@ -1044,6 +1047,11 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
         <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${item.equipado ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>
           {item.equipado ? 'equipado' : 'guardado'}
         </span>
+        {(item.encantamentos || []).length > 0 && (
+          <span className="text-[9px] mt-1 ml-1 inline-flex px-1.5 py-0.5 rounded border text-amber-200 border-amber-300/20 bg-amber-300/10">
+            ENC {item.encantamentos.length}
+          </span>
+        )}
       </button>
     </div>
   )
@@ -1667,6 +1675,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   const [dano, setDano] = useState('')
   const [efeitos, setEfeitos] = useState('')
   const [habilidades, setHabilidades] = useState([])
+  const [encantamentos, setEncantamentos] = useState([])
   const [passivas, setPassivas] = useState([])
   const [imagem, setImagem] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -1693,7 +1702,12 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   const equipSkillSlotsAvail = activeSlotsAvail + passiveSlotsAvail
   const usedSlots = habilidades.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const currentLevel = char?.nivel || 1
-  const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank, getWeaponRankBonus(char)) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
+  const systemSkillBonuses = calcSystemSkillBonuses(char || {})
+  const forgeRankBonus = systemSkillBonuses.forgeRankBonus || 0
+  const forgeEnchantmentSlots = itemCategory === 'Arma' ? (systemSkillBonuses.forgeEnchantmentSlots || 0) : 0
+  const forgeQualityBonus = systemSkillBonuses.forgeQualityBonus || 0
+  const weaponRankAllowance = getWeaponRankBonus(char) + forgeRankBonus
+  const rankAllowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, selectedRank, weaponRankAllowance) : itemCategory === 'Equipamento' ? canUseEquipRank(currentLevel, selectedRank) : true
   const detailStep = itemCategory === 'Equipamento' ? 3 : 2
 
   async function handleAIEquip() {
@@ -1805,6 +1819,21 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
 
   function removeHab(i) { setHabilidades(habilidades.filter((_, j) => j !== i)) }
 
+  function addEncantamento() {
+    if (encantamentos.length >= forgeEnchantmentSlots) return
+    setEncantamentos([...encantamentos, { nome: '', descricao: '', custo: '' }])
+  }
+
+  function updateEncantamento(i, patch) {
+    const arr = [...encantamentos]
+    arr[i] = { ...arr[i], ...patch }
+    setEncantamentos(arr)
+  }
+
+  function removeEncantamento(i) {
+    setEncantamentos(encantamentos.filter((_, j) => j !== i))
+  }
+
   async function handleAIGenerate() {
     if (!selectedType) return
     setGenLoading(true)
@@ -1846,6 +1875,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
       peso: peso === '' ? (itemCategory === 'Arma' ? getWeaponWeight(selectedType, nome, descricao || efeitos) : estimateEquipmentWeight({ categoria: itemCategory, tipoEquip: equipType, nome, descricao })) : Number(peso),
       local: (itemCategory === 'Arma' || itemCategory === 'Equipamento') ? (equipado ? 'equipado' : 'guardado') : local,
       habilidades: itemCategory === 'Arma' ? habilidades.filter(h => h.nome.trim()) : [],
+      encantamentos: itemCategory === 'Arma' ? encantamentos.filter(h => h.nome?.trim() || h.descricao?.trim()) : [],
       equipHabilidades: itemCategory === 'Equipamento' ? passivas.filter(h => h.nome?.trim()) : [],
       passivas: itemCategory === 'Equipamento' ? passivas.filter(h => (h.tipo || '').includes('Passiva')) : [],
       armorType: itemCategory === 'Equipamento' ? armorType : null,
@@ -1966,7 +1996,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                   {WEAPON_RANKS.map(r => {
                     const rc = RANK_COLORS[r.rank]
                     const rarity = getEquipmentRarity(r.rank)
-                    const allowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, getWeaponRankBonus(char)) : canUseEquipRank(currentLevel, r.rank)
+                    const allowed = itemCategory === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, weaponRankAllowance) : canUseEquipRank(currentLevel, r.rank)
                     return (
                       <button key={r.rank} onClick={() => allowed && setSelectedRank(r.rank)} disabled={!allowed}
                         title={!allowed ? `Requer nível maior. Limite atual: ${itemCategory === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}` : r.rank}
@@ -1990,6 +2020,17 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                       </button>
                     )
                   })}
+                </div>
+              )}
+              {itemCategory === 'Arma' && (forgeRankBonus > 0 || forgeEnchantmentSlots > 0 || forgeQualityBonus > 0) && (
+                <div className="rounded-lg border border-amber-300/20 bg-amber-300/5 px-3 py-2">
+                  <div className="text-amber-200 text-[11px] font-semibold">Mestre Forjador ativo</div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {forgeRankBonus > 0 && <span className="text-[9px] text-amber-200/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">+{forgeRankBonus} rank no limite</span>}
+                    {systemSkillBonuses.forgeRankLabels?.map(label => <span key={label} className="text-[9px] text-gold/80 bg-gold/10 border border-gold/15 rounded px-2 py-0.5">{label}</span>)}
+                    {forgeEnchantmentSlots > 0 && <span className="text-[9px] text-sky-200/80 bg-sky-300/10 border border-sky-300/15 rounded px-2 py-0.5">{forgeEnchantmentSlots} encantamento(s)</span>}
+                    {forgeQualityBonus > 0 && <span className="text-[9px] text-emerald-200/80 bg-emerald-300/10 border border-emerald-300/15 rounded px-2 py-0.5">Qualidade +{forgeQualityBonus}</span>}
+                  </div>
                 </div>
               )}
             </div>
@@ -2154,6 +2195,36 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                 </div>
               )}
 
+              {itemCategory === 'Arma' && forgeEnchantmentSlots > 0 && (
+                <div className="border-t border-amber-300/15 pt-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
+                    <span className={`text-[10px] font-mono ${encantamentos.length > forgeEnchantmentSlots ? 'text-err' : 'text-amber-200/70'}`}>
+                      {encantamentos.length}/{forgeEnchantmentSlots}
+                    </span>
+                  </div>
+                  <p className="text-txt-dim/55 text-[10px] leading-relaxed mb-2">
+                    Encantamentos sao habilidades extras liberadas pela Skill Mestre Forjador e nao consomem os slots normais do rank.
+                  </p>
+                  {encantamentos.map((enc, i) => (
+                    <div key={i} className="bg-amber-300/5 border border-amber-300/20 rounded-lg p-2 mb-1.5 space-y-1.5">
+                      <div className="flex gap-1.5">
+                        <input type="text" value={enc.nome || ''} onChange={e => updateEncantamento(i, { nome: e.target.value })} placeholder="Nome do encantamento"
+                          className="min-w-0 flex-1 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                        <input type="text" value={enc.custo || ''} onChange={e => updateEncantamento(i, { custo: e.target.value })} placeholder="Custo"
+                          className="w-20 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                        <button onClick={() => removeEncantamento(i)} className="text-err/50 hover:text-err text-xs px-1 shrink-0">x</button>
+                      </div>
+                      <textarea value={enc.descricao || ''} onChange={e => updateEncantamento(i, { descricao: e.target.value })} placeholder="Descricao do efeito encantado..." rows={2}
+                        className="w-full bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[9px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
+                    </div>
+                  ))}
+                  {encantamentos.length < forgeEnchantmentSlots && (
+                    <button onClick={addEncantamento} className="text-amber-200/70 hover:text-amber-200 text-[10px]">+ Encantamento</button>
+                  )}
+                </div>
+              )}
+
               {itemCategory === 'Equipamento' && (
                 <div>
                   <div className="flex justify-between items-center mb-2">
@@ -2232,15 +2303,20 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const [editLocal, setEditLocal] = useState(item.local || (item.equipado ? 'equipado' : 'guardado'))
   const [editDurabilidadeAtual, setEditDurabilidadeAtual] = useState(item.durabilidadeAtual ?? item.durabilityAtual ?? item.armorAtual ?? '')
   const [editItemHabilidades, setEditItemHabilidades] = useState(item.habilidades || [])
+  const [editEncantamentos, setEditEncantamentos] = useState(item.encantamentos || [])
   const [editEquipHabilidades, setEditEquipHabilidades] = useState(equipHabilidades || [])
   const currentLevel = char?.nivel || 1
-  const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank, getWeaponRankBonus(char)) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
+  const systemSkillBonuses = calcSystemSkillBonuses(char || {})
+  const forgeRankBonus = systemSkillBonuses.forgeRankBonus || 0
+  const forgeEnchantmentSlots = item.categoria === 'Arma' ? (systemSkillBonuses.forgeEnchantmentSlots || 0) : 0
+  const weaponRankAllowance = getWeaponRankBonus(char) + forgeRankBonus
+  const editRankAllowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, editRank, weaponRankAllowance) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, editRank) : true
   const editWeaponRank = WEAPON_RANKS.find(r => r.rank === editRank) || WEAPON_RANKS[0]
   const editWeaponUsedSlots = editItemHabilidades.reduce((sum, h) => sum + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
   const editEquipRarity = getEquipmentRarity(editRank)
   const editEquipSlots = item.categoria === 'Equipamento' ? ((editEquipRarity?.activeSkills || 0) + (editEquipRarity?.passiveSkills || 0)) : 0
   const editEquipUsedSlots = editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()).length
-  const editAbilityOverflow = (item.categoria === 'Arma' && editWeaponUsedSlots > editWeaponRank.slots) || (item.categoria === 'Equipamento' && editEquipUsedSlots > editEquipSlots)
+  const editAbilityOverflow = (item.categoria === 'Arma' && (editWeaponUsedSlots > editWeaponRank.slots || editEncantamentos.length > forgeEnchantmentSlots)) || (item.categoria === 'Equipamento' && editEquipUsedSlots > editEquipSlots)
 
   function updateEditItemHab(index, patch) {
     const next = [...editItemHabilidades]
@@ -2255,6 +2331,21 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
 
   function removeEditItemHab(index) {
     setEditItemHabilidades(editItemHabilidades.filter((_, i) => i !== index))
+  }
+
+  function updateEditEncantamento(index, patch) {
+    const next = [...editEncantamentos]
+    next[index] = { ...next[index], ...patch }
+    setEditEncantamentos(next)
+  }
+
+  function addEditEncantamento() {
+    if (editEncantamentos.length >= forgeEnchantmentSlots) return
+    setEditEncantamentos([...editEncantamentos, { nome: '', descricao: '', custo: '' }])
+  }
+
+  function removeEditEncantamento(index) {
+    setEditEncantamentos(editEncantamentos.filter((_, i) => i !== index))
   }
 
   function updateEditEquipHab(index, patch) {
@@ -2281,6 +2372,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
       rank: editRank,
       equipado: editEquipado,
       habilidades: item.categoria === 'Arma' ? editItemHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.habilidades,
+      encantamentos: item.categoria === 'Arma' ? editEncantamentos.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.encantamentos,
       equipHabilidades: item.categoria === 'Equipamento' ? editEquipHabilidades.filter(h => h.nome?.trim() || h.descricao?.trim()) : item.equipHabilidades,
       passivas: item.categoria === 'Equipamento' ? editEquipHabilidades.filter(h => (h.tipo || '').includes('Passiva')) : item.passivas,
       armorType: editArmorType,
@@ -2347,7 +2439,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                 <div className="flex flex-wrap gap-1 mt-1">
                   {WEAPON_RANKS.map(r => {
                     const c = RANK_COLORS[r.rank]
-                    const allowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, getWeaponRankBonus(char)) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, r.rank) : true
+                    const allowed = item.categoria === 'Arma' ? canUseWeaponRank(currentLevel, r.rank, weaponRankAllowance) : item.categoria === 'Equipamento' ? canUseEquipRank(currentLevel, r.rank) : true
                     return (
                       <button key={r.rank} onClick={() => allowed && setEditRank(r.rank)} disabled={!allowed}
                         title={!allowed ? `Limite atual: ${item.categoria === 'Arma' ? getWeaponLimitForLevel(currentLevel).maxRank : getEquipLimitForLevel(currentLevel).maxRank}` : r.rank}
@@ -2427,6 +2519,32 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                     ))}
                     {editWeaponUsedSlots < editWeaponRank.slots && (
                       <button onClick={addEditItemHab} className="text-gold/70 hover:text-gold text-[10px]">+ Habilidade</button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {item.categoria === 'Arma' && forgeEnchantmentSlots > 0 && (
+                <div className="border-t border-amber-300/15 pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-amber-200 text-[10px] uppercase tracking-wider">Encantamentos</span>
+                    <span className={`text-[10px] font-mono ${editEncantamentos.length > forgeEnchantmentSlots ? 'text-err' : 'text-amber-200/70'}`}>{editEncantamentos.length}/{forgeEnchantmentSlots}</span>
+                  </div>
+                  <div className="space-y-2">
+                    {editEncantamentos.map((enc, i) => (
+                      <div key={i} className="bg-amber-300/5 border border-amber-300/20 rounded-lg p-2 space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <input type="text" value={enc.nome || ''} onChange={e => updateEditEncantamento(i, { nome: e.target.value })} placeholder="Nome"
+                            className="min-w-0 flex-1 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                          <input type="text" value={enc.custo || ''} onChange={e => updateEditEncantamento(i, { custo: e.target.value })} placeholder="Custo"
+                            className="w-20 bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none" />
+                          <button onClick={() => removeEditEncantamento(i)} className="text-err/55 hover:text-err text-xs px-1 shrink-0">x</button>
+                        </div>
+                        <textarea value={enc.descricao || ''} onChange={e => updateEditEncantamento(i, { descricao: e.target.value })} placeholder="Descricao do encantamento..." rows={2}
+                          className="w-full bg-void/60 border border-amber-300/20 rounded px-2 py-1 text-[9px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
+                      </div>
+                    ))}
+                    {editEncantamentos.length < forgeEnchantmentSlots && (
+                      <button onClick={addEditEncantamento} className="text-amber-200/70 hover:text-amber-200 text-[10px]">+ Encantamento</button>
                     )}
                   </div>
                 </div>
@@ -2546,6 +2664,23 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                           {h.custo && <span className="text-[9px] text-gold/70 ml-auto font-mono">{h.custo}</span>}
                         </div>
                         {h.descricao && <p className="text-txt-dim/60 text-[10px] mt-1 leading-relaxed">{h.descricao}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(item.encantamentos || []).length > 0 && (
+                <div>
+                  <span className="text-amber-200/70 text-[9px] uppercase">Encantamentos</span>
+                  <div className="space-y-1.5 mt-1">
+                    {(item.encantamentos || []).map((enc, i) => (
+                      <div key={i} className="bg-amber-300/5 border border-amber-300/20 rounded-lg px-2.5 py-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-txt-main text-[11px] font-semibold">{enc.nome || 'Encantamento'}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-300/10 text-amber-200/80 border border-amber-300/20">ENC</span>
+                          {enc.custo && <span className="text-[9px] text-gold/70 ml-auto font-mono">{enc.custo}</span>}
+                        </div>
+                        {enc.descricao && <p className="text-txt-dim/60 text-[10px] mt-1 leading-relaxed">{enc.descricao}</p>}
                       </div>
                     ))}
                   </div>

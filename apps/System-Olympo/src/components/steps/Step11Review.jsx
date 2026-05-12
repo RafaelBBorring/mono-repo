@@ -804,35 +804,36 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   </div>
                   <div className="space-y-3">
                     {(char.systemSkills || []).length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         {(char.systemSkills || []).map((entry, i) => {
                           const skill = getSystemSkillById(entry.skillId)
                           const effects = entry.effects || []
                           const availableTypes = skill?.effectTypes || Object.keys(EFFECT_PARAM_DEFS)
-                          const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || ['attack_bonus', 'damage_bonus', 'ca_bonus', 'armor_bonus', 'equipment_durability_bonus', 'forge_unlock', 'knowledge_unlock', 'manual_flag'].includes(t))
+                          const repeatableTypes = ['damage_per_level_interval', 'damage_per_attribute_interval', 'resource_per_level', 'attribute_cap_bonus', 'forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus', 'manual_flag']
+                          const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || repeatableTypes.includes(t))
                           const isActive = entry.active !== false
                           return (
-                            <div key={entry.id || i} className={`rounded-xl border overflow-hidden transition-opacity ${isActive ? 'border-sky-400/25 bg-gradient-to-br from-sky-400/5 via-sky-400/[0.02] to-transparent opacity-100' : 'border-sep/20 bg-void/40 opacity-50'}`}>
+                            <div key={entry.id || i} className={`rounded-xl border overflow-visible transition-opacity ${isActive ? 'border-sky-400/25 bg-gradient-to-br from-sky-400/5 via-sky-400/[0.02] to-transparent opacity-100' : 'border-sep/20 bg-void/40 opacity-50'}`}>
                               <div className="px-3.5 pt-3 pb-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-start gap-2">
                                   <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.4)]' : 'bg-sep/40'}`} />
-                                  <span className={`text-[12px] font-semibold tracking-wide ${isActive ? 'text-sky-200' : 'text-txt-dim/60'}`}>{skill?.name || entry.skillId}</span>
-                                  <span className={`text-[8px] rounded-full px-2 py-0.5 font-medium ${isActive ? 'bg-sky-400/15 text-sky-300 border border-sky-400/20' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{isActive ? 'ATIVA' : 'INATIVA'}</span>
-                                  {skill?.rarity && (
-                                    <span className="text-[8px] bg-white/5 text-txt-dim/50 rounded px-1.5 py-0.5">{skill.rarity}</span>
-                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`text-[12px] font-semibold tracking-wide ${isActive ? 'text-sky-200' : 'text-txt-dim/60'}`}>{skill?.name || entry.skillId}</span>
+                                      <span className={`text-[8px] rounded-full px-2 py-0.5 font-medium ${isActive ? 'bg-sky-400/15 text-sky-300 border border-sky-400/20' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{isActive ? 'ATIVA' : 'INATIVA'}</span>
+                                      {skill?.rarity && (
+                                        <span className="text-[8px] bg-white/5 text-txt-dim/50 rounded px-1.5 py-0.5">{skill.rarity}</span>
+                                      )}
+                                    </div>
+                                    <p className="text-txt-dim/60 text-[10px] mt-1.5 leading-relaxed">{skill?.short || 'Integracao sistemica definida pelo mestre.'}</p>
+                                  </div>
                                   {isAdmin && (
-                                    <div className="ml-auto flex items-center gap-1.5">
-                                      <button onClick={() => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, active: s.active === false ? true : false } : s) })}
-                                        className={`text-[10px] px-2 py-0.5 rounded transition-colors ${isActive ? 'text-sky-300/50 hover:text-sky-300 hover:bg-sky-400/10' : 'text-emerald-300/50 hover:text-emerald-300 hover:bg-emerald-400/10'}`}>
-                                        {isActive ? 'Desativar' : 'Ativar'}
-                                      </button>
+                                    <div className="ml-auto flex items-center gap-1.5 shrink-0">
                                       <button onClick={() => { if (confirm(`Remover a skill "${skill?.name || entry.skillId}"? Os efeitos serão perdidos.`)) update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) }) }}
                                         className="text-[10px] px-2 py-0.5 rounded text-err/40 hover:text-err hover:bg-err/10 transition-colors border border-transparent hover:border-err/20">Excluir</button>
                                     </div>
                                   )}
                                 </div>
-                                <p className="text-txt-dim/60 text-[10px] mt-1.5 leading-relaxed">{skill?.short || 'Integracao sistemica definida pelo mestre.'}</p>
                               </div>
                               {effects.length > 0 && (
                                 <div className={`px-3.5 pb-2.5 ${isAdmin ? '' : 'pt-0'}`}>
@@ -3278,10 +3279,11 @@ function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSki
   const remaining = skelTotal - skelSpent
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
   const attrCap = getAttrCap(char.nivel || 1)
+  const attrLimit = (attr) => attrCap + (sysSkillBonuses.attrCapBonuses?.[attr] || 0)
 
   function handleAdd(attr) {
     if (remaining <= 0) return
-    if ((adjustedAttrs[attr] || 0) >= attrCap) return
+    if ((adjustedAttrs[attr] || 0) >= attrLimit(attr)) return
     const newVal = (sk[attr] || 0) + 1
     update({ skeletonPoints: { ...sk, [attr]: newVal } })
   }
@@ -3307,14 +3309,17 @@ function SkeletonPointAllocator({ char, update, sk, skelTotal, skelSpent, sysSki
         {ATTR_KEYS.map(a => {
           const v = adjustedAttrs[a] || 0
           const pts = sk[a] || 0
+          const cap = attrLimit(a)
+          const capBonus = sysSkillBonuses.attrCapBonuses?.[a] || 0
           return (
             <div key={a} className="flex flex-col items-center bg-void/40 border border-sep/15 rounded-lg p-2">
               <span className="font-mono text-txt-dim/60 uppercase text-[9px]">{ATTR_ICONS[a]} {a}</span>
               <span className="font-mono text-emerald-300 text-lg">{v}</span>
+              {capBonus > 0 && <span className="text-[8px] text-purple-300/70 font-mono">limite +{capBonus}</span>}
               <div className="flex items-center gap-1 mt-1">
                 <button onClick={() => handleRemove(a)} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-err hover:border-err/30 text-[10px] transition-colors">-</button>
                 <span className="text-[9px] text-txt-dim/40 w-4 text-center">{pts}</span>
-                <button onClick={() => handleAdd(a)} disabled={remaining <= 0 || v >= attrCap} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-emerald-300 hover:border-emerald-400/30 text-[10px] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
+                <button onClick={() => handleAdd(a)} disabled={remaining <= 0 || v >= cap} className="w-5 h-5 rounded bg-void/60 border border-sep/20 text-txt-dim/40 hover:text-emerald-300 hover:border-emerald-400/30 text-[10px] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">+</button>
               </div>
             </div>
           )

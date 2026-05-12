@@ -1,12 +1,15 @@
 import { ATTRIBUTES, ATTR_ICONS, ATTR_LABELS, getModifier, getAttrCap } from '../../data/attributes'
 import { calcSkeletonPointsAvailable, calcVidaTotal, calcEnergiaTotal } from '../../utils/calculator'
 import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
+import { calcSystemSkillBonuses } from '../../utils/systemSkills'
 
 export default function Step4SkeletonPoints({ char, update }) {
   const sk = char.skeletonPoints || {}
   const adjustedAttrs = getRaceAdjustedAttrs(char.atributos, sk, char)
   const totalAttr = (a) => adjustedAttrs[a] || 0
   const attrCap = getAttrCap(char.nivel)
+  const sysSkillBonuses = calcSystemSkillBonuses(char)
+  const attrLimit = (attr) => attrCap + (sysSkillBonuses.attrCapBonuses?.[attr] || 0)
 
   const totalAvailable = char.classe
     ? calcSkeletonPointsAvailable(char.classe, char.nivel, char.choices, char)
@@ -31,7 +34,7 @@ export default function Step4SkeletonPoints({ char, update }) {
 
   function handleAdd(attr) {
     if (remaining <= 0) return
-    if (totalAttr(attr) >= attrCap) return
+    if (totalAttr(attr) >= attrLimit(attr)) return
     const newVal = (sk[attr] || 0) + 1
     const newSk = { ...sk, [attr]: newVal }
     const history = [...(char.skeletonHistory || []), { attr, value: newVal }]
@@ -102,7 +105,9 @@ export default function Step4SkeletonPoints({ char, update }) {
           const skVal = sk[attr] || 0
           const total = baseVal + skVal
           const mod = getModifier(total)
-          const atCap = total >= attrCap
+          const cap = attrLimit(attr)
+          const capBonus = sysSkillBonuses.attrCapBonuses?.[attr] || 0
+          const atCap = total >= cap
 
           return (
             <div key={attr}
@@ -130,9 +135,9 @@ export default function Step4SkeletonPoints({ char, update }) {
                   −
                 </button>
                 <span className="font-mono text-primary flex-1 text-center text-sm">{skVal}</span>
-                <button onClick={() => handleAdd(attr)} disabled={remaining <= 0 || total >= attrCap}
+                <button onClick={() => handleAdd(attr)} disabled={remaining <= 0 || total >= cap}
                   className={`w-8 h-8 rounded font-bold text-sm flex items-center justify-center transition-colors ${
-                    remaining > 0 && total < attrCap ? 'border border-primary/40 text-primary hover:bg-primary hover:text-on-primary' : 'border border-outline/20 text-outline/30 cursor-not-allowed'
+                    remaining > 0 && total < cap ? 'border border-primary/40 text-primary hover:bg-primary hover:text-on-primary' : 'border border-outline/20 text-outline/30 cursor-not-allowed'
                   }`}>
                   +
                 </button>
@@ -140,7 +145,7 @@ export default function Step4SkeletonPoints({ char, update }) {
 
               {atCap && <p className="text-err text-xs mt-2 text-center font-mono">Limite atingido</p>}
               <p className="text-outline text-xs mt-1 text-center font-mono">
-                Base {baseVal} + Esq. {skVal}
+                Base {baseVal} + Esq. {skVal}{capBonus ? ` | Limite +${capBonus}` : ''}
               </p>
             </div>
           )

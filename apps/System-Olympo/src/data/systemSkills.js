@@ -1,265 +1,210 @@
 export const SYSTEM_SKILL_CATEGORIES = [
-  { id: 'progressao', label: 'Progressão' },
-  { id: 'forja', label: 'Forja' },
-  { id: 'recursos', label: 'Recursos' },
-  { id: 'combate', label: 'Combate' },
-  { id: 'conhecimento', label: 'Conhecimento' },
-  { id: 'manual', label: 'Manual' },
+  { id: 'progressao', label: 'Progressao', tone: 'text-emerald-300' },
+  { id: 'combate', label: 'Combate', tone: 'text-red-300' },
+  { id: 'recursos', label: 'Recursos', tone: 'text-sky-300' },
+  { id: 'limite', label: 'Limites', tone: 'text-purple-300' },
+  { id: 'forja', label: 'Forja', tone: 'text-amber-300' },
+]
+
+const ATTR_OPTIONS = [
+  { value: 'FOR', label: 'FOR' },
+  { value: 'DES', label: 'DES' },
+  { value: 'CON', label: 'CON' },
+  { value: 'INT', label: 'INT' },
+  { value: 'APA', label: 'APA' },
+  { value: 'AM', label: 'AM' },
 ]
 
 export const EFFECT_PARAM_DEFS = {
   skeleton_points_per_level_interval: {
-    label: 'Pontos de Esqueleto em Marcos',
+    label: 'Pontos de Esqueleto por nivel',
+    short: 'Concede pontos extras em marcos de nivel.',
     params: {
-      every: { type: 'number', default: 5, label: 'A cada X níveis', min: 1, max: 30 },
-      amount: { type: 'number', default: 1, label: 'Pontos concedidos', min: 1, max: 20 },
+      every: { label: 'A cada X niveis', type: 'number', min: 1, max: 50, default: 5 },
+      amount: { label: 'Pontos concedidos', type: 'number', min: 1, max: 20, default: 1 },
     },
   },
-  skeleton_points_on_milestone: {
-    label: 'Pontos de Esqueleto em Marco Específico',
+  damage_per_level_interval: {
+    label: 'Dano por nivel',
+    short: 'Adiciona dano base em intervalos de nivel.',
     params: {
-      levels: { type: 'text', default: '5,10,15,20,25,30', label: 'Níveis (separados por vírgula)' },
-      amount: { type: 'number', default: 2, label: 'Pontos por marco', min: 1, max: 20 },
+      every: { label: 'A cada X niveis', type: 'number', min: 1, max: 50, default: 5 },
+      amount: { label: 'Dano concedido', type: 'number', min: 1, max: 100, default: 5 },
     },
   },
-  hp_per_level: {
-    label: 'Vida por Nível',
+  damage_per_attribute_interval: {
+    label: 'Dano por atributo',
+    short: 'Escala dano conforme um atributo ou seus pontos de esqueleto.',
     params: {
-      amount: { type: 'number', default: 3, label: 'Vida por nível', min: 1, max: 20 },
+      attr: { label: 'Atributo', type: 'select', default: 'FOR', options: ATTR_OPTIONS },
+      source: {
+        label: 'Fonte',
+        type: 'select',
+        default: 'skeleton',
+        options: [
+          { value: 'skeleton', label: 'Pontos de Esqueleto' },
+          { value: 'total', label: 'Atributo total' },
+        ],
+      },
+      every: { label: 'A cada X pontos', type: 'number', min: 1, max: 100, default: 5 },
+      amount: { label: 'Dano concedido', type: 'number', min: 1, max: 200, default: 10 },
     },
   },
-  energy_per_level: {
-    label: 'Energia por Nível',
+  resource_per_level: {
+    label: 'Recurso por nivel',
+    short: 'Aumenta Vida, Energia ou PE por nivel.',
     params: {
-      amount: { type: 'number', default: 3, label: 'Energia por nível', min: 1, max: 20 },
+      resource: {
+        label: 'Recurso',
+        type: 'select',
+        default: 'energia',
+        options: [
+          { value: 'vida', label: 'Vida' },
+          { value: 'energia', label: 'Energia' },
+          { value: 'pe', label: 'PE' },
+        ],
+      },
+      amount: { label: 'Bonus por nivel', type: 'number', min: 1, max: 50, default: 3 },
     },
   },
-  pe_per_level_interval: {
-    label: 'PE em Marcos',
+  attribute_cap_bonus: {
+    label: 'Quebra de limite',
+    short: 'Permite ultrapassar o limite de um atributo especifico.',
     params: {
-      every: { type: 'number', default: 5, label: 'A cada X níveis', min: 1, max: 30 },
-      amount: { type: 'number', default: 2, label: 'PE concedidos', min: 1, max: 10 },
-    },
-  },
-  peh_per_level_interval: {
-    label: 'PEH em Marcos',
-    params: {
-      every: { type: 'number', default: 10, label: 'A cada X níveis', min: 1, max: 30 },
-      amount: { type: 'number', default: 1, label: 'PEH concedidos', min: 1, max: 5 },
-    },
-  },
-  attack_bonus: {
-    label: 'Bônus de Ataque',
-    params: {
-      amount: { type: 'number', default: 1, label: 'Bônus', min: 1, max: 10 },
-    },
-  },
-  damage_bonus: {
-    label: 'Bônus de Dano',
-    params: {
-      amount: { type: 'number', default: 2, label: 'Bônus', min: 1, max: 20 },
-    },
-  },
-  armor_bonus: {
-    label: 'Bônus de Armadura (Absorção)',
-    params: {
-      amount: { type: 'number', default: 2, label: 'Bônus', min: 1, max: 20 },
-    },
-  },
-  ca_bonus: {
-    label: 'Bônus de CA',
-    params: {
-      amount: { type: 'number', default: 1, label: 'Bônus', min: 1, max: 5 },
-    },
-  },
-  equipment_durability_bonus: {
-    label: 'Bônus de Durabilidade',
-    params: {
-      amount: { type: 'number', default: 2, label: 'Bônus por peça', min: 1, max: 10 },
-    },
-  },
-  carry_capacity_bonus: {
-    label: 'Bônus de Capacidade de Carga',
-    params: {
-      amount: { type: 'number', default: 5, label: 'kg extras', min: 1, max: 50 },
+      attr: { label: 'Atributo', type: 'select', default: 'FOR', options: ATTR_OPTIONS },
+      amount: { label: 'Limite extra por compra', type: 'number', min: 1, max: 10, default: 1 },
+      purchases: { label: 'Compras', type: 'number', min: 1, max: 3, default: 1 },
     },
   },
   forge_rank_bonus: {
-    label: 'Forja — Rank Superior',
+    label: 'Rank especial de forja',
+    short: 'Permite criar armas acima do limite normal de rank.',
     params: {
-      rankBonus: { type: 'number', default: 1, label: 'Ranks acima do limite', min: 1, max: 3 },
+      rankBonus: { label: 'Ranks alem do limite', type: 'number', min: 1, max: 4, default: 1 },
+      label: { label: 'Metal ou tecnica', type: 'text', default: 'Aco Hefestiano' },
     },
   },
   forge_enchantment_slots: {
-    label: 'Forja — Slots de Encantamento',
+    label: 'Encantamentos de arma',
+    short: 'Libera habilidades extras de arma chamadas Encantamentos.',
     params: {
-      slots: { type: 'number', default: 1, label: 'Encantamentos simultâneos', min: 1, max: 10 },
-      scaling: { type: 'select', default: 'flat', label: 'Escala', options: [
-        { value: 'flat', label: 'Fixo' },
-        { value: 'int_half', label: 'INT / 2' },
-        { value: 'level_half', label: 'Nível / 5' },
-      ] },
+      slots: { label: 'Encantamentos base', type: 'number', min: 1, max: 8, default: 1 },
+      scaling: {
+        label: 'Escala',
+        type: 'select',
+        default: 'flat',
+        options: [
+          { value: 'flat', label: 'Fixo' },
+          { value: 'level_interval', label: 'Por nivel' },
+          { value: 'int_interval', label: 'Por INT' },
+        ],
+      },
+      every: { label: 'A cada X', type: 'number', min: 1, max: 50, default: 5 },
+      amount: { label: 'Bonus escalado', type: 'number', min: 0, max: 8, default: 1 },
     },
   },
   forge_quality_bonus: {
-    label: 'Forja — Bônus de Qualidade',
+    label: 'Qualidade de forja',
+    short: 'Bonus numerico livre para representar acabamento superior.',
     params: {
-      qualityBonus: { type: 'number', default: 1, label: 'Bônus em atributo do item', min: 1, max: 5 },
-    },
-  },
-  forge_unlock: {
-    label: 'Forja — Desbloqueio de Técnica',
-    params: {
-      unlocks: { type: 'text', default: '', label: 'Técnicas (separadas por vírgula)' },
-    },
-  },
-  knowledge_unlock: {
-    label: 'Acesso a Subsistema',
-    params: {
-      unlocks: { type: 'text', default: '', label: 'Subsistemas (separados por vírgula)' },
+      qualityBonus: { label: 'Bonus de qualidade', type: 'number', min: 1, max: 20, default: 1 },
     },
   },
   manual_flag: {
-    label: 'Integração Manual',
-    params: {},
+    label: 'Pendencia manual',
+    short: 'Registro de uma passiva que ainda precisa de implementacao dedicada.',
+    params: {
+      label: { label: 'Resumo', type: 'text', default: 'Criar Skill dedicada' },
+    },
   },
 }
 
 export const SYSTEM_SKILLS = [
   {
     id: 'skeleton_progression',
-    name: 'Progressão de Esqueleto',
+    name: 'Progressao de Esqueleto',
     category: 'progressao',
-    rarity: 'Variável',
-    short: 'Concede Pontos de Esqueleto extras em marcos de nível ou marcos específicos.',
-    description: 'Para passivas que alteram a progressão de atributos. Configurável: quantidade, intervalo ou marcos específicos.',
-    effectTypes: ['skeleton_points_per_level_interval', 'skeleton_points_on_milestone'],
+    rarity: 'Variavel',
+    short: 'Concede Pontos de Esqueleto extras em marcos de nivel configurados pelo Mestre.',
+    description: 'Use quando uma passiva acelera crescimento estrutural do personagem, como receber pontos extras a cada X niveis.',
+    effectTypes: ['skeleton_points_per_level_interval'],
     defaults: { type: 'skeleton_points_per_level_interval', every: 5, amount: 1 },
-    adminNotes: 'Configure "every" e "amount" para match exato da passiva. Ex: "+5 a cada 3 níveis" → every=3, amount=5.',
   },
   {
-    id: 'hp_boost',
-    name: 'Vigor Aprimorado',
-    category: 'recursos',
-    rarity: 'Incomum',
-    short: 'Aumenta a vida máxima por nível.',
-    description: 'Passivas de resistência física permanente, sangue robusto ou constituição sobre-humana.',
-    effectTypes: ['hp_per_level'],
-    defaults: { type: 'hp_per_level', amount: 3 },
-    adminNotes: 'Ajuste "amount" conforme a passiva. Valores altos (5+) são raros.',
-  },
-  {
-    id: 'energy_boost',
-    name: 'Reservatório Etéreo',
-    category: 'recursos',
-    rarity: 'Incomum',
-    short: 'Aumenta energia máxima por nível.',
-    description: 'Para linhagens arcanas, semideuses de domínio energético ou canalizadores.',
-    effectTypes: ['energy_per_level'],
-    defaults: { type: 'energy_per_level', amount: 3 },
-    adminNotes: 'Ajuste "amount" conforme a passiva.',
-  },
-  {
-    id: 'pe_boost',
-    name: 'Patrocínio Divino',
-    category: 'recursos',
-    rarity: 'Rara',
-    short: 'Concede PE extra em marcos de nível.',
-    description: 'Para pactos, patronos, heranças nobres e suporte logístico.',
-    effectTypes: ['pe_per_level_interval'],
-    defaults: { type: 'pe_per_level_interval', every: 5, amount: 2 },
-    adminNotes: 'PE é recurso universal; evite conceder muito.',
-  },
-  {
-    id: 'peh_boost',
-    name: 'Disciplina de Evolução',
-    category: 'progressao',
-    rarity: 'Rara',
-    short: 'Concede PEH extra em marcos de nível.',
-    description: 'Personagens que refinam técnicas mais rápido que a média.',
-    effectTypes: ['peh_per_level_interval'],
-    defaults: { type: 'peh_per_level_interval', every: 10, amount: 1 },
-    adminNotes: 'PEH acelera habilidades. Use com cuidado.',
-  },
-  {
-    id: 'combat_style',
-    name: 'Doutrina de Combate',
+    id: 'scaling_damage',
+    name: 'Dano Escalavel',
     category: 'combate',
     rarity: 'Rara',
-    short: 'Bônus passivo em ataque, dano e/ou CA.',
-    description: 'Para estilos marciais permanentes que não viram habilidade ativa. Configurável: ataque, dano, CA.',
-    effectTypes: ['attack_bonus', 'damage_bonus', 'ca_bonus'],
-    defaults: { type: 'damage_bonus', amount: 2 },
-    adminNotes: 'Pode combinar múltiplos efeitos. Evite acumular muitas Skills de combate.',
+    short: 'Adiciona dano base por nivel, atributo total ou pontos de esqueleto.',
+    description: 'Use para passivas que transformam evolucao ou investimento em atributo em dano permanente na ficha.',
+    effectTypes: ['damage_per_level_interval', 'damage_per_attribute_interval'],
+    defaults: { type: 'damage_per_attribute_interval', attr: 'FOR', source: 'skeleton', every: 5, amount: 10 },
   },
   {
-    id: 'armor_mastery',
-    name: 'Armadura Animada',
-    category: 'combate',
+    id: 'resource_growth',
+    name: 'Reservatorio Vital',
+    category: 'recursos',
+    rarity: 'Incomum',
+    short: 'Aumenta Vida, Energia ou PE maximo por nivel.',
+    description: 'Use para passivas que criam uma reserva natural maior de sobrevivencia, energia mistica ou potencial heroico.',
+    effectTypes: ['resource_per_level'],
+    defaults: { type: 'resource_per_level', resource: 'energia', amount: 3 },
+  },
+  {
+    id: 'attribute_cap_break',
+    name: 'Quebra de Limite',
+    category: 'limite',
     rarity: 'Rara',
-    short: 'Melhora armadura e/ou durabilidade de equipamentos.',
-    description: 'Passivas que harmonizam corpo, armadura e energia vital.',
-    effectTypes: ['armor_bonus', 'equipment_durability_bonus', 'ca_bonus'],
-    defaults: { type: 'armor_bonus', amount: 2 },
-    adminNotes: 'Combina bem com personagens que investem em armadura pesada.',
+    short: 'Permite ultrapassar o limite de um atributo escolhido em ate 3 compras.',
+    description: 'Use quando uma passiva ou linhagem permite ir alem do teto normal de atributo imposto pelo nivel.',
+    effectTypes: ['attribute_cap_bonus'],
+    defaults: { type: 'attribute_cap_bonus', attr: 'FOR', amount: 1, purchases: 1 },
   },
   {
     id: 'forge_master',
     name: 'Mestre Forjador',
     category: 'forja',
-    rarity: 'Épica',
-    short: 'Criacao avancada de armas e equipamentos com bonus configuráveis.',
-    description: 'Para passivas de forja. Combinável: rank superior, encantamentos, qualidade, técnicas especiais.',
-    effectTypes: ['forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus', 'forge_unlock'],
-    defaults: { type: 'forge_quality_bonus', qualityBonus: 1 },
-    adminNotes: 'Adicione múltiplos efeitos para passivas complexas. "Encantamento INT/2" → forge_enchantment_slots com scaling=int_half.',
-  },
-  {
-    id: 'knowledge_access',
-    name: 'Licença Arcana',
-    category: 'conhecimento',
-    rarity: 'Incomum',
-    short: 'Permissão para acessar subsistemas (grimórios, runas, alquimia, magia).',
-    description: 'Para passivas que abrem portas para subsistemas. A Skill registra a autorização do mestre.',
-    effectTypes: ['knowledge_unlock'],
-    defaults: { type: 'knowledge_unlock', unlocks: 'grimorios,runas' },
-    adminNotes: 'A Skill não cria rituais; registra que o mestre autorizou o acesso.',
-  },
-  {
-    id: 'load_mastery',
-    name: 'Portador Eficiente',
-    category: 'recursos',
-    rarity: 'Comum',
-    short: 'Aumenta capacidade de carga.',
-    description: 'Para passivas de vigor físico, constituição ou treinamento de carga.',
-    effectTypes: ['carry_capacity_bonus'],
-    defaults: { type: 'carry_capacity_bonus', amount: 5 },
-    adminNotes: 'Útil para personagens que carregam muito equipamento.',
-  },
-  {
-    id: 'manual_integration',
-    name: 'Integração Manual',
-    category: 'manual',
-    rarity: 'Variável',
-    short: 'Regra ainda não automatizada. O mestre registra e gerencia manualmente.',
-    description: 'Para passivas válidas sem Skill automatizada. Cria governança: o mestre reconhece e documenta.',
-    effectTypes: ['manual_flag'],
-    defaults: { type: 'manual_flag' },
-    adminNotes: 'Use notas para documentar o efeito. Migre para Skill específica quando houver suporte.',
+    rarity: 'Exclusiva',
+    short: 'Libera ranks especiais, encantamentos e acabamento superior em armas criadas.',
+    description: 'Use para personagens que constroem armas para o grupo. A criacao de arma passa a mostrar o rank especial e os slots de Encantamento.',
+    effectTypes: ['forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus'],
+    defaults: { type: 'forge_enchantment_slots', slots: 1, scaling: 'flat', every: 5, amount: 1 },
   },
 ]
 
-export function getSystemSkillById(id) {
-  return SYSTEM_SKILLS.find(skill => skill.id === id) || null
+const MANUAL_SKILL = {
+  id: 'manual_integration',
+  name: 'Pendencia de Skill',
+  category: 'progressao',
+  rarity: 'Manual',
+  short: 'O Mestre precisa decidir se esta passiva merece uma Skill dedicada.',
+  description: 'Registro administrativo para casos raros que ainda nao possuem implementacao propria.',
+  effectTypes: ['manual_flag'],
+  defaults: { type: 'manual_flag', label: 'Criar Skill dedicada' },
 }
 
-export function getEffectParamDef(effectType) {
-  return EFFECT_PARAM_DEFS[effectType] || null
+const LEGACY_SKILL_ALIASES = {
+  hp_boost: 'resource_growth',
+  energy_boost: 'resource_growth',
+  pe_boost: 'resource_growth',
+  peh_boost: 'resource_growth',
+  combat_style: 'scaling_damage',
+  armor_mastery: 'attribute_cap_break',
+  load_mastery: 'attribute_cap_break',
+  knowledge_access: 'manual_integration',
+}
+
+export function getSystemSkillById(id) {
+  if (id === MANUAL_SKILL.id) return MANUAL_SKILL
+  const normalized = LEGACY_SKILL_ALIASES[id] || id
+  if (normalized === MANUAL_SKILL.id) return MANUAL_SKILL
+  return SYSTEM_SKILLS.find(skill => skill.id === normalized) || null
+}
+
+export function getEffectParamDef(type) {
+  return EFFECT_PARAM_DEFS[type] || null
 }
 
 export function getAllEffectTypes() {
-  return Object.keys(EFFECT_PARAM_DEFS).map(type => ({
-    type,
-    label: EFFECT_PARAM_DEFS[type].label,
-  }))
+  return Object.keys(EFFECT_PARAM_DEFS)
 }

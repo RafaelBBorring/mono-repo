@@ -384,6 +384,7 @@ function AdminSkillsPanel({ sheets, getUserName, onPatch, onViewSheet }) {
       createSystemSkillAssignment(notice.skillId, {
         sourceAbilityIndex: notice.abilityIndex ?? null,
         notes: notice.message || '',
+        effects: notice.suggestedEffects?.length ? notice.suggestedEffects : createDefaultEffectsForSkill(notice.skillId),
       }),
     ]
     const nextNotices = (sheet.data?.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n)
@@ -1493,7 +1494,8 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                 const skill = getSystemSkillById(entry.skillId)
                 const effects = entry.effects || []
                 const availableEffectTypes = skill?.effectTypes || Object.keys(EFFECT_PARAM_DEFS)
-                const addableTypes = availableEffectTypes.filter(t => !effects.some(e => e.type === t) || ['attack_bonus', 'damage_bonus', 'ca_bonus', 'armor_bonus', 'equipment_durability_bonus', 'forge_unlock', 'knowledge_unlock', 'manual_flag'].includes(t))
+                const repeatableTypes = ['damage_per_level_interval', 'damage_per_attribute_interval', 'resource_per_level', 'attribute_cap_bonus', 'forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus', 'manual_flag']
+                const addableTypes = availableEffectTypes.filter(t => !effects.some(e => e.type === t) || repeatableTypes.includes(t))
                 return (
                   <div key={entry.id || i} className="rounded-lg border border-sky-300/20 bg-void/45 p-3 space-y-2">
                     <div className="flex items-center gap-2">
@@ -1501,10 +1503,6 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                         className="admin-input text-xs flex-1">
                         {SYSTEM_SKILLS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
-                      <label className="flex items-center gap-1.5 text-[10px] text-txt-dim">
-                        <input type="checkbox" checked={entry.active !== false} onChange={e => updateSystemSkill(i, { active: e.target.checked })} />
-                        ativa
-                      </label>
                       <button onClick={() => removeSystemSkill(i)} className="text-err/60 hover:text-err text-xs px-2">x</button>
                     </div>
                     <p className="text-txt-dim/70 text-[11px]">{skill?.short || 'Skill desconhecida.'}</p>
