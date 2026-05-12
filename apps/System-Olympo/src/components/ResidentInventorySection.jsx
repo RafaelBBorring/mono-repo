@@ -7,8 +7,8 @@ import { estimateInventoryItemWeight } from '../utils/calculator'
 import { suggestItemWeight } from '../services/aiService'
 import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer } from './EquipmentSection'
 
-const GRID_COLS = 10
-const GRID_ROWS = 7
+const GRID_COLS = 12
+const GRID_ROWS = 8
 const BASE_LOCATIONS = [
   { id: 'carregado', label: 'Personagem', icon: 'person' },
   { id: 'quarto', label: 'Quarto', icon: 'bed' },
@@ -42,6 +42,7 @@ function rectsOverlap(a, b) {
 function entryBaseSize(entry) {
   const item = entry.item || {}
   if (entry.source === 'primary') return { w: 3, h: 1 }
+  if (item.categoria === 'Traje') return { w: 2, h: 4 }
   if (item.categoria === 'Arma') return { w: 3, h: 1 }
   if (item.categoria === 'Equipamento') return { w: 2, h: 2 }
   if (item.tipo === 'mochila') return { w: 2, h: 2 }
@@ -155,10 +156,7 @@ export default function ResidentInventorySection({
   const allEntries = useMemo(() => buildEntries(char), [char])
   const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
   const activeEntries = useMemo(() => allEntries.filter(entry => !entry.item.trajeId && normalizeLocation(entry.item.local, entry.item) === activeLocation), [allEntries, activeLocation])
-  const outfits = activeEntries.filter(entry => entry.item.categoria === 'Traje')
-  const gridEntries = useMemo(() => layoutEntries(activeEntries.filter(entry => entry.item.categoria !== 'Traje'), activeLocation), [activeEntries, activeLocation])
-  const equippedWeapons = allEntries.filter(entry => entry.item.categoria === 'Arma' && entry.item.equipado).slice(0, 3)
-  const equippedPieces = (char.equipamentos || []).filter(item => item.equipado && item.categoria === 'Equipamento')
+  const gridEntries = useMemo(() => layoutEntries(activeEntries, activeLocation), [activeEntries, activeLocation])
   const equipmentStats = calcEquipStats(char.equipamentos || [])
 
   function patchInventoryItem(idx, patch) {
@@ -373,67 +371,36 @@ export default function ResidentInventorySection({
           <MiniStat label="Durabilidade" value={equipmentStats.totalDurabilityMax ? `${equipmentStats.totalDurability}/${equipmentStats.totalDurabilityMax}` : 0} tone="text-emerald-300" />
         </div>
 
-        <div className="resident-inventory-layout">
-          <aside className="resident-outfit-column">
-            {outfits[0] ? (
-              <OutfitInventoryCard entry={outfits[0]} pieces={(char.equipamentos || []).filter(piece => piece.trajeId === outfits[0].item.id)} onClick={() => openEntry(outfits[0])} onToggle={() => toggleEquipped(outfits[0])} canEdit={canEdit} />
-            ) : (
-              <div className="resident-outfit-empty">
-                <span className="material-symbols-outlined">checkroom</span>
-                <strong>Traje</strong>
-                <p>Crie ou mova um traje para este local.</p>
+        <div className="resident-inventory-board">
+          <div className="resident-grid-wrap">
+            <div className="resident-grid" onWheel={handleGridWheel}>
+              <div className="resident-grid-cells">
+                {Array.from({ length: GRID_COLS * GRID_ROWS }).map((_, idx) => (
+                  <button key={idx} type="button" aria-label={`Slot ${idx + 1}`}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={() => handleDrop(idx)}
+                  />
+                ))}
               </div>
-            )}
-          </aside>
-
-          <div className="resident-main-column">
-            <div className="resident-weapon-slots">
-              {[0, 1, 2].map(slot => {
-                const entry = equippedWeapons[slot]
-                return entry ? (
-                  <button key={slot} type="button" onClick={() => openEntry(entry)} className="resident-weapon-slot has-item">
-                    <span>Arma {slot + 1}</span>
-                    <strong>{entry.item.nome}</strong>
-                  </button>
-                ) : (
-                  <div key={slot} className="resident-weapon-slot">
-                    <span>Arma {slot + 1}</span>
-                    <strong>Vazio</strong>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className="resident-grid-wrap">
-              <div className="resident-grid" onWheel={handleGridWheel}>
-                <div className="resident-grid-cells">
-                  {Array.from({ length: GRID_COLS * GRID_ROWS }).map((_, idx) => (
-                    <button key={idx} type="button" aria-label={`Slot ${idx + 1}`}
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={() => handleDrop(idx)}
-                    />
-                  ))}
-                </div>
-                <div className="resident-grid-items">
-                  {gridEntries.map(entry => (
-                    <InventoryGridCard
-                      key={entry.key}
-                      entry={entry}
-                      rect={entry.rect}
-                      canEdit={canEdit}
-                      dragging={dragging?.entry.key === entry.key}
-                      onOpen={() => openEntry(entry)}
-                      onToggle={() => toggleEquipped(entry)}
-                      onMove={() => moveEntry(entry, activeLocation === 'carregado' ? 'quarto' : 'carregado')}
-                      moveLabel={activeLocation === 'carregado' ? 'Guardar' : 'Pegar'}
-                      onDragStart={() => canEdit && setDragging({ entry, rotated: !!entry.rect.rotated })}
-                      onDragEnd={() => setDragging(null)}
-                    />
-                  ))}
-                </div>
+              <div className="resident-grid-items">
+                {gridEntries.map(entry => (
+                  <InventoryGridCard
+                    key={entry.key}
+                    entry={entry}
+                    rect={entry.rect}
+                    canEdit={canEdit}
+                    dragging={dragging?.entry.key === entry.key}
+                    onOpen={() => openEntry(entry)}
+                    onToggle={() => toggleEquipped(entry)}
+                    onMove={() => moveEntry(entry, activeLocation === 'carregado' ? 'quarto' : 'carregado')}
+                    moveLabel={activeLocation === 'carregado' ? 'Guardar' : 'Pegar'}
+                    onDragStart={() => canEdit && setDragging({ entry, rotated: !!entry.rect.rotated })}
+                    onDragEnd={() => setDragging(null)}
+                  />
+                ))}
               </div>
-              <p className="resident-grid-hint">Arraste para organizar. Enquanto segura um item, use a roda do mouse para rotacionar.</p>
             </div>
+            <p className="resident-grid-hint">Arraste para organizar. Enquanto segura um item, use a roda do mouse para rotacionar. Trajes, armas, equipamentos e consumiveis ocupam o mesmo inventario.</p>
           </div>
         </div>
       </section>
@@ -577,7 +544,7 @@ function MiniStat({ label, value, tone }) {
 function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMove, moveLabel, onDragStart, onDragEnd }) {
   const item = entry.item || {}
   const image = item.imagem || item.image
-  const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento'
+  const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento' || item.categoria === 'Traje'
   const weight = entry.source === 'inventory'
     ? estimateInventoryItemWeight(item)
     : entry.source === 'primary'
@@ -588,6 +555,8 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
     <div
       className={`resident-grid-card ${item.equipado ? 'is-equipped' : ''} ${dragging ? 'is-dragging' : ''}`}
       style={{
+        '--item-cols': rect.w,
+        '--item-rows': rect.h,
         left: `${(rect.x / GRID_COLS) * 100}%`,
         top: `${(rect.y / GRID_ROWS) * 100}%`,
         width: `${(rect.w / GRID_COLS) * 100}%`,
