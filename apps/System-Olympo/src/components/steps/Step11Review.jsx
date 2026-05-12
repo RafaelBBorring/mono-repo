@@ -37,6 +37,8 @@ import { uploadGrimorioImage } from '../../services/uploadService'
 import ImageUploadField from '../ImageUploadField'
 import { getSystemSkillById, SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, EFFECT_PARAM_DEFS } from '../../data/systemSkills'
 import { summarizeSystemSkillBonuses, createDefaultEffectsForSkill, calcSystemSkillBonuses } from '../../utils/systemSkills'
+import { getRaceDevelopmentEffects, getTriageDevelopmentEffects } from '../../utils/developmentEffects'
+import { flattenRaceMilestones, formatRaceBonusParts, parseRaceEffectText } from '../../utils/raceMilestones'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -181,6 +183,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const activeItems = [...activeAbilityItems, ...activeModuleItems]
   const activeBonuses = mergeBonuses(activeItems)
   const sysSkillBonuses = calcSystemSkillBonuses(char)
+  const developmentEffects = [
+    ...(cls ? getTriageDevelopmentEffects(char, cls) : []),
+    ...getRaceDevelopmentEffects(char),
+  ]
   const equipmentStats = calcEquipStats(char.equipamentos || [])
   const equipDurBonus = sysSkillBonuses.equipmentDurability
   if (equipDurBonus > 0) {
@@ -414,6 +420,31 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         </div>
       </div>
 
+      {developmentEffects.length > 0 && (
+        <div className="development-effects-panel">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-sky-300 font-semibold">Impactos no desenvolvimento</div>
+              <p className="text-txt-dim text-xs mt-1">Bonus permanentes de triagem, raca e marcos que ja entraram nos totais da ficha.</p>
+            </div>
+            <span className="text-[10px] font-mono text-sky-200 border border-sky-300/20 rounded-full px-2 py-1">{developmentEffects.length} efeitos</span>
+          </div>
+          <div className="development-effects-grid">
+            {developmentEffects.map(effect => (
+              <div key={effect.key} className="development-effect-card">
+                <span className="development-effect-source">{effect.source}</span>
+                <div className="flex items-start justify-between gap-3 mt-1">
+                  <strong>{effect.target}</strong>
+                  <em>{effect.value}</em>
+                </div>
+                <p>{effect.formula}</p>
+                {effect.note && <small>{effect.note}</small>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
 
       {cls && skelTotal > 0 && (
@@ -484,10 +515,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {canEdit ? (
                 <input type="number" value={vidaAtual}
                   onChange={e => update({ vidaAtual: Number(e.target.value) || 0 })}
-                  className={`font-mono leading-none bg-transparent border-b border-white/10 w-20 text-center outline-none focus:border-gold/50 transition-colors ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}
-                  style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }} />
+                  className={`font-mono leading-none bg-transparent border-b border-white/10 text-center outline-none focus:border-gold/50 transition-colors min-w-[80px] ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}
+                  style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
               ) : (
-                <span className={`font-mono leading-none ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`} style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaAtual}</span>
+                <span className={`font-mono leading-none ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`} style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaAtual}</span>
               )}
               <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{vidaNow}</span>
             </div>
@@ -496,10 +527,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {canEdit ? (
                 <input type="number" value={energiaAtual}
                   onChange={e => update({ energiaAtual: Number(e.target.value) || 0 })}
-                  className={`font-mono leading-none bg-transparent border-b border-white/10 w-20 text-center outline-none focus:border-gold/50 transition-colors ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}
-                  style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }} />
+                  className={`font-mono leading-none bg-transparent border-b border-white/10 text-center outline-none focus:border-gold/50 transition-colors min-w-[80px] ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}
+                  style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
               ) : (
-                <span className={`font-mono leading-none ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`} style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaAtual}</span>
+                <span className={`font-mono leading-none ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`} style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaAtual}</span>
               )}
               <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{energiaNow}</span>
             </div>
@@ -508,10 +539,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {canEdit ? (
                 <input type="number" value={peAtual}
                   onChange={e => update({ peAtual: Number(e.target.value) || 0 })}
-                  className={`font-mono leading-none bg-transparent border-b border-white/10 w-20 text-center outline-none focus:border-gold/50 transition-colors ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}
-                  style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }} />
+                  className={`font-mono leading-none bg-transparent border-b border-white/10 text-center outline-none focus:border-gold/50 transition-colors min-w-[80px] ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}
+                  style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
               ) : (
-                <span className={`font-mono leading-none ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`} style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peAtual}</span>
+                <span className={`font-mono leading-none ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`} style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peAtual}</span>
               )}
               <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{peNow}</span>
             </div>
@@ -684,7 +715,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   <span className="text-txt-dim/30 text-[10px] group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="mt-2">
-                  <RaceHeritageSection char={char} />
+                  <RaceHeritageSectionV2 char={char} update={update} isAdmin={isAdmin} />
                 </div>
               </details>
             </div>
@@ -807,16 +838,16 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {hasSystemSkills && (
                 <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
                   <div className="flex items-center gap-2 mb-3">
-                    <SectionHeader icon="◆" title="Skills Sistêmicas" color="bg-sky-300" />
+                    <SectionHeader icon="✦" title="Skills Sistêmicas" color="bg-purple-400" />
                     {isAdmin && (
-                      <button onClick={() => setSkillCatalogOpen(true)} className="ml-auto bg-gold/10 border border-gold/30 text-gold rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-gold/20 transition-colors">
+                      <button onClick={() => setSkillCatalogOpen(true)} className="ml-auto bg-purple-400/10 border border-purple-300/30 text-purple-300 rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-purple-400/20 transition-colors">
                         + Atribuir Skill
                       </button>
                     )}
                   </div>
                   <div className="space-y-3">
                     {(char.systemSkills || []).length > 0 ? (
-                      <div className="grid grid-cols-1 gap-3">
+                      <div className="grid grid-cols-1 gap-4">
                         {(char.systemSkills || []).map((entry, i) => {
                           const skill = getSystemSkillById(entry.skillId)
                           const effects = entry.effects || []
@@ -824,91 +855,110 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                           const repeatableTypes = ['damage_per_level_interval', 'damage_per_attribute_interval', 'resource_per_level', 'attribute_cap_bonus', 'forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus', 'manual_flag']
                           const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || repeatableTypes.includes(t))
                           const isActive = entry.active !== false
+                          const skillColors = {
+                            forge_master: 'from-amber-400/20 via-orange-500/10 to-amber-600/5',
+                            skeleton_progression: 'from-emerald-400/20 via-green-500/10 to-emerald-600/5',
+                            scaling_damage: 'from-red-400/20 via-rose-500/10 to-red-600/5',
+                            resource_growth: 'from-cyan-400/20 via-sky-500/10 to-cyan-600/5',
+                            attribute_cap_break: 'from-violet-400/20 via-purple-500/10 to-violet-600/5',
+                          }
+                          const gradient = skillColors[entry.skillId] || 'from-purple-400/15 via-indigo-500/10 to-purple-600/5'
                           return (
                             <div
                               key={entry.id || i}
                               onClick={(e) => {
                                 if (entry.skillId === 'forge_master' && !e.target.closest('button,input,select,textarea')) setForgeMenuOpen(true)
                               }}
-                              className={`rounded-xl border overflow-visible transition-opacity ${entry.skillId === 'forge_master' ? 'cursor-pointer hover:border-amber-300/35' : ''} ${isActive ? 'border-sky-400/25 bg-gradient-to-br from-sky-400/5 via-sky-400/[0.02] to-transparent opacity-100' : 'border-sep/20 bg-void/40 opacity-50'}`}
+                              className={`relative overflow-hidden rounded-xl border transition-all duration-300 group ${isActive ? `border-purple-300/40 bg-gradient-to-br ${gradient}` : 'border-sep/20 bg-void/40 opacity-60'}`}
+                              style={{
+                                boxShadow: isActive ? '0 0 20px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'none',
+                              }}
                             >
-                              <div className="px-3.5 pt-3 pb-2">
-                                <div className="flex items-start gap-2">
-                                  <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.4)]' : 'bg-sep/40'}`} />
+                              <div className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M20%200%20L40%2020%20L20%2040%20L0%2020Z%22%20fill%3D%22none%22%20stroke%3D%22rgba(168%2C%2085%2C%20247%2C0.03)%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E')] opacity-30 pointer-events-none`} />
+                              <div className="relative px-4 pt-3 pb-3">
+                                <div className="flex items-start gap-3">
+                                  <div className={`relative shrink-0 ${isActive ? '' : 'opacity-40'}`}>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${isActive ? 'border-purple-300/30 bg-purple-400/20' : 'border-sep/30 bg-void/60'}`}>
+                                      <span className="text-xl" style={{ textShadow: isActive ? '0 0 10px rgba(168, 85, 247, 0.5)' : 'none' }}>
+                                        {entry.skillId === 'forge_master' ? '⚒️' : entry.skillId === 'skeleton_progression' ? '💀' : entry.skillId === 'scaling_damage' ? '⚔️' : entry.skillId === 'resource_growth' ? '💎' : entry.skillId === 'attribute_cap_break' ? '🔮' : '✦'}
+                                      </span>
+                                    </div>
+                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${isActive ? 'bg-purple-400 animate-pulse' : 'bg-sep/40'}`} style={{ boxShadow: isActive ? '0 0 8px rgba(168, 85, 247, 0.6)' : 'none' }} />
+                                  </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className={`text-[12px] font-semibold tracking-wide ${isActive ? 'text-sky-200' : 'text-txt-dim/60'}`}>{skill?.name || entry.skillId}</span>
-                                      <span className={`text-[8px] rounded-full px-2 py-0.5 font-medium ${isActive ? 'bg-sky-400/15 text-sky-300 border border-sky-400/20' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{isActive ? 'ATIVA' : 'INATIVA'}</span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`text-[13px] font-bold tracking-wide ${isActive ? 'text-purple-100' : 'text-txt-dim/60'}`} style={{ textShadow: isActive ? '0 0 10px rgba(168, 85, 247, 0.3)' : 'none' }}>{skill?.name || entry.skillId}</span>
+                                      <span className={`text-[8px] rounded-full px-2 py-0.5 font-bold uppercase tracking-wider ${isActive ? 'bg-purple-400/25 text-purple-200 border border-purple-300/30' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{isActive ? 'Ativa' : 'Inativa'}</span>
                                       {skill?.rarity && (
-                                        <span className="text-[8px] bg-white/5 text-txt-dim/50 rounded px-1.5 py-0.5">{skill.rarity}</span>
+                                        <span className={`text-[8px] rounded px-2 py-0.5 font-medium ${isActive ? 'bg-amber-400/15 text-amber-200 border border-amber-300/20' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{skill.rarity}</span>
                                       )}
                                     </div>
-                                    <p className="text-txt-dim/60 text-[10px] mt-1.5 leading-relaxed">{skill?.short || 'Integracao sistemica definida pelo mestre.'}</p>
+                                    <p className={`text-[10px] mt-2 leading-relaxed ${isActive ? 'text-txt-dim/80' : 'text-txt-dim/40'}`}>{skill?.short || 'Integração sistêmica definida pelo mestre.'}</p>
                                   </div>
                                   {isAdmin && (
-                                    <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                                    <div className="ml-auto flex items-center gap-2 shrink-0">
                                       {entry.skillId === 'forge_master' && (
                                         <button onClick={() => setForgeMenuOpen(true)}
-                                          className="w-6 h-6 grid place-items-center rounded border border-amber-300/25 text-amber-200/70 hover:text-amber-100 hover:bg-amber-300/10 transition-colors"
+                                          className="w-7 h-7 grid place-items-center rounded border border-amber-300/30 text-amber-300/70 hover:text-amber-200 hover:bg-amber-400/20 transition-colors"
                                           title="Abrir encantamentos">
-                                          <span className="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                                          <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
                                         </button>
                                       )}
                                       <button onClick={() => { if (confirm(`Remover a skill "${skill?.name || entry.skillId}"? Os efeitos serão perdidos.`)) update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) }) }}
-                                        className="w-6 h-6 grid place-items-center rounded text-err/45 hover:text-err hover:bg-err/10 transition-colors border border-transparent hover:border-err/20"
+                                        className="w-7 h-7 grid place-items-center rounded text-err/50 hover:text-err hover:bg-err/15 transition-colors border border-transparent hover:border-err/25"
                                         title="Excluir Skill">
-                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                        <span className="material-symbols-outlined text-[15px]">close</span>
                                       </button>
                                     </div>
                                   )}
                                 </div>
                               </div>
                               {effects.length > 0 && (
-                                <div className={`px-3.5 pb-2.5 ${isAdmin ? '' : 'pt-0'}`}>
-                                  <div className="space-y-1.5">
+                                <div className={`px-4 pb-3 ${isAdmin ? '' : 'pt-2'}`}>
+                                  <div className="space-y-2">
                                     {effects.map((effect, ei) => {
                                       const eDef = EFFECT_PARAM_DEFS[effect.type]
                                       if (!eDef) return null
                                       return (
-                                        <div key={ei} className="bg-void/40 border border-sep/15 rounded-lg px-2.5 py-1.5">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-sky-200/80 text-[10px] font-medium">{eDef.label}</span>
+                                        <div key={ei} className="bg-void/50 border border-purple-300/20 rounded-lg px-3 py-2 backdrop-blur-sm">
+                                          <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-purple-200/90 text-[10px] font-semibold tracking-wide">◆ {eDef.label}</span>
                                             {isAdmin && (
                                               <button onClick={() => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.filter((_, fi) => fi !== ei) } : s) })}
-                                                className="text-err/30 hover:text-err text-[9px] transition-colors">✕</button>
+                                                className="text-err/50 hover:text-err text-[9px] transition-colors opacity-70 hover:opacity-100">✕</button>
                                             )}
                                           </div>
                                           {!isAdmin && (
-                                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                                            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                                               {Object.entries(eDef.params).map(([pKey, pDef]) => (
-                                                <span key={pKey} className="text-txt-dim/50 text-[9px]">{pDef.label}: <span className="text-txt-dim/80">{effect[pKey] ?? pDef.default}</span></span>
+                                                <span key={pKey} className="text-txt-dim/50 text-[9px]"><span className="text-purple-300/70">{pDef.label}:</span> <span className="text-txt-dim/90">{effect[pKey] ?? pDef.default}</span></span>
                                               ))}
                                             </div>
                                           )}
                                           {isAdmin && Object.entries(eDef.params).map(([pKey, pDef]) => {
                                             if (pDef.type === 'select') return (
-                                              <div key={pKey} className="flex items-center gap-2 mt-1">
+                                              <div key={pKey} className="flex items-center gap-2 mt-1.5">
                                                 <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
                                                 <select value={effect[pKey] ?? pDef.default} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
-                                                  className="flex-1 bg-[#11141c] text-txt-main text-[10px] border border-sky-300/25 rounded px-2 py-1 focus:border-gold/45 focus:outline-none">
-                                                  {(pDef.options || []).map(o => <option key={o.value} value={o.value} className="bg-[#11141c] text-txt-main">{o.label}</option>)}
+                                                  className="flex-1 bg-void/70 text-txt-main text-[10px] border border-purple-300/25 rounded px-2.5 py-1 focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20">
+                                                  {(pDef.options || []).map(o => <option key={o.value} value={o.value} className="bg-void text-txt-main">{o.label}</option>)}
                                                 </select>
                                               </div>
                                             )
                                             if (pDef.type === 'number') return (
-                                              <div key={pKey} className="flex items-center gap-2 mt-1">
+                                              <div key={pKey} className="flex items-center gap-2 mt-1.5">
                                                 <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
                                                 <input type="number" value={effect[pKey] ?? pDef.default} min={pDef.min} max={pDef.max}
                                                   onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value === '' ? '' : Number(e.target.value) } : ef) } : s) })}
-                                                  className="w-16 bg-void/60 text-txt-dim text-[10px] border border-sep/20 rounded px-2 py-0.5 text-center focus:border-gold/30 focus:outline-none" />
+                                                  className="w-16 bg-void/70 text-txt-dim text-[10px] border border-purple-300/25 rounded px-2 py-0.5 text-center focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20" />
                                               </div>
                                             )
                                             return (
-                                              <div key={pKey} className="flex items-center gap-2 mt-1">
+                                              <div key={pKey} className="flex items-center gap-2 mt-1.5">
                                                 <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
                                                 <input type="text" value={effect[pKey] ?? pDef.default ?? ''}
                                                   onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
-                                                  className="flex-1 bg-void/60 text-txt-dim text-[10px] border border-sep/20 rounded px-2 py-0.5 focus:border-gold/30 focus:outline-none" />
+                                                  className="flex-1 bg-void/70 text-txt-dim text-[10px] border border-purple-300/25 rounded px-2 py-0.5 focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20" />
                                               </div>
                                             )
                                           })}
@@ -919,10 +969,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                                 </div>
                               )}
                               {isAdmin && addableTypes.length > 0 && (
-                                <div className="px-3.5 pb-2.5">
+                                <div className="px-4 pb-3 pt-2">
                                   <select onChange={e => { if (e.target.value) { const pDef = EFFECT_PARAM_DEFS[e.target.value]; const newEff = { type: e.target.value }; if (pDef) for (const [k, p] of Object.entries(pDef.params)) { if (p.default != null) newEff[k] = p.default; } update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: [...(s.effects || []), newEff] } : s) }); e.target.value = '' } }}
-                                    className="w-full text-[10px] bg-void/40 border border-dashed border-sep/25 text-txt-dim/50 rounded-lg px-2.5 py-1.5 hover:border-sky-400/30 hover:text-sky-300/70 transition-colors cursor-pointer focus:border-gold/30 focus:outline-none">
-                                    <option value="">+ Adicionar efeito...</option>
+                                    className="w-full text-[10px] bg-void/50 border border-dashed border-purple-300/30 text-purple-200/50 rounded-lg px-3 py-2 hover:border-purple-400/40 hover:text-purple-200/70 transition-colors cursor-pointer focus:border-purple-400/50 focus:outline-none focus:ring-1 focus:ring-purple-400/20">
+                                    <option value="">✧ Adicionar efeito arcânico...</option>
                                     {addableTypes.map(t => <option key={t} value={t}>{EFFECT_PARAM_DEFS[t]?.label || t}</option>)}
                                   </select>
                                 </div>
@@ -935,11 +985,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                       <p className="text-txt-dim/40 text-xs italic text-center py-4">Nenhuma Skill atribuída pelo Mestre.</p>
                     )}
                     {summarizeSystemSkillBonuses(char).length > 0 && (
-                      <div className="bg-emerald-400/5 border border-emerald-400/15 rounded-lg px-3 py-2">
-                        <div className="text-[10px] text-emerald-400/60 font-medium mb-1.5 uppercase tracking-wider">Bônus Ativos</div>
+                      <div className="bg-purple-400/5 border border-purple-300/25 rounded-xl px-4 py-3 backdrop-blur-sm">
+                        <div className="text-[10px] text-purple-300/70 font-semibold mb-2 uppercase tracking-widest">✦ Bônus Ativos</div>
                         <div className="flex flex-wrap gap-1.5">
                           {summarizeSystemSkillBonuses(char).map((line, i) => (
-                            <span key={i} className="text-[10px] bg-emerald-400/10 text-emerald-300 border border-emerald-400/15 rounded-md px-2.5 py-1">{line}</span>
+                            <span key={i} className="text-[10px] bg-purple-400/15 text-purple-200 border border-purple-300/25 rounded-md px-2.5 py-1 shadow-[0_0_8px_rgba(168,85,247,0.1)]">{line}</span>
                           ))}
                         </div>
                       </div>
@@ -2999,6 +3049,150 @@ function WeaponMartialPanel({ char, update, canEdit }) {
   )
 }
 
+function RaceHeritageSectionV2({ char, update, isAdmin }) {
+  const race = RACES[char.raca]
+  if (!race) return null
+
+  const bonus = calculateRaceBonus(char)
+  const subrace = getSelectedSubrace(char)
+  const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
+  const nivel = char.nivel || 1
+  const progressaoAplicavel = (race.progressaoPoder || []).filter(p => p.nivel <= nivel)
+  const milestones = flattenRaceMilestones(race, subrace)
+  const granted = new Set(char.raceMilestonesGranted || [])
+
+  function toggleMilestone(key) {
+    if (!update || !isAdmin) return
+    const current = char.raceMilestonesGranted || []
+    update({
+      raceMilestonesGranted: granted.has(key)
+        ? current.filter(item => item !== key)
+        : [...current, key],
+    })
+  }
+
+  const statParts = formatRaceBonusParts(bonus)
+
+  return (
+    <section>
+      <SectionHeader icon={race.icon} title="Heranca Racial" color={catMeta.title.replace('text-', 'bg-').replace(/-\d+$/, '-400')} />
+
+      <div className="space-y-3">
+        <div className={`rounded-lg border ${catMeta.color} px-4 py-3`}>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className={`font-cinzel text-sm font-bold ${catMeta.title}`}>{race.name}</span>
+            {subrace && <span className="text-purple-300 text-sm">- {subrace.name}</span>}
+            {char.racaDeus && race.deuses?.length > 0 && (
+              <span className="text-amber-300 text-xs border border-amber-300/20 rounded px-2 py-0.5">
+                {race.deuses.find(d => d.id === char.racaDeus)?.name || char.racaDeus}
+              </span>
+            )}
+            <span className="text-txt-dim text-sm ml-auto">Nv {nivel}</span>
+          </div>
+
+          {race.desc && <p className="text-txt-dim text-sm leading-relaxed mb-3">{race.desc}</p>}
+
+          <div className="flex flex-wrap gap-2">
+            {statParts.length > 0
+              ? statParts.map(part => <span key={part} className="race-grant-effect">{part}</span>)
+              : <span className="text-txt-dim text-sm">Sem bonus numerico ativo.</span>}
+          </div>
+
+          {bonus.notes?.length > 0 && (
+            <div className="mt-2 text-sm text-gold/80 bg-gold/5 border border-gold/15 rounded px-3 py-1.5">
+              {bonus.notes[0]}
+            </div>
+          )}
+        </div>
+
+        {(race.vantagens?.length > 0 || race.desvantagens?.length > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-emerald-400/5 border border-emerald-400/15 rounded-lg px-3 py-2">
+              <div className="text-emerald-400 text-sm font-semibold mb-1.5">Vantagens-chave</div>
+              <ul className="space-y-1">
+                {(race.vantagens || []).slice(0, 4).map((v, i) => (
+                  <li key={i} className="text-txt-dim text-sm leading-relaxed flex gap-1.5"><span className="text-emerald-400/60 shrink-0">+</span><span>{v}</span></li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-red-400/5 border border-red-400/15 rounded-lg px-3 py-2">
+              <div className="text-red-400 text-sm font-semibold mb-1.5">Custos e riscos</div>
+              <ul className="space-y-1">
+                {(race.desvantagens || []).slice(0, 4).map((d, i) => (
+                  <li key={i} className="text-txt-dim text-sm leading-relaxed flex gap-1.5"><span className="text-red-400/60 shrink-0">-</span><span>{d}</span></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {progressaoAplicavel.length > 0 && (
+          <div>
+            <div className="text-txt-dim text-sm font-semibold mb-2">Progressao de Poder aplicada</div>
+            <div className="space-y-1">
+              {progressaoAplicavel.map(p => {
+                const parts = formatRaceBonusParts(parseRaceEffectText(`${p.ganho}. ${p.desc}`))
+                return (
+                  <div key={p.nivel} className="bg-void/40 border border-sep/30 rounded-lg px-3 py-2 flex gap-3">
+                    <span className="text-gold/70 font-mono text-sm shrink-0 w-8">N{p.nivel}</span>
+                    <div className="min-w-0">
+                      <span className="text-txt-main text-sm font-semibold">{p.ganho}</span>
+                      <span className="text-txt-dim text-sm ml-1">- {p.desc}</span>
+                      {parts.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {parts.map(part => <span key={part} className="race-grant-effect">{part}</span>)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {milestones.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-amber-300 text-sm font-semibold">Marcos de Experiencia</div>
+              <span className="text-txt-dim text-xs">{milestones.filter(m => granted.has(m.key)).length}/{milestones.length} concedidos</span>
+            </div>
+            <div className="space-y-2">
+              {milestones.map(m => {
+                const isGranted = granted.has(m.key)
+                const parts = formatRaceBonusParts(parseRaceEffectText(`${m.title}. ${m.reward}`))
+                return (
+                  <div key={m.key} className={`race-grant-card ${isGranted ? 'is-granted' : ''}`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-txt-main text-sm font-semibold">{m.title}</span>
+                        <span className="text-[10px] text-amber-300/75 border border-amber-300/15 rounded px-1.5 py-0.5">{m.group}</span>
+                        {isGranted && <span className="text-[10px] text-emerald-300 border border-emerald-300/20 rounded px-1.5 py-0.5">Concedido</span>}
+                      </div>
+                      {m.condition && <div className="text-txt-dim text-xs mt-1">{m.condition}</div>}
+                      <div className="text-gold text-sm mt-1">{m.reward}</div>
+                      {parts.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {parts.map(part => <span key={part} className="race-grant-effect">{part}</span>)}
+                        </div>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <button type="button" onClick={() => toggleMilestone(m.key)} className={`race-grant-toggle ${isGranted ? 'is-granted' : ''}`}>
+                        {isGranted ? 'Revogar' : 'Conceder'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function RaceHeritageSection({ char }) {
   const race = RACES[char.raca]
   if (!race) return null
@@ -3175,8 +3369,8 @@ function TriagemSection({ char, cls }) {
   const subKey = char.subTriagem
   const subNv = char.subTriagemNivel || 0
   const subClass = char.subTriagemClass || cls
-  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-  const subLevels = [0.1, 0.2, 0.3]
+  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+  const subLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
 
   function getTriagemData(classKey, triageKey) {
     if (!triageKey || !classKey) return null

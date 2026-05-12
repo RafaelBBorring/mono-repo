@@ -8,6 +8,7 @@ import { calcSystemSkillBonuses } from '../utils/systemSkills'
 import { getModifier } from '../data/attributes'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchMysticWeapons } from '../services/alchemyService'
+import { SPECIAL_MATERIALS, getMaterialDamageBonus, getMaterialArmorBonus, getMaterialDurabilityBonus, getMaterialSpecial, getMaterialLabel, getMaterialIcon } from '../data/materials'
 import { ARMOR_ABSORPTION_HARD_CAP, ARMOR_ABSORPTION_SOFT_CAP, ARMOR_TYPES, EQUIPMENT_TYPES, SIMPLE_ITEMS, SET_BONUSES, calcEquipStats, getEquipmentArmorValue, getEquipmentDurabilityCurrent, getEquipmentDurabilityMax, getEquipmentRarity, canEquipRank as canUseEquipRank, getEquipLimitForLevel, estimateEquipmentWeight } from '../data/equipment'
 
 function tagValue(tags = [], key) {
@@ -49,8 +50,19 @@ function canUseForgeEnchantment(enc = {}, category = 'Arma') {
   return target === 'Ambos' || target === category
 }
 
-function getHephaestianDamageBonus(item = {}) {
-  return item.materialEspecial === 'ferro_hefestiano' ? '+1d6' : ''
+function getMaterialDamageDisplay(item = {}) {
+  const bonus = getMaterialDamageBonus(item.materialEspecial)
+  return bonus ? ` ${bonus}` : ''
+}
+
+function getMaterialArmorDisplay(item = {}) {
+  const bonus = getMaterialArmorBonus(item.materialEspecial)
+  return bonus ? `+${bonus}` : ''
+}
+
+function getMaterialDurabilityDisplay(item = {}) {
+  const bonus = getMaterialDurabilityBonus(item.materialEspecial)
+  return bonus ? `+${bonus}` : ''
 }
 
 function enforceSingleSlot(items, incoming, incomingIdx = -1) {
@@ -693,18 +705,37 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   return (
     <div
-      className={`armory-card armory-card-weapon w-full rounded-lg border ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-3 text-left`}>
-      <div className="armory-rank-rail" />
-      <button type="button" onClick={onToggleEquipped} disabled={!canEdit}
-        title={equipped ? 'Desequipar arma' : 'Equipar arma'}
-        className={`armory-icon ${rc.badge} transition-transform ${canEdit ? 'hover:scale-[1.03] cursor-pointer' : 'cursor-default'} ${equipped ? 'ring-1 ring-emerald-300/40' : 'opacity-80'}`}>
-        {image ? <img src={image} alt="" className="w-full h-full object-cover" /> : <span>ARM</span>}
-      </button>
-      <button type="button" onClick={onClick} className="flex-1 min-w-0 text-left">
-        <span className="text-txt-main text-sm font-semibold truncate block">{displayName || weapon.name}</span>
-        <span className="text-red-400/70 text-[11px] font-mono mt-0.5 block">{weapon.dano}{rank.danoBonus ? ` ${rank.danoBonus}` : ''}</span>
-        <span className={`text-[9px] mt-1 inline-flex px-1.5 py-0.5 rounded border ${equipped ? 'text-emerald-300 border-emerald-400/20 bg-emerald-400/10' : 'text-txt-dim/50 border-sep/30 bg-void/40'}`}>{equipped ? 'equipada' : 'guardada'}</span>
-      </button>
+      className={`armory-card armory-card-weapon w-full rounded-xl border-2 shadow-lg ${rc.border} ${rc.bg} ${rc.text} ${rc.glow} p-4 text-left transition-all hover:shadow-xl`}>
+      <div className="flex items-start gap-3 mb-3">
+        <div className="flex-1">
+          <button type="button" onClick={onToggleEquipped} disabled={!canEdit}
+            title={equipped ? 'Desequipar arma' : 'Equipar arma'}
+            className={`w-16 h-16 rounded-xl border-2 transition-all ${canEdit ? 'hover:scale-[1.03] cursor-pointer' : 'cursor-default'} ${equipped ? 'ring-2 ring-emerald-400/50' : 'opacity-70'}`}>
+            {image ? <img src={image} alt="" className="w-full h-full object-cover rounded-lg" /> : <span className="text-3xl">⚔️</span>}
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-txt-main text-sm font-bold">{displayName || weapon.name}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${rc.badge} ${equipped ? 'ring-1 ring-' + rc.border : ''}`}>{rank.rank}</span>
+              </div>
+              <span className={`text-[10px] px-3 py-1 rounded font-mono border ${rc.border} ${rc.bg}`}>{weapon.dano}{rank.danoBonus ? ` + ${rank.danoBonus}` : ''}</span>
+            </div>
+            {habilidades && habilidades.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {habilidades.map(h => (
+                  <span key={h.id} className={`text-[10px] px-2 py-0.5 rounded border ${rc.border} ${rc.bg} opacity-80`}>{h.nome}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <button type="button" onClick={onClick} className="flex-1 text-left">
+              <span className={`text-sm font-semibold ${equipped ? 'text-emerald-400' : 'text-txt-main'}`}>{equipped ? 'EQUIPADA' : 'GUARDADA'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1058,7 +1089,7 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
   const armorType = getArmorType(item)
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
   const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
-  const materialDamageBonus = getHephaestianDamageBonus(item)
+  const materialDamageBonus = getMaterialDamageDisplay(item)
   return (
     <div
       className={`armory-card w-full rounded-lg border ${isLegendaryItem ? 'border-lime-300/45 bg-lime-300/8 text-lime-300 shadow-lg shadow-lime-300/10' : `${rc.border} ${rc.bg} ${rc.text} ${rc.glow}`} p-3 text-left`}>
@@ -1079,9 +1110,9 @@ function EquipCard({ item, canEdit, onToggle, onClick }) {
             ENC {item.encantamentos.length}
           </span>
         )}
-        {item.materialEspecial === 'ferro_hefestiano' && (
-          <span className="text-[9px] mt-1 ml-1 inline-flex px-1.5 py-0.5 rounded border text-amber-100 border-amber-300/20 bg-amber-300/10">
-            FH
+        {item.materialEspecial && (
+          <span className={`text-[9px] mt-1 ml-1 inline-flex px-1.5 py-0.5 rounded border ${item.materialEspecial === 'ferro_hefestiano' ? 'text-amber-100 border-amber-300/20 bg-amber-300/10' : item.materialEspecial === 'ferro_tartaro' ? 'text-indigo-200 border-indigo-400/20 bg-indigo-400/10' : item.materialEspecial === 'aco_astrano' ? 'text-purple-200 border-purple-400/20 bg-purple-400/10' : item.materialEspecial === 'vibranium' ? 'text-cyan-200 border-cyan-400/20 bg-cyan-400/10' : item.materialEspecial === 'aco_olimpiano' ? 'text-yellow-200 border-yellow-400/20 bg-yellow-400/10' : 'text-gray-300 border-gray-400/20 bg-gray-400/10'}`}>
+            {getMaterialIcon(item.materialEspecial)}
           </span>
         )}
       </button>
@@ -2060,7 +2091,11 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                     {systemSkillBonuses.forgeRankLabels?.map(label => <span key={label} className="text-[9px] text-gold/80 bg-gold/10 border border-gold/15 rounded px-2 py-0.5">{label}</span>)}
                     {forgeEnchantmentSlots > 0 && <span className="text-[9px] text-sky-200/80 bg-sky-300/10 border border-sky-300/15 rounded px-2 py-0.5">{forgeEnchantmentSlots} encantamento(s)</span>}
                     {forgeQualityBonus > 0 && <span className="text-[9px] text-emerald-200/80 bg-emerald-300/10 border border-emerald-300/15 rounded px-2 py-0.5">Qualidade +{forgeQualityBonus}</span>}
-                    <span className="text-[9px] text-amber-100/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">Ferro Hefestiano disponivel</span>
+                    <span className="text-[9px] text-amber-100/80 bg-amber-300/10 border border-amber-300/15 rounded px-2 py-0.5">⚒️ Ferro Hefestiano</span>
+                    <span className="text-[9px] text-indigo-100/80 bg-indigo-300/10 border border-indigo-400/15 rounded px-2 py-0.5">🔥 Ferro do Tártaro</span>
+                    <span className="text-[9px] text-purple-100/80 bg-purple-300/10 border border-purple-400/15 rounded px-2 py-0.5">✨ Aço Astrano</span>
+                    <span className="text-[9px] text-cyan-100/80 bg-cyan-300/10 border border-cyan-400/15 rounded px-2 py-0.5">💎 Vibranium</span>
+                    <span className="text-[9px] text-yellow-100/80 bg-yellow-300/10 border border-yellow-400/15 rounded px-2 py-0.5">🏛️ Aço Olimpiano</span>
                   </div>
                 </div>
               )}
@@ -2151,7 +2186,9 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
                     <select value={materialEspecial} onChange={e => setMaterialEspecial(e.target.value)}
                       className="w-full bg-[#11141c] border border-amber-300/25 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
                       <option value="" className="bg-[#11141c] text-txt-main">Material comum</option>
-                      <option value="ferro_hefestiano" className="bg-[#11141c] text-txt-main">Ferro Hefestiano</option>
+                      {Object.entries(SPECIAL_MATERIALS).map(([key, mat]) => (
+                        <option key={key} value={key} className="bg-[#11141c] text-txt-main">{mat.icon} {mat.name}</option>
+                      ))}
                     </select>
                   )}
                 </div>
@@ -2334,7 +2371,7 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
   const rarity = item.categoria === 'Equipamento' ? getEquipmentRarity(item.rank) : null
   const equipHabilidades = item.equipHabilidades || item.passivas || []
   const itemRankBonus = WEAPON_RANKS.find(r => r.rank === item.rank)?.danoBonus
-  const materialDamageBonus = getHephaestianDamageBonus(item)
+  const materialDamageBonus = getMaterialDamageDisplay(item)
   const [editNome, setEditNome] = useState(item.nome || '')
   const [editDesc, setEditDesc] = useState(item.descricao || '')
   const [editDano, setEditDano] = useState(item.dano || '')
@@ -2479,7 +2516,9 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                 <select value={editMaterialEspecial} onChange={e => setEditMaterialEspecial(e.target.value)}
                   className="w-full bg-[#11141c] border border-amber-300/25 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-300/45 focus:outline-none">
                   <option value="" className="bg-[#11141c] text-txt-main">Material comum</option>
-                  <option value="ferro_hefestiano" className="bg-[#11141c] text-txt-main">Ferro Hefestiano</option>
+                  {Object.entries(SPECIAL_MATERIALS).map(([key, mat]) => (
+                    <option key={key} value={key} className="bg-[#11141c] text-txt-main">{mat.icon} {mat.name}</option>
+                  ))}
                 </select>
               )}
               <div>
@@ -2693,11 +2732,12 @@ function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSa
                   <p className="text-red-400/90 text-sm font-mono mt-0.5">{item.dano}{itemRankBonus ? ` ${itemRankBonus}` : ''}{materialDamageBonus ? ` ${materialDamageBonus}` : ''}</p>
                 </div>
               )}
-              {item.materialEspecial === 'ferro_hefestiano' && (
-                <div className="bg-amber-300/5 border border-amber-300/20 rounded-lg px-3 py-2">
-                  <span className="text-amber-200/70 text-[9px] uppercase">Material</span>
-                  <p className="text-amber-100/80 text-xs mt-0.5 leading-relaxed">
-                    Ferro Hefestiano: {item.categoria === 'Equipamento' ? '+2 Armadura e +6 Durabilidade maxima.' : '+1d6 de dano material.'}
+              {item.materialEspecial && (
+                <div className={`rounded-lg px-3 py-2 ${item.materialEspecial === 'ferro_hefestiano' ? 'bg-amber-300/5 border-amber-300/20' : item.materialEspecial === 'ferro_tartaro' ? 'bg-indigo-300/5 border-indigo-400/20' : item.materialEspecial === 'aco_astrano' ? 'bg-purple-300/5 border-purple-400/20' : item.materialEspecial === 'vibranium' ? 'bg-cyan-300/5 border-cyan-400/20' : item.materialEspecial === 'aco_olimpiano' ? 'bg-yellow-300/5 border-yellow-400/20' : 'bg-gray-300/5 border-gray-400/20'}`}>
+                  <span className={`text-[9px] uppercase ${item.materialEspecial === 'ferro_hefestiano' ? 'text-amber-200/70' : item.materialEspecial === 'ferro_tartaro' ? 'text-indigo-200/70' : item.materialEspecial === 'aco_astrano' ? 'text-purple-200/70' : item.materialEspecial === 'vibranium' ? 'text-cyan-200/70' : item.materialEspecial === 'aco_olimpiano' ? 'text-yellow-200/70' : 'text-gray-200/70'}`}>Material</span>
+                  <p className={`text-xs mt-0.5 leading-relaxed ${item.materialEspecial === 'ferro_hefestiano' ? 'text-amber-100/80' : item.materialEspecial === 'ferro_tartaro' ? 'text-indigo-100/80' : item.materialEspecial === 'aco_astrano' ? 'text-purple-100/80' : item.materialEspecial === 'vibranium' ? 'text-cyan-100/80' : item.materialEspecial === 'aco_olimpiano' ? 'text-yellow-100/80' : 'text-gray-100/80'}`}>
+                    {getMaterialLabel(item.materialEspecial)}: {item.categoria === 'Equipamento' ? `+${getMaterialArmorBonus(item.materialEspecial)} Armadura e +${getMaterialDurabilityBonus(item.materialEspecial)} Durabilidade maxima.` : `${getMaterialDamageBonus(item.materialEspecial)} de dano material.`}
+                    {getMaterialSpecial(item.materialEspecial) && <span className="block mt-1 text-[10px] italic">{getMaterialSpecial(item.materialEspecial)}</span>}
                   </p>
                 </div>
               )}

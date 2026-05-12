@@ -631,10 +631,10 @@ function QuickFormulasSection() {
       <div className="bg-void rounded-xl border border-gold/20 p-4">
         <h3 className="text-gold text-sm font-semibold mb-3">Combate</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <FormulaCard label="Classe de Armadura (CA)" formula="10 + treino(Reflexo ou Bloqueio) + MAX(Mod.CON, Mod.DES)" desc="treino = bônus do grau de perícia treinado" color="red" />
+          <FormulaCard label="Classe de Armadura (CA)" formula="10 + treino(Reflexo ou Bloqueio) + MAX(Mod.CON, Mod.DES) + bônus sistêmicos" desc="Tank 0.3, Skills e marcos raciais podem somar CA/armadura natural." color="red" />
           <FormulaCard label="Reações" formula="⌊DES ÷ 5⌋ (mínimo 1)" desc="DES = valor final do atributo" color="amber" />
           <FormulaCard label="Percepção Passiva" formula="10 + treino(Percepção) + Mod.INT" desc="Percepção passiva é o mínimo que o personagem percebe sem teste" color="cyan" />
-          <FormulaCard label="Dano Base" formula="Dado de classe + Mod.FOR + bônus de triagem" desc="Guerreiro: d12, Operativo: d10, Místico: d8" color="red" />
+          <FormulaCard label="Dano Base" formula="Dado de classe + modificador da classe + triagens + Skills + raça" desc="Combate, Atirador, Técnico, Skills e marcos raciais aparecem como parcelas visíveis." color="red" />
           <FormulaCard label="Modificador de Atributo" formula="⌊(valor − 10) ÷ 2⌋" desc="Consulte a tabela de modificadores em Atributos" color="gold" />
           <FormulaCard label="Armadura (Absorção)" formula="Soma das peças equipadas (caBase + raridade)" desc="Reduz CADA golpe recebido. Não é CA." color="purple" />
         </div>
@@ -643,10 +643,10 @@ function QuickFormulasSection() {
       <div className="bg-void rounded-xl border border-emerald-400/20 p-4">
         <h3 className="text-emerald-400 text-sm font-semibold mb-3">Vida & Recursos</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <FormulaCard label="Vida Total" formula="Base(CON) + [Vida/Nível × N] + Progressão + Raça + Tank" color="emerald" />
+          <FormulaCard label="Vida Total" formula="Base(CON) + [Vida/Nível × N] + Progressão + Raça + Tank + marcos concedidos" color="emerald" />
           <FormulaCard label="Vida Base (por classe)" formula="Guerreiro: 100+CON×5 | Op.: 70+CON×5 | Mist.: 50+CON×5" color="emerald" />
-          <FormulaCard label="Energia Total" formula="Base(AM) + [Energia/Nível × N] + Progressão + Intuitivo" desc="Intuitivo: +⌊AM×0.5⌋ × ⌊N/5⌋" color="sky" />
-          <FormulaCard label="PE Total" formula="PE Base + PE/Nível × N + Progressão + Raça" desc="PE = Pontos de Esqueleto" color="sky" />
+          <FormulaCard label="Energia Total" formula="Base(AM) + [Energia/Nível × N] + Progressão + Intuitivo + raça" desc="Intuitivo: +⌊AM×0.5⌋ × ⌊N/5⌋. Marcos concedidos também entram." color="sky" />
+          <FormulaCard label="PE Total" formula="PE Base + PE/Nível × N + Progressão + Raça + marcos concedidos" desc="PE aqui é recurso de poder; Pontos de Esqueleto aparecem na progressão." color="sky" />
           <FormulaCard label="Absorção de Armadura" formula={`Soma das peças equipadas; limite ${ARMOR_ABSORPTION_HARD_CAP}`} desc={`Não é CA. Desgaste por golpe: 1 normal, 2 pesado/sobrecarga ${ARMOR_ABSORPTION_SOFT_CAP}+.`} color="purple" />
         </div>
       </div>
@@ -1082,8 +1082,8 @@ function TriagesSection() {
       <SectionTitle>Triagens</SectionTitle>
       <div className="mb-4">
         <p className="text-txt-dim text-sm mb-3">
-          <strong className="text-txt-main">Triagem Principal:</strong> obrigatoriamente da mesma Classe. 6 níveis (0.1→0.6).<br />
-          <strong className="text-txt-main">Sub-Triagem:</strong> qualquer Classe (inclui a própria). Máx 3 níveis (0.1→0.3). Disponível a partir de N16.
+          <strong className="text-txt-main">Triagem Principal:</strong> obrigatoriamente da mesma Classe. 8 níveis (0.1→0.8), com ascensão entre N35 e N45.<br />
+          <strong className="text-txt-main">Sub-Triagem:</strong> qualquer Classe (inclui a própria). Máx 5 níveis (0.1→0.5). Disponível a partir de N16 e evolui novamente no pós-30.
         </p>
         <div className="flex gap-2">
           {Object.keys(TRIAGES).map(cc => {
@@ -2475,14 +2475,14 @@ function MysticExamples({ title, items, expanded, setExpanded, badgeGetter }) {
 function CreationGuideSection() {
   const steps = [
     { n: 1, title: 'Identidade', desc: 'Defina o nome e nível do personagem. O Mestre define qual tipo de Array (Balanceado, MinMax ou Extremo) está disponível para a campanha.' },
-    { n: 2, title: 'Raça', desc: 'Escolha entre 13 raças divididas em 4 categorias (Humanoides, Sobrenaturais, Predatórias, Lendárias). Cada raça oferece bônus de atributos, modificadores de vida, traços inatos ativos/passivos, vantagens e desvantagens únicos.' },
+    { n: 2, title: 'Raça', desc: 'Escolha a raça como marco central do personagem. Em raças como Semideus, a linhagem divina é uma escolha própria e o caminho/sub-raça representa evolução, ascensão ou caso atípico.' },
     { n: 3, title: 'Esqueleto (Atributos)', desc: 'Distribua os 6 valores do Array escolhido entre os atributos FOR, DES, CON, INT, APA e AM. Cada valor só pode ser usado uma vez.' },
     { n: 4, title: 'Classe', desc: 'Escolha entre Guerreiro, Operativo ou Místico. Cada classe define Vida, Energia, PE, Dano Base e quantidade de perícias iniciais.' },
     { n: 5, title: 'Progressão', desc: 'Consulte a tabela de N1 até o nível atual da classe. Recompensas com "OU" exigem uma escolha do jogador. Anote triagens e módulos desbloqueados.' },
     { n: 6, title: 'Pontos de Esqueleto', desc: 'Distribua os Pontos de Esqueleto ganhos na progressão entre os atributos. Cada ponto em CON afeta retroativamente a Vida por Nível. O mesmo vale para AM (Energia).' },
-    { n: 7, title: 'Triagens', desc: 'Escolha UMA Triagem Principal (da mesma classe). A partir de N16, pode escolher UMA Sub-Triagem de qualquer classe (máx nível 0.3). Não pode repetir a mesma triagem.' },
+    { n: 7, title: 'Triagens', desc: 'Escolha UMA Triagem Principal (da mesma classe). A partir de N16, pode escolher UMA Sub-Triagem de qualquer classe. No pós-30, a Principal alcança 0.8 e a Sub-Triagem alcança 0.5.' },
     { n: 8, title: 'Módulos de Evolução', desc: 'Gaste os Módulos de Evolução ganhos na progressão. Existem Passivos (sempre ativos), Especiais (aquisição múltipla) e Ativos (custam PE). Verifique os requisitos.' },
-    { n: 9, title: 'Perícias', desc: 'Treine perícias usando os pontos disponíveis (classe + progressão). Cada grau custa 1 ponto. O grau máximo depende do nível: N1-7 Treinado, N8-13 Veterano, N14-22 Especialista, N23-30 Mestre.' },
+    { n: 9, title: 'Perícias', desc: 'Treine perícias usando os pontos disponíveis (classe + progressão). Cada grau custa 1 ponto. O grau máximo depende do nível: N1-7 Treinado, N8-13 Veterano, N14-22 Especialista, N23-30 Mestre, N31-40 Lendário, N41-50 Mítico.' },
     { n: 10, title: 'Habilidades', desc: 'Crie 5 habilidades: 1 Passiva, 3 Ativas e 1 Ultimate. Defina nome, descrição, custo de energia, dano, duração, camada SCP e PP estimado. Algumas triagens concedem habilidades extras.' },
     { n: 11, title: 'Revisão — Arma, Arte Marcial e Ficha Final', desc: 'Na tela de revisão, escolha sua Arma (19 disponíveis com mecânicas únicas) e seu Rank (Comum a Transcendente, 8 patentes). Opcionalmente escolha uma Arte Marcial (Boxe, Karatê, Muay Thai, Judô, Taekwondo, Aikido) com grau limitado pelo nível. Revise cálculos, use a IA para balancear, e finalize a ficha.' },
   ]
@@ -2666,8 +2666,8 @@ function ProtoTable({ headers, rows, highlight }) {
 function BalanceProtocolSection() {
   const scpRows = [
     ['Camada 1 — Base', 'Treino de Perícia + Mod. Atributo', 'Sem limite', 'Sempre ativa, não consome slot'],
-    ['Camada 2 — Tático', 'Habilidades, Triagens, Módulos', 'N1-7: +8 | N8-15: +12 | N16-22: +16 | N23-30: +20', 'Slot de habilidade / triagem'],
-    ['Camada 3 — Épico',  'Armas, Runas, Artefatos',          'N1-7: +5 | N8-15: +8  | N16-22: +12 | N23-30: +16', 'Rank de arma / item mágico'],
+    ['Camada 2 — Tático', 'Habilidades, Triagens, Módulos', 'N1-7:+8 | N8-15:+12 | N16-22:+16 | N23-30:+20 | N31-40:+24 | N41-50:+28', 'Slot de habilidade / triagem'],
+    ['Camada 3 — Épico',  'Armas, Runas, Artefatos',          'N1-7:+5 | N8-15:+8 | N16-22:+12 | N23-30:+16 | N31-40:+20 | N41-50:+24', 'Rank de arma / item mágico'],
   ]
 
   const tdhRows = [
@@ -2675,14 +2675,16 @@ function BalanceProtocolSection() {
     ['N8-15',  '4d10+18', '6d10+25', '9d12+32',  '13d12+45'],
     ['N16-22', '6d12+25', '8d12+38', '12d12+50', '17d12+65'],
     ['N23-30', '8d12+32', '10d12+45','14d12+60', '20d12+80'],
+    ['N31-40', '10d12+40', '12d12+58','16d12+78', '24d12+105'],
+    ['N41-50', '12d12+50', '15d12+72','20d12+96', '30d12+130'],
   ]
 
   const iplRows = [
-    ['Passiva (slot)',   '5', '6', '7',  '8'],
-    ['Ativa Fraca',      '4', '5', '6',  '7'],
-    ['Ativa Média',      '6', '7', '8',  '10'],
-    ['Ativa Forte',      '8', '10','12', '14'],
-    ['Ultimate',         '10','13','16', '20'],
+    ['Passiva (slot)',   '5', '6', '7',  '8',  '9',  '10'],
+    ['Ativa Fraca',      '4', '5', '6',  '7',  '8',  '9'],
+    ['Ativa Média',      '6', '7', '8',  '10', '12', '14'],
+    ['Ativa Forte',      '8', '10','12', '14', '16', '18'],
+    ['Ultimate',         '10','13','16', '20', '24', '28'],
   ]
 
   const ppPesoRows = [
@@ -2708,6 +2710,8 @@ function BalanceProtocolSection() {
     ['N20', '520–760',   'd20 +18 a +23',  'd20 +43'],
     ['N25', '700–980',   'd20 +22 a +26',  'd20 +50'],
     ['N30', '950–1350',  'd20 +26 a +30',  'd20 +58'],
+    ['N40', '1300–1900', 'd20 +32 a +38',  'd20 +72'],
+    ['N50', '1800–2600', 'd20 +40 a +46',  'd20 +86'],
   ]
 
   const pehRows = [
@@ -2790,7 +2794,7 @@ function BalanceProtocolSection() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-sep/60">
-                {['Tipo', 'N1-7', 'N8-15', 'N16-22', 'N23-30'].map((h, i) => (
+                {['Tipo', 'N1-7', 'N8-15', 'N16-22', 'N23-30', 'N31-40', 'N41-50'].map((h, i) => (
                   <th key={i} className="py-2 px-3 text-left text-txt-dim font-medium">{h}</th>
                 ))}
               </tr>

@@ -108,6 +108,25 @@ button:active:not(:disabled) {
     cursor: grab;
   }
 
+  .level-range-input {
+    appearance: none;
+    background: transparent;
+    opacity: 0;
+  }
+
+  .level-range-input::-webkit-slider-thumb {
+    appearance: none;
+    width: 28px;
+    height: 28px;
+  }
+
+  .level-range-input::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    background: transparent;
+  }
+
   .codex-border-accent {
     border-bottom: 2px solid rgba(247, 189, 72, 0.3);
   }
@@ -1224,6 +1243,93 @@ button:active:not(:disabled) {
     gap: 0.25rem;
   }
 
+  .development-effects-panel {
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 14px;
+    padding: 1rem;
+    background:
+      linear-gradient(135deg, rgba(56, 189, 248, 0.075), rgba(15, 15, 26, 0.7)),
+      rgba(15, 15, 26, 0.5);
+  }
+
+  .development-effects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.65rem;
+  }
+
+  .development-effect-card {
+    border: 1px solid rgba(56, 189, 248, 0.16);
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.18);
+  }
+
+  .development-effect-source {
+    color: rgba(125, 211, 252, 0.82);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .development-effect-card strong {
+    color: #e8e8f0;
+    font-size: 0.82rem;
+  }
+
+  .development-effect-card em {
+    color: #67e8f9;
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.8rem;
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  .development-effect-card p,
+  .development-effect-card small {
+    display: block;
+    color: #8888aa;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    margin-top: 0.35rem;
+  }
+
+  .race-quick-card {
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: rgba(56, 189, 248, 0.06);
+    min-height: 118px;
+  }
+
+  .race-quick-card.is-risk {
+    border-color: rgba(248, 113, 113, 0.18);
+    background: rgba(248, 113, 113, 0.055);
+  }
+
+  .race-quick-card.is-growth {
+    border-color: rgba(52, 211, 153, 0.18);
+    background: rgba(52, 211, 153, 0.055);
+  }
+
+  .race-quick-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: rgba(232, 232, 240, 0.72);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .race-quick-card p {
+    color: #a7a7c7;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin-top: 0.35rem;
+  }
+
   .race-choice-chip {
     min-width: 54px;
     border: 1px solid rgba(42, 42, 74, 1);
@@ -1358,6 +1464,56 @@ button:active:not(:disabled) {
     color: #8888aa;
     font-size: 0.85rem;
     line-height: 1.45;
+  }
+
+  .race-grant-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid rgba(251, 191, 36, 0.15);
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: rgba(251, 191, 36, 0.04);
+  }
+
+  .race-grant-card.is-granted {
+    border-color: rgba(52, 211, 153, 0.26);
+    background: rgba(52, 211, 153, 0.055);
+  }
+
+  .race-grant-effect {
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 999px;
+    padding: 0.16rem 0.45rem;
+    color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.08);
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+
+  .race-grant-toggle {
+    flex: 0 0 auto;
+    border: 1px solid rgba(251, 191, 36, 0.32);
+    border-radius: 9px;
+    padding: 0.45rem 0.7rem;
+    color: #facc15;
+    background: rgba(251, 191, 36, 0.08);
+    font-size: 0.72rem;
+    font-weight: 800;
+    transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+  }
+
+  .race-grant-toggle:hover {
+    border-color: rgba(251, 191, 36, 0.55);
+    background: rgba(251, 191, 36, 0.14);
+  }
+
+  .race-grant-toggle.is-granted {
+    border-color: rgba(248, 113, 113, 0.28);
+    color: #fca5a5;
+    background: rgba(248, 113, 113, 0.08);
   }
 
   .board-fullscreen {

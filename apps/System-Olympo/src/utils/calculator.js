@@ -129,7 +129,7 @@ export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, 
   if (subTriagem === 'INTUITIVO' && (subTriagemNivel || 0) >= 0.1) {
     intuitivoBonus += Math.floor(am * 0.5) * Math.floor(nivel / 5)
   }
-  return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + calcSystemSkillBonuses(raceContext || {}).energia
+  return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + (raceContext ? calculateRaceBonus(raceContext).energia : 0) + calcSystemSkillBonuses(raceContext || {}).energia
 }
 
 export function calcPeTotal(classe, nivel, choices, raceContext) {
@@ -147,7 +147,12 @@ export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
   const reflexoGrau = pericias?.Reflexo || 0
   const bloqueioGrau = pericias?.Bloqueio || 0
   const treino = Math.max(getGrauBonus(reflexoGrau), getGrauBonus(bloqueioGrau))
-  return 10 + treino + Math.max(modCON, modDES) + calcSystemSkillBonuses(raceContext || {}).armadura + calcSystemSkillBonuses(raceContext || {}).ca
+  const tankNaturalArmor = raceContext &&
+    ((raceContext.triagemPrincipal === 'TANK' && (raceContext.triagemPrincipalNivel || 0) >= 0.3) ||
+     (raceContext.subTriagem === 'TANK' && (raceContext.subTriagemNivel || 0) >= 0.3))
+    ? Math.floor(con * 0.5)
+    : 0
+  return 10 + treino + Math.max(modCON, modDES) + tankNaturalArmor + (raceContext ? calculateRaceBonus(raceContext).ca : 0) + calcSystemSkillBonuses(raceContext || {}).armadura + calcSystemSkillBonuses(raceContext || {}).ca
 }
 
 export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
@@ -200,12 +205,14 @@ export function calcDanoBase(classe, attrs, skeletonPoints, nivel, subTriagem, s
 
   const systemDamage = calcSystemSkillBonuses(raceContext || {}).dano
   if (systemDamage) parts.push(`+${systemDamage} (Skill)`)
+  const raceDamage = raceContext ? calculateRaceBonus(raceContext).dano : 0
+  if (raceDamage) parts.push(`+${raceDamage} (Raca)`)
   return parts.join(' ')
 }
 
 export function calcSkeletonPointsAvailable(classe, nivel, choices, raceContext) {
   const prog = getProgressionRewards(classe, nivel, choices)
-  return prog.esqueleto + calcSystemSkillBonuses(raceContext || {}).skeletonPoints
+  return prog.esqueleto + (raceContext ? calculateRaceBonus(raceContext).skeletonPoints : 0) + calcSystemSkillBonuses(raceContext || {}).skeletonPoints
 }
 
 export function calcModulesAvailable(classe, nivel, choices, raceContext) {

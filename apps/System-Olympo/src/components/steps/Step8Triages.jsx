@@ -47,16 +47,16 @@ export default function Step8Triages({ char, update, updateNested }) {
   }
 
   function getUnlockedLevels(triageData, maxLevel) {
-    const allLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    const allLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
     return allLevels.filter(l => l <= maxLevel)
   }
 
   function getSubUnlockedLevels(maxLevel) {
-    const allLevels = [0.1, 0.2, 0.3]
+    const allLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
     return allLevels.filter(l => l <= maxLevel)
   }
 
-  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 
   return (
     <div className={`triage-stage triage-${String(classe).toLowerCase()} space-y-8`}>
@@ -153,7 +153,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                   Object.entries(triages).map(([triageKey, triage]) => {
                     const isSameAsPrincipal = triagemPrincipal === triageKey && classe === classKey
                     const isSelected = char.subTriagem === triageKey && char.subTriagemClass === classKey
-                    const subLevels = [0.1, 0.2, 0.3]
+                    const subLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
                     const unlockedSub = getSubUnlockedLevels(subLevel)
 
                     return (

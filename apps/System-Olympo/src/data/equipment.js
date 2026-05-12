@@ -1,3 +1,5 @@
+import { SPECIAL_MATERIALS, getMaterialArmorBonus, getMaterialDurabilityBonus } from './materials'
+
 export const ARMOR_SLOTS = [
   { id: 'peitoral', label: 'Peitoral', icon: '🛡️', desc: 'Proteção torso e peito' },
   { id: 'elmo', label: 'Elmo', icon: '⛑️', desc: 'Proteção craniana' },
@@ -380,7 +382,7 @@ export function getEquipmentArmorValue(item = {}) {
   const type = EQUIPMENT_TYPES.find(t => t.id === item.tipoEquip)
   const rarity = getEquipmentRarity(item.rank)
   if (!type || !rarity) return 0
-  const materialBonus = item.materialEspecial === 'ferro_hefestiano' ? 2 : 0
+  const materialBonus = getMaterialArmorBonus(item.materialEspecial)
   return (type.caBase || 0) + (rarity.armorBonus || 0) + materialBonus
 }
 
@@ -390,7 +392,7 @@ export function getEquipmentDurabilityMax(item = {}) {
   const baseByWeight = { leve: 8, comum: 12, pesado: 18 }
   const rankBonus = DURABILITY_RANK_BONUSES[item.rank] ?? DURABILITY_RANK_BONUSES[getEquipmentRarity(item.rank).rank] ?? 0
   const categoryBonus = item.armorType === 'guerreiro' || item.setId === 'guerreiro' ? 2 : 0
-  const materialBonus = item.materialEspecial === 'ferro_hefestiano' ? 6 : 0
+  const materialBonus = getMaterialDurabilityBonus(item.materialEspecial)
   return (baseByWeight[type.weight] || 0) + rankBonus + categoryBonus + materialBonus
 }
 

@@ -321,7 +321,7 @@ export const RACES = {
     ],
     progressaoPoder: [
       { nivel: 1, ganho: 'Despertar da Fera', desc: 'Traços ativos. Transformação parcial. Forma lobo sem custo' },
-      { nivel: 5, ganho: 'Controle Lupino', desc: 'Transformação parcial: 2 PE. Garras 2d10+FOR. +2 em testes de CON contra frenesi' },
+      { nivel: 5, ganho: 'Controle Lupino', desc: 'A transformação parcial fica controlada: sem novo poder duplicado, agora custa 2 PE para aprimorar garras para 2d10+FOR e recebe +2 em testes de CON contra frenesi' },
       { nivel: 10, ganho: 'Fera Interior', desc: '+3 FOR em híbrida. Garras 3d8+FOR. Regeneração em combate: 2×ModCON/turno' },
       { nivel: 15, ganho: 'Sentidos Ampliados', desc: 'Percepção 2km. Não pode ser surpreendido. +3 Iniciativa. Imune a medo natural' },
       { nivel: 20, ganho: 'Mestre da Forma', desc: 'Forma híbrida indefinida. +2 em todas as formas. Garras 3d10+FOR. +30 HP permanente' },

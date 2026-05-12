@@ -1290,7 +1290,7 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
                   <span className="text-txt-dim text-xs flex-1 truncate">{p.name}</span>
                   <select value={grau} onChange={e => updatePericia(p.name, Number(e.target.value))}
                     className="bg-void/80 border border-sep/30 rounded px-1.5 py-0.5 text-[10px] text-txt-main focus:border-gold/40 focus:outline-none">
-                    {[0,1,2,3,4].map(g => <option key={g} value={g}>{g === 0 ? '—' : GRAU_NAMES[g]}</option>)}
+                    {[0,1,2,3,4,5,6].map(g => <option key={g} value={g}>{g === 0 ? '—' : GRAU_NAMES[g]}</option>)}
                   </select>
                 </div>
               )

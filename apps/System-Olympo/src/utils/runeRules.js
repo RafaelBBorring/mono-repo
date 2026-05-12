@@ -52,7 +52,7 @@ export function getRuneActiveCount(runes = []) {
 }
 
 export function getRuneProfile(char = {}) {
-  const nivel = Math.max(1, Math.min(30, char.nivel || 1))
+  const nivel = Math.max(1, Math.min(50, char.nivel || 1))
   const trainingLevel = getRuneTrainingLevel(char)
   const hasModule = (char.modulosAdquiridos || []).some(m => m.id === 'vinculo_runico')
   const hasAccess = hasModule

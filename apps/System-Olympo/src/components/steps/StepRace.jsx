@@ -7,6 +7,7 @@ import {
   getSelectedSubrace,
   getSubracesForRace,
 } from '../../utils/raceCalculator'
+import { formatRaceBonusParts, getRaceProgressionBonus } from '../../utils/raceMilestones'
 
 function bonusLine(bonus = {}) {
   const attrs = Object.entries(bonus.attrs || {})
@@ -85,7 +86,7 @@ export default function StepRace({ char, update }) {
       subraca: defaultSubrace,
       racaAttrChoices: {},
     }
-    if (race.layer0?.requiresDeus) patch.racaDeus = defaultSubrace || race.deuses[0]?.id || null
+    if (race.layer0?.requiresDeus) patch.racaDeus = race.deuses?.[0]?.id || null
     if (!race.layer0?.requiresDeus) patch.racaDeus = null
     update(patch)
   }
@@ -96,7 +97,6 @@ export default function StepRace({ char, update }) {
 
   function handleSubraceSelect(race, sub) {
     const patch = { subraca: sub.id }
-    if (race.id === 'SEMIDEUS') patch.racaDeus = sub.id
     update(patch)
   }
 
@@ -176,7 +176,7 @@ export default function StepRace({ char, update }) {
               const previewChar = {
                 ...char,
                 raca: race.id,
-                racaDeus: race.layer0?.requiresDeus ? (getDefaultSubraceId(race.id) || race.deuses?.[0]?.id || null) : null,
+                racaDeus: race.layer0?.requiresDeus ? (race.deuses?.[0]?.id || null) : null,
                 subraca: getDefaultSubraceId(race.id),
                 racaAttrChoices: {},
               }
@@ -256,6 +256,9 @@ function SelectedRaceDetails({
   const allowedAttrs = layer.escolherOpcoes || ATTR_KEYS
   const selectedChoiceCount = Object.values(char.racaAttrChoices || {}).filter(Boolean).length
   const maxChoices = layer.escolherQtd || 0
+  const progressionPreview = formatRaceBonusParts(getRaceProgressionBonus(char))
+  const topBenefits = (race.vantagens || []).slice(0, 3)
+  const topDrawbacks = (race.desvantagens || []).slice(0, 3)
 
   return (
     <div className="space-y-5">
@@ -286,13 +289,34 @@ function SelectedRaceDetails({
             />
           ))}
           <StatPill label="HP" value={`${raceBonus.hp >= 0 ? '+' : ''}${raceBonus.hp}`} tone={raceBonus.hp < 0 ? 'red' : 'emerald'} />
+          <StatPill label="Energia" value={`${raceBonus.energia >= 0 ? '+' : ''}${raceBonus.energia || 0}`} tone="sky" />
           <StatPill label="PE" value={`+${raceBonus.pe || 0}`} tone="emerald" />
+          <StatPill label="Dano" value={`${raceBonus.dano >= 0 ? '+' : ''}${raceBonus.dano || 0}`} tone="red" />
           <StatPill label="Pericias" value={`+${raceBonus.pericias || 0}`} tone="gold" />
           <StatPill label="Modulos" value={`+${raceBonus.modules || 0}`} tone="purple" />
         </div>
         <div className="mt-3 text-xs text-txt-dim">
           Base racial: <span className="text-sky-300 font-mono">{getAttrBonusText(race)}</span>
           {totals.length > 0 && <span className="ml-2 text-txt-dim/70">Total: {totals.join(' | ')}</span>}
+        </div>
+      </Section>
+
+      <Section title="Leitura Rapida" tone="sky" dense>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="race-quick-card">
+            <span className="race-quick-label">Forca da raca</span>
+            {topBenefits.map((item, i) => <p key={i}>{item}</p>)}
+          </div>
+          <div className="race-quick-card is-risk">
+            <span className="race-quick-label">Custo narrativo</span>
+            {topDrawbacks.map((item, i) => <p key={i}>{item}</p>)}
+          </div>
+          <div className="race-quick-card is-growth">
+            <span className="race-quick-label">Evolucao ja contabilizada</span>
+            {progressionPreview.length
+              ? progressionPreview.slice(0, 5).map((item, i) => <p key={i}>{item}</p>)
+              : <p>Sem bonus numerico ativo no nivel atual.</p>}
+          </div>
         </div>
       </Section>
 
@@ -322,7 +346,7 @@ function SelectedRaceDetails({
       )}
 
       {subraces.length > 0 && (
-        <Section title={race.id === 'SEMIDEUS' ? 'Linhagem Divina' : 'Sub-Raca / Caminho'} tone="purple">
+        <Section title={race.id === 'SEMIDEUS' ? 'Caminho de Ascensao' : 'Sub-Raca / Caminho'} tone="purple">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {subraces.map(sub => {
               const selected = selectedSubrace?.id === sub.id
@@ -478,7 +502,7 @@ function SelectedRaceDetails({
 
 function DivineLineage({ race, char, update }) {
   return (
-    <Section title="Detalhe do Deus Pai" tone="amber">
+    <Section title="Deus Pai / Heranca Divina" tone="amber">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1">
         {race.deuses.map(deus => {
           const selected = char.racaDeus === deus.id
@@ -486,7 +510,7 @@ function DivineLineage({ race, char, update }) {
             <button
               key={deus.id}
               type="button"
-              onClick={() => update({ racaDeus: deus.id, subraca: deus.id })}
+              onClick={() => update({ racaDeus: deus.id })}
               className={`race-god-card ${selected ? 'is-selected' : ''}`}
             >
               <span className="font-semibold text-txt-main">{deus.name}</span>

@@ -62,7 +62,7 @@ export function getSpellTraditions(char = {}) {
 }
 
 export function getSpellProfile(char = {}) {
-  const nivel = Math.max(1, Math.min(30, char.nivel || 1))
+  const nivel = Math.max(1, Math.min(50, char.nivel || 1))
   const trainingLevel = getSpellTrainingLevel(char)
   const base = SPELL_BASE_RULES.find((rule) => nivel <= rule.maxLevel) || SPELL_BASE_RULES[SPELL_BASE_RULES.length - 1]
   const classKey = normalizeClassKey(char.classe)

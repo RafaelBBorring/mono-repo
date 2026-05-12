@@ -1,4 +1,10 @@
 import { RACES } from '../data/races'
+import {
+  emptyRaceBonus,
+  getGrantedRaceMilestoneBonus,
+  getRaceProgressionBonus,
+  mergeRaceBonus,
+} from './raceMilestones'
 
 export const ATTR_KEYS = ['FOR', 'DES', 'CON', 'INT', 'APA', 'AM']
 
@@ -142,19 +148,52 @@ const SEMIDEUS_SUBRACE_BONUS = {
   HESTICA: { hp: 30, pe: 15, attrs: { AM: 1, CON: 1 }, note: 'Chama Eterna 2d6+AM fogo a 20m. Imune a fogo. Aliados 5m resistem frio e recebem +2 contra medo.' },
 }
 
+const SEMIDEUS_EVOLUTION_PATHS = [
+  {
+    id: 'HERDEIRO_OLIMPICO',
+    name: 'Herdeiro Olimpico',
+    bonus: { hp: 10, pe: 5 },
+    note: 'Caminho base de semideus: mantem o foco na heranca do deus pai sem acelerar a ascensao.',
+    marcos: [
+      ['Sangue Reconhecido', 'Ter a linhagem aceita por um templo, deus ou oraculo', '+10 PE; +1 Pericia social ou mistica'],
+      ['Feito Heroico', 'Resolver um conflito acima do proprio nivel', '+20 Vida; +1 Modulo'],
+      ['Nome no Olimpo', 'Ser citado entre herois lendarios', '+2 em qualquer atributo concedido pelo pai divino'],
+    ],
+  },
+  {
+    id: 'ASCENDENTE_DEUS',
+    name: 'Ascendente a Deus',
+    minLevel: 15,
+    bonus: { attrs: { AM: 2, CON: 1 }, hp: 30, pe: 20 },
+    note: 'A divindade deixa de ser somente heranca e vira destino. Poderes divinos ganham escala narrativa maior.',
+    marcos: [
+      ['Primeiro Dominio', 'Manifestar um dominio proprio alem da esfera do pai', '+2 AM; +20 Energia'],
+      ['Adoradores', 'Ser seguido por mortais ou espiritos por um arco', '+25 PE; +1 Habilidade passiva narrativa'],
+      ['Corpo Divino', 'Sobreviver a uma execucao ou artefato divino', '+40 Vida; +2 CON'],
+    ],
+  },
+  {
+    id: 'NOVO_DEUS',
+    name: 'Novo Deus',
+    minLevel: 25,
+    requirement: 'Marco unico concedido pelo Mestre',
+    bonus: { attrs: { FOR: 1, DES: 1, CON: 1, INT: 1, APA: 1, AM: 3 }, hp: 80, pe: 40, modules: 1 },
+    note: 'Estado raro de apoteose. Deve representar uma virada de campanha e nao apenas uma escolha comum.',
+    marcos: [
+      ['Dominio Nomeado', 'Fundar ou roubar um dominio divino reconhecido', '+3 AM; +30 PE'],
+      ['Culto Vivo', 'Ter culto ativo e consequencias politicas', '+2 APA; +2 INT'],
+      ['Apoteose', 'Concluir o ritual ou feito que transforma a existencia', '+100 Vida; +2 Modulos'],
+    ],
+  },
+]
+
 function addAttrs(total, attrs = {}) {
   for (const attr of ATTR_KEYS) total[attr] = (total[attr] || 0) + (attrs[attr] || 0)
 }
 
 export function getSubracesForRace(raceId) {
   if (raceId === 'SEMIDEUS') {
-    const deuses = RACES.SEMIDEUS?.deuses || []
-    return deuses.map(deus => ({
-      id: deus.id,
-      name: `Filho(a) de ${deus.name}`,
-      bonus: SEMIDEUS_SUBRACE_BONUS[deus.id] || {},
-      note: SEMIDEUS_SUBRACE_BONUS[deus.id]?.note || deus.especial,
-    }))
+    return SEMIDEUS_EVOLUTION_PATHS
   }
   return RACE_SUBRACES[raceId] || []
 }
@@ -170,14 +209,7 @@ export function getDefaultSubraceId(raceId) {
 }
 
 export function calculateRaceBonus(char = {}) {
-  const total = {
-    attrs: Object.fromEntries(ATTR_KEYS.map(a => [a, 0])),
-    hp: 0,
-    pe: 0,
-    pericias: 0,
-    modules: 0,
-    notes: [],
-  }
+  const total = emptyRaceBonus()
   const race = RACES[char.raca]
   if (!race) return total
 
@@ -189,9 +221,20 @@ export function calculateRaceBonus(char = {}) {
     total.pericias += 2
   }
 
-  if (layer.requiresDeus && char.racaDeus) {
-    const deus = race.deuses?.find(d => d.id === char.racaDeus)
+  const selectedGodId = layer.requiresDeus
+    ? (char.racaDeus || (race.deuses?.some(d => d.id === char.subraca) ? char.subraca : null))
+    : null
+
+  if (layer.requiresDeus && selectedGodId) {
+    const deus = race.deuses?.find(d => d.id === selectedGodId)
     if (deus?.attr) addAttrs(total.attrs, deus.attr)
+    const divineBonus = SEMIDEUS_SUBRACE_BONUS[selectedGodId]
+    if (divineBonus) {
+      addAttrs(total.attrs, divineBonus.attrs)
+      total.hp += divineBonus.hp || 0
+      total.pe += divineBonus.pe || 0
+      if (divineBonus.note) total.notes.push(divineBonus.note)
+    }
   }
 
   const choiceBonus = layer.attrBonus?.escolher ? (layer.attrBonus.escolherValor || 1) : 0
@@ -213,6 +256,9 @@ export function calculateRaceBonus(char = {}) {
     total.modules += subrace.bonus.modules || 0
   }
   if (subrace?.note) total.notes.push(subrace.note)
+
+  mergeRaceBonus(total, getRaceProgressionBonus(char))
+  mergeRaceBonus(total, getGrantedRaceMilestoneBonus(char, race, subrace))
 
   return total
 }
