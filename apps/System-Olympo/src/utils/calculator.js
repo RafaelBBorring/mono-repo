@@ -300,9 +300,14 @@ export function estimateInventoryItemWeight(item = {}) {
 }
 
 export function calcCarriedLoad(char = {}) {
+  const isCarriedLocation = (location) => {
+    const loc = location || 'carregado'
+    return loc === 'carregado' || loc === 'equipado' || loc === 'mochila'
+  }
+
   const inventoryLoad = (char.inventario || []).reduce((sum, item) => {
     const location = item.local || 'carregado'
-    if (location === 'guardado' || location === 'base' || location === 'veiculo' || location === 'casa' || location === 'case') return sum
+    if (!isCarriedLocation(location)) return sum
     return sum + estimateInventoryItemWeight(item) * (Number(item.quantidade) || 1)
   }, 0)
 
@@ -311,12 +316,12 @@ export function calcCarriedLoad(char = {}) {
       return item.equipado ? sum + estimateEquipmentWeight(item) * (Number(item.quantidade) || 1) : sum
     }
     const location = item.local || (item.equipado ? 'equipado' : 'guardado')
-    if (location === 'guardado' || location === 'base' || location === 'veiculo' || location === 'casa' || location === 'case') return sum
+    if (!isCarriedLocation(location)) return sum
     return sum + estimateEquipmentWeight(item) * (Number(item.quantidade) || 1)
   }, 0)
 
   const primaryWeapon = WEAPONS.find(w => w.id === char.arma)
-  const primaryWeaponCarried = !!char.arma && char.armaEquipada !== false
+  const primaryWeaponCarried = !!char.arma && char.armaEquipada !== false && isCarriedLocation(char.armaLocal || 'equipado')
   const primaryWeaponLoad = primaryWeaponCarried ? getWeaponWeight(char.arma, char.armaNome || primaryWeapon?.name, '') : 0
 
   return Math.round((inventoryLoad + equipmentLoad + primaryWeaponLoad) * 10) / 10

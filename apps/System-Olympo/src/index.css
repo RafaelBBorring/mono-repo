@@ -4272,3 +4272,591 @@ body {
     font-size: 0.55rem;
   }
 }
+
+/* Unified Resident Evil style inventory */
+.resident-inventory {
+  border: 1px solid rgba(245, 200, 76, 0.14);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0)),
+    rgba(8, 9, 12, 0.55);
+  padding: 1rem;
+}
+
+.resident-inventory-toolbar,
+.resident-inventory-status,
+.resident-weapon-slots,
+.resident-location-create {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.resident-inventory-toolbar {
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.resident-location-tabs {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.resident-location-tabs button,
+.resident-create-btn,
+.resident-location-create button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(245, 200, 76, 0.2);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(244, 241, 255, 0.72);
+  font-size: 0.68rem;
+  padding: 0.45rem 0.65rem;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.resident-location-tabs button:hover,
+.resident-create-btn:hover,
+.resident-location-create button:hover,
+.resident-location-tabs button.is-active {
+  border-color: rgba(245, 200, 76, 0.5);
+  background: rgba(245, 200, 76, 0.1);
+  color: #f5c84c;
+}
+
+.resident-location-tabs .material-symbols-outlined,
+.resident-create-btn .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.resident-location-create {
+  margin-bottom: 0.85rem;
+}
+
+.resident-location-create input {
+  flex: 1;
+  min-width: 12rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 7px;
+  background: rgba(0,0,0,0.25);
+  color: #f4f1ff;
+  font-size: 0.72rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.resident-inventory-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 0.9rem;
+}
+
+.resident-mini-stat {
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.22);
+  padding: 0.55rem 0.65rem;
+  min-width: 0;
+}
+
+.resident-mini-stat span {
+  display: block;
+  color: rgba(166, 163, 186, 0.66);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.resident-mini-stat strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.resident-inventory-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.resident-outfit-column {
+  min-height: 32rem;
+}
+
+.resident-outfit-card,
+.resident-outfit-empty {
+  height: 100%;
+  min-height: 32rem;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.055);
+  padding: 0.75rem;
+}
+
+.resident-outfit-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  color: rgba(186, 230, 253, 0.72);
+}
+
+.resident-outfit-empty .material-symbols-outlined {
+  font-size: 2.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.resident-outfit-empty p {
+  color: rgba(166, 163, 186, 0.64);
+  font-size: 0.72rem;
+  margin-top: 0.3rem;
+}
+
+.resident-outfit-image {
+  width: 100%;
+  height: min(26rem, 52vh);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.28);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: rgba(186, 230, 253, 0.75);
+}
+
+.resident-outfit-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.resident-outfit-image .material-symbols-outlined {
+  font-size: 2.6rem;
+}
+
+.resident-outfit-info {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding-top: 0.7rem;
+}
+
+.resident-outfit-info strong,
+.resident-grid-card-name {
+  color: #f4f1ff;
+  font-weight: 700;
+}
+
+.resident-outfit-info span,
+.resident-grid-card-meta {
+  display: block;
+  color: rgba(166, 163, 186, 0.72);
+  font-size: 0.66rem;
+}
+
+.resident-outfit-info em {
+  display: block;
+  color: rgba(52, 211, 153, 0.82);
+  font-size: 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-style: normal;
+  margin-top: 0.4rem;
+}
+
+.resident-main-column {
+  min-width: 0;
+}
+
+.resident-weapon-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 0.7rem;
+}
+
+.resident-weapon-slot {
+  min-height: 5.2rem;
+  border: 1px solid rgba(245, 200, 76, 0.18);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.23);
+  padding: 0.7rem;
+  text-align: left;
+}
+
+.resident-weapon-slot.has-item {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.resident-weapon-slot span {
+  display: block;
+  color: rgba(245, 200, 76, 0.82);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.resident-weapon-slot strong {
+  display: block;
+  color: #f4f1ff;
+  font-size: 0.86rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resident-grid-wrap {
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.23);
+  padding: 0.55rem;
+}
+
+.resident-grid {
+  position: relative;
+  min-height: 31rem;
+  border: 1px solid rgba(245, 200, 76, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(245,200,76,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,200,76,0.08) 1px, transparent 1px),
+    rgba(8, 9, 12, 0.78);
+  background-size: 10% calc(100% / 7), 10% calc(100% / 7), auto;
+  overflow: hidden;
+}
+
+.resident-grid-cells,
+.resident-grid-items {
+  position: absolute;
+  inset: 0;
+}
+
+.resident-grid-cells {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  z-index: 1;
+}
+
+.resident-grid-cells button {
+  border: 0;
+  background: transparent;
+}
+
+.resident-grid-cells button:hover {
+  background: rgba(245, 200, 76, 0.045);
+}
+
+.resident-grid-items {
+  pointer-events: none;
+  z-index: 2;
+}
+
+.resident-grid-card {
+  position: absolute;
+  pointer-events: auto;
+  padding: 0.25rem;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.resident-grid-card.is-dragging {
+  opacity: 0.35;
+  transform: scale(0.96);
+}
+
+.resident-grid-card-main {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(0,0,0,0.22)),
+    rgba(10, 14, 18, 0.94);
+  color: #f4f1ff;
+  padding: 0.45rem;
+  display: grid;
+  grid-template-columns: minmax(2.5rem, 0.95fr) minmax(0, 1.1fr);
+  grid-template-rows: 1fr auto;
+  gap: 0.35rem 0.5rem;
+  text-align: left;
+  overflow: hidden;
+}
+
+.resident-grid-card.is-equipped .resident-grid-card-main {
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.12);
+}
+
+.resident-grid-card-main img,
+.resident-grid-card-main > .material-symbols-outlined {
+  grid-row: span 2;
+  width: 100%;
+  height: 100%;
+  min-height: 2.6rem;
+  border-radius: 6px;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  color: rgba(186, 230, 253, 0.78);
+  background: rgba(255,255,255,0.055);
+}
+
+.resident-grid-card-name {
+  align-self: end;
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resident-grid-card-meta {
+  font-size: 0.62rem;
+}
+
+.resident-card-actions {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.resident-grid-card:hover .resident-card-actions {
+  opacity: 1;
+}
+
+.resident-card-actions button {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(245, 200, 76, 0.22);
+  border-radius: 5px;
+  background: rgba(0,0,0,0.72);
+  color: #f5c84c;
+}
+
+.resident-card-actions .material-symbols-outlined {
+  font-size: 0.9rem;
+}
+
+.resident-grid-hint {
+  color: rgba(166, 163, 186, 0.55);
+  font-size: 0.64rem;
+  margin-top: 0.5rem;
+}
+
+.resident-create-modal {
+  position: relative;
+  width: min(760px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid rgba(245, 200, 76, 0.22);
+  border-radius: 14px;
+  background: rgba(15, 15, 18, 0.98);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+  padding: 1rem;
+}
+
+.resident-create-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.resident-create-modal header div {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.resident-create-modal h3 {
+  color: #f5c84c;
+  font-family: Cinzel, serif;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.resident-create-modal header button {
+  color: rgba(166, 163, 186, 0.8);
+  font-size: 1.35rem;
+}
+
+.resident-create-grid,
+.resident-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.resident-create-grid button,
+.resident-preset-grid button {
+  border: 1px solid rgba(245, 200, 76, 0.16);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.22);
+  color: #f4f1ff;
+  padding: 0.85rem;
+  text-align: left;
+}
+
+.resident-create-grid button:hover,
+.resident-preset-grid button:hover,
+.resident-preset-grid button.is-active {
+  border-color: rgba(245, 200, 76, 0.42);
+  background: rgba(245, 200, 76, 0.08);
+}
+
+.resident-create-grid .material-symbols-outlined {
+  color: #f5c84c;
+  font-size: 1.4rem;
+}
+
+.resident-create-grid strong,
+.resident-preset-grid strong {
+  display: block;
+  margin-top: 0.45rem;
+}
+
+.resident-create-grid p,
+.resident-preset-grid span {
+  display: block;
+  color: rgba(166, 163, 186, 0.7);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  margin-top: 0.35rem;
+}
+
+.resident-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 8rem;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.resident-form-grid textarea {
+  grid-column: 1 / -1;
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.resident-form-grid input,
+.resident-form-grid textarea,
+.resident-form-grid select {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.28);
+  color: #f4f1ff;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.resident-item-modal footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.resident-item-modal footer button {
+  border: 1px solid rgba(245, 200, 76, 0.22);
+  border-radius: 8px;
+  color: #f5c84c;
+  padding: 0.55rem 0.8rem;
+}
+
+.resident-item-modal footer button.primary {
+  background: #f5c84c;
+  color: #09090b;
+  font-weight: 700;
+}
+
+.resident-move-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.resident-move-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 8px;
+  color: rgba(186, 230, 253, 0.82);
+  padding: 0.5rem;
+  font-size: 0.68rem;
+}
+
+.resident-move-list button:disabled {
+  opacity: 0.35;
+}
+
+@media (max-width: 900px) {
+  .resident-inventory-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .resident-outfit-column,
+  .resident-outfit-card,
+  .resident-outfit-empty {
+    min-height: 22rem;
+  }
+
+  .resident-inventory-status,
+  .resident-weapon-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .resident-inventory {
+    padding: 0.75rem;
+  }
+
+  .resident-inventory-toolbar,
+  .resident-location-create {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .resident-create-btn,
+  .resident-location-create button {
+    justify-content: center;
+  }
+
+  .resident-inventory-status {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .resident-grid {
+    min-height: 24rem;
+  }
+
+  .resident-grid-card-main {
+    grid-template-columns: 1fr;
+  }
+
+  .resident-grid-card-main img,
+  .resident-grid-card-main > .material-symbols-outlined {
+    grid-row: auto;
+  }
+
+  .resident-grid-card-name {
+    font-size: 0.64rem;
+  }
+}

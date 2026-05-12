@@ -15,8 +15,7 @@ import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/mod
 import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus, getSelectedSubrace, ATTR_KEYS } from '../../utils/raceCalculator'
 import { RACES, RACE_CATEGORIES } from '../../data/races'
 import { generateWeaponAbilities, analyzeForgeEnchantment } from '../../services/aiService'
-import InventorySection from '../InventorySection'
-import EquipmentSection from '../EquipmentSection'
+import ResidentInventorySection from '../ResidentInventorySection'
 import AbilityAnalysisChat from '../AbilityAnalysisChat'
 import AlchemyLibrarySection from '../AlchemyLibrarySection'
 import SpellLibrarySection from '../SpellLibrarySection'
@@ -680,98 +679,14 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {/* INVENTÁRIO & EQUIPAMENTOS */}
               <section className={visible('inventory') ? 'sheet-panel space-y-5' : 'hidden'}>
                 <SectionHeader icon="🎒" title="Inventário & Equipamentos" color="bg-amber-400" />
-                <EquipmentSection
+                <ResidentInventorySection
                   char={char}
                   canEdit={canEdit}
-                  onUpdate={(eq) => update({ equipamentos: eq })}
-                  onCharacterUpdate={update}
-                  onDrawerToggle={() => {}}
-                  onTransfer={onTransferItem}
-                  onEquipItem={(itemId) => {
-                    if (itemId === 'weapon') {
-                      update({ armaEquipada: false, armaLocal: 'guardado' })
-                    } else {
-                      const equipamentos = (char.equipamentos || []).map(eq => {
-                        if (eq.id === itemId) {
-                          return { ...eq, equipado: false, local: 'guardado' }
-                        }
-                        return eq
-                      })
-                      update({ equipamentos })
-                    }
-                  }}
-                  onUnequipItem={(itemId) => {
-                    if (itemId === 'weapon') {
-                      update({ armaEquipada: true, armaLocal: 'equipado' })
-                    } else {
-                      const equipamentos = (char.equipamentos || []).map(eq => {
-                        if (eq.id === itemId) {
-                          return { ...eq, equipado: true, local: 'equipado' }
-                        }
-                        return eq
-                      })
-                      update({ equipamentos })
-                    }
-                  }}
+                  update={update}
+                  onTransferItem={onTransferItem}
+                  maxCarry={carryCapacity}
+                  totalCarryWeight={carriedLoad}
                 />
-                <div className="border-t border-sep/25 pt-5">
-                  <InventorySection
-                    items={char.inventario || []}
-                    equippedWeapon={char.armaEquipada && char.arma ? {
-                      id: char.arma,
-                      nome: char.armaNome || WEAPONS.find(w => w.id === char.arma)?.name,
-                      imagem: char.armaImagem,
-                      cor: 'gray',
-                      local: char.armaEquipada ? 'equipado' : 'guardado',
-                    } : null}
-                    equippedItems={(char.equipamentos || []).filter(eq => eq.equipado)}
-                    canEdit={canEdit}
-                    onUpdate={(items) => update({ inventario: items })}
-                    wallet={{ dolares: char.dolares || 0, dracmas: char.dracmas || 0 }}
-                    onWalletUpdate={(patch) => update(patch)}
-                    onDrawerToggle={() => {}}
-                    maxCarry={carryCapacity}
-                    totalCarryWeight={carriedLoad}
-                    level={char.nivel || 1}
-                    modules={char.modulosAdquiridos || []}
-                    onTransfer={onTransferItem ? (idx) => onTransferItem('inventario', idx) : null}
-                    onItemEdit={(idx, patch) => {
-                      const inventario = [...(char.inventario || [])]
-                      inventario[idx] = { ...inventario[idx], ...patch }
-                      update({ inventario })
-                    }}
-                    onItemDelete={(idx) => {
-                      const inventario = char.inventario || []
-                      update({ inventario: inventario.filter((_, i) => i !== idx) })
-                    }}
-                    onEquipItem={(itemId) => {
-                      if (itemId === 'weapon') {
-                        update({ armaEquipada: true, armaLocal: 'equipado' })
-                      } else {
-                        const equipamentos = (char.equipamentos || []).map(eq => {
-                          if (eq.id === itemId) {
-                            return { ...eq, equipado: true, local: 'equipado' }
-                          }
-                          return eq
-                        })
-                        update({ equipamentos })
-                      }
-                    }}
-                    onUnequipItem={(itemId) => {
-                      if (itemId === 'weapon') {
-                        update({ armaEquipada: false, armaLocal: 'guardado' })
-                      } else {
-                        const equipamentos = (char.equipamentos || []).map(eq => {
-                          if (eq.id === itemId) {
-                            return { ...eq, equipado: false, local: 'guardado' }
-                          }
-                          return eq
-                        })
-                        update({ equipamentos })
-                      }
-                    }}
-                  />
-                </div>
               </section>
 
               {/* HERANÇA RACIAL */}

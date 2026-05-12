@@ -842,7 +842,7 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
   )
 }
 
-function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onTransfer, onClose }) {
+export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onTransfer, onClose }) {
   const { isAdmin } = useAuth()
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   const [analyzing, setAnalyzing] = useState(false)
@@ -1397,7 +1397,7 @@ function LegendaryCatalogModal({ items, assigned, isAdmin, onAssign, onClose }) 
   )
 }
 
-function OutfitDrawerClean({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit, onTogglePiece, onOpenPiece, onRemovePiece, onDissolve, onClose }) {
+export function OutfitDrawerClean({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit, onTogglePiece, onOpenPiece, onRemovePiece, onDissolve, onClose }) {
   const pieceItems = pieces.map(({ item }) => item)
   const stats = calcEquipStats(pieceItems.map(piece => ({ ...piece, equipado: true })))
   return (
@@ -1628,7 +1628,7 @@ function OutfitDrawer({ outfit, pieces = [], canEdit, onAddPiece, onToggleOutfit
   )
 }
 
-function OutfitCreateModalClean({ onSave, onClose }) {
+export function OutfitCreateModalClean({ onSave, onClose }) {
   const [nome, setNome] = useState('Traje Completo')
   const [descricao, setDescricao] = useState('')
   const [imagem, setImagem] = useState(null)
@@ -1832,7 +1832,7 @@ function OutfitCreateModal({ onSave, onClose }) {
   )
 }
 
-function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', lockCategory = false, title = 'Novo Equipamento', unavailableSlots = [] }) {
+export function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', lockCategory = false, title = 'Novo Equipamento', unavailableSlots = [] }) {
   const [step, setStep] = useState(0)
   const [itemCategory, setItemCategory] = useState(initialCategory)
   const [equipType, setEquipType] = useState(null)
@@ -2440,7 +2440,7 @@ function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arma', loc
   )
 }
 
-function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
+export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
   const { isAdmin } = useAuth()
   const rc = RANK_COLORS[item.rank] || RANK_COLORS.Comum
   const equipType = getEquipmentType(item)
