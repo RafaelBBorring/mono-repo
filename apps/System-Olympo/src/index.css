@@ -4331,6 +4331,17 @@ body {
   font-size: 1rem;
 }
 
+.resident-tab-badge {
+  font-size: 0.55rem;
+  background: rgba(245, 200, 76, 0.15);
+  color: #f5c84c;
+  border-radius: 6px;
+  padding: 0.05rem 0.35rem;
+  font-weight: 700;
+  min-width: 1rem;
+  text-align: center;
+}
+
 .resident-location-create {
   margin-bottom: 0.85rem;
 }
@@ -4348,7 +4359,7 @@ body {
 
 .resident-inventory-status {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-bottom: 0.9rem;
 }
 
@@ -4473,14 +4484,14 @@ body {
 .resident-grid {
   position: relative;
   width: 100%;
-  aspect-ratio: 8 / 6;
+  aspect-ratio: 10 / 8;
   border: 1px solid rgba(245, 200, 76, 0.16);
   border-radius: 11px;
   background:
     linear-gradient(rgba(245,200,76,0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245,200,76,0.08) 1px, transparent 1px),
     rgba(8, 9, 12, 0.78);
-  background-size: calc(100% / 8) calc(100% / 6), calc(100% / 8) calc(100% / 6), auto;
+  background-size: calc(100% / 10) calc(100% / 8), calc(100% / 10) calc(100% / 8), auto;
   overflow: hidden;
 }
 
@@ -4492,8 +4503,8 @@ body {
 
 .resident-grid-cells {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(8, 1fr);
   z-index: 1;
 }
 
@@ -4501,11 +4512,22 @@ body {
   border: 0;
   background: transparent;
   box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.055);
-  border-radius: 7px;
+  border-radius: 4px;
+  transition: background 120ms ease;
 }
 
 .resident-grid-cells button:hover {
   background: rgba(245, 200, 76, 0.045);
+}
+
+.resident-grid-cells button.is-drop-valid {
+  background: rgba(52, 211, 153, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.25);
+}
+
+.resident-grid-cells button.is-drop-invalid {
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.2);
 }
 
 .resident-grid-items {
@@ -4521,8 +4543,29 @@ body {
 }
 
 .resident-grid-card.is-dragging {
-  opacity: 0.35;
-  transform: scale(0.96);
+  opacity: 0.3;
+  transform: scale(0.92);
+  filter: blur(1px);
+  z-index: 0;
+}
+
+.resident-drop-preview {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9px;
+  z-index: 1;
+  transition: left 80ms ease, top 80ms ease, width 80ms ease, height 80ms ease;
+}
+
+.resident-drop-preview.is-valid {
+  border: 2px solid rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.08);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+}
+
+.resident-drop-preview.is-invalid {
+  border: 2px dashed rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.06);
 }
 
 .resident-grid-card-main {
@@ -4530,15 +4573,21 @@ body {
   width: 100%;
   height: 100%;
   border: 1px solid rgba(56, 189, 248, 0.28);
-  border-radius: 9px;
+  border-radius: 6px;
   background:
     linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(0,0,0,0.22)),
     rgba(10, 14, 18, 0.94);
   color: #f4f1ff;
-  padding: 0.28rem;
+  padding: 0.2rem;
   display: block;
   text-align: left;
   overflow: hidden;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.resident-grid-card-main:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.12);
 }
 
 .resident-grid-card-main::before {
