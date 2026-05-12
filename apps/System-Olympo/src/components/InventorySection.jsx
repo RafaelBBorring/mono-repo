@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ITEM_COLORS } from '../data/colors'
 import { suggestItemWeight } from '../services/aiService'
 import { calcStartingEconomy, estimateInventoryItemWeight } from '../utils/calculator'
+import DragDropInventory from './DragDropInventory'
 
 function estimateItemWeight(item = {}) {
   return estimateInventoryItemWeight(item)
@@ -13,20 +14,6 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
   const [viewIdx, setViewIdx] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const editImgRef = useRef(null)
-  const totalWeight = items.reduce((sum, item) => {
-    const location = item.local || 'carregado'
-    if (location === 'guardado' || location === 'base' || location === 'veiculo') return sum
-    return sum + estimateItemWeight(item) * (Number(item.quantidade) || 1)
-  }, 0)
-  const displayedLoad = totalCarryWeight ?? totalWeight
-
-  const basePoints = calcStartingEconomy(level)
-  const fortunaBonus = modules.filter(m => m.id === 'fortuna_inicial').length * 2000
-  const empreendedorBonus = modules.filter(m => m.id === 'empreendedor').reduce((s, m) => s + (m.boughtCount || 1) * 1500, 0)
-  const maxPoints = basePoints + fortunaBonus + empreendedorBonus
-  const usedDolar = Math.round((wallet.dolares || 0) / 2)
-  const usedDracma = Math.round((wallet.dracmas || 0) / 0.5)
-  const spentPoints = usedDolar + usedDracma
 
   if (!canEdit && items.length === 0) return null
 
@@ -34,7 +21,12 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
   function closeDrawer() { setViewIdx(null); setEditMode(false); onDrawerToggle?.(false) }
 
   function addItem(item) {
-    onUpdate([...items, { id: Date.now(), nome: '', descricao: '', imagem: null, cor: 'gray', ...item }])
+    // Find first available slot
+    const occupiedSlots = new Set(items.map((i, idx) => i.slot ?? idx))
+    let slot = 0
+    while (occupiedSlots.has(slot) && slot < 24) slot++
+
+    onUpdate([...items, { id: Date.now(), nome: '', descricao: '', imagem: null, cor: 'gray', slot, ...item }])
     setShowCreate(false)
   }
 
@@ -47,15 +39,6 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
   function removeItem(idx) {
     onUpdate(items.filter((_, i) => i !== idx))
     closeDrawer()
-  }
-
-  function moveItem(idx, dir) {
-    const target = idx + dir
-    if (target < 0 || target >= items.length) return
-    const next = [...items]
-    const [item] = next.splice(idx, 1)
-    next.splice(target, 0, item)
-    onUpdate(next)
   }
 
   function handleDrawerImage(e) {
@@ -86,59 +69,41 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
     <>
       <section className="inventory-redesign">
         <div className="flex items-center gap-2 mb-3">
-          <div className="section-header text-primary mb-0 flex-1">
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>inventory_2</span>
-            Inventário Geral
-          </div>
-          <div className="inventory-currency-strip">
-            <label>$ <input type="number" value={wallet.dolares ?? 0} disabled={!canEdit} onChange={e => onWalletUpdate?.({ dolares: Number(e.target.value) || 0 })} /></label>
-            <label>Δ <input type="number" value={wallet.dracmas ?? 0} disabled={!canEdit} onChange={e => onWalletUpdate?.({ dracmas: Number(e.target.value) || 0 })} /></label>
-            <span className={`text-[9px] ${spentPoints > maxPoints ? 'text-red-400' : 'text-txt-dim/50'}`}>{spentPoints}/{maxPoints} pts</span>
-          </div>
-          {canEdit && (
-            <button onClick={() => setShowCreate(true)}
-              className="text-[9px] border border-primary/30 text-primary/70 px-2 py-0.5 rounded hover:bg-primary/10 hover:text-primary transition-colors shrink-0">
-              + Item
-            </button>
-          )}
+          <button onClick={() => setShowCreate(true)}
+            className={`text-[9px] border text-primary/70 px-2 py-0.5 rounded transition-colors shrink-0 ${canEdit ? 'border-primary/30 hover:bg-primary/10 hover:text-primary' : 'border-transparent opacity-50 cursor-not-allowed'}`}
+            disabled={!canEdit}>
+            + Item
+          </button>
+          <button onClick={() => setShowCreate('mochila')}
+            className={`text-[9px] border text-amber-300/70 px-2 py-0.5 rounded transition-colors shrink-0 ${canEdit ? 'border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-300' : 'border-transparent opacity-50 cursor-not-allowed'}`}
+            disabled={!canEdit}>
+            + Mochila
+          </button>
         </div>
 
-        {items.length === 0 ? (
-          <p className="text-txt-dim/50 text-[11px] italic">Inventário vazio</p>
-        ) : (
-          <div className="inventory-item-grid">
-            {items.map((item, idx) => {
-              const cc = ITEM_COLORS.find(c => c.id === (item.cor || 'gray')) || ITEM_COLORS[0]
-              return (
-                <button key={item.id || idx} type="button" onClick={() => openDrawer(idx)}
-                  className={`inventory-item-card border ${cc.cls}`}>
-                  {canEdit && (
-                    <span className="inventory-order-controls" onClick={e => e.stopPropagation()}>
-                      <span role="button" tabIndex={0} onClick={() => moveItem(idx, -1)}>↑</span>
-                      <span role="button" tabIndex={0} onClick={() => moveItem(idx, 1)}>↓</span>
-                    </span>
-                  )}
-                  {item.imagem ? (
-                    <img src={item.imagem} alt="" className="inventory-item-image" />
-                  ) : (
-                    <span className="inventory-item-empty">▢</span>
-                  )}
-                  <span className="inventory-item-name">{item.nome || 'Item'}</span>
-                  <span className="inventory-weight-chip">{estimateItemWeight(item).toFixed(1)} kg</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="inventory-load-footer">
-          <span>Carga</span>
-          <strong className={maxCarry && displayedLoad > maxCarry ? 'text-red-400' : ''}>{displayedLoad.toFixed(1)} kg{maxCarry ? ` / ${maxCarry} kg` : ''}</strong>
-        </div>
+        <DragDropInventory
+          items={items}
+          canEdit={canEdit}
+          onUpdate={onUpdate}
+          onTransfer={onTransfer}
+          wallet={wallet}
+          onWalletUpdate={onWalletUpdate}
+          maxCarry={maxCarry}
+          level={level}
+          modules={modules}
+          totalCarryWeight={totalCarryWeight}
+          onItemView={(item, idx) => openDrawer(idx)}
+          onItemEdit={() => setEditMode(true)}
+          onItemDelete={(idx) => removeItem(idx)}
+        />
       </section>
 
       {showCreate && createPortal(
-        <ItemCreateModal onSave={addItem} onClose={() => setShowCreate(false)} />,
+        <ItemCreateModal
+          itemType={showCreate === 'mochila' ? 'mochila' : 'normal'}
+          onSave={addItem}
+          onClose={() => setShowCreate(false)}
+        />,
         document.body
       )}
 
@@ -162,15 +127,16 @@ export default function InventorySection({ items = [], canEdit, onUpdate, onDraw
   )
 }
 
-function ItemCreateModal({ onSave, onClose }) {
-  const [nome, setNome] = useState('')
+function ItemCreateModal({ itemType = 'normal', onSave, onClose }) {
+  const [nome, setNome] = useState(itemType === 'mochila' ? 'Mochila' : '')
   const [descricao, setDescricao] = useState('')
   const [peso, setPeso] = useState('')
-  const [local, setLocal] = useState('carregado')
   const [cor, setCor] = useState('gray')
   const [imagem, setImagem] = useState(null)
   const [preview, setPreview] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [local, setLocal] = useState('carregado')
+  const [slotSize, setSlotSize] = useState(12) // Default backpack size
   const fileRef = useRef(null)
   const modalRef = useRef(null)
 
@@ -212,14 +178,34 @@ function ItemCreateModal({ onSave, onClose }) {
   }
 
   function save() {
-    onSave({ nome, descricao, imagem, cor, local, peso: peso === '' ? estimateItemWeight({ nome, descricao }) : Number(peso) })
+    const baseItem = {
+      nome,
+      descricao,
+      imagem,
+      cor,
+      local,
+      peso: peso === '' ? estimateItemWeight({ nome, descricao }) : Number(peso),
+    }
+
+    if (itemType === 'mochila') {
+      onSave({
+        ...baseItem,
+        tipo: 'mochila',
+        contents: [],
+        slotSize: slotSize,
+      })
+    } else {
+      onSave(baseItem)
+    }
   }
+
+  const isBackpack = itemType === 'mochila'
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm modal-bg" onClick={onClose}>
       <div ref={modalRef} className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-md shadow-2xl shadow-black/50 modal-content" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-sep/30 flex items-center justify-between">
-          <h3 className="font-cinzel text-primary text-sm">Novo Item</h3>
+          <h3 className="font-cinzel text-primary text-sm">{isBackpack ? 'Nova Mochila' : 'Novo Item'}</h3>
           <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
         </div>
         <div className="p-6 space-y-4">
@@ -230,26 +216,42 @@ function ItemCreateModal({ onSave, onClose }) {
             </button>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
             <div className="flex-1 space-y-2">
-              <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome do item"
+              <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder={isBackpack ? "Nome da mochila" : "Nome do item"}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" autoFocus />
-              <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição" rows={2}
+              <textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder={isBackpack ? "Descrição da mochila" : "Descrição"} rows={2}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-[11px] text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
-              <div className="flex gap-1.5">
-                <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg (opcional)"
-                  className="flex-1 min-w-0 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
-                <button type="button" onClick={aiWeight} disabled={aiLoading || !nome.trim()} title="Sugerir peso com IA"
-                  className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
-                  {aiLoading ? '...' : 'IA'}
-                </button>
-              </div>
-              <select value={local} onChange={e => setLocal(e.target.value)}
-                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
-                <option value="carregado">Carregado</option>
-                <option value="mochila">Mochila</option>
-                <option value="veiculo">Veículo</option>
-                <option value="base">Base/Casa</option>
-                <option value="guardado">Guardado</option>
-              </select>
+              {!isBackpack && (
+                <div className="flex gap-1.5">
+                  <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg (opcional)"
+                    className="flex-1 min-w-0 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                  <button type="button" onClick={aiWeight} disabled={aiLoading || !nome.trim()} title="Sugerir peso com IA"
+                    className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
+                    {aiLoading ? '...' : 'IA'}
+                  </button>
+                </div>
+              )}
+              {!isBackpack && (
+                <select value={local} onChange={e => setLocal(e.target.value)}
+                  className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
+                  <option value="carregado">Carregado</option>
+                  <option value="mochila">Mochila</option>
+                  <option value="veiculo">Veículo</option>
+                  <option value="base">Base/Casa</option>
+                  <option value="guardado">Guardado</option>
+                </select>
+              )}
+              {isBackpack && (
+                <div className="space-y-1">
+                  <label className="text-[10px] text-txt-dim/70">Capacidade da mochila:</label>
+                  <select value={slotSize} onChange={e => setSlotSize(Number(e.target.value))}
+                    className="w-full bg-void/60 border border-amber-400/30 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-amber-400/40 focus:outline-none">
+                    <option value="8">8 slots (2x4)</option>
+                    <option value="12">12 slots (3x4)</option>
+                    <option value="16">16 slots (4x4)</option>
+                    <option value="20">20 slots (5x4)</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-1.5 mt-1.5">
@@ -261,12 +263,20 @@ function ItemCreateModal({ onSave, onClose }) {
               )
             })}
           </div>
+          {isBackpack && (
+            <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-[10px] text-amber-200">
+                <span className="material-symbols-outlined text-sm">info</span>
+                <span>Itens dentro da mochila não contam para o peso carregado, mas a mochila sim.</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="px-6 py-3 border-t border-sep/30 flex justify-end gap-2">
           <button onClick={onClose} className="text-txt-dim text-xs hover:text-txt-main px-3 py-1.5 transition-colors">Cancelar</button>
           <button onClick={save} disabled={!nome.trim()}
             className={`text-xs px-4 py-1.5 rounded-lg font-semibold transition-colors ${nome.trim() ? 'bg-gold text-void hover:bg-gold-light' : 'bg-gold/20 text-void/40 cursor-not-allowed'}`}>
-            Adicionar
+            {isBackpack ? 'Criar Mochila' : 'Adicionar'}
           </button>
         </div>
       </div>
@@ -283,6 +293,8 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
   const [aiLoading, setAiLoading] = useState(false)
   const cc = ITEM_COLORS.find(c => c.id === (item.cor || 'gray')) || ITEM_COLORS[0]
 
+  const isBackpack = item.tipo === 'mochila'
+
   async function aiWeight() {
     if (!editNome.trim()) return
     setAiLoading(true)
@@ -294,7 +306,14 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
   }
 
   function handleSave() {
-    onSaveEdit({ nome: editNome, descricao: editDesc, cor: editCor, local: editLocal, peso: editPeso === '' ? estimateItemWeight({ nome: editNome, descricao: editDesc }) : Number(editPeso) })
+    const patch = {
+      nome: editNome,
+      descricao: editDesc,
+      cor: editCor,
+      local: editLocal,
+      peso: editPeso === '' ? estimateItemWeight({ nome: editNome, descricao: editDesc }) : Number(editPeso),
+    }
+    onSaveEdit(patch)
     onCancelEdit()
   }
 
@@ -304,8 +323,11 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
       <div className="absolute right-0 top-0 bottom-0 w-full max-w-[380px] bg-deep border-l border-primary/15 shadow-2xl shadow-black/60 flex flex-col drawer-panel">
         <div className="px-4 py-3 border-b border-sep/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-cinzel text-primary text-xs uppercase tracking-wider">Item</h3>
+            <h3 className="font-cinzel text-primary text-xs uppercase tracking-wider">
+              {isBackpack ? 'Mochila' : 'Item'}
+            </h3>
             <div className={`w-2.5 h-2.5 rounded ${cc.cls}`} />
+            {isBackpack && <span className="material-symbols-outlined text-amber-300 text-sm">backpack</span>}
           </div>
           <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
         </div>
@@ -324,30 +346,56 @@ function ItemDrawer({ item, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit,
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
               <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} placeholder="Descrição" rows={4}
                 className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
-              <div className="flex gap-1.5">
-                <input type="number" step="0.1" value={editPeso} onChange={e => setEditPeso(e.target.value)} placeholder="Peso kg"
-                  className="flex-1 min-w-0 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
-                <button type="button" onClick={aiWeight} disabled={aiLoading || !editNome.trim()} title="Sugerir peso com IA"
-                  className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
-                  {aiLoading ? '...' : 'IA'}
-                </button>
-              </div>
-              <select value={editLocal} onChange={e => setEditLocal(e.target.value)}
-                className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
-                <option value="carregado">Carregado</option>
-                <option value="mochila">Mochila</option>
-                <option value="veiculo">Veículo</option>
-                <option value="base">Base/Casa</option>
-                <option value="guardado">Guardado</option>
-              </select>
+              {!isBackpack && (
+                <div className="flex gap-1.5">
+                  <input type="number" step="0.1" value={editPeso} onChange={e => setEditPeso(e.target.value)} placeholder="Peso kg"
+                    className="flex-1 min-w-0 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
+                  <button type="button" onClick={aiWeight} disabled={aiLoading || !editNome.trim()} title="Sugerir peso com IA"
+                    className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
+                    {aiLoading ? '...' : 'IA'}
+                  </button>
+                </div>
+              )}
+              {!isBackpack && (
+                <select value={editLocal} onChange={e => setEditLocal(e.target.value)}
+                  className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
+                  <option value="carregado">Carregado</option>
+                  <option value="mochila">Mochila</option>
+                  <option value="veiculo">Veículo</option>
+                  <option value="base">Base/Casa</option>
+                  <option value="guardado">Guardado</option>
+                </select>
+              )}
+              {isBackpack && item.contents && (
+                <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-amber-200">Conteúdo: {item.contents.length} itens</span>
+                    <span className="text-[10px] text-amber-200">{item.contents.length}/{item.slotSize || 12} slots</span>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>
               {item.imagem && <img src={item.imagem} alt="" className="w-full aspect-[4/3] rounded-lg object-cover border border-sep/30" />}
-              <h4 className="text-txt-main text-sm font-semibold">{item.nome || 'Item'}</h4>
+              {isBackpack && <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-amber-300">backpack</span>
+                <span className="text-[10px] text-amber-200">Mochila</span>
+              </div>}
+              <h4 className="text-txt-main text-sm font-semibold">{item.nome || (isBackpack ? 'Mochila' : 'Item')}</h4>
               <span className="inline-flex text-[9px] text-txt-dim/70 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{item.local || 'carregado'}</span>
               {item.descricao ? <p className="text-txt-dim/80 text-xs leading-relaxed">{item.descricao}</p> : <p className="text-txt-dim/30 text-xs italic">Sem descrição</p>}
-              <div className="inventory-drawer-weight"><span>Peso</span><strong>{estimateItemWeight(item).toFixed(1)} kg</strong></div>
+              {!isBackpack && (
+                <div className="inventory-drawer-weight"><span>Peso</span><strong>{estimateItemWeight(item).toFixed(1)} kg</strong></div>
+              )}
+              {isBackpack && (
+                <div className="inventory-drawer-weight"><span>Peso da mochila</span><strong>{estimateItemWeight(item).toFixed(1)} kg</strong></div>
+              )}
+              {isBackpack && item.contents && item.contents.length > 0 && (
+                <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg p-3">
+                  <div className="text-[10px] text-amber-200">Contém {item.contents.length} itens</div>
+                </div>
+              )}
             </>
           )}
         </div>
