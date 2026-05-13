@@ -4728,35 +4728,55 @@ body {
   opacity: 1;
 }
 
-.backpack-drop-out {
-  border: 1px dashed rgba(245, 200, 76, 0.22);
+.bp-drop-zone {
+  display: flex;
+  justify-content: center;
+  padding: 0.3rem 0;
+  opacity: 0.45;
+  transition: opacity 200ms ease;
+}
+
+.bp-drop-zone.is-active {
+  opacity: 1;
+}
+
+.bp-drop-zone-target {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: 1px dashed rgba(245, 200, 76, 0.2);
   border-radius: 10px;
-  background: rgba(245, 200, 76, 0.045);
-  color: rgba(245, 200, 76, 0.78);
-  padding: 0.9rem;
-  text-align: center;
+  background: rgba(245, 200, 76, 0.03);
+  color: rgba(245, 200, 76, 0.6);
+  transition: all 200ms ease;
 }
 
-.backpack-drop-out.is-ready {
-  border-color: rgba(52, 211, 153, 0.42);
+.bp-drop-zone.is-active .bp-drop-zone-target {
+  border-color: rgba(52, 211, 153, 0.5);
   background: rgba(52, 211, 153, 0.08);
-  color: rgba(167, 243, 208, 0.9);
+  color: rgba(167, 243, 208, 0.95);
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.12);
 }
 
-.backpack-drop-out .material-symbols-outlined {
-  display: block;
-  margin: 0 auto 0.35rem;
+.bp-drop-zone-arrow {
+  font-size: 1rem;
+  animation: bp-bounce 1.4s ease-in-out infinite;
 }
 
-.backpack-drop-out strong {
-  display: block;
-  font-size: 0.78rem;
+.bp-drop-zone.is-active .bp-drop-zone-arrow {
+  animation: none;
 }
 
-.backpack-drop-out p {
-  color: rgba(166, 163, 186, 0.68);
-  font-size: 0.66rem;
-  margin-top: 0.2rem;
+@keyframes bp-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+.bp-drop-zone-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .resident-grid-hint {

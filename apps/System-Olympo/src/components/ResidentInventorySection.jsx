@@ -785,17 +785,46 @@ export default function ResidentInventorySection({
       {itemDrawer && createPortal(
         <InventoryItemDrawer
           entry={itemDrawer}
-          item={char.inventario?.[itemDrawer.idx] || itemDrawer.item}
+          item={
+            itemDrawer.source === 'backpack-content'
+              ? char.inventario?.[itemDrawer.backpackIdx]?.contents?.[itemDrawer.idx] || itemDrawer.item
+              : char.inventario?.[itemDrawer.idx] || itemDrawer.item
+          }
           canEdit={canEdit}
           editMode={itemEditMode}
-          locations={locations}
+          locations={itemDrawer.source === 'backpack-content' ? [] : locations}
           onEdit={() => setItemEditMode(true)}
-          onCancelEdit={() => setItemEditMode(false)}
-          onSave={(patch) => { patchInventoryItem(itemDrawer.idx, patch); setItemEditMode(false) }}
-          onDelete={() => removeEntry(itemDrawer)}
-          onTransfer={onTransferItem ? () => onTransferItem('inventario', itemDrawer.idx) : null}
-          onMove={(loc) => moveEntry(itemDrawer, loc)}
-          onClose={() => setItemDrawer(null)}
+          onCancelEdit={() => { setItemEditMode(false); if (itemDrawer.source === 'backpack-content') { setBackpackDrawer({ idx: itemDrawer.backpackIdx, item: char.inventario?.[itemDrawer.backpackIdx] }) } }}
+          onSave={(patch) => {
+            if (itemDrawer.source === 'backpack-content') {
+              const inventario = [...(char.inventario || [])]
+              const bp = inventario[itemDrawer.backpackIdx]
+              const contents = [...(bp?.contents || [])]
+              contents[itemDrawer.idx] = { ...contents[itemDrawer.idx], ...patch }
+              inventario[itemDrawer.backpackIdx] = { ...bp, contents }
+              update({ inventario })
+            } else {
+              patchInventoryItem(itemDrawer.idx, patch)
+            }
+            setItemEditMode(false)
+          }}
+          onDelete={() => {
+            if (itemDrawer.source === 'backpack-content') {
+              const inventario = [...(char.inventario || [])]
+              const bp = inventario[itemDrawer.backpackIdx]
+              const contents = [...(bp?.contents || [])]
+              contents.splice(itemDrawer.idx, 1)
+              inventario[itemDrawer.backpackIdx] = { ...bp, contents }
+              update({ inventario })
+              setItemDrawer(null)
+              setBackpackDrawer({ idx: itemDrawer.backpackIdx, item: inventario[itemDrawer.backpackIdx] })
+            } else {
+              removeEntry(itemDrawer)
+            }
+          }}
+          onTransfer={null}
+          onMove={itemDrawer.source === 'backpack-content' ? null : (loc) => moveEntry(itemDrawer, loc)}
+          onClose={() => { setItemDrawer(null); if (itemDrawer.source === 'backpack-content') { setBackpackDrawer({ idx: itemDrawer.backpackIdx, item: char.inventario?.[itemDrawer.backpackIdx] }) } }}
           onImageChange={handleItemImage}
           imgRef={itemImgRef}
         />,
@@ -813,7 +842,9 @@ export default function ResidentInventorySection({
             else if (contentIdx != null) removeFromBackpack(contentIdx)
           }}
           onOpenItem={(entry) => {
-            setItemDrawer(backpackDrawer)
+            const contentItem = char.inventario?.[backpackDrawer.idx]?.contents?.[entry.idx]
+            if (!contentItem) return
+            setItemDrawer({ source: 'backpack-content', idx: entry.idx, item: contentItem, key: entry.key, backpackIdx: backpackDrawer.idx })
             setBackpackDrawer(null)
           }}
           onClose={() => { setBackpackDrawer(null); setBackpackDragging(null) }}
@@ -1157,17 +1188,16 @@ function BackpackGridDrawer({ backpack, canEdit, externalDrag, onUpdateContents,
             </div>
           </div>
 
-          {canEdit && (
+          <div className={`bp-drop-zone ${bpDrag ? 'is-active' : ''}`}>
             <div
-              className={`backpack-drop-out ${bpDrag ? 'is-ready' : ''}`}
+              className="bp-drop-zone-target"
               onDragOver={event => event.preventDefault()}
               onDrop={handleBpDragOut}
             >
-              <span className="material-symbols-outlined">outbox</span>
-              <strong>Arraste aqui para tirar da mochila</strong>
-              <p>O item volta para o inventario.</p>
+              <span className="bp-drop-zone-arrow">⬇</span>
+              <span className="bp-drop-zone-text">Arraste pra ca para tirar da mochila</span>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="px-4 py-3 border-t border-sep/30 flex gap-2 shrink-0">
