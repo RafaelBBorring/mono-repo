@@ -69,12 +69,12 @@ export function getArraysForLevel() {
 }
 
 export const ATTR_CAPS = {
-  '1-7': 18,
-  '8-13': 22,
-  '14-22': 26,
-  '23-30': 30,
-  '31-40': 34,
-  '41-50': 38,
+  '1-7': 20,
+  '8-13': 26,
+  '14-22': 32,
+  '23-30': 38,
+  '31-40': 44,
+  '41-50': 50,
 }
 
 export function getAttrCap(level) {

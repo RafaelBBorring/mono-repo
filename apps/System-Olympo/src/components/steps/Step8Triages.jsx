@@ -1,11 +1,21 @@
+import { useState } from 'react'
 import { TRIAGES, getAllTriagesForClass, getAllTriages } from '../../data/triages'
 import { calcTriagemPrincipalLevel, calcSubTriagemLevel } from '../../utils/calculator'
 import { getTriagemImage } from '../../data/triageImages'
+
+const ALL_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+
+const CLASS_COLORS = {
+  GUERREIRO: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', selected: 'border-rose-400', text: 'text-rose-400', glow: 'rgba(248,113,113,0.25)', gradient: 'from-rose-500/10 to-transparent' },
+  OPERATIVO: { bg: 'bg-sky-500/5', border: 'border-sky-500/30', selected: 'border-sky-400', text: 'text-sky-400', glow: 'rgba(96,165,250,0.25)', gradient: 'from-sky-500/10 to-transparent' },
+  MISTICO: { bg: 'bg-purple-500/5', border: 'border-purple-500/30', selected: 'border-purple-400', text: 'text-purple-400', glow: 'rgba(192,132,252,0.25)', gradient: 'from-purple-500/10 to-transparent' },
+}
 
 export default function Step8Triages({ char, update, updateNested }) {
   const classe = char.classe
   const nivel = char.nivel || 1
   const choices = char.choices || {}
+  const [subFilter, setSubFilter] = useState(null)
 
   if (!classe) {
     return (
@@ -22,12 +32,6 @@ export default function Step8Triages({ char, update, updateNested }) {
   const classTriages = getAllTriagesForClass(classe)
   const allTriages = getAllTriages()
   const triagemPrincipal = char.triagemPrincipal || null
-
-  const CLASS_COLORS = {
-    GUERREIRO: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', selected: 'border-rose-400', text: 'text-rose-400', glow: 'rgba(248,113,113,0.25)' },
-    OPERATIVO: { bg: 'bg-sky-500/5', border: 'border-sky-500/30', selected: 'border-sky-400', text: 'text-sky-400', glow: 'rgba(96,165,250,0.25)' },
-    MISTICO: { bg: 'bg-purple-500/5', border: 'border-purple-500/30', selected: 'border-purple-400', text: 'text-purple-400', glow: 'rgba(192,132,252,0.25)' },
-  }
   const classColor = CLASS_COLORS[classe] || CLASS_COLORS.GUERREIRO
 
   function selectPrincipal(key) {
@@ -46,17 +50,9 @@ export default function Step8Triages({ char, update, updateNested }) {
     })
   }
 
-  function getUnlockedLevels(triageData, maxLevel) {
-    const allLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-    return allLevels.filter(l => l <= maxLevel)
+  function getUnlockedLevels(maxLevel) {
+    return ALL_LEVELS.filter(l => l <= maxLevel)
   }
-
-  function getSubUnlockedLevels(maxLevel) {
-    const allLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
-    return allLevels.filter(l => l <= maxLevel)
-  }
-
-  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 
   return (
     <div className={`triage-stage triage-${String(classe).toLowerCase()} space-y-8`}>
@@ -80,7 +76,7 @@ export default function Step8Triages({ char, update, updateNested }) {
             <div className="triage-main-grid grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(classTriages).map(([key, triage]) => {
                 const isSelected = triagemPrincipal === key
-                const unlocked = getUnlockedLevels(triage, principalLevel)
+                const unlocked = getUnlockedLevels(principalLevel)
                 const triageImage = getTriagemImage(classe, key)
 
                 return (
@@ -108,7 +104,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                     <p className="text-txt-dim text-xs mb-3">{triage.desc}</p>
 
                     <div className="space-y-1.5">
-                      {principalLevels.map(lvl => {
+                      {ALL_LEVELS.map(lvl => {
                         const isUnlocked = unlocked.includes(lvl)
                         const desc = triage.levels[lvl]
                         if (!desc) return null
@@ -140,29 +136,53 @@ export default function Step8Triages({ char, update, updateNested }) {
 
       {showSubTriagem && (
         <div>
-          <h3 className="font-cinzel text-primary text-lg mb-2 tracking-wider">Sub-Triagem</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-cinzel text-primary text-lg tracking-wider">Sub-Triagem</h3>
+            {subLevel >= 0.1 && (
+              <span className="text-txt-dim text-sm">
+                Nível: <span className="text-gold font-mono">{subLevel}</span>
+              </span>
+            )}
+          </div>
           {subLevel < 0.1 ? (
             <p className="text-txt-dim text-sm">Nenhuma sub-triagem desbloqueada no nível atual.</p>
           ) : (
             <>
-              <p className="text-txt-dim text-sm mb-4">
-                Nível desbloqueado: <span className="text-gold font-mono">{subLevel}</span>
-              </p>
-              <div className="space-y-6">
-                {Object.entries(allTriages).map(([classKey, triages]) => {
+              <div className="flex gap-2 mb-5">
+                <button onClick={() => setSubFilter(null)}
+                  className={`px-3 py-1.5 rounded text-xs font-cinzel tracking-wider transition-all ${!subFilter ? 'bg-gold/10 border border-gold/40 text-gold' : 'border border-sep text-txt-dim hover:border-gold/30'}`}>
+                  Todas
+                </button>
+                {Object.entries(CLASS_COLORS).map(([ck, cc]) => (
+                  <button key={ck} onClick={() => setSubFilter(subFilter === ck ? null : ck)}
+                    className={`px-3 py-1.5 rounded text-xs font-cinzel tracking-wider transition-all ${subFilter === ck ? `${cc.bg} border ${cc.selected} ${cc.text}` : `border border-sep text-txt-dim hover:${cc.selected}`}`}>
+                    {ck}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-5">
+                {Object.entries(allTriages)
+                  .filter(([classKey]) => !subFilter || classKey === subFilter)
+                  .map(([classKey, triages]) => {
                   const cColor = CLASS_COLORS[classKey] || CLASS_COLORS.GUERREIRO
+                  const unlockedSub = getUnlockedLevels(subLevel)
+
                   return (
                     <div key={classKey}>
-                      <div className={`flex items-center gap-2 mb-3`}>
-                        <span className={`text-xs font-cinzel tracking-widest uppercase ${cColor.text}`}>{classKey}</span>
-                        <div className={`flex-1 h-px ${cColor.border}`} />
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-8 h-8 rounded-lg ${cColor.bg} border ${cColor.border} flex items-center justify-center`}>
+                          <span className={`material-symbols-outlined text-sm ${cColor.text}`} style={{ fontVariationSettings: "'FILL' 1, 'wght' 400" }}>
+                            {classKey === 'GUERREIRO' ? 'shield' : classKey === 'OPERATIVO' ? 'gps_fixed' : 'auto_awesome'}
+                          </span>
+                        </div>
+                        <span className={`font-cinzel text-sm tracking-widest uppercase ${cColor.text}`}>{classKey}</span>
+                        <div className={`flex-1 h-px bg-gradient-to-r ${cColor.border} to-transparent`} />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {Object.entries(triages).map(([triageKey, triage]) => {
                           const isSameAsPrincipal = triagemPrincipal === triageKey && classe === classKey
                           const isSelected = char.subTriagem === triageKey && char.subTriagemClass === classKey
-                          const subLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
-                          const unlockedSub = getSubUnlockedLevels(subLevel)
 
                           return (
                             <div
@@ -170,45 +190,58 @@ export default function Step8Triages({ char, update, updateNested }) {
                               onClick={() => !isSameAsPrincipal && selectSub(classKey, triageKey)}
                               role="button"
                               aria-pressed={isSelected}
-                              className={`triage-sub-card is-${String(classKey).toLowerCase()} ${isSelected ? 'is-selected' : ''} bg-deep border rounded p-3 transition-all ${
+                              className={`rounded-xl border transition-all overflow-hidden ${
                                 isSameAsPrincipal
                                   ? 'border-sep/20 opacity-30 cursor-not-allowed'
                                   : isSelected
                                     ? `${cColor.selected} cursor-pointer`
-                                    : `border-sep hover:border-white/20 cursor-pointer`
+                                    : `border-sep/50 hover:border-white/20 cursor-pointer`
                               }`}
                               style={{
-                                ...(isSelected ? { boxShadow: `0 0 12px ${cColor.glow}` } : {}),
+                                ...(isSelected ? { boxShadow: `0 0 16px ${cColor.glow}`, background: `linear-gradient(135deg, var(--color-deep), ${cColor.glow})` } : {}),
                               }}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <h4 className={`font-body text-sm font-semibold ${isSelected ? cColor.text : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
-                                  {triage.name}
-                                </h4>
-                                {isSelected && (
-                                  <span className={`text-xs px-1.5 py-0.5 rounded ${cColor.bg} ${cColor.text} border ${cColor.border}`}>Ativa</span>
-                                )}
+                              <div className={`px-4 py-2.5 border-b ${isSelected ? cColor.border : 'border-sep/30'} ${isSelected ? `bg-gradient-to-r ${cColor.gradient}` : 'bg-deep'}`}>
+                                <div className="flex items-center justify-between">
+                                  <h4 className={`font-cinzel text-sm ${isSelected ? cColor.text : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
+                                    {triage.name}
+                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    {isSameAsPrincipal && (
+                                      <span className="text-[10px] text-txt-dim/50 font-mono">= Principal</span>
+                                    )}
+                                    {isSelected && (
+                                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${cColor.bg} ${cColor.text} border ${cColor.border}`}>Ativa</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <p className="text-txt-dim text-xs mb-2">{triage.desc}</p>
-                              <div className="space-y-1">
-                                {subLevels.map(lvl => {
+                              <div className="px-3 py-2 space-y-0.5">
+                                {ALL_LEVELS.map(lvl => {
                                   const isUnlocked = unlockedSub.includes(lvl)
                                   const desc = triage.levels[lvl]
                                   if (!desc) return null
+                                  const isAscension = lvl >= 0.7
 
                                   return (
                                     <div
                                       key={lvl}
-                                      className={`flex gap-2 text-xs rounded px-2 py-1 ${
-                                        isUnlocked
-                                          ? isSelected ? `${cColor.bg} text-txt-main` : 'bg-panel/50 text-txt-main'
-                                          : 'text-txt-dim/40'
+                                      className={`flex gap-2 text-xs rounded-lg px-2 py-1 ${
+                                        !isUnlocked
+                                          ? 'text-txt-dim/30'
+                                          : isSelected
+                                            ? isAscension
+                                              ? `${cColor.bg} text-txt-main border ${cColor.border}`
+                                              : `${cColor.bg} text-txt-main`
+                                            : isAscension
+                                              ? 'bg-gold/5 text-txt-main border border-gold/20'
+                                              : 'bg-panel/30 text-txt-main'
                                       }`}
                                     >
-                                      <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? cColor.text : ''}`}>
+                                      <span className={`font-mono w-7 shrink-0 text-[11px] ${isUnlocked && isSelected ? cColor.text : isUnlocked && isAscension ? 'text-gold' : ''}`}>
                                         {lvl}
                                       </span>
-                                      <span>{desc}</span>
+                                      <span className="leading-relaxed">{desc}</span>
                                     </div>
                                   )
                                 })}
@@ -230,7 +263,7 @@ export default function Step8Triages({ char, update, updateNested }) {
         <div className="codex-card p-5">
           <h3 className="font-cinzel text-primary text-lg mb-2 tracking-wider">Efeitos Acumulados</h3>
           <div className="space-y-1">
-            {principalLevels
+            {ALL_LEVELS
               .filter(lvl => lvl <= principalLevel)
               .map(lvl => {
                 const triage = classTriages[triagemPrincipal]

@@ -163,26 +163,26 @@ const POST_30_PROGRESSION = {
       { key: 'energia', label: '+30 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 30 }] },
     ]}], label: '+01 Modulo && +80 Vida && ESCOLHA: +12 Esqueleto OU +30 Energia' },
     41: { rewards: [{ type: 'pe_fixo', value: 18 }, { type: 'peh', value: 1 }, { type: 'pontos_esqueleto', value: 6 }], label: '+18 PE && +1 PEH && +06 Esqueleto' },
-    42: { rewards: [{ type: 'escolha', key: 'guerreiro_n42', options: [
+    42: { rewards: [{ type: 'sub_triagem', value: 0.6 }, { type: 'escolha', key: 'guerreiro_n42', options: [
       { key: 'vida', label: '+90 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 90 }] },
       { key: 'pericias', label: '+16 Pericias Treinadas', rewards: [{ type: 'pericias_treinadas', value: 16 }] },
-    ]}], label: 'ESCOLHA: +90 Vida OU +16 Pericias' },
+    ]}], label: 'Sub-Triagem - Nivel 0.6 && ESCOLHA: +90 Vida OU +16 Pericias' },
     43: { rewards: [{ type: 'modulo', value: 1 }, { type: 'energia_fixo', value: 26 }], label: '+01 Modulo && +26 Energia' },
     44: { rewards: [{ type: 'pontos_esqueleto', value: 12 }, { type: 'pe_fixo', value: 20 }], label: '+12 Pontos de Esqueleto && +20 PE' },
     45: { rewards: [{ type: 'triagem_principal', value: 0.8 }, { type: 'peh', value: 2 }], label: 'Triagem Principal - Nivel 0.8 && +2 PEH' },
-    46: { rewards: [{ type: 'escolha', key: 'guerreiro_n46', options: [
+    46: { rewards: [{ type: 'sub_triagem', value: 0.7 }, { type: 'escolha', key: 'guerreiro_n46', options: [
       { key: 'vida', label: '+100 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 100 }] },
       { key: 'energia', label: '+40 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 40 }] },
       { key: 'esqueleto', label: '+14 Pontos de Esqueleto', rewards: [{ type: 'pontos_esqueleto', value: 14 }] },
-    ]}], label: 'ESCOLHA: +100 Vida OU +40 Energia OU +14 Esqueleto' },
+    ]}], label: 'Sub-Triagem - Nivel 0.7 && ESCOLHA: +100 Vida OU +40 Energia OU +14 Esqueleto' },
     47: { rewards: [{ type: 'modulo', value: 1 }, { type: 'pontos_esqueleto', value: 10 }], label: '+01 Modulo && +10 Pontos de Esqueleto' },
     48: { rewards: [{ type: 'sub_triagem', value: 0.5 }, { type: 'peh', value: 1 }], label: 'Sub-Triagem - Nivel 0.5 && +1 PEH' },
     49: { rewards: [{ type: 'pericias_treinadas', value: 14 }, { type: 'pontos_esqueleto', value: 10 }], label: '+14 Pericias Treinadas && +10 Pontos de Esqueleto' },
-    50: { rewards: [{ type: 'modulo', value: 2 }, { type: 'vida_fixo', value: 120 }, { type: 'energia_fixo', value: 30 }, { type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 2 }, { type: 'escolha', key: 'guerreiro_n50', options: [
+    50: { rewards: [{ type: 'sub_triagem', value: 0.8 }, { type: 'modulo', value: 2 }, { type: 'vida_fixo', value: 120 }, { type: 'energia_fixo', value: 30 }, { type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 2 }, { type: 'escolha', key: 'guerreiro_n50', options: [
       { key: 'vida', label: '+60 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 60 }] },
       { key: 'energia', label: '+40 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 40 }] },
       { key: 'pe', label: '+25 PE (fixo)', rewards: [{ type: 'pe_fixo', value: 25 }] },
-    ]}], label: '+02 Modulos && +120 Vida && +30 Energia && +14 Esqueleto && +2 PEH && ESCOLHA: +60 Vida OU +40 Energia OU +25 PE' },
+    ]}], label: 'Sub-Triagem - Nivel 0.8 && +02 Modulos && +120 Vida && +30 Energia && +14 Esqueleto && +2 PEH && ESCOLHA' },
   },
   OPERATIVO: {
     31: { rewards: [{ type: 'vida_fixo', value: 48 }, { type: 'energia_fixo', value: 30 }], label: '+48 Vida && +30 Energia' },
@@ -207,27 +207,27 @@ const POST_30_PROGRESSION = {
       { key: 'esqueleto', label: '+12 Pontos de Esqueleto', rewards: [{ type: 'pontos_esqueleto', value: 12 }] },
     ]}], label: '+01 Modulo && ESCOLHA: +18 Pericias OU +12 Esqueleto' },
     41: { rewards: [{ type: 'pe_fixo', value: 18 }, { type: 'energia_fixo', value: 38 }], label: '+18 PE && +38 Energia' },
-    42: { rewards: [{ type: 'escolha', key: 'operativo_n42', options: [
+    42: { rewards: [{ type: 'sub_triagem', value: 0.6 }, { type: 'escolha', key: 'operativo_n42', options: [
       { key: 'vida', label: '+65 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 65 }] },
       { key: 'energia', label: '+45 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 45 }] },
       { key: 'pericias', label: '+16 Pericias Treinadas', rewards: [{ type: 'pericias_treinadas', value: 16 }] },
-    ]}], label: 'ESCOLHA: +65 Vida OU +45 Energia OU +16 Pericias' },
+    ]}], label: 'Sub-Triagem - Nivel 0.6 && ESCOLHA: +65 Vida OU +45 Energia OU +16 Pericias' },
     43: { rewards: [{ type: 'modulo', value: 1 }, { type: 'pontos_esqueleto', value: 8 }], label: '+01 Modulo && +08 Pontos de Esqueleto' },
     44: { rewards: [{ type: 'pontos_esqueleto', value: 12 }, { type: 'pe_fixo', value: 20 }], label: '+12 Pontos de Esqueleto && +20 PE' },
     45: { rewards: [{ type: 'triagem_principal', value: 0.8 }, { type: 'peh', value: 2 }], label: 'Triagem Principal - Nivel 0.8 && +2 PEH' },
-    46: { rewards: [{ type: 'escolha', key: 'operativo_n46', options: [
+    46: { rewards: [{ type: 'sub_triagem', value: 0.7 }, { type: 'escolha', key: 'operativo_n46', options: [
       { key: 'vida', label: '+70 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 70 }] },
       { key: 'energia', label: '+50 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 50 }] },
       { key: 'esqueleto', label: '+14 Pontos de Esqueleto', rewards: [{ type: 'pontos_esqueleto', value: 14 }] },
-    ]}], label: 'ESCOLHA: +70 Vida OU +50 Energia OU +14 Esqueleto' },
+    ]}], label: 'Sub-Triagem - Nivel 0.7 && ESCOLHA: +70 Vida OU +50 Energia OU +14 Esqueleto' },
     47: { rewards: [{ type: 'modulo', value: 1 }, { type: 'pericias_treinadas', value: 18 }], label: '+01 Modulo && +18 Pericias Treinadas' },
     48: { rewards: [{ type: 'sub_triagem', value: 0.5 }, { type: 'pontos_esqueleto', value: 10 }], label: 'Sub-Triagem - Nivel 0.5 && +10 Pontos de Esqueleto' },
     49: { rewards: [{ type: 'pe_fixo', value: 22 }, { type: 'energia_fixo', value: 44 }, { type: 'peh', value: 1 }], label: '+22 PE && +44 Energia && +1 PEH' },
-    50: { rewards: [{ type: 'modulo', value: 2 }, { type: 'vida_fixo', value: 85 }, { type: 'energia_fixo', value: 50 }, { type: 'pericias_treinadas', value: 20 }, { type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 2 }, { type: 'escolha', key: 'operativo_n50', options: [
+    50: { rewards: [{ type: 'sub_triagem', value: 0.8 }, { type: 'modulo', value: 2 }, { type: 'vida_fixo', value: 85 }, { type: 'energia_fixo', value: 50 }, { type: 'pericias_treinadas', value: 20 }, { type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 2 }, { type: 'escolha', key: 'operativo_n50', options: [
       { key: 'vida', label: '+45 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 45 }] },
       { key: 'energia', label: '+35 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 35 }] },
       { key: 'pe', label: '+20 PE (fixo)', rewards: [{ type: 'pe_fixo', value: 20 }] },
-    ]}], label: '+02 Modulos && +85 Vida && +50 Energia && +20 Pericias && +14 Esqueleto && +2 PEH && ESCOLHA' },
+    ]}], label: 'Sub-Triagem - Nivel 0.8 && +02 Modulos && +85 Vida && +50 Energia && +20 Pericias && +14 Esqueleto && +2 PEH && ESCOLHA' },
   },
   MISTICO: {
     31: { rewards: [{ type: 'vida_fixo', value: 38 }, { type: 'energia_fixo', value: 55 }], label: '+38 Vida && +55 Energia' },
@@ -252,27 +252,27 @@ const POST_30_PROGRESSION = {
       { key: 'esqueleto', label: '+12 Pontos de Esqueleto', rewards: [{ type: 'pontos_esqueleto', value: 12 }] },
     ]}], label: '+01 Modulo && ESCOLHA: +70 Energia OU +12 Esqueleto' },
     41: { rewards: [{ type: 'pontos_esqueleto', value: 9 }, { type: 'peh', value: 1 }], label: '+09 Pontos de Esqueleto && +1 PEH' },
-    42: { rewards: [{ type: 'escolha', key: 'mistico_n42', options: [
+    42: { rewards: [{ type: 'sub_triagem', value: 0.6 }, { type: 'escolha', key: 'mistico_n42', options: [
       { key: 'vida', label: '+55 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 55 }] },
       { key: 'energia', label: '+75 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 75 }] },
       { key: 'pericias', label: '+14 Pericias Treinadas', rewards: [{ type: 'pericias_treinadas', value: 14 }] },
-    ]}], label: 'ESCOLHA: +55 Vida OU +75 Energia OU +14 Pericias' },
+    ]}], label: 'Sub-Triagem - Nivel 0.6 && ESCOLHA: +55 Vida OU +75 Energia OU +14 Pericias' },
     43: { rewards: [{ type: 'modulo', value: 1 }, { type: 'pe_fixo', value: 24 }], label: '+01 Modulo && +24 PE' },
     44: { rewards: [{ type: 'pericias_treinadas', value: 14 }, { type: 'pontos_esqueleto', value: 12 }], label: '+14 Pericias Treinadas && +12 Pontos de Esqueleto' },
     45: { rewards: [{ type: 'triagem_principal', value: 0.8 }, { type: 'peh', value: 2 }], label: 'Triagem Principal - Nivel 0.8 && +2 PEH' },
-    46: { rewards: [{ type: 'escolha', key: 'mistico_n46', options: [
+    46: { rewards: [{ type: 'sub_triagem', value: 0.7 }, { type: 'escolha', key: 'mistico_n46', options: [
       { key: 'vida', label: '+60 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 60 }] },
       { key: 'energia', label: '+80 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 80 }] },
       { key: 'esqueleto', label: '+14 Pontos de Esqueleto', rewards: [{ type: 'pontos_esqueleto', value: 14 }] },
-    ]}], label: 'ESCOLHA: +60 Vida OU +80 Energia OU +14 Esqueleto' },
+    ]}], label: 'Sub-Triagem - Nivel 0.7 && ESCOLHA: +60 Vida OU +80 Energia OU +14 Esqueleto' },
     47: { rewards: [{ type: 'modulo', value: 1 }, { type: 'pe_fixo', value: 26 }], label: '+01 Modulo && +26 PE' },
     48: { rewards: [{ type: 'sub_triagem', value: 0.5 }, { type: 'energia_fixo', value: 82 }], label: 'Sub-Triagem - Nivel 0.5 && +82 Energia' },
     49: { rewards: [{ type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 1 }], label: '+14 Pontos de Esqueleto && +1 PEH' },
-    50: { rewards: [{ type: 'modulo', value: 2 }, { type: 'vida_fixo', value: 75 }, { type: 'energia_fixo', value: 100 }, { type: 'pe_fixo', value: 30 }, { type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 2 }, { type: 'escolha', key: 'mistico_n50', options: [
+    50: { rewards: [{ type: 'sub_triagem', value: 0.8 }, { type: 'modulo', value: 2 }, { type: 'vida_fixo', value: 75 }, { type: 'energia_fixo', value: 100 }, { type: 'pe_fixo', value: 30 }, { type: 'pontos_esqueleto', value: 14 }, { type: 'peh', value: 2 }, { type: 'escolha', key: 'mistico_n50', options: [
       { key: 'vida', label: '+40 Vida (fixo)', rewards: [{ type: 'vida_fixo', value: 40 }] },
       { key: 'energia', label: '+60 Energia (fixo)', rewards: [{ type: 'energia_fixo', value: 60 }] },
       { key: 'pe', label: '+20 PE (fixo)', rewards: [{ type: 'pe_fixo', value: 20 }] },
-    ]}], label: '+02 Modulos && +75 Vida && +100 Energia && +30 PE && +14 Esqueleto && +2 PEH && ESCOLHA' },
+    ]}], label: 'Sub-Triagem - Nivel 0.8 && +02 Modulos && +75 Vida && +100 Energia && +30 PE && +14 Esqueleto && +2 PEH && ESCOLHA' },
   },
 }
 

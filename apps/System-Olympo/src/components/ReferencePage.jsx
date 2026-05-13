@@ -1083,7 +1083,7 @@ function TriagesSection() {
       <div className="mb-4">
         <p className="text-txt-dim text-sm mb-3">
           <strong className="text-txt-main">Triagem Principal:</strong> obrigatoriamente da mesma Classe. 8 níveis (0.1→0.8), com ascensão entre N35 e N45.<br />
-          <strong className="text-txt-main">Sub-Triagem:</strong> qualquer Classe (inclui a própria). Máx 5 níveis (0.1→0.5). Disponível a partir de N16 e evolui novamente no pós-30.
+          <strong className="text-txt-main">Sub-Triagem:</strong> qualquer Classe (inclui a própria). 8 níveis (0.1→0.8). Disponível a partir de N16, evolui no pós-30 e alcança ascensão em N46 e N50.
         </p>
         <div className="flex gap-2">
           {Object.keys(TRIAGES).map(cc => {
@@ -2480,7 +2480,7 @@ function CreationGuideSection() {
     { n: 4, title: 'Classe', desc: 'Escolha entre Guerreiro, Operativo ou Místico. Cada classe define Vida, Energia, PE, Dano Base e quantidade de perícias iniciais.' },
     { n: 5, title: 'Progressão', desc: 'Consulte a tabela de N1 até o nível atual da classe. Recompensas com "OU" exigem uma escolha do jogador. Anote triagens e módulos desbloqueados.' },
     { n: 6, title: 'Pontos de Esqueleto', desc: 'Distribua os Pontos de Esqueleto ganhos na progressão entre os atributos. Cada ponto em CON afeta retroativamente a Vida por Nível. O mesmo vale para AM (Energia).' },
-    { n: 7, title: 'Triagens', desc: 'Escolha UMA Triagem Principal (da mesma classe). A partir de N16, pode escolher UMA Sub-Triagem de qualquer classe. No pós-30, a Principal alcança 0.8 e a Sub-Triagem alcança 0.5.' },
+    { n: 7, title: 'Triagens', desc: 'Escolha UMA Triagem Principal (da mesma classe). A partir de N16, pode escolher UMA Sub-Triagem de qualquer classe. Ambas alcançam 8 níveis (0.1→0.8) até N50.' },
     { n: 8, title: 'Módulos de Evolução', desc: 'Gaste os Módulos de Evolução ganhos na progressão. Existem Passivos (sempre ativos), Especiais (aquisição múltipla) e Ativos (custam PE). Verifique os requisitos.' },
     { n: 9, title: 'Perícias', desc: 'Treine perícias usando os pontos disponíveis (classe + progressão). Cada grau custa 1 ponto. O grau máximo depende do nível: N1-7 Treinado, N8-13 Veterano, N14-22 Especialista, N23-30 Mestre, N31-40 Lendário, N41-50 Mítico.' },
     { n: 10, title: 'Habilidades', desc: 'Crie 5 habilidades: 1 Passiva, 3 Ativas e 1 Ultimate. Defina nome, descrição, custo de energia, dano, duração, camada SCP e PP estimado. Algumas triagens concedem habilidades extras.' },
@@ -2538,7 +2538,7 @@ function CreationGuideSection() {
           <li><strong className="text-gold-light">CA:</strong> 10 + treinamento(Reflexo ou Bloqueio) + MAX(Mod.CON, Mod.DES)</li>
           <li><strong className="text-gold-light">Reações:</strong> Math.floor(DES / 5), mínimo 1</li>
           <li><strong className="text-gold-light">Percepção Passiva:</strong> 10 + treino_Percepção + Mod.INT</li>
-          <li><strong className="text-gold-light">Triagens:</strong> Principal = mesma classe, 6 níveis. Sub-Triagem = qualquer classe, máx 3 níveis (N16+).</li>
+          <li><strong className="text-gold-light">Triagens:</strong> Principal = mesma classe, 8 níveis (0.1→0.8). Sub-Triagem = qualquer classe, 8 níveis (0.1→0.8), disponível a partir de N16.</li>
           <li><strong className="text-gold-light">Módulos Especiais:</strong> Treino Intensivo (até 3×), Aumento de Poder (até 2×), Conhecimento Amplificado (até 4×).</li>
         </ul>
       </div>
