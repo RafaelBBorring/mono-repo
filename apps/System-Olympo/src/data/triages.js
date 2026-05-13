@@ -153,7 +153,7 @@ export const TRIAGES = {
 
 const TRIAGE_ASCENSIONS = {
   GUERREIRO: {
-    'TÃTICO': {
+    'TÁTICO': {
       0.7: 'Comando Supremo: 1x/combate, gasta 15 PE para permitir que ate 2 aliados usem uma reacao ofensiva imediata. Aliados recebem +N/4 no resultado.',
       0.8: 'Plano Impossivel: 1x/cena, transforma uma falha critica de aliado em sucesso normal e concede +3 CA para o grupo por 1 rodada.',
     },
@@ -183,7 +183,7 @@ const TRIAGE_ASCENSIONS = {
       0.7: 'Linha Mortal: ataques a distancia contra alvos a mais de 20m recebem +INT/2 no resultado e ignoram cobertura leve.',
       0.8: 'Tiro de Horizonte: 1x/combate, um disparo critico dobra o bonus de INT e perfura ate 3 alvos alinhados.',
     },
-    'TÃ‰CNICO': {
+    'TÉCNICO': {
       0.7: 'Engenharia de Campo: calibragem passa a afetar 2 armas por cena; cada uma recebe +N/5 dano adicional.',
       0.8: 'Obra-Prima Tática: 1x/cena, cria ou ajusta um modulo temporario em arma/equipamento por 1 combate, sujeito ao Mestre.',
     },
