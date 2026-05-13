@@ -183,6 +183,11 @@ export default function ResidentInventorySection({
   const itemImgRef = useRef(null)
   const equipImgRef = useRef(null)
 
+  const allEntries = useMemo(() => buildEntries(char), [char])
+  const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
+  const activeEntries = useMemo(() => allEntries.filter(entry => !entry.item.trajeId && normalizeLocation(entry.item.local, entry.item) === activeLocation), [allEntries, activeLocation])
+  const gridEntries = useMemo(() => layoutEntries(activeEntries, activeLocation), [activeEntries, activeLocation])
+
   useEffect(() => {
     if (!canEdit) return
     function onKeyDown(e) {
@@ -198,10 +203,6 @@ export default function ResidentInventorySection({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [canEdit, selectedEntry, dragging, gridEntries])
 
-  const allEntries = useMemo(() => buildEntries(char), [char])
-  const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
-  const activeEntries = useMemo(() => allEntries.filter(entry => !entry.item.trajeId && normalizeLocation(entry.item.local, entry.item) === activeLocation), [allEntries, activeLocation])
-  const gridEntries = useMemo(() => layoutEntries(activeEntries, activeLocation), [activeEntries, activeLocation])
   const equippedWeapons = allEntries.filter(entry => entry.item.categoria === 'Arma' && entry.item.equipado).slice(0, 3)
   const equippedOutfit = allEntries.find(entry => entry.item.categoria === 'Traje' && entry.item.equipado)
   const equipmentStats = calcEquipStats(char.equipamentos || [])
