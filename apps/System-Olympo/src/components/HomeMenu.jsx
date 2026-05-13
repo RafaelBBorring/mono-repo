@@ -60,7 +60,7 @@ function CharacterCard({ sheet, onOpenSheet }) {
           <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden">
             <div
               className={`h-full ${tier.bar} rounded-full`}
-              style={{ width: `${Math.min(100, (level / 30) * 100)}%`, boxShadow: hovering ? `0 0 10px ${tier.glow}` : `0 0 6px ${tier.glow}`, transition: 'box-shadow 0.4s ease' }}
+              style={{ width: `${Math.min(100, (level / 50) * 100)}%`, boxShadow: hovering ? `0 0 10px ${tier.glow}` : `0 0 6px ${tier.glow}`, transition: 'box-shadow 0.4s ease' }}
             />
           </div>
           <span className={`text-[10px] font-mono ${tier.text} uppercase tracking-wider`}>{tier.label}</span>

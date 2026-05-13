@@ -85,12 +85,12 @@ export default function LevelUpModal({ char, onApply, onClose }) {
     onApply(working)
   }
 
-  if (newNivel > 30) {
+  if (newNivel > 50) {
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]">
         <div className="bg-deep border border-gold/30 rounded-lg p-6 max-w-md text-center">
           <h2 className="font-cinzel text-gold text-xl mb-3">Nível Máximo</h2>
-          <p className="text-txt-dim text-sm mb-4">O personagem já está no nível máximo (30).</p>
+          <p className="text-txt-dim text-sm mb-4">O personagem já está no nível máximo (50).</p>
           <button onClick={onClose} className="bg-gold text-void px-5 py-2 rounded text-sm hover:bg-gold-light transition-colors">Fechar</button>
         </div>
       </div>

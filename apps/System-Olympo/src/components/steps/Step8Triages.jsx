@@ -148,62 +148,78 @@ export default function Step8Triages({ char, update, updateNested }) {
               <p className="text-txt-dim text-sm mb-4">
                 Nível desbloqueado: <span className="text-gold font-mono">{subLevel}</span>
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                {Object.entries(allTriages).map(([classKey, triages]) =>
-                  Object.entries(triages).map(([triageKey, triage]) => {
-                    const isSameAsPrincipal = triagemPrincipal === triageKey && classe === classKey
-                    const isSelected = char.subTriagem === triageKey && char.subTriagemClass === classKey
-                    const subLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
-                    const unlockedSub = getSubUnlockedLevels(subLevel)
-
-                    return (
-                      <div
-                        key={`${classKey}-${triageKey}`}
-                        onClick={() => !isSameAsPrincipal && selectSub(classKey, triageKey)}
-                        role="button"
-                        aria-pressed={isSelected}
-                        className={`triage-sub-card is-${String(classKey).toLowerCase()} ${isSelected ? 'is-selected' : ''} bg-deep border rounded p-3 transition-all ${
-                          isSameAsPrincipal
-                            ? 'border-sep/20 opacity-30 cursor-not-allowed'
-                            : isSelected
-                              ? 'cursor-pointer'
-                              : 'border-sep hover:border-white/20 cursor-pointer'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className={`font-body text-sm font-semibold ${isSelected ? 'text-gray-300' : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
-                            {triage.name}
-                          </h4>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${CLASS_COLORS[classKey]?.bg || ''} ${CLASS_COLORS[classKey]?.text || 'text-txt-dim'}`}>{classKey}</span>
-                        </div>
-                        <p className="text-txt-dim text-xs mb-2">{triage.desc}</p>
-                        <div className="space-y-1">
-                          {subLevels.map(lvl => {
-                            const isUnlocked = unlockedSub.includes(lvl)
-                            const desc = triage.levels[lvl]
-                            if (!desc) return null
-
-                            return (
-                              <div
-                                key={lvl}
-                                className={`flex gap-2 text-xs rounded px-2 py-1 ${
-                                  isUnlocked
-                                    ? isSelected ? 'bg-gray-500/10 text-txt-main' : 'bg-panel/50 text-txt-main'
-                                    : 'text-txt-dim/40'
-                                }`}
-                              >
-                                <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? 'text-gray-300' : ''}`}>
-                                  {lvl}
-                                </span>
-                                <span>{desc}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
+              <div className="space-y-6">
+                {Object.entries(allTriages).map(([classKey, triages]) => {
+                  const cColor = CLASS_COLORS[classKey] || CLASS_COLORS.GUERREIRO
+                  return (
+                    <div key={classKey}>
+                      <div className={`flex items-center gap-2 mb-3`}>
+                        <span className={`text-xs font-cinzel tracking-widest uppercase ${cColor.text}`}>{classKey}</span>
+                        <div className={`flex-1 h-px ${cColor.border}`} />
                       </div>
-                    )
-                  })
-                )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {Object.entries(triages).map(([triageKey, triage]) => {
+                          const isSameAsPrincipal = triagemPrincipal === triageKey && classe === classKey
+                          const isSelected = char.subTriagem === triageKey && char.subTriagemClass === classKey
+                          const subLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
+                          const unlockedSub = getSubUnlockedLevels(subLevel)
+
+                          return (
+                            <div
+                              key={`${classKey}-${triageKey}`}
+                              onClick={() => !isSameAsPrincipal && selectSub(classKey, triageKey)}
+                              role="button"
+                              aria-pressed={isSelected}
+                              className={`triage-sub-card is-${String(classKey).toLowerCase()} ${isSelected ? 'is-selected' : ''} bg-deep border rounded p-3 transition-all ${
+                                isSameAsPrincipal
+                                  ? 'border-sep/20 opacity-30 cursor-not-allowed'
+                                  : isSelected
+                                    ? `${cColor.selected} cursor-pointer`
+                                    : `border-sep hover:border-white/20 cursor-pointer`
+                              }`}
+                              style={{
+                                ...(isSelected ? { boxShadow: `0 0 12px ${cColor.glow}` } : {}),
+                              }}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className={`font-body text-sm font-semibold ${isSelected ? cColor.text : isSameAsPrincipal ? 'text-txt-dim' : 'text-txt-main'}`}>
+                                  {triage.name}
+                                </h4>
+                                {isSelected && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${cColor.bg} ${cColor.text} border ${cColor.border}`}>Ativa</span>
+                                )}
+                              </div>
+                              <p className="text-txt-dim text-xs mb-2">{triage.desc}</p>
+                              <div className="space-y-1">
+                                {subLevels.map(lvl => {
+                                  const isUnlocked = unlockedSub.includes(lvl)
+                                  const desc = triage.levels[lvl]
+                                  if (!desc) return null
+
+                                  return (
+                                    <div
+                                      key={lvl}
+                                      className={`flex gap-2 text-xs rounded px-2 py-1 ${
+                                        isUnlocked
+                                          ? isSelected ? `${cColor.bg} text-txt-main` : 'bg-panel/50 text-txt-main'
+                                          : 'text-txt-dim/40'
+                                      }`}
+                                    >
+                                      <span className={`font-mono w-8 shrink-0 ${isUnlocked && isSelected ? cColor.text : ''}`}>
+                                        {lvl}
+                                      </span>
+                                      <span>{desc}</span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </>
           )}

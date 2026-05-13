@@ -463,7 +463,7 @@ function FullSheetViewer({ sheetId, onBack }) {
             className="bg-purple-400/10 border border-purple-400/40 text-purple-300 px-4 py-1.5 rounded text-sm hover:bg-purple-400 hover:text-void transition-colors font-semibold">
             ⬆ Evoluir Raca
           </button>
-          {(char.nivel || 1) < 30 && (
+          {(char.nivel || 1) < 50 && (
             <button onClick={() => setShowLevelUp(true)}
               className="bg-gold/10 border border-gold/40 text-gold px-4 py-1.5 rounded text-sm hover:bg-gold hover:text-void transition-colors font-semibold">
               ▲ Subir de Nivel ({char.nivel || 1} → {(char.nivel || 1) + 1})
