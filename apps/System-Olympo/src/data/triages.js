@@ -151,69 +151,6 @@ export const TRIAGES = {
   },
 }
 
-const TRIAGE_ASCENSIONS = {
-  GUERREIRO: {
-    'TÁTICO': {
-      0.7: 'Comando Supremo: 1x/combate, gasta 15 PE para permitir que ate 2 aliados usem uma reacao ofensiva imediata. Aliados recebem +N/4 no resultado.',
-      0.8: 'Plano Impossivel: 1x/cena, transforma uma falha critica de aliado em sucesso normal e concede +3 CA para o grupo por 1 rodada.',
-    },
-    LUTADOR: {
-      0.7: 'Combo Ascendente: a cada 4 acertos no mesmo turno, adiciona +3d10 + N/3 ao ultimo golpe e recupera 1 reacao.',
-      0.8: 'Corpo Invencivel: 1x/combate, por 2 rodadas, golpes desarmados ignoram 25 de armadura e reduzem dano recebido corpo-a-corpo em 25%.',
-    },
-    TANK: {
-      0.7: 'Muralha Viva: aliados a 5m recebem metade da sua Armadura Natural contra o primeiro dano de cada rodada.',
-      0.8: 'Fortaleza Absoluta: 1x/combate, gasta 18 PE para nao cair abaixo de 1 Vida por 1 rodada e reduzir todo dano recebido em N%.',
-    },
-    SOLDADO: {
-      0.7: 'Cadencia Perfeita: a arma favorita recebe +1 dado adicional e +N/4 no resultado enquanto estiver equipada.',
-      0.8: 'Veterano Lendario: 1x/combate, apos acertar um ataque, realiza uma sequencia extra com ate 2 ataques com -2 no resultado.',
-    },
-  },
-  OPERATIVO: {
-    ASSASSINO: {
-      0.7: 'Execucao Limpa: contra alvos abaixo de 35% de Vida, o primeiro ataque da rodada ignora N/2 de armadura.',
-      0.8: 'Morte Anunciada: 1x/combate, marca um alvo; se ele cair em 2 rodadas, recupera 10 PE e ganha uma acao de movimento.',
-    },
-    INFILTRADO: {
-      0.7: 'Identidade Fantasma: em furtividade, a primeira deteccao falha automaticamente 1x/cena; ataques furtivos ganham +N/3.',
-      0.8: 'Sombra Perfeita: 1x/combate, apos atacar, fica intangivel para ataques de oportunidade ate o inicio do proximo turno.',
-    },
-    ATIRADOR: {
-      0.7: 'Linha Mortal: ataques a distancia contra alvos a mais de 20m recebem +INT/2 no resultado e ignoram cobertura leve.',
-      0.8: 'Tiro de Horizonte: 1x/combate, um disparo critico dobra o bonus de INT e perfura ate 3 alvos alinhados.',
-    },
-    'TÉCNICO': {
-      0.7: 'Engenharia de Campo: calibragem passa a afetar 2 armas por cena; cada uma recebe +N/5 dano adicional.',
-      0.8: 'Obra-Prima Tática: 1x/cena, cria ou ajusta um modulo temporario em arma/equipamento por 1 combate, sujeito ao Mestre.',
-    },
-  },
-  MISTICO: {
-    COMBATE: {
-      0.7: 'Canalizador Arcano: o bonus de dano base magico tambem recebe +AM/2 quando o alvo ja sofreu dano seu neste combate.',
-      0.8: 'Ruina Convergente: 1x/combate, apos 3 acertos magicos, o proximo ataque adiciona +2d10 + N/2 de dano verdadeiro.',
-    },
-    SUPORTE: {
-      0.7: 'Vinculo Maior: buffs ampliados por voce concedem +N/5 de Vida temporaria ou +N/10 PE ao alvo.',
-      0.8: 'Milagre Coordenado: 1x/cena, impede que um aliado caia e restaura 25% da Vida maxima dele como Vida temporaria.',
-    },
-    INTUITIVO: {
-      0.7: 'Fluxo Espontaneo: a cada 10 niveis, recebe +1 PE maximo e reduz em 1 PE o primeiro combo do combate.',
-      0.8: 'Instinto Impossivel: 1x/combate, transforma uma habilidade ativa em reacao se seu custo couber na Energia atual.',
-    },
-    GRADUADO: {
-      0.7: 'Teoria Suprema: aprende +1 habilidade extra e recebe +N/5 em testes de conhecimento magico.',
-      0.8: 'Formula Final: 1x/cena, reduz pela metade o custo de PE de um ritual, alquimia ou artefato aprovado pelo Mestre.',
-    },
-  },
-}
-
-Object.entries(TRIAGE_ASCENSIONS).forEach(([classKey, triages]) => {
-  Object.entries(triages).forEach(([triageKey, levels]) => {
-    if (TRIAGES[classKey]?.[triageKey]) Object.assign(TRIAGES[classKey][triageKey].levels, levels)
-  })
-})
-
 export function getTriageLevels(classKey, triageKey) {
   return TRIAGES[classKey]?.[triageKey]?.levels || {}
 }

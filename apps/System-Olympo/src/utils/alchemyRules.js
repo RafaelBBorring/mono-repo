@@ -73,7 +73,7 @@ export function getAlchemySpaceUsed(rituals = []) {
 }
 
 export function getAlchemyProfile(char = {}) {
-  const nivel = Math.max(1, Math.min(50, char.nivel || 1))
+  const nivel = Math.max(1, Math.min(30, char.nivel || 1))
   const trainingLevel = getAlchemyTrainingLevel(char)
   const hasModule = (char.modulosAdquiridos || []).some(m => m.id === 'estudos_alquimia')
   const hasAccess = hasModule

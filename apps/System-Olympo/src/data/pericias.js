@@ -25,8 +25,6 @@ export const GRAUS_BY_TIER = {
   '8-13':  { maxGrau: 2, nome: 'Veterano', bonus: 10 },
   '14-22': { maxGrau: 3, nome: 'Especialista', bonus: 15 },
   '23-30': { maxGrau: 4, nome: 'Mestre', bonus: 20 },
-  '31-40': { maxGrau: 5, nome: 'Lendario', bonus: 25 },
-  '41-50': { maxGrau: 6, nome: 'Mitico', bonus: 30 },
 }
 
 export const GRAU_NAMES = {
@@ -35,17 +33,13 @@ export const GRAU_NAMES = {
   2: 'Veterano (+10)',
   3: 'Especialista (+15)',
   4: 'Mestre (+20)',
-  5: 'Lendario (+25)',
-  6: 'Mitico (+30)',
 }
 
 export function getMaxGrauForLevel(level) {
   if (level <= 7) return 1
   if (level <= 13) return 2
   if (level <= 22) return 3
-  if (level <= 30) return 4
-  if (level <= 40) return 5
-  return 6
+  return 4
 }
 
 export function getGrauBonus(grau) {

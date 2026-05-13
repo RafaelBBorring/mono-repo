@@ -204,9 +204,7 @@ function getLevelBand(nivel) {
   if (nivel <= 7)  return 'N1-7'
   if (nivel <= 15) return 'N8-15'
   if (nivel <= 22) return 'N16-22'
-  if (nivel <= 30) return 'N23-30'
-  if (nivel <= 40) return 'N31-40'
-  return 'N41-50'
+  return 'N23-30'
 }
 
 function getTriagemAmplifiers(char) {
@@ -353,8 +351,8 @@ PEH — PONTOS DE EVOLUÇÃO DE HABILIDADE:
 
 SCP — SISTEMA DE CAMADAS DE PODER (Seção 14.1):
 Camada 1 (Base): Perícia + Atributo — SEM LIMITE.
-Camada 2 (Tático — Habilidades, Triagens, Módulos): N1-7:+8 | N8-15:+12 | N16-22:+16 | N23-30:+20 | N31-40:+24 | N41-50:+28
-Camada 3 (Épico — Armas, Runas, Artefatos): N1-7:+5 | N8-15:+8 | N16-22:+12 | N23-30:+16 | N31-40:+20 | N41-50:+24
+Camada 2 (Tático — Habilidades, Triagens, Módulos): N1-7:+8 | N8-15:+12 | N16-22:+16 | N23-30:+20
+Camada 3 (Épico — Armas, Runas, Artefatos): N1-7:+5 | N8-15:+8 | N16-22:+12 | N23-30:+16
 BÔNUS TOTAL MÁXIMO = Camada 1 + Camada 2 + Camada 3.
 
 TDH — TETO DE DANO POR HABILIDADE (Seção 14.4):
@@ -363,8 +361,6 @@ N1-7:   Fraca=3d8+12    | Media=4d10+18  | Forte=6d10+24  | Ult=8d12+30
 N8-15:  Fraca=4d10+18   | Media=6d10+25  | Forte=9d12+32  | Ult=13d12+45
 N16-22: Fraca=6d12+25   | Media=8d12+38  | Forte=12d12+50 | Ult=17d12+65
 N23-30: Fraca=8d12+32   | Media=10d12+45 | Forte=14d12+60 | Ult=20d12+80
-N31-40: Fraca=10d12+40  | Media=12d12+58 | Forte=16d12+78 | Ult=24d12+105
-N41-50: Fraca=12d12+50  | Media=15d12+72 | Forte=20d12+96 | Ult=30d12+130
 
 TDH E COMBOS: Se a habilidade tem múltiplos sub-efeitos que se SINERGIZAM com outras habilidades (ex: Passiva que marca + Ativa que consome marcas), o dano TOTAL do combo NÃO deve exceder 150% do TDH do bracket mais alto envolvido.
 
@@ -373,22 +369,22 @@ Pesos: +5atk/def(temp)=3PP | +10atk/def(temp)=5PP | +15atk/def(temp,N16+)=7PP
 Vantagem=4PP | +1Ataque Extra=5PP | Dano<=4d12=2PP | Dano 4d12-12d12=4PP | Dano 13d12+=6PP
 +50%HP temp(<=3rod)=3PP | +100%HP temp(<=2rod)=5PP | Ignorar armadura=5PP | Area=+3PP | Imunidade(<=1rod)=6PP
 
-Passiva: N1-7:5 | N8-15:6 | N16-22:7 | N23-30:8 | N31-40:9 | N41-50:10
-Ativa Fraca: N1-7:4 | N8-15:5 | N16-22:6 | N23-30:7 | N31-40:8 | N41-50:9
-Ativa Média: N1-7:6 | N8-15:7 | N16-22:8 | N23-30:10 | N31-40:12 | N41-50:14
-Ativa Forte: N1-7:8 | N8-15:10 | N16-22:12 | N23-30:14 | N31-40:16 | N41-50:18
-Ultimate: N1-7:10 | N8-15:13 | N16-22:16 | N23-30:20 | N31-40:24 | N41-50:28
+Passiva: N1-7:5 | N8-15:6 | N16-22:7 | N23-30:8
+Ativa Fraca: N1-7:4 | N8-15:5 | N16-22:6 | N23-30:7
+Ativa Média: N1-7:6 | N8-15:7 | N16-22:8 | N23-30:10
+Ativa Forte: N1-7:8 | N8-15:10 | N16-22:12 | N23-30:14
+Ultimate: N1-7:10 | N8-15:13 | N16-22:16 | N23-30:20
 
 LCP — LIMITE CUMULATIVO DE PODER (Seção 14.6):
 SOME TODOS os bônus de TODAS as habilidades e verifique contra os limites:
-Ataque (d20+X): N1-7:+18 | N8-15:+26 | N16-22:+30 | N23-30:+42 | N31-40:+52 | N41-50:+64
+Ataque (d20+X): N1-7:+18 | N8-15:+26 | N16-22:+30 | N23-30:+42
 Esquiva/Defesa: mesmos limites
-CA bônus (soma habilidades): N1-7:+4 | N8-15:+6 | N16-22:+6 | N23-30:+10 | N31-40:+12 | N41-50:+14
-Ataques Extras: N1-7:+1 | N8-15:+1 | N16-22:+1 | N23-30:+2 | N31-40:+2 | N41-50:+3
+CA bônus (soma habilidades): N1-7:+4 | N8-15:+6 | N16-22:+6 | N23-30:+10
+Ataques Extras: N1-7:+1 | N8-15:+1 | N16-22:+1 | N23-30:+2
 Bônus temporários (1-2 rod, custo alto) podem exceder em até +5. Passivos permanentes sem custo: mais conservadores.
 
 CALIBRAÇÃO HP ESPERADO:
-N5:140-210 | N10:250-380 | N15:380-560 | N20:520-760 | N25:700-980 | N30:950-1350 | N40:1300-1900 | N50:1800-2600
+N5:140-210 | N10:250-380 | N15:380-560 | N20:520-760 | N25:700-980 | N30:950-1350
 
 ═══════════════════════════════════════════
 PROTOCOLO DE ANÁLISE DE QUEBRA (ANTI-ABUSO):
@@ -601,7 +597,7 @@ O nivel de referencia para balancear as habilidades da arma NAO e o nivel do per
 Cada rank mapeia para uma faixa de poder equivalente a um nivel de personagem:
 - Comum → N1-5 | Incomum → N3-8 | Raro → N6-12
 - Épico → N10-16 | Heroico → N14-20 | Ancestral → N18-25
-- Mítico → N22-28 | Transcendente → N26-50
+- Mítico → N22-28 | Transcendente → N26-30
 
 ARMA ATUAL: ${weaponName} | Dano base: ${weaponDano} | Mecânica: ${weaponMec}
 RANK DA ARMA: ${weaponRank} | Faixa de poder equivalente: ${weaponBand}
@@ -624,7 +620,7 @@ N10-16: Fraca=5d10+20| Media=7d12+28 | Forte=10d12+38
 N14-20: Fraca=6d12+25| Media=9d12+35 | Forte=12d12+48
 N18-25: Fraca=8d12+30| Media=10d12+42| Forte=14d12+58
 N22-28: Fraca=9d12+35| Media=12d12+48| Forte=16d12+65
-N26-50: Fraca=10d12+40|Media=14d12+55| Forte=20d12+75
+N26-30: Fraca=10d12+40|Media=14d12+55| Forte=20d12+75
 
 CUSTO DE ENERGIA: Fraca=3-10E | Media=10-25E | Forte=25-50E
 DURAÇÃO: Fraca 1-2rod | Media 2-4rod | Forte 3-6rod
@@ -1167,7 +1163,7 @@ export async function chatAboutAbility(char, userMessage, history = []) {
   const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
   const pehSpent = calcPEHSpent(char.habilidades)
 
-  const LCP_CAPS = { 'N1-7': { atk: 18, def: 18, ca: 4, extra: 1 }, 'N8-15': { atk: 26, def: 26, ca: 6, extra: 1 }, 'N16-22': { atk: 30, def: 30, ca: 6, extra: 1 }, 'N23-30': { atk: 42, def: 42, ca: 10, extra: 2 }, 'N31-40': { atk: 52, def: 52, ca: 12, extra: 2 }, 'N41-50': { atk: 64, def: 64, ca: 14, extra: 3 } }
+  const LCP_CAPS = { 'N1-7': { atk: 18, def: 18, ca: 4, extra: 1 }, 'N8-15': { atk: 26, def: 26, ca: 6, extra: 1 }, 'N16-22': { atk: 30, def: 30, ca: 6, extra: 1 }, 'N23-30': { atk: 42, def: 42, ca: 10, extra: 2 } }
   const lcp = LCP_CAPS[stats.band] || LCP_CAPS['N16-22']
   const remainingAtk = Math.max(0, lcp.atk - stats.ataqueBaseNum)
 

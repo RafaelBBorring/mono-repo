@@ -41,7 +41,7 @@ export const RANK_LEVEL_BAND = {
   Heroico: 'N14-20',
   Ancestral: 'N18-25',
   Mítico: 'N22-28',
-  Transcendente: 'N26-50',
+  Transcendente: 'N26-30',
 }
 
 export const WEAPON_LIMITS = [
@@ -53,8 +53,6 @@ export const WEAPON_LIMITS = [
   { minLevel: 18, maxWeapons: 2, maxRank: 'Ancestral' },
   { minLevel: 22, maxWeapons: 3, maxRank: 'Mítico' },
   { minLevel: 26, maxWeapons: 3, maxRank: 'Transcendente' },
-  { minLevel: 35, maxWeapons: 4, maxRank: 'Transcendente' },
-  { minLevel: 45, maxWeapons: 5, maxRank: 'Transcendente' },
 ]
 
 export const MARTIAL_ARTS_LIMITS = [
@@ -62,8 +60,6 @@ export const MARTIAL_ARTS_LIMITS = [
   { minLevel: 8, maxArts: 1, maxGrau: 2 },
   { minLevel: 16, maxArts: 1, maxGrau: 3 },
   { minLevel: 23, maxArts: 2, maxGrau: 3 },
-  { minLevel: 35, maxArts: 2, maxGrau: 3 },
-  { minLevel: 45, maxArts: 3, maxGrau: 3 },
 ]
 
 export function getWeaponLimitForLevel(nivel) {

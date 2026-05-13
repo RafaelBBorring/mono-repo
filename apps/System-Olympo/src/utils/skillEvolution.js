@@ -118,7 +118,6 @@ export function canEvolveSkill(skill, currentEvolNivel, charNivel) {
  * Calcula o nível de evolução automático da Passiva com base no nível do personagem.
  */
 export function calcPassivaAutoEvolucao(charNivel) {
-  if (charNivel >= 40) return 4
   if (charNivel >= 30) return 3
   if (charNivel >= 20) return 2
   if (charNivel >= 10) return 1

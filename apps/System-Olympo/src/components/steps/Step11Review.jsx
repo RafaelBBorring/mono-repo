@@ -3355,8 +3355,8 @@ function TriagemSection({ char, cls }) {
   const subKey = char.subTriagem
   const subNv = char.subTriagemNivel || 0
   const subClass = char.subTriagemClass || cls
-  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-  const subLevels = [0.1, 0.2, 0.3, 0.4, 0.5]
+  const principalLevels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+  const subLevels = [0.1, 0.2, 0.3]
 
   function getTriagemData(classKey, triageKey) {
     if (!triageKey || !classKey) return null

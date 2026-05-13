@@ -3,7 +3,8 @@ import { TRIAGES, getAllTriagesForClass, getAllTriages } from '../../data/triage
 import { calcTriagemPrincipalLevel, calcSubTriagemLevel } from '../../utils/calculator'
 import { getTriagemImage } from '../../data/triageImages'
 
-const ALL_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+const PRINCIPAL_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+const SUB_LEVELS = [0.1, 0.2, 0.3]
 
 const CLASS_COLORS = {
   GUERREIRO: { bg: 'bg-rose-500/5', border: 'border-rose-500/30', selected: 'border-rose-400', text: 'text-rose-400', glow: 'rgba(248,113,113,0.25)', gradient: 'from-rose-500/10 to-transparent' },
@@ -51,7 +52,11 @@ export default function Step8Triages({ char, update, updateNested }) {
   }
 
   function getUnlockedLevels(maxLevel) {
-    return ALL_LEVELS.filter(l => l <= maxLevel)
+    return PRINCIPAL_LEVELS.filter(l => l <= maxLevel)
+  }
+
+  function getUnlockedSubLevels(maxLevel) {
+    return SUB_LEVELS.filter(l => l <= maxLevel)
   }
 
   return (
@@ -104,7 +109,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                     <p className="text-txt-dim text-xs mb-3">{triage.desc}</p>
 
                     <div className="space-y-1.5">
-                      {ALL_LEVELS.map(lvl => {
+                      {PRINCIPAL_LEVELS.map(lvl => {
                         const isUnlocked = unlocked.includes(lvl)
                         const desc = triage.levels[lvl]
                         if (!desc) return null
@@ -166,7 +171,7 @@ export default function Step8Triages({ char, update, updateNested }) {
                   .filter(([classKey]) => !subFilter || classKey === subFilter)
                   .map(([classKey, triages]) => {
                   const cColor = CLASS_COLORS[classKey] || CLASS_COLORS.GUERREIRO
-                  const unlockedSub = getUnlockedLevels(subLevel)
+                  const unlockedSub = getUnlockedSubLevels(subLevel)
 
                   return (
                     <div key={classKey}>
@@ -217,11 +222,10 @@ export default function Step8Triages({ char, update, updateNested }) {
                                 </div>
                               </div>
                               <div className="px-3 py-2 space-y-0.5">
-                                {ALL_LEVELS.map(lvl => {
+                                {SUB_LEVELS.map(lvl => {
                                   const isUnlocked = unlockedSub.includes(lvl)
                                   const desc = triage.levels[lvl]
                                   if (!desc) return null
-                                  const isAscension = lvl >= 0.7
 
                                   return (
                                     <div
@@ -230,15 +234,11 @@ export default function Step8Triages({ char, update, updateNested }) {
                                         !isUnlocked
                                           ? 'text-txt-dim/30'
                                           : isSelected
-                                            ? isAscension
-                                              ? `${cColor.bg} text-txt-main border ${cColor.border}`
-                                              : `${cColor.bg} text-txt-main`
-                                            : isAscension
-                                              ? 'bg-gold/5 text-txt-main border border-gold/20'
-                                              : 'bg-panel/30 text-txt-main'
+                                            ? `${cColor.bg} text-txt-main`
+                                            : 'bg-panel/30 text-txt-main'
                                       }`}
                                     >
-                                      <span className={`font-mono w-7 shrink-0 text-[11px] ${isUnlocked && isSelected ? cColor.text : isUnlocked && isAscension ? 'text-gold' : ''}`}>
+                                      <span className={`font-mono w-7 shrink-0 text-[11px] ${isUnlocked && isSelected ? cColor.text : ''}`}>
                                         {lvl}
                                       </span>
                                       <span className="leading-relaxed">{desc}</span>
@@ -263,7 +263,7 @@ export default function Step8Triages({ char, update, updateNested }) {
         <div className="codex-card p-5">
           <h3 className="font-cinzel text-primary text-lg mb-2 tracking-wider">Efeitos Acumulados</h3>
           <div className="space-y-1">
-            {ALL_LEVELS
+            {PRINCIPAL_LEVELS
               .filter(lvl => lvl <= principalLevel)
               .map(lvl => {
                 const triage = classTriages[triagemPrincipal]

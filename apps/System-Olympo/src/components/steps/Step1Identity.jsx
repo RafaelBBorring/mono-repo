@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ARRAYS } from '../../data/attributes'
 import AvatarCropper from '../AvatarCropper'
 
-const MAX_LEVEL = 50
+const MAX_LEVEL = 30
 
 export default function Step1Identity({ char, update }) {
   const dragging = useRef(false)
@@ -14,9 +14,7 @@ export default function Step1Identity({ char, update }) {
     if (n <= 8) return '#60a5fa'
     if (n <= 16) return '#f7bd48'
     if (n <= 24) return '#c084fc'
-    if (n <= 30) return '#f87171'
-    if (n <= 40) return '#fb923c'
-    return '#facc15'
+    return '#f87171'
   }, [])
 
   const clampLevel = useCallback((value) => Math.min(MAX_LEVEL, Math.max(1, Number(value) || 1)), [])
@@ -44,13 +42,9 @@ export default function Step1Identity({ char, update }) {
     ? 'Novato (1-8)'
     : char.nivel <= 16
       ? 'Veterano (9-16)'
-      : char.nivel <= 24
-        ? 'Elite (17-24)'
-        : char.nivel <= 30
-          ? 'Lendario (25-30)'
-          : char.nivel <= 40
-            ? 'Mitico (31-40)'
-            : 'Ascendente (41-50)'
+    : char.nivel <= 24
+      ? 'Elite (17-24)'
+      : 'Lendario (25-30)'
 
   return (
     <div className="space-y-6">

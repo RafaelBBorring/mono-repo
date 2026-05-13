@@ -59,9 +59,7 @@ export function getTierForLevel(level) {
   if (level <= 7) return '1-7'
   if (level <= 13) return '8-13'
   if (level <= 22) return '14-22'
-  if (level <= 30) return '23-30'
-  if (level <= 40) return '31-40'
-  return '41-50'
+  return '23-30'
 }
 
 export function getArraysForLevel() {
@@ -73,8 +71,6 @@ export const ATTR_CAPS = {
   '8-13': 26,
   '14-22': 32,
   '23-30': 38,
-  '31-40': 44,
-  '41-50': 50,
 }
 
 export function getAttrCap(level) {
