@@ -688,7 +688,7 @@ export default function ResidentInventorySection({
 
         <div className="resident-inventory-board">
           <div className="resident-grid-wrap">
-            <div className="resident-grid" onWheel={handleGridWheel}>
+            <div className="resident-grid" onWheel={handleGridWheel} style={{ '--grid-cols': GRID_COLS, '--grid-rows': GRID_ROWS }}>
               <div className="resident-grid-cells">
                 {Array.from({ length: GRID_COLS * GRID_ROWS }).map((_, idx) => (
                   <button key={idx} type="button" aria-label={`Slot ${idx + 1}`}
@@ -1152,7 +1152,7 @@ function BackpackGridDrawer({ backpack, canEdit, externalDrag, onUpdateContents,
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="resident-inventory-board resident-bp-board">
             <div className="resident-grid-wrap">
-              <div className="resident-grid" style={{ aspectRatio: `${cols}/${rows}` }} onWheel={handleBpWheel}>
+              <div className="resident-grid" style={{ '--grid-cols': cols, '--grid-rows': rows, aspectRatio: `${cols}/${rows}` }} onWheel={handleBpWheel}>
                 <div className="resident-grid-cells">
                   {Array.from({ length: cols * rows }).map((_, idx) => (
                     <button key={idx} type="button" aria-label={`Slot ${idx + 1}`}

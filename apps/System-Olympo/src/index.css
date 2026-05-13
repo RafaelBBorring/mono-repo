@@ -4482,16 +4482,18 @@ body {
 }
 
 .resident-grid {
+  --grid-cols: 10;
+  --grid-rows: 8;
   position: relative;
   width: 100%;
-  aspect-ratio: 10 / 8;
+  aspect-ratio: var(--grid-cols) / var(--grid-rows);
   border: 1px solid rgba(245, 200, 76, 0.16);
   border-radius: 11px;
   background:
     linear-gradient(rgba(245,200,76,0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(245,200,76,0.08) 1px, transparent 1px),
     rgba(8, 9, 12, 0.78);
-  background-size: calc(100% / 10) calc(100% / 8), calc(100% / 10) calc(100% / 8), auto;
+  background-size: calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), auto;
   overflow: hidden;
 }
 
@@ -4503,8 +4505,8 @@ body {
 
 .resident-grid-cells {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  grid-template-rows: repeat(8, 1fr);
+  grid-template-columns: repeat(var(--grid-cols), 1fr);
+  grid-template-rows: repeat(var(--grid-rows), 1fr);
   z-index: 1;
 }
 
@@ -4861,12 +4863,14 @@ body {
 }
 
 .resident-bp-board .resident-grid {
+  --grid-cols: inherit;
+  --grid-rows: inherit;
   border-color: rgba(56, 189, 248, 0.18);
   background:
     linear-gradient(rgba(56,189,248,0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(56,189,248,0.06) 1px, transparent 1px),
     rgba(0, 14, 28, 0.85);
-  background-size: 10% 12.5%;
+  background-size: calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), auto;
 }
 
 .resident-bp-board .resident-grid-cells button {
