@@ -92,6 +92,48 @@ function findFreeSpot(size, occupied) {
   return { x: 0, y: 0, ...size }
 }
 
+function findFreeSpotIn(size, occupied, cols, rows) {
+  for (let y = 0; y <= rows - size.h; y++) {
+    for (let x = 0; x <= cols - size.w; x++) {
+      const rect = { x, y, ...size }
+      if (!occupied.some(other => rectsOverlap(rect, other))) return rect
+    }
+  }
+  return null
+}
+
+function getBackpackGridDims(capacity) {
+  const c = Math.max(4, Math.min(30, capacity || 12))
+  if (c <= 4) return { cols: 2, rows: 2 }
+  if (c <= 6) return { cols: 3, rows: 2 }
+  if (c <= 9) return { cols: 3, rows: 3 }
+  if (c <= 12) return { cols: 4, rows: 3 }
+  if (c <= 16) return { cols: 4, rows: 4 }
+  if (c <= 20) return { cols: 5, rows: 4 }
+  if (c <= 24) return { cols: 6, rows: 4 }
+  return { cols: 6, rows: 5 }
+}
+
+function layoutBackpackContents(contents, cols, rows) {
+  const occupied = []
+  return (contents || []).map((item, idx) => {
+    const entry = { key: `bp:${item.id || idx}`, source: 'backpack', idx, item }
+    const stored = item.inventoryGrid
+    const rotated = stored?.rotated || 0
+    const size = resolveSize(entry, rotated)
+    let rect = stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)
+      ? { x: stored.x, y: stored.y, w: size.w, h: size.h, rotated }
+      : null
+    const invalid = !rect || rect.x < 0 || rect.y < 0 || rect.x + rect.w > cols || rect.y + rect.h > rows || occupied.some(other => rectsOverlap(rect, other))
+    if (invalid) {
+      const spot = findFreeSpotIn(size, occupied, cols, rows)
+      rect = spot ? { ...spot, rotated } : { x: 0, y: 0, ...size, rotated }
+    }
+    occupied.push(rect)
+    return { ...entry, rect }
+  })
+}
+
 function buildLocations(char, entries) {
   const custom = Array.isArray(char.inventoryLocations) ? char.inventoryLocations : []
   const used = entries
@@ -413,15 +455,20 @@ export default function ResidentInventorySection({
     if (!backpack || backpack.tipo !== 'mochila') return
     const capacity = Number(backpack.slotSize || backpack.capacidade || 12)
     const contents = Array.isArray(backpack.contents) ? backpack.contents : []
-    if (contents.length >= capacity) return
+    const { cols, rows } = getBackpackGridDims(capacity)
+    const bpEntry = { key: `new:${draggedEntry.key}`, source: 'backpack', idx: contents.length, item: draggedEntry.item }
+    const size = resolveSize(bpEntry, 0)
+    const occupied = layoutBackpackContents(contents, cols, rows).map(e => e.rect)
+    const spot = findFreeSpotIn(size, occupied, cols, rows)
+    if (!spot) return
+    const gridRect = { ...spot, rotated: 0 }
     const updatedBackpack = { ...backpack, contents: [...contents] }
-    const updateKey = isBackpackEquip ? 'equipamentos' : 'inventario'
     const resultArr = [...backpackArr]
     if (draggedEntry.source === 'inventory') {
       const inventario = [...(char.inventario || [])]
       const dragged = inventario[draggedEntry.idx]
       if (!dragged) return
-      updatedBackpack.contents.push({ ...dragged, local: 'mochila', inventoryGrid: null })
+      updatedBackpack.contents.push({ ...dragged, local: 'mochila', inventoryGrid: gridRect })
       resultArr[backpackEntry.idx] = updatedBackpack
       if (isBackpackEquip) {
         update({ equipamentos: resultArr, inventario: inventario.filter((_, idx) => idx !== draggedEntry.idx) })
@@ -432,7 +479,7 @@ export default function ResidentInventorySection({
       const equipamentos = [...(char.equipamentos || [])]
       const draggedEquip = equipamentos[draggedEntry.idx]
       if (!draggedEquip) return
-      updatedBackpack.contents.push({ ...draggedEquip, local: 'mochila', inventoryGrid: null, equipado: false })
+      updatedBackpack.contents.push({ ...draggedEquip, local: 'mochila', inventoryGrid: gridRect, equipado: false })
       resultArr[backpackEntry.idx] = updatedBackpack
       if (isBackpackEquip) {
         update({ equipamentos: resultArr.filter((_, idx) => idx !== draggedEntry.idx) })
@@ -440,7 +487,7 @@ export default function ResidentInventorySection({
         update({ inventario: resultArr, equipamentos: equipamentos.filter((_, idx) => idx !== draggedEntry.idx) })
       }
     } else if (draggedEntry.source === 'primary') {
-      updatedBackpack.contents.push({ ...draggedEntry.item, local: 'mochila', inventoryGrid: null, equipado: false })
+      updatedBackpack.contents.push({ ...draggedEntry.item, local: 'mochila', inventoryGrid: gridRect, equipado: false })
       resultArr[backpackEntry.idx] = updatedBackpack
       if (isBackpackEquip) {
         update({ equipamentos: resultArr, arma: null, armaInventoryGrid: null })
@@ -451,13 +498,40 @@ export default function ResidentInventorySection({
     setDragging(null)
   }
 
-  function removeFromBackpack(contentIdx) {
+  function removeFromBackpack(contentIdxOrEntry, externalEntry, gridPosition) {
     if (!backpackDrawer) return
     const inventario = [...(char.inventario || [])]
     const backpack = inventario[backpackDrawer.idx]
     const contents = Array.isArray(backpack?.contents) ? backpack.contents : []
+    if (!backpack) return
+
+    if (externalEntry && gridPosition) {
+      const newContent = { ...externalEntry.item, local: 'mochila', inventoryGrid: gridPosition }
+      if (externalEntry.source === 'inventory') {
+        const srcInv = [...(char.inventario || [])]
+        const dragged = srcInv[externalEntry.idx]
+        if (!dragged) return
+        Object.assign(newContent, dragged)
+        inventario[backpackDrawer.idx] = { ...backpack, contents: [...contents, newContent] }
+        update({ inventario: inventario.filter((_, idx) => idx !== externalEntry.idx) })
+      } else if (externalEntry.source === 'equipment') {
+        const eqArr = [...(char.equipamentos || [])]
+        const draggedEq = eqArr[externalEntry.idx]
+        if (!draggedEq) return
+        Object.assign(newContent, draggedEq, { equipado: false })
+        inventario[backpackDrawer.idx] = { ...backpack, contents: [...contents, newContent] }
+        update({ inventario, equipamentos: eqArr.filter((_, idx) => idx !== externalEntry.idx) })
+      } else if (externalEntry.source === 'primary') {
+        inventario[backpackDrawer.idx] = { ...backpack, contents: [...contents, newContent] }
+        update({ inventario, arma: null, armaInventoryGrid: null })
+      }
+      setDragging(null)
+      return
+    }
+
+    const contentIdx = contentIdxOrEntry
     const item = contents[contentIdx]
-    if (!backpack || !item) return
+    if (!item) return
     inventario[backpackDrawer.idx] = {
       ...backpack,
       contents: contents.filter((_, idx) => idx !== contentIdx),
@@ -469,6 +543,13 @@ export default function ResidentInventorySection({
       ],
     })
     setBackpackDragging(null)
+  }
+
+  function updateBackpackContents(newContents) {
+    if (!backpackDrawer) return
+    const inventario = [...(char.inventario || [])]
+    inventario[backpackDrawer.idx] = { ...inventario[backpackDrawer.idx], contents: newContents }
+    update({ inventario })
   }
 
   function autoSort() {
@@ -726,18 +807,20 @@ export default function ResidentInventorySection({
       )}
 
       {backpackDrawer && createPortal(
-        <BackpackDrawer
+        <BackpackGridDrawer
           backpack={char.inventario?.[backpackDrawer.idx] || backpackDrawer.item}
           canEdit={canEdit}
-          draggingIdx={backpackDragging}
-          onDragStart={setBackpackDragging}
-          onDropOut={() => backpackDragging != null && removeFromBackpack(backpackDragging)}
-          onClose={() => { setBackpackDrawer(null); setBackpackDragging(null) }}
-          onEdit={() => {
+          externalDrag={dragging}
+          onUpdateContents={updateBackpackContents}
+          onRemoveItem={(contentIdx, externalEntry, gridPosition) => {
+            if (externalEntry) removeFromBackpack(null, externalEntry, gridPosition)
+            else if (contentIdx != null) removeFromBackpack(contentIdx)
+          }}
+          onOpenItem={(entry) => {
             setItemDrawer(backpackDrawer)
             setBackpackDrawer(null)
-            setItemEditMode(true)
           }}
+          onClose={() => { setBackpackDrawer(null); setBackpackDragging(null) }}
         />,
         document.body
       )}
@@ -827,7 +910,7 @@ function EquippedQuickSlot({ label, entry, detail, icon, onClick }) {
   )
 }
 
-function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMoveTo, onDropInto, onRotate, moveLabel, locations, onDragStart, onDragEnd, onSelect }) {
+function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMoveTo, onDropInto, onRotate, moveLabel, locations, onDragStart, onDragEnd, onSelect, gridCols = GRID_COLS, gridRows = GRID_ROWS }) {
   const item = entry.item || {}
   const image = item.imagem || item.image
   const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento' || item.categoria === 'Traje'
@@ -863,10 +946,10 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
         '--item-cols': rect.w,
         '--item-rows': rect.h,
         '--rotation': `${rotationDeg}deg`,
-        left: `${(rect.x / GRID_COLS) * 100}%`,
-        top: `${(rect.y / GRID_ROWS) * 100}%`,
-        width: `${(rect.w / GRID_COLS) * 100}%`,
-        height: `${(rect.h / GRID_ROWS) * 100}%`,
+        left: `${(rect.x / gridCols) * 100}%`,
+        top: `${(rect.y / gridRows) * 100}%`,
+        width: `${(rect.w / gridCols) * 100}%`,
+        height: `${(rect.h / gridRows) * 100}%`,
       }}
       draggable={canEdit}
       onDragStart={handleDragStart}
@@ -900,7 +983,7 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
               <span className="material-symbols-outlined">{item.equipado ? 'remove_done' : 'done_all'}</span>
             </button>
           )}
-          {canEdit && (
+          {canEdit && locations && (
             <select
               title="Mover para"
               value={normalizeLocation(item.local, item)}
@@ -923,9 +1006,131 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
   )
 }
 
-function BackpackDrawer({ backpack, canEdit, draggingIdx, onDragStart, onDropOut, onClose, onEdit }) {
+function BackpackGridDrawer({ backpack, canEdit, externalDrag, onUpdateContents, onRemoveItem, onOpenItem, onClose }) {
   const contents = Array.isArray(backpack?.contents) ? backpack.contents : []
   const capacity = Number(backpack?.slotSize || backpack?.capacidade || 12)
+  const { cols, rows } = getBackpackGridDims(capacity)
+
+  const [bpDrag, setBpDrag] = useState(null)
+  const [bpHover, setBpHover] = useState(null)
+  const [bpSelected, setBpSelected] = useState(null)
+
+  const bpEntries = useMemo(() => layoutBackpackContents(contents, cols, rows), [contents, cols, rows])
+
+  function patchContent(idx, patch) {
+    const next = [...contents]
+    next[idx] = { ...next[idx], ...patch }
+    onUpdateContents(next)
+  }
+
+  useEffect(() => {
+    if (!canEdit) return
+    function onKeyDown(e) {
+      if (e.key !== 'r' && e.key !== 'R') return
+      if (bpSelected) {
+        const entry = bpEntries.find(en => en.key === bpSelected)
+        if (entry) rotateBpEntry(entry)
+      } else if (bpDrag) {
+        const base = entryBaseSize(bpDrag.entry)
+        if (base.w !== base.h) setBpDrag(cur => cur ? { ...cur, rotated: ((cur.rotated || 0) + 90) % 360 } : null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [canEdit, bpSelected, bpDrag, bpEntries])
+
+  function rotateBpEntry(entry) {
+    const cur = bpEntries.find(en => en.key === entry.key)?.rect
+    if (!cur) return
+    const nextRot = ((cur.rotated || 0) + 90) % 360
+    const size = resolveSize(entry, nextRot)
+    const rect = {
+      x: Math.min(cur.x, cols - size.w),
+      y: Math.min(cur.y, rows - size.h),
+      w: size.w, h: size.h, rotated: nextRot,
+    }
+    if (rect.x < 0 || rect.y < 0) return
+    const occupied = bpEntries.filter(en => en.key !== entry.key).map(en => en.rect)
+    if (occupied.some(o => rectsOverlap(rect, o))) return
+    patchContent(entry.idx, { inventoryGrid: rect })
+  }
+
+  function handleBpWheel(event) {
+    if (!bpDrag) return
+    event.preventDefault()
+    const base = entryBaseSize(bpDrag.entry)
+    if (base.w === base.h) return
+    setBpDrag(cur => cur ? { ...cur, rotated: ((cur.rotated || 0) + 90) % 360 } : null)
+  }
+
+  function handleBpDrop(slotIndex) {
+    if (externalDrag && !bpDrag) {
+      const entry = externalDrag.entry
+      const rotated = externalDrag.rotated || 0
+      const size = resolveSize(entry, rotated)
+      const x = slotIndex % cols
+      const y = Math.floor(slotIndex / cols)
+      const rect = { x, y, w: size.w, h: size.h, rotated }
+      if (rect.x + rect.w > cols || rect.y + rect.h > rows) { setBpHover(null); return }
+      const occupied = bpEntries.map(en => en.rect)
+      if (occupied.some(o => rectsOverlap(rect, o))) { setBpHover(null); return }
+      onRemoveItem(null, entry, rect)
+      setBpHover(null)
+      return
+    }
+    if (!bpDrag) return
+    const x = slotIndex % cols
+    const y = Math.floor(slotIndex / cols)
+    const size = resolveSize(bpDrag.entry, bpDrag.rotated)
+    const rect = { x, y, w: size.w, h: size.h, rotated: bpDrag.rotated || 0 }
+    if (rect.x + rect.w > cols || rect.y + rect.h > rows) { setBpDrag(null); setBpHover(null); return }
+    const occupied = bpEntries.filter(en => en.key !== bpDrag.entry.key).map(en => en.rect)
+    if (occupied.some(o => rectsOverlap(rect, o))) { setBpDrag(null); setBpHover(null); return }
+    patchContent(bpDrag.entry.idx, { inventoryGrid: rect })
+    setBpDrag(null)
+    setBpHover(null)
+  }
+
+  function computeBpPreview(slotIndex) {
+    const src = bpDrag || (externalDrag ? { entry: externalDrag.entry, rotated: externalDrag.rotated || 0 } : null)
+    if (!src) return null
+    const x = slotIndex % cols
+    const y = Math.floor(slotIndex / cols)
+    const size = resolveSize(src.entry, src.rotated)
+    const rect = { x, y, ...size }
+    if (rect.x + rect.w > cols || rect.y + rect.h > rows) return { rect, valid: false }
+    const occupied = bpEntries.filter(en => {
+      if (bpDrag && en.key === bpDrag.entry.key) return false
+      return true
+    }).map(en => en.rect)
+    const valid = !occupied.some(o => rectsOverlap(rect, o))
+    return { rect, valid }
+  }
+
+  function autoSortBp() {
+    const sorted = [...bpEntries].sort((a, b) => {
+      const aa = a.rect.w * a.rect.h, bb = b.rect.w * b.rect.h
+      if (aa !== bb) return bb - aa
+      return (a.item.nome || '').localeCompare(b.item.nome || '')
+    })
+    const occupied = []
+    const next = [...contents]
+    sorted.forEach(entry => {
+      const size = resolveSize(entry, 0)
+      const spot = findFreeSpotIn(size, occupied, cols, rows)
+      const rect = { ...(spot || { x: 0, y: 0, ...size }), rotated: 0 }
+      occupied.push(rect)
+      next[entry.idx] = { ...next[entry.idx], inventoryGrid: rect }
+    })
+    onUpdateContents(next)
+  }
+
+  function handleBpDragOut() {
+    if (!bpDrag) return
+    onRemoveItem(bpDrag.entry.idx)
+    setBpDrag(null)
+  }
+
   return (
     <div className="fixed inset-0 z-[100]">
       <div className="absolute inset-0 bg-black/50 drawer-overlay" onClick={onClose} />
@@ -934,42 +1139,80 @@ function BackpackDrawer({ backpack, canEdit, draggingIdx, onDragStart, onDropOut
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-sm">backpack</span>
             <h3 className="font-cinzel text-primary text-xs uppercase tracking-wider">{backpack?.nome || 'Mochila'}</h3>
-            <span className="text-[10px] text-txt-dim/65">{contents.length}/{capacity}</span>
+            <span className="text-[10px] text-txt-dim/65">{cols}x{rows}</span>
           </div>
-          <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
+          <div className="flex items-center gap-2">
+            {canEdit && (
+              <button onClick={autoSortBp} className="text-[10px] border border-gold/30 text-gold px-2 py-1 rounded hover:bg-gold/10 transition-colors">Auto</button>
+            )}
+            <button onClick={onClose} className="text-txt-dim hover:text-err text-sm transition-colors">×</button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="backpack-grid">
-            {Array.from({ length: capacity }).map((_, idx) => {
-              const item = contents[idx]
-              return item ? (
-                <div key={idx} className="backpack-slot has-item" draggable={canEdit} onDragStart={() => onDragStart(idx)}>
-                  {item.imagem ? <img src={item.imagem} alt="" /> : <span className="material-symbols-outlined">inventory_2</span>}
-                  <strong>{item.nome || 'Item'}</strong>
-                  <small>{estimateInventoryItemWeight(item).toFixed(1)} kg</small>
+          <div className="resident-inventory-board resident-bp-board">
+            <div className="resident-grid-wrap">
+              <div className="resident-grid" style={{ aspectRatio: `${cols}/${rows}` }} onWheel={handleBpWheel}>
+                <div className="resident-grid-cells">
+                  {Array.from({ length: cols * rows }).map((_, idx) => (
+                    <button key={idx} type="button" aria-label={`Slot ${idx + 1}`}
+                      onDragOver={e => { e.preventDefault(); setBpHover(idx) }}
+                      onDragLeave={() => setBpHover(null)}
+                      onDrop={() => handleBpDrop(idx)}
+                      className={bpHover === idx && (bpDrag || externalDrag) ? (computeBpPreview(idx)?.valid ? 'is-drop-valid' : 'is-drop-invalid') : ''}
+                    />
+                  ))}
                 </div>
-              ) : (
-                <div key={idx} className="backpack-slot" />
-              )
-            })}
+                {bpHover != null && (bpDrag || externalDrag) && (() => {
+                  const preview = computeBpPreview(bpHover)
+                  if (!preview) return null
+                  return (
+                    <div className={`resident-drop-preview ${preview.valid ? 'is-valid' : 'is-invalid'}`}
+                      style={{
+                        left: `${(preview.rect.x / cols) * 100}%`,
+                        top: `${(preview.rect.y / rows) * 100}%`,
+                        width: `${(preview.rect.w / cols) * 100}%`,
+                        height: `${(preview.rect.h / rows) * 100}%`,
+                      }} />
+                  )
+                })()}
+                <div className="resident-grid-items">
+                  {bpEntries.map(entry => (
+                    <InventoryGridCard
+                      key={entry.key}
+                      entry={entry}
+                      rect={entry.rect}
+                      canEdit={canEdit}
+                      dragging={bpDrag?.entry.key === entry.key}
+                      onOpen={() => onOpenItem(entry)}
+                      onRotate={() => rotateBpEntry(entry)}
+                      onDragStart={() => { if (canEdit) { setBpDrag({ entry, rotated: entry.rect.rotated || 0 }); setBpHover(null) } }}
+                      onDragEnd={() => { setBpDrag(null); setBpHover(null) }}
+                      onSelect={() => setBpSelected(entry.key)}
+                      gridCols={cols}
+                      gridRows={rows}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · <kbd>R</kbd> rotaciona selecionado</p>
+            </div>
           </div>
 
           {canEdit && (
             <div
-              className={`backpack-drop-out ${draggingIdx != null ? 'is-ready' : ''}`}
+              className={`backpack-drop-out ${bpDrag ? 'is-ready' : ''}`}
               onDragOver={event => event.preventDefault()}
-              onDrop={onDropOut}
+              onDrop={handleBpDragOut}
             >
               <span className="material-symbols-outlined">outbox</span>
               <strong>Arraste aqui para tirar da mochila</strong>
-              <p>O item volta para o inventario aberto no momento.</p>
+              <p>O item volta para o inventario.</p>
             </div>
           )}
         </div>
 
         <div className="px-4 py-3 border-t border-sep/30 flex gap-2 shrink-0">
-          {canEdit && <button onClick={onEdit} className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">Editar mochila</button>}
           <button onClick={onClose} className="text-[10px] text-txt-dim hover:text-txt-main px-3 py-1.5 transition-colors">Fechar</button>
         </div>
       </div>

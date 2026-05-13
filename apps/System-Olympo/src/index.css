@@ -4856,6 +4856,23 @@ body {
   margin-top: 0.5rem;
 }
 
+.resident-bp-board .resident-grid-wrap {
+  border-color: rgba(56, 189, 248, 0.12);
+}
+
+.resident-bp-board .resident-grid {
+  border-color: rgba(56, 189, 248, 0.18);
+  background:
+    linear-gradient(rgba(56,189,248,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.06) 1px, transparent 1px),
+    rgba(0, 14, 28, 0.85);
+  background-size: 10% 12.5%;
+}
+
+.resident-bp-board .resident-grid-cells button {
+  border-color: rgba(56, 189, 248, 0.06);
+}
+
 .resident-create-modal {
   position: relative;
   width: min(760px, 96vw);
