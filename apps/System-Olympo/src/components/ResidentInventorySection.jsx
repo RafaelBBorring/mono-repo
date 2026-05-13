@@ -720,13 +720,9 @@ export default function ResidentInventorySection({
                     rect={entry.rect}
                     canEdit={canEdit}
                     dragging={dragging?.entry.key === entry.key}
+                    selected={selectedEntry?.key === entry.key}
                     onOpen={() => openEntry(entry)}
-                    onToggle={() => toggleEquipped(entry)}
-                    onMoveTo={(location) => moveEntry(entry, location)}
                     onDropInto={() => moveIntoBackpack(entry, dragging?.entry)}
-                    onRotate={() => rotateEntry(entry)}
-                    moveLabel={activeLocation === 'carregado' ? 'Guardar' : 'Pegar'}
-                    locations={locations}
                     onDragStart={() => { if (canEdit) { setDragging({ entry, rotated: entry.rect.rotated || 0 }); setHoverSlot(null) }}}
                     onDragEnd={() => { setDragging(null); setHoverSlot(null) }}
                     onSelect={() => setSelectedEntry(entry)}
@@ -910,10 +906,9 @@ function EquippedQuickSlot({ label, entry, detail, icon, onClick }) {
   )
 }
 
-function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMoveTo, onDropInto, onRotate, moveLabel, locations, onDragStart, onDragEnd, onSelect, gridCols = GRID_COLS, gridRows = GRID_ROWS }) {
+function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, onDropInto, onDragStart, onDragEnd, onSelect, gridCols = GRID_COLS, gridRows = GRID_ROWS }) {
   const item = entry.item || {}
   const image = item.imagem || item.image
-  const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento' || item.categoria === 'Traje'
   const weight = entry.source === 'inventory'
     ? estimateInventoryItemWeight(item)
     : entry.source === 'primary'
@@ -922,6 +917,8 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
   const area = rect.w * rect.h
   const isSmall = area <= 2
   const rotationDeg = rect.rotated || 0
+  const quantity = Number(item.quantidade || item.qtd || 0)
+  const hasQuantity = quantity > 1
 
   function handleDragStart(e) {
     if (!canEdit) { e.preventDefault(); return }
@@ -933,15 +930,10 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
     onDragStart()
   }
 
-  function handleClick(e) {
-    onSelect?.()
-    onOpen()
-  }
-
   return (
     <div
-      className={`resident-grid-card ${item.equipado ? 'is-equipped' : ''} ${rotationDeg ? 'is-rotated' : ''} ${item.tipo === 'mochila' ? 'is-backpack' : ''} ${dragging ? 'is-dragging' : ''} ${isSmall ? 'is-small' : ''}`}
-      title={isSmall ? `${item.nome || 'Item'} · ${weight.toFixed(1)}kg` : undefined}
+      className={`resident-grid-card ${selected ? 'is-selected' : ''} ${item.equipado ? 'is-equipped' : ''} ${rotationDeg ? 'is-rotated' : ''} ${item.tipo === 'mochila' ? 'is-backpack' : ''} ${dragging ? 'is-dragging' : ''} ${isSmall ? 'is-small' : ''}`}
+      title={`${item.nome || 'Item'}${hasQuantity ? ` x${quantity}` : ''} · ${weight.toFixed(1)}kg`}
       style={{
         '--item-cols': rect.w,
         '--item-rows': rect.h,
@@ -954,54 +946,20 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
       draggable={canEdit}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
-      onDragOver={item.tipo === 'mochila' ? (event) => event.preventDefault() : undefined}
-      onDrop={item.tipo === 'mochila' ? (event) => { event.preventDefault(); onDropInto?.() } : undefined}
+      onDragOver={item.tipo === 'mochila' ? (e) => e.preventDefault() : undefined}
+      onDrop={item.tipo === 'mochila' ? (e) => { e.preventDefault(); onDropInto?.() } : undefined}
       onDoubleClick={onOpen}
+      onClick={() => onSelect?.()}
     >
-      <button type="button" onClick={handleClick} className="resident-grid-card-main">
-        {isSmall ? (
-          <span className="resident-grid-card-icon-only">
-            {image ? <img src={image} alt="" draggable={false} /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>}
-          </span>
-        ) : (
-          <>
-            {image ? <img src={image} alt="" draggable={false} /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : 'inventory_2'}</span>}
-            <span className="resident-grid-card-name">{item.nome || item.name || 'Item'}</span>
-            <span className="resident-grid-card-meta">{weight.toFixed(1)} kg</span>
-          </>
-        )}
-      </button>
-      {!isSmall && (
-        <div className="resident-card-actions">
-          {canEdit && (
-            <button type="button" onClick={onRotate} title="Rotacionar (R)">
-              <span className="material-symbols-outlined">screen_rotation</span>
-            </button>
-          )}
-          {isEquippable && canEdit && (
-            <button type="button" onClick={onToggle} title={item.equipado ? 'Desequipar' : 'Equipar'}>
-              <span className="material-symbols-outlined">{item.equipado ? 'remove_done' : 'done_all'}</span>
-            </button>
-          )}
-          {canEdit && locations && (
-            <select
-              title="Mover para"
-              value={normalizeLocation(item.local, item)}
-              onChange={(event) => onMoveTo(event.target.value)}
-              onClick={(event) => event.stopPropagation()}
-            >
-              {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.label}</option>)}
-            </select>
-          )}
-        </div>
-      )}
-      {isSmall && canEdit && (
-        <div className="resident-card-actions is-small-actions">
-          <button type="button" onClick={onRotate} title="Rotacionar (R)">
-            <span className="material-symbols-outlined">screen_rotation</span>
-          </button>
-        </div>
-      )}
+      <div className="resident-grid-card-visual">
+        {image
+          ? <img src={image} alt="" draggable={false} />
+          : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>
+        }
+        {hasQuantity && <span className="resident-grid-card-qty">x{quantity}</span>}
+      </div>
+      <span className="resident-grid-card-label">{item.nome || item.name || 'Item'}</span>
+      {!isSmall && <span className="resident-grid-card-weight">{weight.toFixed(1)}kg</span>}
     </div>
   )
 }
@@ -1184,8 +1142,8 @@ function BackpackGridDrawer({ backpack, canEdit, externalDrag, onUpdateContents,
                       rect={entry.rect}
                       canEdit={canEdit}
                       dragging={bpDrag?.entry.key === entry.key}
+                      selected={bpSelected === entry.key}
                       onOpen={() => onOpenItem(entry)}
-                      onRotate={() => rotateBpEntry(entry)}
                       onDragStart={() => { if (canEdit) { setBpDrag({ entry, rotated: entry.rect.rotated || 0 }); setBpHover(null) } }}
                       onDragEnd={() => { setBpDrag(null); setBpHover(null) }}
                       onSelect={() => setBpSelected(entry.key)}
@@ -1299,12 +1257,18 @@ const CONSUMABLE_PRESETS = [
   { nome: 'Seringa de PE Temporario', descricao: 'Concede 2 PE temporarios ate o fim da cena.', peso: 0.15, cor: 'purple' },
 ]
 
+const BACKPACK_PRESETS = [
+  { nome: 'Mochila Pequena', descricao: 'Espaco compacto para itens essenciais.', peso: 0.5, cor: 'amber', tipo: 'mochila', slotSize: 6, contents: [] },
+  { nome: 'Mochila Media', descricao: 'Mochila padrao com bom espaco de armazenamento.', peso: 1.0, cor: 'amber', tipo: 'mochila', slotSize: 12, contents: [] },
+  { nome: 'Mochila Grande', descricao: 'Mochila grande para expedicoes longas.', peso: 1.5, cor: 'amber', tipo: 'mochila', slotSize: 20, contents: [] },
+]
+
 function InventoryItemCreateModal({ kind, onSave, onClose }) {
   const [draft, setDraft] = useState(
     kind === 'consumivel'
       ? CONSUMABLE_PRESETS[0]
       : kind === 'mochila'
-        ? { nome: 'Mochila', descricao: 'Espaco portatil para armazenar itens menores.', peso: 0.5, cor: 'amber', tipo: 'mochila', slotSize: 12, contents: [] }
+        ? BACKPACK_PRESETS[0]
         : { nome: '', descricao: '', peso: 0.1, cor: 'gray' }
   )
   const [aiLoading, setAiLoading] = useState(false)
@@ -1325,7 +1289,7 @@ function InventoryItemCreateModal({ kind, onSave, onClose }) {
       <div className="resident-create-modal resident-item-modal">
         <header>
           <div>
-            <span className="material-symbols-outlined">{kind === 'consumivel' ? 'local_drink' : 'inventory_2'}</span>
+            <span className="material-symbols-outlined">{kind === 'consumivel' ? 'local_drink' : kind === 'mochila' ? 'backpack' : 'inventory_2'}</span>
             <h3>{kind === 'consumivel' ? 'Consumivel Rapido' : kind === 'mochila' ? 'Mochila' : 'Item Livre'}</h3>
           </div>
           <button type="button" onClick={onClose}>×</button>
@@ -1338,6 +1302,20 @@ function InventoryItemCreateModal({ kind, onSave, onClose }) {
                 <span>{preset.descricao}</span>
               </button>
             ))}
+          </div>
+        )}
+        {kind === 'mochila' && (
+          <div className="resident-preset-grid">
+            {BACKPACK_PRESETS.map(preset => {
+              const { cols, rows } = getBackpackGridDims(preset.slotSize)
+              return (
+                <button key={preset.nome} type="button" onClick={() => setDraft(preset)} className={draft.nome === preset.nome ? 'is-active' : ''}>
+                  <strong>{preset.nome}</strong>
+                  <span>{preset.descricao}</span>
+                  <em>{cols}x{rows} slots · {preset.peso}kg</em>
+                </button>
+              )
+            })}
           </div>
         )}
         <div className="resident-form-grid">
