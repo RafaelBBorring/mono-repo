@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ITEM_COLORS } from '../data/colors'
 import { WEAPONS, WEAPON_RANKS, getWeaponWeight } from '../data/weapons'
@@ -74,10 +74,12 @@ function entryBaseSize(entry) {
   return { w: 1, h: 1 }
 }
 
-function resolveSize(entry, rotated = false) {
+function resolveSize(entry, rotated = 0) {
   const stored = entry.item?.inventorySize || {}
   const base = { ...entryBaseSize(entry), ...stored }
-  return rotated ? { w: base.h, h: base.w } : base
+  const turns = ((rotated || 0) / 90) % 4
+  if (turns === 1 || turns === 3) return { w: base.h, h: base.w }
+  return base
 }
 
 function findFreeSpot(size, occupied) {
@@ -140,7 +142,7 @@ function layoutEntries(entries, activeLocation) {
   const occupied = []
   return entries.map(entry => {
     const stored = entry.source === 'primary' ? entry.item.inventoryGrid : entry.item.inventoryGrid
-    const rotated = !!stored?.rotated
+    const rotated = stored?.rotated || 0
     const size = resolveSize(entry, rotated)
     let rect = stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)
       ? { x: stored.x, y: stored.y, w: size.w, h: size.h, rotated }
@@ -177,8 +179,24 @@ export default function ResidentInventorySection({
   const [outfitDrawer, setOutfitDrawer] = useState(null)
   const [equipEditMode, setEquipEditMode] = useState(false)
   const [showWeaponDrawer, setShowWeaponDrawer] = useState(false)
+  const [selectedEntry, setSelectedEntry] = useState(null)
   const itemImgRef = useRef(null)
   const equipImgRef = useRef(null)
+
+  useEffect(() => {
+    if (!canEdit) return
+    function onKeyDown(e) {
+      if (e.key === 'r' || e.key === 'R') {
+        if (selectedEntry) rotateEntry(selectedEntry)
+        else if (dragging) {
+          const base = entryBaseSize(dragging.entry)
+          if (base.w !== base.h) setDragging(current => current ? { ...current, rotated: ((current.rotated || 0) + 90) % 360 } : null)
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [canEdit, selectedEntry, dragging, gridEntries])
 
   const allEntries = useMemo(() => buildEntries(char), [char])
   const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
@@ -321,11 +339,22 @@ export default function ResidentInventorySection({
     if (!dragging) return
     const x = slotIndex % GRID_COLS
     const y = Math.floor(slotIndex / GRID_COLS)
+    const backpackAtSlot = gridEntries.find(entry => {
+      const r = entry.rect
+      return entry.item.tipo === 'mochila' && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h && entry.key !== dragging.entry.key
+    })
+    if (backpackAtSlot) {
+      moveIntoBackpack(backpackAtSlot, dragging.entry)
+      setDragging(null)
+      setHoverSlot(null)
+      return
+    }
     const size = resolveSize(dragging.entry, dragging.rotated)
     const rect = { x, y, ...size, rotated: dragging.rotated }
     const occupied = gridEntries.filter(entry => entry.key !== dragging.entry.key).map(entry => entry.rect)
     if (rect.x + rect.w > GRID_COLS || rect.y + rect.h > GRID_ROWS || occupied.some(other => rectsOverlap(rect, other))) {
       setDragging(null)
+      setHoverSlot(null)
       return
     }
     const patch = { inventoryGrid: rect, local: activeLocation }
@@ -338,6 +367,7 @@ export default function ResidentInventorySection({
       patchInventoryItem(dragging.entry.idx, patch)
     }
     setDragging(null)
+    setHoverSlot(null)
   }
 
   function handleGridWheel(event) {
@@ -345,13 +375,13 @@ export default function ResidentInventorySection({
     event.preventDefault()
     const base = entryBaseSize(dragging.entry)
     if (base.w === base.h) return
-    setDragging(current => current ? { ...current, rotated: !current.rotated } : null)
+    setDragging(current => current ? { ...current, rotated: ((current.rotated || 0) + 90) % 360 } : null)
   }
 
   function rotateEntry(entry) {
     const currentRect = gridEntries.find(item => item.key === entry.key)?.rect || entry.rect
     if (!currentRect) return
-    const nextRotated = !currentRect.rotated
+    const nextRotated = ((currentRect.rotated || 0) + 90) % 360
     const size = resolveSize(entry, nextRotated)
     let rect = {
       x: Math.min(currentRect.x, GRID_COLS - size.w),
@@ -374,21 +404,49 @@ export default function ResidentInventorySection({
   }
 
   function moveIntoBackpack(backpackEntry, draggedEntry) {
-    if (!backpackEntry || !draggedEntry || draggedEntry.source !== 'inventory' || backpackEntry.source !== 'inventory') return
-    if (backpackEntry.idx === draggedEntry.idx) return
-    const inventario = [...(char.inventario || [])]
-    const backpack = inventario[backpackEntry.idx]
-    const dragged = inventario[draggedEntry.idx]
-    if (!backpack || backpack.tipo !== 'mochila' || !dragged) return
+    if (!backpackEntry || !draggedEntry || backpackEntry.key === draggedEntry.key) return
+    if (draggedEntry.item?.tipo === 'mochila') return
+    const isBackpackEquip = backpackEntry.source === 'equipment'
+    const backpackArr = isBackpackEquip ? [...(char.equipamentos || [])] : [...(char.inventario || [])]
+    const backpack = backpackArr[backpackEntry.idx]
+    if (!backpack || backpack.tipo !== 'mochila') return
     const capacity = Number(backpack.slotSize || backpack.capacidade || 12)
     const contents = Array.isArray(backpack.contents) ? backpack.contents : []
     if (contents.length >= capacity) return
-    inventario[backpackEntry.idx] = {
-      ...backpack,
-      contents: [...contents, { ...dragged, local: 'mochila', inventoryGrid: null }],
+    const updatedBackpack = { ...backpack, contents: [...contents] }
+    const updateKey = isBackpackEquip ? 'equipamentos' : 'inventario'
+    const resultArr = [...backpackArr]
+    if (draggedEntry.source === 'inventory') {
+      const inventario = [...(char.inventario || [])]
+      const dragged = inventario[draggedEntry.idx]
+      if (!dragged) return
+      updatedBackpack.contents.push({ ...dragged, local: 'mochila', inventoryGrid: null })
+      resultArr[backpackEntry.idx] = updatedBackpack
+      if (isBackpackEquip) {
+        update({ equipamentos: resultArr, inventario: inventario.filter((_, idx) => idx !== draggedEntry.idx) })
+      } else {
+        update({ inventario: resultArr.filter((_, idx) => idx !== draggedEntry.idx) })
+      }
+    } else if (draggedEntry.source === 'equipment') {
+      const equipamentos = [...(char.equipamentos || [])]
+      const draggedEquip = equipamentos[draggedEntry.idx]
+      if (!draggedEquip) return
+      updatedBackpack.contents.push({ ...draggedEquip, local: 'mochila', inventoryGrid: null, equipado: false })
+      resultArr[backpackEntry.idx] = updatedBackpack
+      if (isBackpackEquip) {
+        update({ equipamentos: resultArr.filter((_, idx) => idx !== draggedEntry.idx) })
+      } else {
+        update({ inventario: resultArr, equipamentos: equipamentos.filter((_, idx) => idx !== draggedEntry.idx) })
+      }
+    } else if (draggedEntry.source === 'primary') {
+      updatedBackpack.contents.push({ ...draggedEntry.item, local: 'mochila', inventoryGrid: null, equipado: false })
+      resultArr[backpackEntry.idx] = updatedBackpack
+      if (isBackpackEquip) {
+        update({ equipamentos: resultArr, arma: null, armaInventoryGrid: null })
+      } else {
+        update({ inventario: resultArr, arma: null, armaInventoryGrid: null })
+      }
     }
-    const next = inventario.filter((_, idx) => idx !== draggedEntry.idx)
-    update({ inventario: next })
     setDragging(null)
   }
 
@@ -426,7 +484,7 @@ export default function ResidentInventorySection({
     sorted.forEach(entry => {
       const size = resolveSize(entry)
       const spot = findFreeSpot(size, occupied)
-      const rect = { ...spot, rotated: false }
+      const rect = { ...spot, rotated: 0 }
       occupied.push(rect)
       if (entry.source === 'primary') {
         updates.armaInventoryGrid = rect
@@ -587,8 +645,9 @@ export default function ResidentInventorySection({
                     onRotate={() => rotateEntry(entry)}
                     moveLabel={activeLocation === 'carregado' ? 'Guardar' : 'Pegar'}
                     locations={locations}
-                    onDragStart={() => { if (canEdit) { setDragging({ entry, rotated: !!entry.rect.rotated }); setHoverSlot(null) }}}
+                    onDragStart={() => { if (canEdit) { setDragging({ entry, rotated: entry.rect.rotated || 0 }); setHoverSlot(null) }}}
                     onDragEnd={() => { setDragging(null); setHoverSlot(null) }}
+                    onSelect={() => setSelectedEntry(entry)}
                   />
                 ))}
               </div>
@@ -767,7 +826,7 @@ function EquippedQuickSlot({ label, entry, detail, icon, onClick }) {
   )
 }
 
-function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMoveTo, onDropInto, onRotate, moveLabel, locations, onDragStart, onDragEnd }) {
+function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, onMoveTo, onDropInto, onRotate, moveLabel, locations, onDragStart, onDragEnd, onSelect }) {
   const item = entry.item || {}
   const image = item.imagem || item.image
   const isEquippable = entry.source === 'primary' || item.categoria === 'Arma' || item.categoria === 'Equipamento' || item.categoria === 'Traje'
@@ -776,21 +835,33 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
     : entry.source === 'primary'
       ? getWeaponWeight(item.id, item.rank)
       : estimateEquipmentWeight(item)
+  const area = rect.w * rect.h
+  const isSmall = area <= 2
+  const rotationDeg = rect.rotated || 0
 
   function handleDragStart(e) {
     if (!canEdit) { e.preventDefault(); return }
     const el = e.currentTarget
-    e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2)
+    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+      e.dataTransfer.setDragImage(el, el.offsetWidth / 2, el.offsetHeight / 2)
+    }
     e.dataTransfer.effectAllowed = 'move'
     onDragStart()
   }
 
+  function handleClick(e) {
+    onSelect?.()
+    onOpen()
+  }
+
   return (
     <div
-      className={`resident-grid-card ${item.equipado ? 'is-equipped' : ''} ${rect.rotated ? 'is-rotated' : ''} ${item.tipo === 'mochila' ? 'is-backpack' : ''} ${dragging ? 'is-dragging' : ''}`}
+      className={`resident-grid-card ${item.equipado ? 'is-equipped' : ''} ${rotationDeg ? 'is-rotated' : ''} ${item.tipo === 'mochila' ? 'is-backpack' : ''} ${dragging ? 'is-dragging' : ''} ${isSmall ? 'is-small' : ''}`}
+      title={isSmall ? `${item.nome || 'Item'} · ${weight.toFixed(1)}kg` : undefined}
       style={{
         '--item-cols': rect.w,
         '--item-rows': rect.h,
+        '--rotation': `${rotationDeg}deg`,
         left: `${(rect.x / GRID_COLS) * 100}%`,
         top: `${(rect.y / GRID_ROWS) * 100}%`,
         width: `${(rect.w / GRID_COLS) * 100}%`,
@@ -803,33 +874,50 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, onOpen, onToggle, o
       onDrop={item.tipo === 'mochila' ? (event) => { event.preventDefault(); onDropInto?.() } : undefined}
       onDoubleClick={onOpen}
     >
-      <button type="button" onClick={onOpen} className="resident-grid-card-main">
-        {image ? <img src={image} alt="" draggable={false} /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : 'inventory_2'}</span>}
-        <span className="resident-grid-card-name">{item.nome || item.name || 'Item'}</span>
-        <span className="resident-grid-card-meta">{weight.toFixed(1)} kg</span>
+      <button type="button" onClick={handleClick} className="resident-grid-card-main">
+        {isSmall ? (
+          <span className="resident-grid-card-icon-only">
+            {image ? <img src={image} alt="" draggable={false} /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>}
+          </span>
+        ) : (
+          <>
+            {image ? <img src={image} alt="" draggable={false} /> : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : 'inventory_2'}</span>}
+            <span className="resident-grid-card-name">{item.nome || item.name || 'Item'}</span>
+            <span className="resident-grid-card-meta">{weight.toFixed(1)} kg</span>
+          </>
+        )}
       </button>
-      <div className="resident-card-actions">
-        {canEdit && (
+      {!isSmall && (
+        <div className="resident-card-actions">
+          {canEdit && (
+            <button type="button" onClick={onRotate} title="Rotacionar (R)">
+              <span className="material-symbols-outlined">screen_rotation</span>
+            </button>
+          )}
+          {isEquippable && canEdit && (
+            <button type="button" onClick={onToggle} title={item.equipado ? 'Desequipar' : 'Equipar'}>
+              <span className="material-symbols-outlined">{item.equipado ? 'remove_done' : 'done_all'}</span>
+            </button>
+          )}
+          {canEdit && (
+            <select
+              title="Mover para"
+              value={normalizeLocation(item.local, item)}
+              onChange={(event) => onMoveTo(event.target.value)}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.label}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+      {isSmall && canEdit && (
+        <div className="resident-card-actions is-small-actions">
           <button type="button" onClick={onRotate} title="Rotacionar (R)">
             <span className="material-symbols-outlined">screen_rotation</span>
           </button>
-        )}
-        {isEquippable && canEdit && (
-          <button type="button" onClick={onToggle} title={item.equipado ? 'Desequipar' : 'Equipar'}>
-            <span className="material-symbols-outlined">{item.equipado ? 'remove_done' : 'done_all'}</span>
-          </button>
-        )}
-        {canEdit && (
-          <select
-            title="Mover para"
-            value={normalizeLocation(item.local, item)}
-            onChange={(event) => onMoveTo(event.target.value)}
-            onClick={(event) => event.stopPropagation()}
-          >
-            {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.label}</option>)}
-          </select>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

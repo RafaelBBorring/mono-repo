@@ -4633,7 +4633,7 @@ body {
 
 .resident-grid-card.is-rotated .resident-grid-card-main img,
 .resident-grid-card.is-rotated .resident-grid-card-main > .material-symbols-outlined {
-  transform: rotate(90deg) scale(1.04);
+  transform: rotate(var(--rotation, 90deg)) scale(1.04);
 }
 
 .resident-grid-card-name {
@@ -4724,6 +4724,36 @@ body {
 
 .resident-card-actions .material-symbols-outlined {
   font-size: 1rem;
+}
+
+.resident-grid-card.is-small .resident-grid-card-main {
+  display: grid;
+  place-items: center;
+}
+
+.resident-grid-card.is-small .resident-grid-card-main img,
+.resident-grid-card.is-small .resident-grid-card-main > .material-symbols-outlined {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
+
+.resident-grid-card.is-small .resident-grid-card-name,
+.resident-grid-card.is-small .resident-grid-card-meta {
+  display: none;
+}
+
+.resident-card-actions.is-small-actions {
+  top: auto;
+  bottom: 0.25rem;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+.resident-card-actions.is-small-actions button {
+  width: 1.3rem;
+  height: 1.3rem;
+  font-size: 0.75rem;
 }
 
 .backpack-grid {
