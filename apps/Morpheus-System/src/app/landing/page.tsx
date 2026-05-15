@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -123,8 +123,18 @@ const plans = [
 export default function LandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const active = carouselItems[activeSlide];
   const ActiveIcon = active.icon;
+
+  useEffect(() => {
+    try { setLoggedIn(!!localStorage.getItem("morpheus_auth")); } catch {}
+  }, []);
+
+  function handleLogout() {
+    try { localStorage.removeItem("morpheus_auth"); } catch {}
+    setLoggedIn(false);
+  }
 
   return (
     <SmoothScrollProvider>
@@ -143,12 +153,29 @@ export default function LandingPage() {
             <a href="#contato" className="hover:text-[var(--text-primary)]">Contato</a>
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              href="/app"
-              className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
-            >
-              Entrar
-            </Link>
+            {loggedIn ? (
+              <>
+                <Link
+                  href="/app"
+                  className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:border-red-400 hover:text-red-400 sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
+                >
+                  Sair
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/app"
+                className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
+              >
+                Entrar
+              </Link>
+            )}
 
             <a
               href="#planos"
@@ -172,12 +199,29 @@ export default function LandingPage() {
               <a href="#funcionalidades" onClick={() => setMobileMenuOpen(false)} className="font-body text-base font-semibold text-[var(--text-soft)] hover:text-[var(--text-primary)]">Funcionalidades</a>
               <a href="#planos" onClick={() => setMobileMenuOpen(false)} className="font-body text-base font-semibold text-[var(--text-soft)] hover:text-[var(--text-primary)]">Planos</a>
               <a href="#contato" onClick={() => setMobileMenuOpen(false)} className="font-body text-base font-semibold text-[var(--text-soft)] hover:text-[var(--text-primary)]">Contato</a>
-              <Link
-                href="/app"
-                className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
-              >
-                Entrar no sistema
-              </Link>
+              {loggedIn ? (
+                <>
+                  <Link
+                    href="/app"
+                    className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+                    className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-muted)] transition hover:border-red-400 hover:text-red-400"
+                  >
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/app"
+                  className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
+                >
+                  Entrar no sistema
+                </Link>
+              )}
             </div>
           </div>
         )}

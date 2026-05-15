@@ -164,6 +164,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (saved) {
         const parsed = JSON.parse(saved) as AuthUser;
         setAuthUser(parsed);
+
+        if (isSupabaseConfigured) {
+          supabase
+            .from("clinics")
+            .select("*")
+            .eq("id", parsed.clinicId)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) setClinic(mapClinic(data as SupabaseClinic));
+            });
+        }
       }
     } catch {}
     setLoading(false);
