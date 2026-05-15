@@ -72,12 +72,20 @@ const AppContext = createContext<AppContextType | null>(null);
 const billingRequired = process.env.NEXT_PUBLIC_BILLING_REQUIRED === "true";
 const checkoutEnabled = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED !== "false";
 const stripePaymentLinks: Record<string, string> = {};
-for (const plan of PLANS) {
-  const monthly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_MONTHLY`];
-  const yearly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_ANUAL`];
-  if (monthly) stripePaymentLinks[`${plan.id}-monthly`] = monthly;
-  if (yearly) stripePaymentLinks[`${plan.id}-yearly`] = yearly;
-}
+
+const _elM = process.env.NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_MONTHLY;
+const _elA = process.env.NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_ANUAL;
+const _prM = process.env.NEXT_PUBLIC_STRIPE_LINK_PRO_MONTHLY;
+const _prA = process.env.NEXT_PUBLIC_STRIPE_LINK_PRO_ANUAL;
+const _edM = process.env.NEXT_PUBLIC_STRIPE_LINK_ELITE_MONTHLY;
+const _edA = process.env.NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL;
+if (_elM) stripePaymentLinks["essential-monthly"] = _elM;
+if (_elA) stripePaymentLinks["essential-yearly"] = _elA;
+if (_prM) stripePaymentLinks["pro-monthly"] = _prM;
+if (_prA) stripePaymentLinks["pro-yearly"] = _prA;
+if (_edM) stripePaymentLinks["elite-monthly"] = _edM;
+if (_edA) stripePaymentLinks["elite-yearly"] = _edA;
+
 const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
 
 function apiUrl(path: string) {
@@ -569,24 +577,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (publicApiBaseUrl) {
-        try {
-          const response = await fetch(apiUrl("/api/stripe/checkout"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId }),
-          });
-          const payload = (await response.json()) as { url?: string; error?: string };
-          if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
-          window.location.href = payload.url;
-          return;
-        } catch (err) {
-          console.error("Server checkout failed:", err);
-          addToast("Nao foi possivel abrir o checkout.", "error");
-          return;
-        }
-      }
-
       const linkKey = `${plan}-${interval}`;
       const paymentLinkUrl = stripePaymentLinks[linkKey];
       if (paymentLinkUrl) {
@@ -599,8 +589,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const endpoint = publicApiBaseUrl ? apiUrl("/api/stripe/checkout") : "/api/stripe/checkout";
       try {
-        const response = await fetch("/api/stripe/checkout", {
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId }),

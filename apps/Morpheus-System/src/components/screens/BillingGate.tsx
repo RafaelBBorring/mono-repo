@@ -7,6 +7,7 @@ import {
   Building2,
   Check,
   CreditCard,
+  LogOut,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -19,7 +20,7 @@ import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function BillingGate() {
-  const { clinic, refreshBilling, startCheckout, startTrial, openBillingPortal, theme, checkoutEnabled } =
+  const { clinic, refreshBilling, startCheckout, startTrial, openBillingPortal, theme, checkoutEnabled, logout } =
     useApp();
   const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
@@ -58,12 +59,13 @@ export default function BillingGate() {
       <div className="morpheus-screen-wash absolute inset-0" />
 
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-5 sm:top-5">
-        <Link
-          href="/landing"
-          className="rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] sm:rounded-2xl sm:px-4 sm:py-3"
+        <button
+          onClick={logout}
+          className="rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-extrabold text-[var(--text-primary)] transition hover:border-red-400 hover:text-red-400 sm:rounded-2xl sm:px-4 sm:py-3"
         >
-          Página de vendas
-        </Link>
+          <LogOut size={16} className="inline mr-1" />
+          Sair
+        </button>
         <ThemeToggle />
       </div>
 

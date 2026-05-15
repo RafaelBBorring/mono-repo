@@ -24,7 +24,7 @@ export default function AppRouter() {
     if (action === "signup" || (plan && VALID_PLANS.includes(plan))) {
       if (!authUser) {
         setView("signup");
-      } else {
+      } else if (authUser.role === "admin") {
         setView("billing");
       }
     }
@@ -35,6 +35,12 @@ export default function AppRouter() {
   if (!authUser) {
     if (view === "signup") return <SignupScreen />;
     return <LoginScreen />;
+  }
+
+  if (authUser.role === "doctor") {
+    if (view === "admin") return <AdminDashboard />;
+    if (view === "psych") return <PsychDashboard />;
+    return <PsychDashboard />;
   }
 
   if (view === "billing" || (billingRequired && !billingActive)) return <BillingGate />;
