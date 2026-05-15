@@ -376,46 +376,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               psychologistId: m.psychologist_id ?? undefined,
             }));
             setWorkspaces(ws);
-
-            if (ws.length === 1) {
-              const single = ws[0];
-              const { data: clinicData } = await supabase
-                .from("clinics")
-                .select("*")
-                .eq("id", single.clinicId)
-                .maybeSingle();
-
-              if (clinicData) {
-                const c = mapClinic(clinicData as SupabaseClinic);
-                const authUserData: AuthUser = single.role === "admin"
-                  ? { role: "admin", clinicId: c.id, email: u.email, displayName: u.displayName }
-                  : { role: "doctor", clinicId: c.id, email: u.email, displayName: u.displayName, psychologistId: single.psychologistId };
-                setAuthUser(authUserData);
-                setClinic(c);
-                localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
-                localStorage.setItem("morpheus_workspace", single.clinicId);
-
-                await loadOperationalData(c.id);
-
-                if (single.role === "admin") {
-                  loadPendingInvitations(single.clinicId);
-                  const ba = !billingRequired || !c.billingEnforced || isBillingActive({
-                    id: c.id,
-                    stripeStatus: c.stripeStatus,
-                    billingEnforced: c.billingEnforced,
-                    currentPeriodEnd: c.currentPeriodEnd,
-                    cancelAtPeriodEnd: c.cancelAtPeriodEnd,
-                    updatedAt: new Date().toISOString(),
-                  });
-                  setView(ba ? "admin" : "billing");
-                } else {
-                  setView("psych");
-                }
-              }
-            } else {
-              setView("workspace");
-            }
-            return true;
           }
 
           setView("workspace");
