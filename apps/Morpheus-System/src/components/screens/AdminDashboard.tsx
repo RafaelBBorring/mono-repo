@@ -260,7 +260,7 @@ export default function AdminDashboard() {
                 Gerenciamento
               </AdminNavButton>
               <AdminNavButton active={section === "settings"} onClick={() => { setSection("settings"); setMobileMenuOpen(false); }} icon={<Settings size={18} />}>
-                Plano & Cobrança
+                Assinatura
               </AdminNavButton>
             </div>
           </nav>
@@ -1291,7 +1291,7 @@ function AdminSettings({
           <CreditCard size={28} className="text-[var(--accent-lavender)]" />
           <div>
             <p className="font-body text-sm font-extrabold uppercase tracking-[0.24em] text-[var(--accent-mint)]">
-              Plano & Cobrança
+              Assinatura
             </p>
             <h2 className="font-brand text-3xl font-semibold md:text-4xl">Gerencie sua assinatura</h2>
           </div>

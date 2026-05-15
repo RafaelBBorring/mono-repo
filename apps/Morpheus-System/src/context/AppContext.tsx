@@ -1074,8 +1074,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addToast("Portal de cobranca indisponivel.", "info");
       return;
     }
+    if (!authUser?.clinicId) {
+      addToast("Selecione uma clinica antes de abrir a cobranca.", "error");
+      return;
+    }
     try {
-      const response = await fetch(apiUrl("/api/stripe/portal"), { method: "POST" });
+      const response = await fetch(apiUrl("/api/stripe/portal"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicId: authUser.clinicId }),
+      });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Portal indisponivel.");
       window.location.href = payload.url;
@@ -1083,7 +1091,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error("Billing portal failed:", err);
       addToast("Nao foi possivel abrir o portal de cobranca.", "error");
     }
-  }, [addToast]);
+  }, [addToast, authUser]);
 
   if (!mounted) {
     return <>{children}</>;

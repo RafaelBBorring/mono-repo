@@ -41,7 +41,7 @@ export interface BillingAccount {
   updatedAt: string;
 }
 
-export type AppView = "splash" | "admin" | "psych" | "login" | "signup" | "billing" | "workspace";
+export type AppView = "splash" | "admin" | "psych" | "login" | "signup" | "billing" | "workspace" | "subscription";
 
 export interface AppState {
   view: AppView;

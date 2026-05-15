@@ -72,7 +72,7 @@ jobs:
           VITE_BASE: /mono-repo/hades-vfx/
 
       # Morpheus-System (Next static export for GitHub Pages)
-      # Stripe checkout uses client-side Stripe.js redirect — no backend needed.
+      # Stripe checkout on Pages must use public Payment Links or a separate backend.
       - name: Cache Morpheus deps
         uses: actions/cache@v4
         with:
@@ -89,17 +89,18 @@ jobs:
           NEXT_OUTPUT: export
           NEXT_PUBLIC_BASE_PATH: /mono-repo/morpheus
           NEXT_PUBLIC_APP_URL: https://${{ github.repository_owner }}.github.io/mono-repo/morpheus
-          NEXT_PUBLIC_SUPABASE_URL: https://wjwjbfzusppinjlyxznk.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqd2piZnp1c3BwaW5qbHl4em5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTA2MjMsImV4cCI6MjA5NDI2NjYyM30.npzBD5TWoyQ2wfvuVEcOhq5fWjfd7A_2AlrDu8bA3ig
-          NEXT_PUBLIC_BILLING_REQUIRED: "true"
-          NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED: "true"
-          NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_MONTHLY: https://buy.stripe.com/test_14A00jc2605n1Qb24c0oM05
-          NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_ANUAL: https://buy.stripe.com/test_28EdR91ns5pH3Yj24c0oM06
-          NEXT_PUBLIC_STRIPE_LINK_PRO_MONTHLY: https://buy.stripe.com/test_5kQcN53vA7xP1Qb5go0oM07
-          NEXT_PUBLIC_STRIPE_LINK_PRO_ANUAL: https://buy.stripe.com/test_7sYbJ15DI5pH3YjfV20oM08
-          NEXT_PUBLIC_STRIPE_LINK_ELITE_MONTHLY: https://buy.stripe.com/test_8x25kD2rwcS91Qb6ks0oM09
-          NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL: https://buy.stripe.com/test_eVqcN51ns19r9iDeQY0oM0a
-          NEXT_PUBLIC_STRIPE_LINK_TRIAL: https://buy.stripe.com/test_00w7sL1ns3hzfH1fV20oM0b
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.MORPHEUS_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.MORPHEUS_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_BILLING_REQUIRED: ${{ vars.MORPHEUS_BILLING_REQUIRED || 'false' }}
+          NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED: ${{ vars.MORPHEUS_STRIPE_CHECKOUT_ENABLED || 'false' }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.MORPHEUS_API_BASE_URL }}
+          NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_MONTHLY: ${{ vars.MORPHEUS_STRIPE_LINK_ESSENTIAL_MONTHLY }}
+          NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_ANUAL: ${{ vars.MORPHEUS_STRIPE_LINK_ESSENTIAL_ANUAL }}
+          NEXT_PUBLIC_STRIPE_LINK_PRO_MONTHLY: ${{ vars.MORPHEUS_STRIPE_LINK_PRO_MONTHLY }}
+          NEXT_PUBLIC_STRIPE_LINK_PRO_ANUAL: ${{ vars.MORPHEUS_STRIPE_LINK_PRO_ANUAL }}
+          NEXT_PUBLIC_STRIPE_LINK_ELITE_MONTHLY: ${{ vars.MORPHEUS_STRIPE_LINK_ELITE_MONTHLY }}
+          NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL: ${{ vars.MORPHEUS_STRIPE_LINK_ELITE_ANUAL }}
+          NEXT_PUBLIC_STRIPE_LINK_TRIAL: ${{ vars.MORPHEUS_STRIPE_LINK_TRIAL }}
 
       # ── Assemble site ──
       - name: Assemble site

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowLeft,
   ArrowRight,
   Building2,
   Check,
@@ -53,10 +54,28 @@ export default function BillingGate() {
     setLoadingAction(null);
   }
 
+  function handleBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    logout();
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg-primary)] px-4 py-16 text-[var(--text-primary)] sm:px-5">
       <div className="soft-grid absolute inset-0 opacity-30" />
       <div className="morpheus-screen-wash absolute inset-0" />
+
+      <div className="absolute left-4 top-4 z-20 sm:left-5 sm:top-5">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] sm:rounded-2xl sm:px-4 sm:py-3"
+        >
+          <ArrowLeft size={17} />
+          Voltar
+        </button>
+      </div>
 
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-5 sm:top-5">
         <Link

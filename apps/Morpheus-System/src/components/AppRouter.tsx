@@ -9,6 +9,7 @@ import BillingGate from "@/components/screens/BillingGate";
 import LoginScreen from "@/components/screens/LoginScreen";
 import SignupScreen from "@/components/screens/SignupScreen";
 import WorkspaceScreen from "@/components/screens/WorkspaceScreen";
+import SubscriptionScreen from "@/components/screens/SubscriptionScreen";
 import type { PlanId } from "@/lib/plans";
 
 const VALID_PLANS: PlanId[] = ["essential", "pro", "elite"];
@@ -28,6 +29,8 @@ export default function AppRouter() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (loading) return;
+
     const action = searchParams.get("action");
     const plan = searchParams.get("plan") as PlanId | null;
     const inviteToken = searchParams.get("invite");
@@ -44,6 +47,24 @@ export default function AppRouter() {
       }
     }
 
+    if (action === "workspace") {
+      if (authUser) {
+        setView("workspace");
+      } else {
+        setView("login");
+      }
+    }
+
+    if (action === "subscription") {
+      if (!authUser) {
+        setView("login");
+      } else if (authUser.role === "admin") {
+        setView("subscription");
+      } else {
+        setView("workspace");
+      }
+    }
+
     if (action === "accept_invite" && inviteToken && user) {
       acceptInvitation(inviteToken).then((ok) => {
         if (ok && workspaces.length === 1) {
@@ -53,7 +74,7 @@ export default function AppRouter() {
         }
       });
     }
-  }, [searchParams, authUser, setView, user, workspaces.length, acceptInvitation]);
+  }, [searchParams, authUser, setView, user, workspaces.length, acceptInvitation, loading]);
 
   useEffect(() => {
     if (loading || !authUser) return;
@@ -82,6 +103,7 @@ export default function AppRouter() {
   if (view === "workspace") return <WorkspaceScreen />;
 
   if (authUser.role === "admin") {
+    if (view === "subscription") return <SubscriptionScreen />;
     if (view === "billing" || (billingRequired && !billingActive)) return <BillingGate />;
     return <AdminDashboard />;
   }

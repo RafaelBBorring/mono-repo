@@ -105,11 +105,15 @@ Ative o Stripe Customer Portal no Dashboard. O app usa `/api/stripe/portal` para
 
 - O Stripe Checkout funciona em dois modos:
   - **Docker / servidor**: usa as API routes `/api/stripe/*` com `STRIPE_SECRET_KEY`. Webhooks atualizam o Supabase automaticamente.
-  - **GitHub Pages (static)**: usa Stripe.js client-side (`redirectToCheckout`) com `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` e `NEXT_PUBLIC_STRIPE_PRICE_*`. Nao precisa de backend. Apos o pagamento, atualize `billing_accounts` no Supabase manualmente ou configure um webhook separado.
+  - **GitHub Pages (static)**: nao roda `/api/stripe/*`. Para testar pagamento sem backend, use Stripe Payment Links publicos em `NEXT_PUBLIC_STRIPE_LINK_*`. Apos o pagamento, atualize a clinica no Supabase manualmente ou configure um webhook separado.
 - Configure os seguintes secrets no GitHub Actions:
   - `MORPHEUS_SUPABASE_URL` e `MORPHEUS_SUPABASE_ANON_KEY`
-  - `MORPHEUS_STRIPE_PUBLISHABLE_KEY` (comeca com `pk_test_`)
-  - `MORPHEUS_STRIPE_PRICE_MONTHLY` e `MORPHEUS_STRIPE_PRICE_YEARLY`
+- Configure as seguintes variables no GitHub Actions, se quiser checkout no Pages:
+  - `MORPHEUS_STRIPE_CHECKOUT_ENABLED=true`
+  - `MORPHEUS_STRIPE_LINK_ESSENTIAL_MONTHLY`, `MORPHEUS_STRIPE_LINK_ESSENTIAL_ANUAL`
+  - `MORPHEUS_STRIPE_LINK_PRO_MONTHLY`, `MORPHEUS_STRIPE_LINK_PRO_ANUAL`
+  - `MORPHEUS_STRIPE_LINK_ELITE_MONTHLY`, `MORPHEUS_STRIPE_LINK_ELITE_ANUAL`
+  - `MORPHEUS_STRIPE_LINK_TRIAL`
 - Nunca coloque `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` ou `STRIPE_WEBHOOK_SECRET` em variaveis `NEXT_PUBLIC_*`.
 - O projeto ainda e single-tenant. Para varias clinicas independentes, o proximo passo e adicionar autenticacao real, `clinic_id` nas tabelas e uma assinatura por clinica.
 - A barreira existe em duas camadas: tela de bloqueio no React e politicas RLS no Supabase.

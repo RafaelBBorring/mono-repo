@@ -5,12 +5,14 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import SmoothScrollProvider from "@/components/SmoothScroll";
+import LandingAgendaPreview from "@/components/landing/LandingAgendaPreview";
 import {
   ArrowRight,
   BadgeCheck,
   CalendarCheck2,
   ChevronRight,
   Clock3,
+  CreditCard,
   DoorOpen,
   Headphones,
   Layers3,
@@ -124,16 +126,28 @@ export default function LandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedRole, setLoggedRole] = useState<string | null>(null);
   const active = carouselItems[activeSlide];
   const ActiveIcon = active.icon;
 
   useEffect(() => {
-    try { setLoggedIn(!!localStorage.getItem("morpheus_auth")); } catch {}
+    try {
+      const raw = localStorage.getItem("morpheus_auth");
+      setLoggedIn(!!raw);
+      setLoggedRole(raw ? JSON.parse(raw)?.role ?? null : null);
+    } catch {
+      setLoggedIn(false);
+      setLoggedRole(null);
+    }
   }, []);
 
   function handleLogout() {
-    try { localStorage.removeItem("morpheus_auth"); } catch {}
+    try {
+      localStorage.removeItem("morpheus_auth");
+      localStorage.removeItem("morpheus_workspace");
+    } catch {}
     setLoggedIn(false);
+    setLoggedRole(null);
   }
 
   return (
@@ -156,11 +170,19 @@ export default function LandingPage() {
             {loggedIn ? (
               <>
                 <Link
-                  href="/app"
+                  href="/app?action=workspace"
                   className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
                 >
-                  Dashboard
+                  Minhas clinicas
                 </Link>
+                {loggedRole === "admin" && (
+                  <Link
+                    href="/app?action=subscription"
+                    className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-mint)] hover:bg-[var(--bg-elevated)] lg:inline-flex lg:rounded-2xl lg:px-4 lg:py-3"
+                  >
+                    Assinatura
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:border-red-400 hover:text-red-400 sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
@@ -202,11 +224,19 @@ export default function LandingPage() {
               {loggedIn ? (
                 <>
                   <Link
-                    href="/app"
+                    href="/app?action=workspace"
                     className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
                   >
-                    Dashboard
+                    Minhas clinicas
                   </Link>
+                  {loggedRole === "admin" && (
+                    <Link
+                      href="/app?action=subscription"
+                      className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-mint)]"
+                    >
+                      Assinatura
+                    </Link>
+                  )}
                   <button
                     onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
                     className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-muted)] transition hover:border-red-400 hover:text-red-400"
@@ -268,6 +298,27 @@ export default function LandingPage() {
                 <ArrowRight size={20} />
               </a>
             </div>
+
+            {loggedIn && (
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/app?action=workspace"
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[var(--accent-mint)] bg-[var(--glass-strong)] px-5 py-3 font-body text-sm font-extrabold text-[var(--accent-mint)] backdrop-blur transition hover:bg-[var(--accent-mint)] hover:text-[#062019] sm:rounded-2xl"
+                >
+                  Minhas clinicas
+                  <ArrowRight size={18} />
+                </Link>
+                {loggedRole === "admin" && (
+                  <Link
+                    href="/app?action=subscription"
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-5 py-3 font-body text-sm font-extrabold text-[var(--text-primary)] backdrop-blur transition hover:border-[var(--accent-lavender)] sm:rounded-2xl"
+                  >
+                    Minha assinatura
+                    <CreditCard size={18} />
+                  </Link>
+                )}
+              </div>
+            )}
           </motion.div>
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -328,6 +379,26 @@ export default function LandingPage() {
         </section>
 
         <section id="experiencia" className="px-4 py-16 sm:px-5 sm:py-20 md:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 flex flex-col justify-between gap-6 md:mb-10 md:flex-row md:items-end">
+              <div>
+                <p className="font-body text-sm font-extrabold uppercase tracking-[0.28em] text-[var(--accent-sky)]">
+                  Agenda real da clinica
+                </p>
+                <h2 className="mt-4 max-w-4xl font-brand text-3xl font-semibold leading-tight md:text-4xl lg:text-6xl">
+                  Veja datas, salas dinamicas e reservas de doutores em uma unica leitura.
+                </h2>
+              </div>
+              <p className="max-w-xl font-body text-base leading-8 text-[var(--text-muted)] md:text-lg">
+                A agenda mostra a semana, abre cada sala cadastrada como coluna interna e posiciona as reservas por
+                horario, doutor e sala. E a visao que reduz duvida antes dela virar retrabalho.
+              </p>
+            </div>
+            <LandingAgendaPreview />
+          </div>
+        </section>
+
+        <section id="experiencia-legacy" className="hidden px-4 py-16 sm:px-5 sm:py-20 md:px-8">
           <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10">
             <div>
               <p className="font-body text-sm font-extrabold uppercase tracking-[0.28em] text-[var(--accent-sky)]">
