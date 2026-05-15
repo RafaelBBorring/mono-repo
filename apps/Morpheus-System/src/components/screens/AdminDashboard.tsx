@@ -13,6 +13,7 @@ import type { Psychologist, Reservation, Room } from "@/types";
 import {
   BadgePlus,
   BookOpen,
+  Building2,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -218,6 +219,10 @@ export default function AdminDashboard() {
                 <Shield size={18} />
                 Admin
               </span>
+              <Button variant="ghost" size="sm" onClick={() => setView("workspace")}>
+                <Building2 size={18} />
+                <span className="hidden sm:inline">Clínicas</span>
+              </Button>
               <ThemeToggle />
               <Button variant="ghost" size="sm" onClick={() => setView("splash")}>
                 <LogOut size={18} />
@@ -1033,7 +1038,7 @@ function AdminManagement({
           <form onSubmit={onSubmitPsychologist} className="rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-5 md:rounded-3xl">
             <div className="mb-5 flex items-center gap-3">
               <UserRoundPlus size={24} className="text-[var(--accent-lavender)]" />
-              <h3 className="font-brand text-xl font-semibold md:text-2xl">Conta de profissional</h3>
+              <h3 className="font-brand text-xl font-semibold md:text-2xl">Convidar profissional</h3>
             </div>
             <div className="grid gap-3">
               <input
@@ -1052,10 +1057,10 @@ function AdminManagement({
             </div>
             <Button type="submit" variant="gradient" size="md" fullWidth className="mt-4">
               <UserRoundPlus size={20} />
-              Criar conta
+              Adicionar profissional
             </Button>
 
-            {lastCredentials && (
+            {lastCredentials && lastCredentials.password !== "(usar conta existente)" && (
               <div className="mt-4 rounded-xl border-2 border-[var(--accent-mint)] bg-[var(--bg-primary)] p-4">
                 <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--accent-mint)]">
                   Credenciais de acesso

@@ -6,6 +6,7 @@ export interface PlanConfig {
   description: string;
   maxRooms: number;
   maxDoctors: number;
+  maxWorkspaces: number;
   trialDays: number;
   monthlyPriceBRL: number;
   yearlyPriceBRL: number;
@@ -23,6 +24,7 @@ export const PLANS: PlanConfig[] = [
     description: "Para clínicas que estão começando",
     maxRooms: 3,
     maxDoctors: 10,
+    maxWorkspaces: 1,
     trialDays: 7,
     monthlyPriceBRL: 30,
     yearlyPriceBRL: 288,
@@ -36,6 +38,7 @@ export const PLANS: PlanConfig[] = [
     description: "Para clínicas em crescimento",
     maxRooms: 6,
     maxDoctors: 15,
+    maxWorkspaces: 3,
     trialDays: 7,
     monthlyPriceBRL: 50,
     yearlyPriceBRL: 480,
@@ -51,6 +54,7 @@ export const PLANS: PlanConfig[] = [
     description: "Para clínicas consolidadas",
     maxRooms: 10,
     maxDoctors: 20,
+    maxWorkspaces: 5,
     trialDays: 7,
     monthlyPriceBRL: 80,
     yearlyPriceBRL: 768,

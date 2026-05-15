@@ -10,8 +10,23 @@ import React, {
 } from "react";
 import type { AppView, Psychologist, Reservation, Room } from "@/types";
 import { isBillingActive } from "@/lib/billing";
-import type { AuthUser, Clinic } from "@/lib/auth";
-import { mapClinic, sha256, type SupabaseClinic, type SupabaseClinicDoctor } from "@/lib/auth";
+import type {
+  AuthUser,
+  Clinic,
+  ClinicInvitation,
+  User,
+  UserWorkspace,
+} from "@/lib/auth";
+import {
+  mapClinic,
+  mapUser,
+  mapClinicInvitation,
+  sha256,
+  type SupabaseClinic,
+  type SupabaseClinicDoctor,
+  type SupabaseUser,
+  type SupabaseClinicInvitation,
+} from "@/lib/auth";
 import type { PlanId } from "@/lib/plans";
 import { PLANS, getPlanById } from "@/lib/plans";
 import {
@@ -32,6 +47,11 @@ interface Toast {
 
 type Theme = "dark" | "light";
 
+interface DoctorCredentials {
+  email: string;
+  password: string;
+}
+
 interface AppContextType {
   view: AppView;
   activePsych: Psychologist | null;
@@ -47,6 +67,9 @@ interface AppContextType {
   billingRequired: boolean;
   billingActive: boolean;
   checkoutEnabled: boolean;
+  user: User | null;
+  workspaces: UserWorkspace[];
+  pendingInvitations: ClinicInvitation[];
   login: (email: string, passwordHash: string) => Promise<boolean>;
   signup: (data: { clinicName: string; email: string; passwordHash: string }) => Promise<boolean>;
   logout: () => void;
@@ -66,11 +89,11 @@ interface AppContextType {
   startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
   startTrial: (email?: string) => Promise<void>;
   openBillingPortal: () => Promise<void>;
-}
-
-interface DoctorCredentials {
-  email: string;
-  password: string;
+  selectWorkspace: (clinicId: string) => Promise<void>;
+  inviteDoctor: (email: string, name: string) => Promise<{ success: boolean; credentials?: DoctorCredentials; inviteLink?: string }>;
+  createClinic: (name: string) => Promise<boolean>;
+  loadWorkspaces: () => Promise<UserWorkspace[]>;
+  acceptInvitation: (token: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -110,6 +133,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [workspaces, setWorkspaces] = useState<UserWorkspace[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<ClinicInvitation[]>([]);
 
   const billingActive = clinic
     ? !billingRequired || !clinic.billingEnforced || isBillingActive({
@@ -162,15 +188,100 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
+  const loadWorkspaces = useCallback(async (): Promise<UserWorkspace[]> => {
+    if (!user || !isSupabaseConfigured) return [];
+
+    try {
+      const { data: memberships } = await supabase
+        .from("clinic_doctors")
+        .select("clinic_id, role, psychologist_id, clinics(id, name)")
+        .eq("user_id", user.id);
+
+      if (!memberships || memberships.length === 0) return [];
+
+      const ws: UserWorkspace[] = memberships.map((m: any) => ({
+        clinicId: m.clinic_id,
+        clinicName: m.clinics?.name || "Clínica",
+        role: m.role === "admin" ? "admin" : "doctor",
+        psychologistId: m.psychologist_id ?? undefined,
+      }));
+      setWorkspaces(ws);
+      return ws;
+    } catch {
+      return [];
+    }
+  }, [user]);
+
+  const loadPendingInvitations = useCallback(async (clinicId: string) => {
+    if (!isSupabaseConfigured) return;
+    try {
+      const { data } = await supabase
+        .from("clinic_invitations")
+        .select("*")
+        .eq("clinic_id", clinicId)
+        .eq("accepted", false)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false });
+      if (data) {
+        setPendingInvitations(data.map(mapClinicInvitation));
+      }
+    } catch {}
+  }, []);
+
+  const selectWorkspace = useCallback(async (clinicId: string) => {
+    if (!user || !isSupabaseConfigured) return;
+
+    const ws = workspaces.find((w) => w.clinicId === clinicId);
+    if (!ws) return;
+
+    const { data: clinicData } = await supabase
+      .from("clinics")
+      .select("*")
+      .eq("id", clinicId)
+      .maybeSingle();
+
+    if (!clinicData) return;
+    const c = mapClinic(clinicData as SupabaseClinic);
+
+    const authUserData: AuthUser = ws.role === "admin"
+      ? { role: "admin", clinicId: c.id, email: user.email, displayName: user.displayName }
+      : { role: "doctor", clinicId: c.id, email: user.email, displayName: user.displayName, psychologistId: ws.psychologistId };
+
+    setAuthUser(authUserData);
+    setClinic(c);
+    localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+    localStorage.setItem("morpheus_workspace", clinicId);
+
+    if (ws.role === "admin") {
+      loadPendingInvitations(clinicId);
+    }
+  }, [user, workspaces, loadPendingInvitations]);
+
   useEffect(() => {
     if (!mounted) return;
     try {
       const saved = localStorage.getItem("morpheus_auth");
+      const savedWorkspace = localStorage.getItem("morpheus_workspace");
+      const savedUserId = localStorage.getItem("morpheus_user_id");
+
       if (saved) {
         const parsed = JSON.parse(saved) as AuthUser;
         setAuthUser(parsed);
 
-        if (isSupabaseConfigured) {
+        if (savedUserId && isSupabaseConfigured) {
+          supabase
+            .from("users")
+            .select("*")
+            .eq("id", savedUserId)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) {
+                setUser(mapUser(data as SupabaseUser));
+              }
+            });
+        }
+
+        if (isSupabaseConfigured && parsed.clinicId) {
           supabase
             .from("clinics")
             .select("*")
@@ -179,6 +290,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .then(({ data }) => {
               if (data) setClinic(mapClinic(data as SupabaseClinic));
             });
+
+          if (savedUserId) {
+            supabase
+              .from("clinic_doctors")
+              .select("clinic_id, role, psychologist_id, clinics(id, name)")
+              .eq("user_id", savedUserId)
+              .then(({ data: memberships }) => {
+                if (memberships && memberships.length > 0) {
+                  const ws: UserWorkspace[] = memberships.map((m: any) => ({
+                    clinicId: m.clinic_id,
+                    clinicName: m.clinics?.name || "Clínica",
+                    role: m.role === "admin" ? "admin" : "doctor",
+                    psychologistId: m.psychologist_id ?? undefined,
+                  }));
+                  setWorkspaces(ws);
+                }
+              });
+          }
         }
       }
     } catch {}
@@ -213,23 +342,84 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const { data: clinicRow, error: clinicError } = await supabase
+        const { data: userRow } = await supabase
+          .from("users")
+          .select("*")
+          .eq("email", email)
+          .eq("password_hash", passwordHash)
+          .maybeSingle();
+
+        if (userRow) {
+          const u = mapUser(userRow as SupabaseUser);
+          setUser(u);
+          localStorage.setItem("morpheus_user_id", u.id);
+
+          const { data: memberships } = await supabase
+            .from("clinic_doctors")
+            .select("clinic_id, role, psychologist_id, clinics(id, name)")
+            .eq("user_id", u.id);
+
+          if (memberships && memberships.length > 0) {
+            const ws: UserWorkspace[] = memberships.map((m: any) => ({
+              clinicId: m.clinic_id,
+              clinicName: m.clinics?.name || "Clínica",
+              role: m.role === "admin" ? "admin" : "doctor",
+              psychologistId: m.psychologist_id ?? undefined,
+            }));
+            setWorkspaces(ws);
+
+            if (ws.length === 1) {
+              const single = ws[0];
+              const { data: clinicData } = await supabase
+                .from("clinics")
+                .select("*")
+                .eq("id", single.clinicId)
+                .maybeSingle();
+
+              if (clinicData) {
+                const c = mapClinic(clinicData as SupabaseClinic);
+                const authUserData: AuthUser = single.role === "admin"
+                  ? { role: "admin", clinicId: c.id, email: u.email, displayName: u.displayName }
+                  : { role: "doctor", clinicId: c.id, email: u.email, displayName: u.displayName, psychologistId: single.psychologistId };
+                setAuthUser(authUserData);
+                setClinic(c);
+                localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+                localStorage.setItem("morpheus_workspace", single.clinicId);
+
+                if (billingActive || !billingRequired) {
+                  await loadOperationalData(c.id);
+                }
+
+                if (single.role === "admin") {
+                  loadPendingInvitations(single.clinicId);
+                }
+
+                setView(single.role === "admin" ? "admin" : "psych");
+              }
+            } else {
+              setView("workspace");
+            }
+            return true;
+          }
+
+          setView("workspace");
+          return true;
+        }
+
+        const { data: clinicRow } = await supabase
           .from("clinics")
           .select("*")
           .eq("admin_email", email)
           .eq("admin_password_hash", passwordHash)
           .maybeSingle();
 
-        if (clinicError) {
-          console.error("Login: clinic query error", clinicError);
-        }
-
         if (clinicRow) {
           const c = mapClinic(clinicRow as SupabaseClinic);
-          const user: AuthUser = { role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name };
-          setAuthUser(user);
+          const authUserData: AuthUser = { role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name };
+          setAuthUser(authUserData);
           setClinic(c);
-          localStorage.setItem("morpheus_auth", JSON.stringify(user));
+          localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+          localStorage.setItem("morpheus_workspace", c.id);
 
           if (billingActive || !billingRequired) {
             await loadOperationalData(c.id);
@@ -256,16 +446,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (!clinicData) return false;
           const c = mapClinic(clinicData as SupabaseClinic);
 
-          const user: AuthUser = {
+          const authUserData: AuthUser = {
             role: "doctor",
             clinicId: c.id,
             email: doc.email,
             displayName: doc.display_name,
             psychologistId: doc.psychologist_id ?? undefined,
           };
-          setAuthUser(user);
+          setAuthUser(authUserData);
           setClinic(c);
-          localStorage.setItem("morpheus_auth", JSON.stringify(user));
+          localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+          localStorage.setItem("morpheus_workspace", c.id);
 
           if (billingActive || !billingRequired) {
             await loadOperationalData(c.id);
@@ -280,7 +471,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [billingActive, loadOperationalData]
+    [billingActive, loadOperationalData, loadPendingInvitations]
   );
 
   const signup = useCallback(
@@ -288,39 +479,73 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!isSupabaseConfigured) return false;
 
       try {
-        const { data: existing } = await supabase
-          .from("clinics")
+        const { data: existingUser } = await supabase
+          .from("users")
           .select("id")
-          .eq("admin_email", data.email)
+          .eq("email", data.email)
           .maybeSingle();
 
-        if (existing) {
+        if (existingUser) {
           addToast("Este e-mail já está cadastrado.", "error");
           return false;
         }
 
-        const { data: newClinic, error } = await supabase
+        const { data: newUser, error: userError } = await supabase
+          .from("users")
+          .insert({
+            email: data.email,
+            password_hash: data.passwordHash,
+            display_name: data.email.split("@")[0],
+          })
+          .select()
+          .single();
+
+        if (userError || !newUser) {
+          addToast("Erro ao criar usuário.", "error");
+          return false;
+        }
+
+        const u = mapUser(newUser as SupabaseUser);
+        setUser(u);
+        localStorage.setItem("morpheus_user_id", u.id);
+
+        const { data: newClinic, error: clinicError } = await supabase
           .from("clinics")
           .insert({
             name: data.clinicName,
             admin_email: data.email,
             admin_password_hash: data.passwordHash,
+            user_id: u.id,
             stripe_status: "inactive",
             billing_enforced: true,
           })
           .select()
           .single();
 
-        if (error || !newClinic) {
-          addToast("Erro ao criar conta.", "error");
+        if (clinicError || !newClinic) {
+          addToast("Erro ao criar clínica.", "error");
           return false;
         }
 
         const c = mapClinic(newClinic as SupabaseClinic);
-        const user: AuthUser = { role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name };
-        setAuthUser(user);
+
+        await supabase
+          .from("clinic_doctors")
+          .insert({
+            clinic_id: c.id,
+            user_id: u.id,
+            email: data.email,
+            password_hash: data.passwordHash,
+            display_name: data.clinicName,
+            role: "admin",
+          });
+
+        const authUserData: AuthUser = { role: "admin", clinicId: c.id, email: u.email, displayName: u.displayName };
+        setAuthUser(authUserData);
         setClinic(c);
-        localStorage.setItem("morpheus_auth", JSON.stringify(user));
+        setWorkspaces([{ clinicId: c.id, clinicName: c.name, role: "admin" }]);
+        localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+        localStorage.setItem("morpheus_workspace", c.id);
 
         addToast("Conta criada com sucesso!", "success");
         return true;
@@ -333,15 +558,204 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [addToast]
   );
 
+  const createClinic = useCallback(
+    async (name: string): Promise<boolean> => {
+      if (!user || !isSupabaseConfigured) return false;
+
+      try {
+        const { data: newClinic, error } = await supabase
+          .from("clinics")
+          .insert({
+            name: name.trim(),
+            admin_email: user.email,
+            admin_password_hash: "",
+            user_id: user.id,
+            stripe_status: "inactive",
+            billing_enforced: true,
+          })
+          .select()
+          .single();
+
+        if (error || !newClinic) {
+          addToast("Erro ao criar clínica.", "error");
+          return false;
+        }
+
+        const c = mapClinic(newClinic as SupabaseClinic);
+
+        await supabase
+          .from("clinic_doctors")
+          .insert({
+            clinic_id: c.id,
+            user_id: user.id,
+            email: user.email,
+            password_hash: "",
+            display_name: user.displayName,
+            role: "admin",
+          });
+
+        setWorkspaces((prev) => [...prev, { clinicId: c.id, clinicName: c.name, role: "admin" }]);
+        addToast(`Clínica "${c.name}" criada!`, "success");
+        return true;
+      } catch {
+        addToast("Erro ao criar clínica.", "error");
+        return false;
+      }
+    },
+    [user, addToast]
+  );
+
+  const inviteDoctor = useCallback(
+    async (email: string, name: string): Promise<{ success: boolean; credentials?: DoctorCredentials; inviteLink?: string }> => {
+      if (!authUser || !isSupabaseConfigured || authUser.role !== "admin") {
+        return { success: false };
+      }
+
+      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedName = name.trim();
+      if (!trimmedEmail || !trimmedName) {
+        addToast("Informe nome e e-mail do profissional.", "error");
+        return { success: false };
+      }
+
+      try {
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("id, email, display_name")
+          .eq("email", trimmedEmail)
+          .maybeSingle();
+
+        if (existingUser) {
+          const { data: existingMembership } = await supabase
+            .from("clinic_doctors")
+            .select("id")
+            .eq("user_id", existingUser.id)
+            .eq("clinic_id", authUser.clinicId)
+            .maybeSingle();
+
+          if (existingMembership) {
+            addToast("Este profissional já está na clínica.", "error");
+            return { success: false };
+          }
+
+          await supabase
+            .from("clinic_doctors")
+            .insert({
+              clinic_id: authUser.clinicId,
+              user_id: existingUser.id,
+              email: trimmedEmail,
+              password_hash: "",
+              display_name: trimmedName,
+              role: "doctor",
+            });
+
+          addToast(`${trimmedName} adicionado(a) à clínica.`, "success");
+          return { success: true };
+        }
+
+        const rawPassword = Math.random().toString(36).slice(2, 10);
+        const passwordHash = await sha256(rawPassword);
+
+        const { data: newUser } = await supabase
+          .from("users")
+          .insert({
+            email: trimmedEmail,
+            password_hash: passwordHash,
+            display_name: trimmedName,
+          })
+          .select()
+          .single();
+
+        if (!newUser) {
+          addToast("Erro ao criar conta do profissional.", "error");
+          return { success: false };
+        }
+
+        await supabase
+          .from("clinic_doctors")
+          .insert({
+            clinic_id: authUser.clinicId,
+            user_id: (newUser as any).id,
+            email: trimmedEmail,
+            password_hash: passwordHash,
+            display_name: trimmedName,
+            role: "doctor",
+          });
+
+        addToast(`${trimmedName} adicionado(a) à clínica.`, "success");
+        return { success: true, credentials: { email: trimmedEmail, password: rawPassword } };
+      } catch {
+        addToast("Erro ao convidar profissional.", "error");
+        return { success: false };
+      }
+    },
+    [authUser, addToast]
+  );
+
+  const acceptInvitation = useCallback(
+    async (token: string): Promise<boolean> => {
+      if (!user || !isSupabaseConfigured) return false;
+
+      try {
+        const { data: invitation } = await supabase
+          .from("clinic_invitations")
+          .select("*")
+          .eq("token", token)
+          .eq("accepted", false)
+          .maybeSingle();
+
+        if (!invitation) {
+          addToast("Convite inválido ou expirado.", "error");
+          return false;
+        }
+
+        const inv = invitation as SupabaseClinicInvitation;
+        if (new Date(inv.expires_at) < new Date()) {
+          addToast("Convite expirado.", "error");
+          return false;
+        }
+
+        await supabase
+          .from("clinic_doctors")
+          .insert({
+            clinic_id: inv.clinic_id,
+            user_id: user.id,
+            email: user.email,
+            password_hash: "",
+            display_name: user.displayName,
+            role: inv.role,
+          });
+
+        await supabase
+          .from("clinic_invitations")
+          .update({ accepted: true })
+          .eq("id", inv.id);
+
+        addToast("Convite aceito!", "success");
+        await loadWorkspaces();
+        return true;
+      } catch {
+        addToast("Erro ao aceitar convite.", "error");
+        return false;
+      }
+    },
+    [user, addToast, loadWorkspaces]
+  );
+
   const logout = useCallback(() => {
     setAuthUser(null);
     setClinic(null);
+    setUser(null);
+    setWorkspaces([]);
+    setPendingInvitations([]);
     setRooms([]);
     setPsychologists([]);
     setReservations([]);
     setView("splash");
     setActivePsych(null);
     localStorage.removeItem("morpheus_auth");
+    localStorage.removeItem("morpheus_user_id");
+    localStorage.removeItem("morpheus_workspace");
   }, []);
 
   useEffect(() => {
@@ -567,31 +981,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         const psych = mapPsychologist(inserted);
 
-        const rawPassword = Math.random().toString(36).slice(2, 10);
-        const passwordHash = await sha256(rawPassword);
-
-        const { error: docError } = await supabase
-          .from("clinic_doctors")
-          .insert({
-            clinic_id: clinicIdForInsert,
-            psychologist_id: psych.id,
-            email: email,
-            password_hash: passwordHash,
-            display_name: name,
-          });
-
-        if (docError) {
-          console.error("Failed to create doctor login:", docError);
-        }
+        const inviteResult = await inviteDoctor(email, name);
 
         addToast(`${psych.shortName} adicionado(a) à clínica.`, "success");
-        return { psych, credentials: { email, password: rawPassword } };
+        if (inviteResult.credentials) {
+          return { psych, credentials: inviteResult.credentials };
+        }
+        return { psych, credentials: { email, password: "(usar conta existente)" } };
       } catch {
         addToast("Erro ao criar profissional.", "error");
         return null;
       }
     },
-    [addToast, ensureBillingAccess, clinicIdForInsert]
+    [addToast, ensureBillingAccess, clinicIdForInsert, inviteDoctor]
   );
 
   const deletePsychologist = useCallback(
@@ -715,6 +1117,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         billingRequired,
         billingActive,
         checkoutEnabled,
+        user,
+        workspaces,
+        pendingInvitations,
         login,
         signup,
         logout,
@@ -734,6 +1139,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         startCheckout,
         startTrial,
         openBillingPortal,
+        selectWorkspace,
+        inviteDoctor,
+        createClinic,
+        loadWorkspaces,
+        acceptInvitation,
       }}
     >
       {children}
@@ -759,6 +1169,9 @@ export function useApp() {
       billingRequired,
       billingActive: !billingRequired,
       checkoutEnabled,
+      user: null as User | null,
+      workspaces: [] as UserWorkspace[],
+      pendingInvitations: [] as ClinicInvitation[],
       login: (async () => false) as (email: string, passwordHash: string) => Promise<boolean>,
       signup: (async () => false) as (data: { clinicName: string; email: string; passwordHash: string }) => Promise<boolean>,
       logout: () => {},
@@ -778,6 +1191,11 @@ export function useApp() {
       startCheckout: (async () => {}) as (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>,
       startTrial: (async () => {}) as () => Promise<void>,
       openBillingPortal: async () => {},
+      selectWorkspace: (async () => {}) as (clinicId: string) => Promise<void>,
+      inviteDoctor: (async () => ({ success: false })) as (email: string, name: string) => Promise<{ success: boolean; credentials?: DoctorCredentials; inviteLink?: string }>,
+      createClinic: (async () => false) as (name: string) => Promise<boolean>,
+      loadWorkspaces: (async () => []) as () => Promise<UserWorkspace[]>,
+      acceptInvitation: (async () => false) as (token: string) => Promise<boolean>,
     } as AppContextType;
   }
   return ctx;

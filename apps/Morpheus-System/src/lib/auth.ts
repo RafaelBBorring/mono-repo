@@ -17,17 +17,44 @@ export interface ClinicDoctor {
   psychologistId?: number;
   email: string;
   displayName: string;
+  role: "admin" | "doctor";
+  userId?: string;
 }
 
 export type AuthUser =
   | { role: "admin"; clinicId: string; email: string; displayName: string }
   | { role: "doctor"; clinicId: string; email: string; displayName: string; psychologistId?: number };
 
+export interface User {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
+export interface UserWorkspace {
+  clinicId: string;
+  clinicName: string;
+  role: "admin" | "doctor";
+  psychologistId?: number;
+}
+
+export interface ClinicInvitation {
+  id: string;
+  clinicId: string;
+  email: string;
+  role: string;
+  token: string;
+  accepted: boolean;
+  expiresAt: string;
+  createdAt: string;
+}
+
 export interface SupabaseClinic {
   id: string;
   name: string;
   admin_email: string;
   admin_password_hash: string;
+  user_id: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   stripe_price_id: string | null;
@@ -43,9 +70,31 @@ export interface SupabaseClinicDoctor {
   id: string;
   clinic_id: string;
   psychologist_id: number | null;
+  user_id: string | null;
   email: string;
   password_hash: string;
   display_name: string;
+  role: string;
+  created_at: string;
+}
+
+export interface SupabaseUser {
+  id: string;
+  email: string;
+  password_hash: string;
+  display_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupabaseClinicInvitation {
+  id: string;
+  clinic_id: string;
+  email: string;
+  role: string;
+  token: string;
+  accepted: boolean;
+  expires_at: string;
   created_at: string;
 }
 
@@ -61,6 +110,27 @@ export function mapClinic(row: SupabaseClinic): Clinic {
     billingEnforced: row.billing_enforced,
     currentPeriodEnd: row.current_period_end ?? undefined,
     cancelAtPeriodEnd: row.cancel_at_period_end,
+  };
+}
+
+export function mapUser(row: SupabaseUser): User {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+  };
+}
+
+export function mapClinicInvitation(row: SupabaseClinicInvitation): ClinicInvitation {
+  return {
+    id: row.id,
+    clinicId: row.clinic_id,
+    email: row.email,
+    role: row.role,
+    token: row.token,
+    accepted: row.accepted,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
   };
 }
 
