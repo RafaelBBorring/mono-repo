@@ -1,5 +1,5 @@
-import type { Room, Psychologist, Reservation } from "@/types";
-import type { SupabaseRoom, SupabasePsychologist, SupabaseReservation } from "@/types";
+import type { BillingAccount, Room, Psychologist, Reservation } from "@/types";
+import type { SupabaseBillingAccount, SupabaseRoom, SupabasePsychologist, SupabaseReservation } from "@/types";
 
 export const COLOR_PALETTES = [
   {
@@ -123,6 +123,20 @@ export function mapReservation(row: SupabaseReservation): Reservation {
     startTime: row.start_time,
     endTime: row.end_time,
     notes: row.notes ?? "",
+  };
+}
+
+export function mapBillingAccount(row: SupabaseBillingAccount): BillingAccount {
+  return {
+    id: row.id,
+    stripeCustomerId: row.stripe_customer_id ?? undefined,
+    stripeSubscriptionId: row.stripe_subscription_id ?? undefined,
+    stripePriceId: row.stripe_price_id ?? undefined,
+    stripeStatus: row.stripe_status,
+    billingEnforced: row.billing_enforced,
+    currentPeriodEnd: row.current_period_end ?? undefined,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    updatedAt: row.updated_at,
   };
 }
 

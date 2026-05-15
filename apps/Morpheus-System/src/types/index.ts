@@ -29,6 +29,18 @@ export interface Reservation {
   notes: string;
 }
 
+export interface BillingAccount {
+  id: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripePriceId?: string;
+  stripeStatus: string;
+  billingEnforced: boolean;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  updatedAt: string;
+}
+
 export type AppView = "splash" | "admin" | "psych";
 
 export interface AppState {
@@ -68,4 +80,16 @@ export interface SupabaseReservation {
   end_time: string;
   notes: string;
   created_at: string;
+}
+
+export interface SupabaseBillingAccount {
+  id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  stripe_status: string;
+  billing_enforced: boolean;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  updated_at: string;
 }

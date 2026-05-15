@@ -6,10 +6,10 @@ on:
     paths:
       - 'apps/portfolio/**'
       - 'apps/System-Olympo/**'
+      - 'apps/Morpheus-System/**'
       - 'apps/Athena-Project/**'
       - 'apps/Cypher-Project/**'
       - 'apps/Hades-VFX/**'
-      - 'apps/Morpheus-System/**'
       - 'apps/codex-arcanum/**'
       - '.github/workflows/deploy-olympo.yml'
   workflow_dispatch:
@@ -71,21 +71,28 @@ jobs:
         env:
           VITE_BASE: /mono-repo/hades-vfx/
 
-      # ── Morpheus-System (Next.js static export) ──
-      - name: Cache Morpheus-System deps
+      # Morpheus-System (Next static export for GitHub Pages tests)
+      # Stripe webhooks and server-only API routes still require Docker/Vercel/Render.
+      - name: Cache Morpheus deps
         uses: actions/cache@v4
         with:
           path: apps/Morpheus-System/node_modules
-          key: morpheus-sys-${{ hashFiles('apps/Morpheus-System/package-lock.json') }}
+          key: morpheus-${{ hashFiles('apps/Morpheus-System/package-lock.json') }}
 
-      - name: Build Morpheus-System
+      - name: Build Morpheus static
         run: |
           npm ci
+          mv src/app/api src/static-build-api-routes
           npm run build
         working-directory: apps/Morpheus-System
         env:
           NEXT_OUTPUT: export
-          NEXT_PUBLIC_BASE_PATH: /mono-repo/morpheus-system
+          NEXT_PUBLIC_BASE_PATH: /mono-repo/morpheus
+          NEXT_PUBLIC_APP_URL: https://${{ github.repository_owner }}.github.io/mono-repo/morpheus
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.MORPHEUS_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.MORPHEUS_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_BILLING_REQUIRED: "false"
+          NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED: "false"
 
       # ── Assemble site ──
       - name: Assemble site
@@ -115,9 +122,10 @@ jobs:
           mkdir -p _site/hades-vfx
           cp -r apps/Hades-VFX/dist/* _site/hades-vfx/
 
-          # Morpheus-System → /morpheus-system/
-          mkdir -p _site/morpheus-system
-          cp -r apps/Morpheus-System/out/* _site/morpheus-system/
+          # Morpheus-System -> /morpheus/ (static test build)
+          mkdir -p _site/morpheus
+          cp -r apps/Morpheus-System/out/* _site/morpheus/
+          cp apps/Morpheus-System/out/index.html _site/morpheus/404.html
 
           # Codex Arcanum → /codex-arcanum/ (static version)
           mkdir -p _site/codex-arcanum

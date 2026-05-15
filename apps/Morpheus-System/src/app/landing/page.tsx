@@ -197,7 +197,7 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:gap-4">
               <a
-                href="#planos"
+                href="/app?subscribe=monthly"
                 className="magnetic-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-2xl shadow-black/25 sm:min-h-[58px] sm:gap-3 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
               >
                 Começar por R$ 30/mês
@@ -460,7 +460,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <a
-                    href="#contato"
+                    href={`/app?subscribe=${plan.name === "Anual" ? "yearly" : "monthly"}`}
                     className="magnetic-button mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-xl sm:mt-8 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
                   >
                     {plan.cta}

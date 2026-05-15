@@ -8,16 +8,18 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import type { AppView, Psychologist, Reservation, Room } from "@/types";
+import type { AppView, BillingAccount, Psychologist, Reservation, Room } from "@/types";
+import { isBillingActive } from "@/lib/billing";
 import {
   COLOR_PALETTES,
   generateId,
+  mapBillingAccount,
   mapRoom,
   mapPsychologist,
   mapReservation,
   toReservationRow,
 } from "@/lib/data";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 interface Toast {
   id: string;
@@ -36,6 +38,10 @@ interface AppContextType {
   toasts: Toast[];
   theme: Theme;
   loading: boolean;
+  billingAccount: BillingAccount | null;
+  billingRequired: boolean;
+  billingActive: boolean;
+  checkoutEnabled: boolean;
   setView: (view: AppView) => void;
   setActivePsych: (psych: Psychologist | null) => void;
   addRoom: (name: string) => Promise<Room | null>;
@@ -49,9 +55,19 @@ interface AppContextType {
   removeToast: (id: string) => void;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  refreshBilling: () => Promise<void>;
+  startCheckout: (plan: "monthly" | "yearly", email?: string) => Promise<void>;
+  openBillingPortal: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+const billingRequired = process.env.NEXT_PUBLIC_BILLING_REQUIRED === "true";
+const checkoutEnabled = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED !== "false";
+const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
+
+function apiUrl(path: string) {
+  return publicApiBaseUrl ? `${publicApiBaseUrl}${path}` : path;
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<AppView>("splash");
@@ -59,10 +75,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [billingAccount, setBillingAccount] = useState<BillingAccount | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const billingActive = billingAccount ? isBillingActive(billingAccount) : !billingRequired;
 
   const applyTheme = useCallback((newTheme: Theme) => {
     const html = typeof document !== "undefined" ? document.documentElement : null;
@@ -105,22 +123,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
+  const loadOperationalData = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      throw new Error("Supabase public environment variables are missing.");
+    }
+
+    const [roomsRes, psychsRes, reservsRes] = await Promise.all([
+      supabase.from("rooms").select("*").order("id"),
+      supabase.from("psychologists").select("*").order("id"),
+      supabase.from("reservations").select("*").order("date"),
+    ]);
+
+    if (roomsRes.error) throw roomsRes.error;
+    if (psychsRes.error) throw psychsRes.error;
+    if (reservsRes.error) throw reservsRes.error;
+
+    setRooms((roomsRes.data ?? []).map(mapRoom));
+    setPsychologists((psychsRes.data ?? []).map(mapPsychologist));
+    setReservations((reservsRes.data ?? []).map(mapReservation));
+  }, []);
+
+  const refreshBilling = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      addToast("Supabase nao configurado neste ambiente.", "error");
+      return;
+    }
+
+    if (!billingRequired) {
+      setBillingAccount(null);
+      await loadOperationalData();
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("billing_accounts")
+        .select("*")
+        .eq("id", "default")
+        .maybeSingle();
+
+      if (error) throw error;
+      const mappedBilling = data ? mapBillingAccount(data) : null;
+      setBillingAccount(mappedBilling);
+
+      if (!billingRequired || isBillingActive(mappedBilling)) {
+        await loadOperationalData();
+      }
+    } catch (err) {
+      console.warn("Failed to load billing status:", err);
+      setBillingAccount(null);
+    }
+  }, [addToast, loadOperationalData]);
+
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [roomsRes, psychsRes, reservsRes] = await Promise.all([
-          supabase.from("rooms").select("*").order("id"),
-          supabase.from("psychologists").select("*").order("id"),
-          supabase.from("reservations").select("*").order("date"),
-        ]);
+        if (!isSupabaseConfigured) {
+          addToast("Supabase nao configurado neste ambiente.", "error");
+          setRooms([]);
+          setPsychologists([]);
+          setReservations([]);
+          return;
+        }
 
-        if (roomsRes.error) throw roomsRes.error;
-        if (psychsRes.error) throw psychsRes.error;
-        if (reservsRes.error) throw reservsRes.error;
+        if (!billingRequired) {
+          setBillingAccount(null);
+          await loadOperationalData();
+          return;
+        }
 
-        setRooms((roomsRes.data ?? []).map(mapRoom));
-        setPsychologists((psychsRes.data ?? []).map(mapPsychologist));
-        setReservations((reservsRes.data ?? []).map(mapReservation));
+        const { data: billingData } = await supabase
+          .from("billing_accounts")
+          .select("*")
+          .eq("id", "default")
+          .maybeSingle();
+        const mappedBilling = billingData ? mapBillingAccount(billingData) : null;
+        setBillingAccount(mappedBilling);
+
+        if (billingRequired && !isBillingActive(mappedBilling)) {
+          setRooms([]);
+          setPsychologists([]);
+          setReservations([]);
+          return;
+        }
+
+        await loadOperationalData();
       } catch (err) {
         console.error("Failed to load data from Supabase:", err);
         addToast("Erro ao carregar dados do servidor.", "error");
@@ -130,11 +217,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     loadInitialData();
-  }, [addToast]);
+  }, [addToast, loadOperationalData]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("morpheus-realtime")
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase.channel("morpheus-realtime");
+
+    if (billingRequired) {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "billing_accounts" },
+        async () => {
+          await refreshBilling();
+        }
+      );
+    }
+
+    channel
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "rooms" },
@@ -164,10 +264,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [refreshBilling]);
+
+  const ensureBillingAccess = useCallback(() => {
+    if (billingActive) return true;
+    addToast("Ative a assinatura para usar o sistema.", "error");
+    return false;
+  }, [addToast, billingActive]);
+
+  const startCheckout = useCallback(
+    async (plan: "monthly" | "yearly", email?: string) => {
+      if (!checkoutEnabled) {
+        addToast("Checkout indisponivel no modo estatico do GitHub Pages.", "info");
+        return;
+      }
+
+      try {
+        const response = await fetch(apiUrl("/api/stripe/checkout"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan, email }),
+        });
+        const payload = (await response.json()) as { url?: string; error?: string };
+
+        if (!response.ok || !payload.url) {
+          throw new Error(payload.error || "Checkout indisponível.");
+        }
+
+        window.location.href = payload.url;
+      } catch (err) {
+        console.error("Checkout failed:", err);
+        addToast("Não foi possível abrir o checkout.", "error");
+      }
+    },
+    [addToast]
+  );
+
+  const openBillingPortal = useCallback(async () => {
+    if (!checkoutEnabled) {
+      addToast("Portal de cobranca indisponivel no modo estatico do GitHub Pages.", "info");
+      return;
+    }
+
+    try {
+      const response = await fetch(apiUrl("/api/stripe/portal"), { method: "POST" });
+      const payload = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error || "Portal indisponível.");
+      }
+
+      window.location.href = payload.url;
+    } catch (err) {
+      console.error("Billing portal failed:", err);
+      addToast("Não foi possível abrir o portal de cobrança.", "error");
+    }
+  }, [addToast]);
 
   const addReservation = useCallback(
     async (data: Omit<Reservation, "id">): Promise<boolean> => {
+      if (!ensureBillingAccess()) return false;
+
       const hasConflict = reservations.some(
         (reservation) =>
           reservation.roomId === data.roomId &&
@@ -192,11 +349,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [addToast, reservations]
+    [addToast, ensureBillingAccess, reservations]
   );
 
   const removeReservation = useCallback(
     async (id: string) => {
+      if (!ensureBillingAccess()) return;
+
       try {
         const { error } = await supabase.from("reservations").delete().eq("id", id);
         if (error) throw error;
@@ -205,11 +364,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addToast("Erro ao remover reserva.", "error");
       }
     },
-    [addToast]
+    [addToast, ensureBillingAccess]
   );
 
   const addRoom = useCallback(
     async (rawName: string): Promise<Room | null> => {
+      if (!ensureBillingAccess()) return null;
+
       const name = rawName.trim();
       if (!name) {
         addToast("Informe o nome da sala.", "error");
@@ -247,11 +408,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [addToast]
+    [addToast, ensureBillingAccess]
   );
 
   const deleteRoom = useCallback(
     async (id: number) => {
+      if (!ensureBillingAccess()) return;
+
       try {
         const { error } = await supabase.from("rooms").delete().eq("id", id);
         if (error) throw error;
@@ -260,11 +423,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addToast("Erro ao remover sala.", "error");
       }
     },
-    [addToast]
+    [addToast, ensureBillingAccess]
   );
 
   const addPsychologist = useCallback(
     async (data: { name: string; email?: string }): Promise<Psychologist | null> => {
+      if (!ensureBillingAccess()) return null;
+
       const name = data.name.trim();
       if (!name) {
         addToast("Informe o nome do profissional.", "error");
@@ -312,11 +477,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [addToast]
+    [addToast, ensureBillingAccess]
   );
 
   const deletePsychologist = useCallback(
     async (id: number) => {
+      if (!ensureBillingAccess()) return;
+
       try {
         const { error } = await supabase.from("psychologists").delete().eq("id", id);
         if (error) throw error;
@@ -325,7 +492,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addToast("Erro ao remover profissional.", "error");
       }
     },
-    [addToast]
+    [addToast, ensureBillingAccess]
   );
 
   const validateAdminPin = useCallback((pin: string) => pin === "1234", []);
@@ -345,6 +512,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toasts,
         theme,
         loading,
+        billingAccount,
+        billingRequired,
+        billingActive,
+        checkoutEnabled,
         setView,
         setActivePsych,
         addRoom,
@@ -358,6 +529,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         removeToast,
         toggleTheme,
         setTheme,
+        refreshBilling,
+        startCheckout,
+        openBillingPortal,
       }}
     >
       {children}
@@ -377,6 +551,10 @@ export function useApp() {
       toasts: [] as Toast[],
       theme: "light" as Theme,
       loading: false,
+      billingAccount: null,
+      billingRequired,
+      billingActive: !billingRequired,
+      checkoutEnabled,
       setView: () => {},
       setActivePsych: () => {},
       addRoom: (async () => null) as (name: string) => Promise<Room | null>,
@@ -390,6 +568,9 @@ export function useApp() {
       removeToast: () => {},
       toggleTheme: () => {},
       setTheme: (() => {}) as (theme: Theme) => void,
+      refreshBilling: async () => {},
+      startCheckout: async () => {},
+      openBillingPortal: async () => {},
     } as AppContextType;
   }
   return ctx;
