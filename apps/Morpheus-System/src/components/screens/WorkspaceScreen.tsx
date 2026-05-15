@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import ThemeToggle from "@/components/ThemeToggle";
 import Button from "@/components/ui/Button";
 import {
@@ -20,6 +21,39 @@ export default function WorkspaceScreen() {
   const [showNewClinic, setShowNewClinic] = useState(false);
   const [newClinicName, setNewClinicName] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
+  const [counts, setCounts] = useState<Record<string, { rooms: number; doctors: number }>>({});
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || workspaces.length === 0) return;
+
+    let alive = true;
+    Promise.all(
+      workspaces.map(async (ws) => {
+        const [roomsRes, doctorsRes] = await Promise.all([
+          supabase.from("rooms").select("id", { count: "exact", head: true }).eq("clinic_id", ws.clinicId),
+          supabase.from("psychologists").select("id", { count: "exact", head: true }).eq("clinic_id", ws.clinicId),
+        ]);
+
+        return {
+          clinicId: ws.clinicId,
+          rooms: roomsRes.count ?? 0,
+          doctors: doctorsRes.count ?? 0,
+        };
+      })
+    ).then((items) => {
+      if (!alive) return;
+      setCounts(
+        items.reduce<Record<string, { rooms: number; doctors: number }>>((acc, item) => {
+          acc[item.clinicId] = { rooms: item.rooms, doctors: item.doctors };
+          return acc;
+        }, {})
+      );
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [workspaces]);
 
   async function handleSelect(clinicId: string) {
     setLoading(clinicId);
@@ -82,7 +116,7 @@ export default function WorkspaceScreen() {
         <ThemeToggle />
       </div>
 
-      <main className="relative z-10 w-full max-w-2xl">
+      <main className="relative z-10 w-full max-w-5xl">
         <div className="mb-8 flex justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] text-[var(--action-foreground)] shadow-2xl">
             <Wand2 size={28} />
@@ -96,28 +130,36 @@ export default function WorkspaceScreen() {
           Selecione uma clínica para continuar
         </p>
 
-        <div className="grid gap-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {workspaces.map((ws) => (
             <button
               key={ws.clinicId}
               onClick={() => handleSelect(ws.clinicId)}
               disabled={loading !== null}
-              className="group flex items-center gap-4 rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-5 text-left transition hover:-translate-y-0.5 hover:border-[var(--accent-lavender)] hover:shadow-xl sm:rounded-3xl sm:p-6 disabled:opacity-60"
+              className="group flex aspect-square min-h-[230px] flex-col justify-between rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-5 text-left transition hover:-translate-y-1 hover:border-[var(--accent-lavender)] hover:shadow-xl sm:rounded-3xl sm:p-6 disabled:opacity-60"
             >
-              <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl"
-                style={{
-                  background: ws.role === "admin"
-                    ? "linear-gradient(135deg, var(--action-primary), var(--action-secondary))"
-                    : "var(--glass-soft)",
-                  color: ws.role === "admin" ? "var(--action-foreground)" : "var(--accent-lavender)",
-                }}
-              >
-                {ws.role === "admin" ? <Shield size={22} /> : <User size={22} />}
+              <div className="flex items-start justify-between gap-3">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl"
+                  style={{
+                    background: ws.role === "admin"
+                      ? "linear-gradient(135deg, var(--action-primary), var(--action-secondary))"
+                      : "var(--glass-soft)",
+                    color: ws.role === "admin" ? "var(--action-foreground)" : "var(--accent-lavender)",
+                  }}
+                >
+                  {ws.role === "admin" ? <Shield size={22} /> : <User size={22} />}
+                </div>
+                <div className="flex items-center gap-2">
+                  {loading === ws.clinicId && (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent-lavender)] border-t-transparent" />
+                  )}
+                  <ChevronRight size={20} className="text-[var(--text-muted)] transition group-hover:translate-x-1 group-hover:text-[var(--accent-lavender)]" />
+                </div>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-brand text-xl font-semibold sm:text-2xl">
+              <div className="min-w-0">
+                <p className="line-clamp-2 font-brand text-2xl font-semibold sm:text-3xl">
                   {ws.clinicName}
                 </p>
                 <p className="mt-1 font-body text-sm font-bold text-[var(--text-muted)]">
@@ -125,11 +167,23 @@ export default function WorkspaceScreen() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {loading === ws.clinicId && (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent-lavender)] border-t-transparent" />
-                )}
-                <ChevronRight size={20} className="text-[var(--text-muted)] transition group-hover:translate-x-1 group-hover:text-[var(--accent-lavender)]" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-3">
+                  <p className="font-brand text-2xl font-semibold text-[var(--accent-mint)]">
+                    {counts[ws.clinicId]?.rooms ?? "-"}
+                  </p>
+                  <p className="mt-1 font-body text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    salas
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-3">
+                  <p className="font-brand text-2xl font-semibold text-[var(--accent-lavender)]">
+                    {counts[ws.clinicId]?.doctors ?? "-"}
+                  </p>
+                  <p className="mt-1 font-body text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                    drs
+                  </p>
+                </div>
               </div>
             </button>
           ))}

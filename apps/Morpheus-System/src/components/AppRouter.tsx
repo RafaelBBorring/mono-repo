@@ -39,12 +39,37 @@ export default function AppRouter() {
       acceptInvitation(inviteToken);
     }
 
-    if (action === "signup" || (plan && VALID_PLANS.includes(plan))) {
+    const wantsPlan = Boolean(plan && VALID_PLANS.includes(plan));
+
+    if (action === "login") {
+      if (!authUser) {
+        setView("login");
+      } else if (wantsPlan && authUser.role === "admin") {
+        setView("subscription");
+      } else {
+        setView("workspace");
+      }
+      return;
+    }
+
+    if (action === "signup") {
       if (!authUser) {
         setView("signup");
       } else if (authUser.role === "admin") {
-        setView("billing");
+        setView("subscription");
       }
+      return;
+    }
+
+    if (wantsPlan) {
+      if (!authUser) {
+        setView("login");
+      } else if (authUser.role === "admin") {
+        setView("subscription");
+      } else {
+        setView("workspace");
+      }
+      return;
     }
 
     if (action === "workspace") {

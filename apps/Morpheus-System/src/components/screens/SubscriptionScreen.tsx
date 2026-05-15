@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  XCircle,
 } from "lucide-react";
 import { billingStatusLabel } from "@/lib/billing";
 import { getPlanById, PLANS, type PlanId } from "@/lib/plans";
@@ -37,7 +38,9 @@ export default function SubscriptionScreen() {
   const {
     clinic,
     checkoutEnabled,
+    serverApiAvailable,
     openBillingPortal,
+    cancelSubscription,
     refreshBilling,
     startCheckout,
     startTrial,
@@ -88,6 +91,15 @@ export default function SubscriptionScreen() {
   async function handleTrial() {
     setLoadingAction("trial");
     await startTrial();
+    setLoadingAction(null);
+  }
+
+  async function handleCancel() {
+    if (!window.confirm("Cancelar a assinatura agora tambem encerra a cobranca recorrente no Stripe. Confirmar?")) {
+      return;
+    }
+    setLoadingAction("cancel");
+    await cancelSubscription();
     setLoadingAction(null);
   }
 
@@ -179,11 +191,24 @@ export default function SubscriptionScreen() {
               <div className="mt-6 grid gap-3">
                 <button
                   onClick={handlePortal}
-                  disabled={loadingAction === "portal" || !checkoutEnabled || !clinic.stripeCustomerId}
+                  disabled={loadingAction === "portal" || !checkoutEnabled || !serverApiAvailable || !clinic.stripeCustomerId}
                   className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border border-[var(--border-medium)] bg-[var(--bg-elevated)] px-5 py-3 font-body text-base font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] disabled:opacity-55"
                 >
                   <CreditCard size={20} />
                   {loadingAction === "portal" ? "Abrindo..." : "Cancelar ou gerenciar no Stripe"}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={
+                    loadingAction === "cancel" ||
+                    !serverApiAvailable ||
+                    !clinic.stripeSubscriptionId ||
+                    clinic.stripeStatus === "canceled"
+                  }
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border border-red-400/50 bg-red-500/10 px-5 py-3 font-body text-base font-extrabold text-red-500 transition hover:bg-red-500 hover:text-white disabled:opacity-55"
+                >
+                  <XCircle size={20} />
+                  {loadingAction === "cancel" ? "Cancelando..." : "Cancelar assinatura agora"}
                 </button>
                 <button
                   onClick={handleRefresh}
@@ -198,10 +223,10 @@ export default function SubscriptionScreen() {
                 </button>
               </div>
 
-              {!checkoutEnabled && (
+              {(!checkoutEnabled || !serverApiAvailable) && (
                 <p className="mt-4 rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-4 font-body text-sm font-bold leading-6 text-[var(--text-muted)]">
-                  No GitHub Pages, use Stripe Payment Links publicos ou um backend separado. Chaves secretas continuam fora
-                  do navegador.
+                  No GitHub Pages, use Stripe Payment Links publicos para assinar. Portal e cancelamento direto precisam
+                  do backend Docker/Next, mantendo chaves secretas fora do navegador.
                 </p>
               )}
             </section>

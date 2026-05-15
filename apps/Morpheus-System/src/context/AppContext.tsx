@@ -67,6 +67,7 @@ interface AppContextType {
   billingRequired: boolean;
   billingActive: boolean;
   checkoutEnabled: boolean;
+  serverApiAvailable: boolean;
   user: User | null;
   workspaces: UserWorkspace[];
   pendingInvitations: ClinicInvitation[];
@@ -89,6 +90,8 @@ interface AppContextType {
   startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
   startTrial: (email?: string) => Promise<void>;
   openBillingPortal: () => Promise<void>;
+  cancelSubscription: () => Promise<boolean>;
+  updateAccount: (data: { displayName?: string; email?: string; password?: string }) => Promise<boolean>;
   selectWorkspace: (clinicId: string) => Promise<void>;
   inviteDoctor: (email: string, name: string) => Promise<{ success: boolean; credentials?: DoctorCredentials; inviteLink?: string }>;
   createClinic: (name: string) => Promise<boolean>;
@@ -118,9 +121,46 @@ const _trialLink = process.env.NEXT_PUBLIC_STRIPE_LINK_TRIAL;
 if (_trialLink) stripePaymentLinks["trial"] = _trialLink;
 
 const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
+const serverApiAvailable = process.env.NEXT_PUBLIC_SERVER_API_AVAILABLE !== "false";
+const appBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 function apiUrl(path: string) {
   return publicApiBaseUrl ? `${publicApiBaseUrl}${path}` : path;
+}
+
+function appPath(path: string) {
+  return `${appBasePath}${path}`;
+}
+
+function hasPlanIntent() {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get("intent") === "plan" || Boolean(params.get("plan"));
+}
+
+function getClinicRelation(value: any): SupabaseClinic | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+function hasClinicAccess(clinicData: Clinic | SupabaseClinic | null | undefined) {
+  if (!clinicData) return false;
+  const clinic =
+    "admin_email" in clinicData
+      ? mapClinic(clinicData as SupabaseClinic)
+      : (clinicData as Clinic);
+
+  return (
+    !clinic.billingEnforced ||
+    isBillingActive({
+      id: clinic.id,
+      stripeStatus: clinic.stripeStatus,
+      billingEnforced: clinic.billingEnforced,
+      currentPeriodEnd: clinic.currentPeriodEnd,
+      cancelAtPeriodEnd: clinic.cancelAtPeriodEnd,
+      updatedAt: new Date().toISOString(),
+    })
+  );
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -197,14 +237,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const { data: memberships } = await supabase
         .from("clinic_doctors")
-        .select("clinic_id, role, psychologist_id, clinics(id, name)")
+        .select("clinic_id, role, psychologist_id, clinics(id, name, admin_email, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_status, billing_enforced, current_period_end, cancel_at_period_end, created_at, updated_at)")
         .eq("user_id", user.id);
 
       if (!memberships || memberships.length === 0) return [];
 
       const ws: UserWorkspace[] = memberships.map((m: any) => ({
         clinicId: m.clinic_id,
-        clinicName: m.clinics?.name || "Clínica",
+        clinicName: getClinicRelation(m.clinics)?.name || "Clínica",
         role: m.role === "admin" ? "admin" : "doctor",
         psychologistId: m.psychologist_id ?? undefined,
       }));
@@ -314,13 +354,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (savedUserId) {
             supabase
               .from("clinic_doctors")
-              .select("clinic_id, role, psychologist_id, clinics(id, name)")
+              .select("clinic_id, role, psychologist_id, clinics(id, name, admin_email, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_status, billing_enforced, current_period_end, cancel_at_period_end, created_at, updated_at)")
               .eq("user_id", savedUserId)
               .then(({ data: memberships }) => {
                 if (memberships && memberships.length > 0) {
                   const ws: UserWorkspace[] = memberships.map((m: any) => ({
                     clinicId: m.clinic_id,
-                    clinicName: m.clinics?.name || "Clínica",
+                    clinicName: getClinicRelation(m.clinics)?.name || "Clínica",
                     role: m.role === "admin" ? "admin" : "doctor",
                     psychologistId: m.psychologist_id ?? undefined,
                   }));
@@ -376,23 +416,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           const { data: memberships } = await supabase
             .from("clinic_doctors")
-            .select("clinic_id, role, psychologist_id, clinics(id, name)")
+            .select("clinic_id, role, psychologist_id, clinics(id, name, admin_email, stripe_customer_id, stripe_subscription_id, stripe_price_id, stripe_status, billing_enforced, current_period_end, cancel_at_period_end, created_at, updated_at)")
             .eq("user_id", u.id);
 
-          if (memberships && memberships.length > 0) {
-            const ws: UserWorkspace[] = memberships.map((m: any) => ({
-              clinicId: m.clinic_id,
-              clinicName: m.clinics?.name || "Clínica",
-              role: m.role === "admin" ? "admin" : "doctor",
-              psychologistId: m.psychologist_id ?? undefined,
-            }));
-            setWorkspaces(ws);
+          const ws: UserWorkspace[] = (memberships ?? []).map((m: any) => ({
+            clinicId: m.clinic_id,
+            clinicName: getClinicRelation(m.clinics)?.name || "Clínica",
+            role: m.role === "admin" ? "admin" : "doctor",
+            psychologistId: m.psychologist_id ?? undefined,
+          }));
+          setWorkspaces(ws);
+
+          const authUserData: AuthUser = { role: "admin", clinicId: "", email: u.email, displayName: u.displayName };
+          const hasSubscribedWorkspace = (memberships ?? []).some((m: any) => hasClinicAccess(getClinicRelation(m.clinics)));
+          setAuthUser(authUserData);
+          localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+
+          if (!hasSubscribedWorkspace && !hasPlanIntent()) {
+            addToast("Conta criada ou acessada. Escolha um plano para liberar o dashboard.", "info");
+            window.location.href = appPath("/landing");
+            return true;
           }
 
-          setAuthUser({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName });
-          localStorage.setItem("morpheus_auth", JSON.stringify({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName }));
-
-          setView("workspace");
+          setView(hasPlanIntent() ? "subscription" : "workspace");
           return true;
         }
 
@@ -413,15 +459,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           await loadOperationalData(c.id);
 
-          const ba = !billingRequired || !c.billingEnforced || isBillingActive({
-            id: c.id,
-            stripeStatus: c.stripeStatus,
-            billingEnforced: c.billingEnforced,
-            currentPeriodEnd: c.currentPeriodEnd,
-            cancelAtPeriodEnd: c.cancelAtPeriodEnd,
-            updatedAt: new Date().toISOString(),
-          });
-          setView(ba ? "admin" : "billing");
+          const ba = hasClinicAccess(c);
+          if (!ba && !hasPlanIntent()) {
+            addToast("Assinatura pendente. Sua conta ficou logada para voce escolher um plano.", "info");
+            window.location.href = appPath("/landing");
+            return true;
+          }
+
+          setView(hasPlanIntent() ? "subscription" : ba ? "admin" : "billing");
           return true;
         }
 
@@ -456,6 +501,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("morpheus_workspace", c.id);
 
           await loadOperationalData(c.id);
+          if (!hasClinicAccess(c)) {
+            addToast("A clinica ainda nao tem assinatura ativa.", "info");
+            window.location.href = appPath("/landing");
+            return true;
+          }
+
           setView("psych");
           return true;
         }
@@ -466,7 +517,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [billingActive, loadOperationalData, loadPendingInvitations]
+    [addToast, loadOperationalData]
   );
 
   const signup = useCallback(
@@ -550,6 +601,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("morpheus_workspace", c.id);
 
         addToast("Conta criada com sucesso!", "success");
+        if (hasPlanIntent()) {
+          setView("subscription");
+        } else {
+          window.location.href = appPath("/landing");
+        }
         return true;
       } catch (err) {
         console.error("Signup failed:", err);
@@ -1074,6 +1130,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addToast("Portal de cobranca indisponivel.", "info");
       return;
     }
+    if (!serverApiAvailable) {
+      addToast("O portal Stripe precisa de backend ativo. No GitHub Pages, use os Payment Links para assinar.", "info");
+      return;
+    }
     if (!authUser?.clinicId) {
       addToast("Selecione uma clinica antes de abrir a cobranca.", "error");
       return;
@@ -1092,6 +1152,102 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addToast("Nao foi possivel abrir o portal de cobranca.", "error");
     }
   }, [addToast, authUser]);
+
+  const cancelSubscription = useCallback(async () => {
+    if (!serverApiAvailable) {
+      addToast("Cancelamento direto precisa do backend Docker/Next ativo.", "info");
+      return false;
+    }
+    if (!authUser?.clinicId) {
+      addToast("Selecione uma clinica antes de cancelar.", "error");
+      return false;
+    }
+
+    try {
+      const response = await fetch(apiUrl("/api/stripe/cancel"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicId: authUser.clinicId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Cancelamento indisponivel.");
+
+      await refreshBilling();
+      addToast("Assinatura cancelada no Stripe.", "success");
+      return true;
+    } catch (err) {
+      console.error("Subscription cancel failed:", err);
+      addToast("Nao foi possivel cancelar a assinatura.", "error");
+      return false;
+    }
+  }, [addToast, authUser, refreshBilling]);
+
+  const updateAccount = useCallback(
+    async (data: { displayName?: string; email?: string; password?: string }) => {
+      if (!authUser || !isSupabaseConfigured) return false;
+
+      const displayName = data.displayName?.trim();
+      const nextEmail = data.email?.trim().toLowerCase();
+      const nextPassword = data.password?.trim();
+
+      try {
+        const updates: Record<string, string> = {};
+        if (displayName) updates.display_name = displayName;
+        if (nextEmail) updates.email = nextEmail;
+        if (nextPassword) updates.password_hash = await sha256(nextPassword);
+
+        if (user?.id && Object.keys(updates).length > 0) {
+          const { error } = await supabase.from("users").update(updates).eq("id", user.id);
+          if (error) throw error;
+
+          if (authUser.clinicId) {
+            await supabase
+              .from("clinic_doctors")
+              .update({
+                ...(displayName ? { display_name: displayName } : {}),
+                ...(nextEmail ? { email: nextEmail } : {}),
+                ...(nextPassword ? { password_hash: updates.password_hash } : {}),
+              })
+              .eq("user_id", user.id)
+              .eq("clinic_id", authUser.clinicId);
+          }
+        } else if (authUser.role === "admin" && authUser.clinicId) {
+          const { error } = await supabase
+            .from("clinics")
+            .update({
+              ...(nextEmail ? { admin_email: nextEmail } : {}),
+              ...(nextPassword ? { admin_password_hash: await sha256(nextPassword) } : {}),
+            })
+            .eq("id", authUser.clinicId);
+          if (error) throw error;
+        }
+
+        const nextAuthUser: AuthUser = {
+          ...authUser,
+          email: nextEmail || authUser.email,
+          displayName: displayName || authUser.displayName,
+        };
+        setAuthUser(nextAuthUser);
+        localStorage.setItem("morpheus_auth", JSON.stringify(nextAuthUser));
+
+        if (user) {
+          setUser({
+            ...user,
+            email: nextEmail || user.email,
+            displayName: displayName || user.displayName,
+          });
+        }
+
+        addToast("Dados da conta atualizados.", "success");
+        return true;
+      } catch (err) {
+        console.error("Account update failed:", err);
+        addToast("Nao foi possivel atualizar os dados.", "error");
+        return false;
+      }
+    },
+    [addToast, authUser, user]
+  );
 
   if (!mounted) {
     return <>{children}</>;
@@ -1114,6 +1270,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         billingRequired,
         billingActive,
         checkoutEnabled,
+        serverApiAvailable,
         user,
         workspaces,
         pendingInvitations,
@@ -1136,6 +1293,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         startCheckout,
         startTrial,
         openBillingPortal,
+        cancelSubscription,
+        updateAccount,
         selectWorkspace,
         inviteDoctor,
         createClinic,
@@ -1166,6 +1325,7 @@ export function useApp() {
       billingRequired,
       billingActive: !billingRequired,
       checkoutEnabled,
+      serverApiAvailable,
       user: null as User | null,
       workspaces: [] as UserWorkspace[],
       pendingInvitations: [] as ClinicInvitation[],
@@ -1188,6 +1348,8 @@ export function useApp() {
       startCheckout: (async () => {}) as (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>,
       startTrial: (async () => {}) as () => Promise<void>,
       openBillingPortal: async () => {},
+      cancelSubscription: (async () => false) as () => Promise<boolean>,
+      updateAccount: (async () => false) as (data: { displayName?: string; email?: string; password?: string }) => Promise<boolean>,
       selectWorkspace: (async () => {}) as (clinicId: string) => Promise<void>,
       inviteDoctor: (async () => ({ success: false })) as (email: string, name: string) => Promise<{ success: boolean; credentials?: DoctorCredentials; inviteLink?: string }>,
       createClinic: (async () => false) as (name: string) => Promise<boolean>,

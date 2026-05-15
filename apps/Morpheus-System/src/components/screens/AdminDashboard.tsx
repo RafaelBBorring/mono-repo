@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { HOURS, MONTHS, WEEKDAYS } from "@/lib/data";
 import { themeHex, themeRgb } from "@/lib/utils";
@@ -21,19 +22,22 @@ import {
   CalendarDays,
   CalendarRange,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CreditCard,
   DoorOpen,
+  KeyRound,
   LayoutGrid,
   LogOut,
+  Mail,
   Menu,
   Plus,
   RefreshCw,
   Settings,
-  Shield,
   Sparkles,
   Trash2,
+  UserCog,
   UserRoundPlus,
   UsersRound,
   X,
@@ -121,6 +125,10 @@ export default function AdminDashboard() {
     startCheckout,
     startTrial,
     openBillingPortal,
+    authUser,
+    user,
+    logout,
+    updateAccount,
   } = useApp();
   const [section, setSection] = useState<AdminSection>("overview");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -132,6 +140,12 @@ export default function AdminDashboard() {
   const [psychName, setPsychName] = useState("");
   const [psychEmail, setPsychEmail] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [savingAccount, setSavingAccount] = useState(false);
   const [confirmDeleteRoom, setConfirmDeleteRoom] = useState<number | null>(null);
   const [confirmDeletePsych, setConfirmDeletePsych] = useState<number | null>(null);
 
@@ -186,6 +200,31 @@ export default function AdminDashboard() {
     }
   }
 
+  function openAccountSettings() {
+    setAccountName(user?.displayName || authUser?.displayName || "");
+    setAccountEmail(user?.email || authUser?.email || "");
+    setAccountPassword("");
+    setAccountModalOpen(true);
+    setAccountOpen(false);
+  }
+
+  async function submitAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSavingAccount(true);
+    const ok = await updateAccount({
+      displayName: accountName,
+      email: accountEmail,
+      password: accountPassword || undefined,
+    });
+    setSavingAccount(false);
+    if (ok) setAccountModalOpen(false);
+  }
+
+  function handleLogout() {
+    logout();
+    setView("login");
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
@@ -226,19 +265,47 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              <span className="hidden items-center gap-2 rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-extrabold text-[var(--accent-lavender)] sm:inline-flex sm:px-4 sm:py-3">
-                <Shield size={18} />
-                Admin
-              </span>
-              <Button variant="ghost" size="sm" onClick={() => setView("workspace")}>
-                <Building2 size={18} />
-                <span className="hidden sm:inline">Clínicas</span>
-              </Button>
               <ThemeToggle />
-              <Button variant="ghost" size="sm" onClick={() => setView("splash")}>
-                <LogOut size={18} />
-                <span className="hidden sm:inline">Sair</span>
-              </Button>
+              <div className="relative">
+                <button
+                  onClick={() => setAccountOpen((open) => !open)}
+                  className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] sm:min-h-[48px] sm:rounded-2xl sm:px-4 sm:py-3"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--action-primary)] text-[var(--action-foreground)]">
+                    {(user?.displayName || authUser?.displayName || "M").slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="hidden max-w-[140px] truncate sm:inline">
+                    {user?.displayName || authUser?.displayName || "Conta"}
+                  </span>
+                  <ChevronDown size={16} className={`transition ${accountOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                <AnimatePresence>
+                  {accountOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 8, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ duration: 0.18 }}
+                      className="absolute right-0 top-full z-50 w-[260px] overflow-hidden rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-2 shadow-2xl"
+                    >
+                      <AccountMenuButton icon={<Building2 size={17} />} onClick={() => { setAccountOpen(false); setView("workspace"); }}>
+                        Minhas clinicas
+                      </AccountMenuButton>
+                      <AccountMenuButton icon={<CreditCard size={17} />} onClick={() => { setAccountOpen(false); setView("subscription"); }}>
+                        Gerenciar assinatura
+                      </AccountMenuButton>
+                      <AccountMenuButton icon={<UserCog size={17} />} onClick={openAccountSettings}>
+                        Alterar dados da conta
+                      </AccountMenuButton>
+                      <div className="my-2 h-px bg-[var(--border-light)]" />
+                      <AccountMenuButton danger icon={<LogOut size={17} />} onClick={handleLogout}>
+                        Sair
+                      </AccountMenuButton>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] text-[var(--text-soft)] sm:hidden"
@@ -397,6 +464,91 @@ export default function AdminDashboard() {
         onClose={() => setDetailRes(null)}
         reservation={detailRes}
       />
+
+      <AnimatePresence>
+        {accountModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.form
+              onSubmit={submitAccount}
+              className="w-full max-w-lg rounded-3xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-6 shadow-2xl"
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            >
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-body text-xs font-extrabold uppercase tracking-[0.22em] text-[var(--accent-mint)]">
+                    Conta
+                  </p>
+                  <h2 className="mt-2 font-brand text-3xl font-semibold">Dados de acesso</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAccountModalOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-light)] text-[var(--text-muted)] transition hover:border-red-400 hover:text-red-400"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid gap-4">
+                <label className="grid gap-2 font-body text-sm font-bold text-[var(--text-soft)]">
+                  Nome de usuario
+                  <div className="relative">
+                    <UserCog size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <input
+                      value={accountName}
+                      onChange={(event) => setAccountName(event.target.value)}
+                      className="min-h-[52px] w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] py-3 pl-10 pr-4 font-body text-base font-semibold text-[var(--text-primary)] focus:border-[var(--accent-lavender)] focus:outline-none"
+                    />
+                  </div>
+                </label>
+
+                <label className="grid gap-2 font-body text-sm font-bold text-[var(--text-soft)]">
+                  E-mail
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <input
+                      type="email"
+                      value={accountEmail}
+                      onChange={(event) => setAccountEmail(event.target.value)}
+                      className="min-h-[52px] w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] py-3 pl-10 pr-4 font-body text-base font-semibold text-[var(--text-primary)] focus:border-[var(--accent-lavender)] focus:outline-none"
+                    />
+                  </div>
+                </label>
+
+                <label className="grid gap-2 font-body text-sm font-bold text-[var(--text-soft)]">
+                  Nova senha
+                  <div className="relative">
+                    <KeyRound size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                    <input
+                      type="password"
+                      value={accountPassword}
+                      onChange={(event) => setAccountPassword(event.target.value)}
+                      placeholder="Deixe em branco para manter"
+                      className="min-h-[52px] w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] py-3 pl-10 pr-4 font-body text-base font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-lavender)] focus:outline-none"
+                    />
+                  </div>
+                </label>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Button type="submit" variant="gradient" size="lg" disabled={savingAccount}>
+                  {savingAccount ? "Salvando..." : "Salvar alteracoes"}
+                </Button>
+                <Button type="button" variant="ghost" size="lg" onClick={() => setAccountModalOpen(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -428,6 +580,32 @@ function AdminNavButton({
         color: active ? "var(--text-primary)" : "var(--text-muted)",
         background: active ? "var(--bg-elevated)" : "var(--glass-soft)",
       }}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function AccountMenuButton({
+  icon,
+  onClick,
+  danger = false,
+  children,
+}: {
+  icon: ReactNode;
+  onClick: () => void;
+  danger?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-body text-sm font-extrabold transition ${
+        danger
+          ? "text-red-500 hover:bg-red-500/10"
+          : "text-[var(--text-soft)] hover:bg-[var(--glass-soft)] hover:text-[var(--text-primary)]"
+      }`}
     >
       {icon}
       {children}

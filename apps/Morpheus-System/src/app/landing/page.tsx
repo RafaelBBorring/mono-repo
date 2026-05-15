@@ -145,6 +145,7 @@ export default function LandingPage() {
     try {
       localStorage.removeItem("morpheus_auth");
       localStorage.removeItem("morpheus_workspace");
+      localStorage.removeItem("morpheus_user_id");
     } catch {}
     setLoggedIn(false);
     setLoggedRole(null);
@@ -173,14 +174,14 @@ export default function LandingPage() {
                   href="/app?action=workspace"
                   className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
                 >
-                  Minhas clinicas
+                  Dashboard
                 </Link>
                 {loggedRole === "admin" && (
                   <Link
                     href="/app?action=subscription"
-                    className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-mint)] hover:bg-[var(--bg-elevated)] lg:inline-flex lg:rounded-2xl lg:px-4 lg:py-3"
+                    className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-mint)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
                   >
-                    Assinatura
+                    Conta
                   </Link>
                 )}
                 <button
@@ -191,21 +192,22 @@ export default function LandingPage() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/app"
-                className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
-              >
-                Entrar
-              </Link>
+              <>
+                <Link
+                  href="/app?action=login"
+                  className="hidden rounded-xl border border-[var(--border-light)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:inline-flex sm:rounded-2xl sm:px-4 sm:py-3"
+                >
+                  Entrar
+                </Link>
+                <a
+                  href="#planos"
+                  className="magnetic-button inline-flex items-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-3 py-2 font-body text-sm font-bold text-[var(--action-foreground)] shadow-xl shadow-black/20 sm:gap-2 sm:rounded-2xl sm:px-5 sm:py-3"
+                >
+                  Ver planos
+                  <ArrowRight size={16} />
+                </a>
+              </>
             )}
-
-            <a
-              href="#planos"
-              className="magnetic-button inline-flex items-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-3 py-2 font-body text-sm font-bold text-[var(--action-foreground)] shadow-xl shadow-black/20 sm:gap-2 sm:rounded-2xl sm:px-5 sm:py-3"
-            >
-              Ver planos
-              <ArrowRight size={16} />
-            </a>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-soft)] md:hidden"
@@ -227,14 +229,14 @@ export default function LandingPage() {
                     href="/app?action=workspace"
                     className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
                   >
-                    Minhas clinicas
+                    Dashboard
                   </Link>
                   {loggedRole === "admin" && (
                     <Link
                       href="/app?action=subscription"
                       className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-mint)]"
                     >
-                      Assinatura
+                      Conta
                     </Link>
                   )}
                   <button
@@ -245,12 +247,22 @@ export default function LandingPage() {
                   </button>
                 </>
               ) : (
-                <Link
-                  href="/app"
-                  className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
-                >
-                  Entrar no sistema
-                </Link>
+                <>
+                  <Link
+                    href="/app?action=login"
+                    className="inline-flex items-center justify-center rounded-xl border border-[var(--border-light)] px-4 py-3 font-body text-base font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)]"
+                  >
+                    Entrar
+                  </Link>
+                  <a
+                    href="#planos"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="magnetic-button inline-flex items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-4 py-3 font-body text-base font-bold text-[var(--action-foreground)]"
+                  >
+                    Ver planos
+                    <ArrowRight size={16} />
+                  </a>
+                </>
               )}
             </div>
           </div>
@@ -284,11 +296,11 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:gap-4">
               <Link
-                href="/app?action=signup&plan=essential"
+                href={loggedIn ? "/app?action=subscription&plan=essential" : "/app?action=login&intent=plan&plan=essential"}
                 className="magnetic-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-2xl shadow-black/25 sm:min-h-[58px] sm:gap-3 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
               >
-                Testar grátis por 7 dias
-                <Sparkles size={20} />
+                {loggedIn ? "Conta e plano" : "Escolher plano"}
+                <ArrowRight size={20} />
               </Link>
               <a
                 href="#planos"
@@ -305,7 +317,7 @@ export default function LandingPage() {
                   href="/app?action=workspace"
                   className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[var(--accent-mint)] bg-[var(--glass-strong)] px-5 py-3 font-body text-sm font-extrabold text-[var(--accent-mint)] backdrop-blur transition hover:bg-[var(--accent-mint)] hover:text-[#062019] sm:rounded-2xl"
                 >
-                  Minhas clinicas
+                  Dashboard
                   <ArrowRight size={18} />
                 </Link>
                 {loggedRole === "admin" && (
@@ -313,7 +325,7 @@ export default function LandingPage() {
                     href="/app?action=subscription"
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-5 py-3 font-body text-sm font-extrabold text-[var(--text-primary)] backdrop-blur transition hover:border-[var(--accent-lavender)] sm:rounded-2xl"
                   >
-                    Minha assinatura
+                    Conta
                     <CreditCard size={18} />
                   </Link>
                 )}
@@ -588,7 +600,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <Link
-                    href={`/app?action=signup&plan=${plan.id}`}
+                    href={loggedIn ? `/app?action=subscription&plan=${plan.id}` : `/app?action=login&intent=plan&plan=${plan.id}`}
                     className="magnetic-button mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-xl sm:mt-8 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
                   >
                     {plan.cta}
@@ -600,7 +612,7 @@ export default function LandingPage() {
 
             <div className="mt-8 text-center">
               <Link
-                href="/app?action=signup&plan=essential"
+                href={loggedIn ? "/app?action=subscription&plan=essential" : "/app?action=login&intent=plan&plan=essential"}
                 className="magnetic-button inline-flex items-center gap-3 rounded-2xl border-2 border-[var(--accent-mint)] px-8 py-4 font-body text-lg font-extrabold text-[var(--accent-mint)] transition hover:bg-[var(--accent-mint)] hover:text-[#062019] sm:px-10 sm:py-5 sm:text-xl"
               >
                 <Sparkles size={22} />

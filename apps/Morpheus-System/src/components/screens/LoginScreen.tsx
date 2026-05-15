@@ -7,6 +7,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Button from "@/components/ui/Button";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Wand2 } from "lucide-react";
 
+const appBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export default function LoginScreen() {
   const { login, addToast, setView } = useApp();
   const [email, setEmail] = useState("");
@@ -19,7 +21,7 @@ export default function LoginScreen() {
       window.history.back();
       return;
     }
-    window.location.href = "/landing";
+    window.location.href = `${appBasePath}/landing`;
   }
 
   async function handleSubmit(e: React.FormEvent) {
