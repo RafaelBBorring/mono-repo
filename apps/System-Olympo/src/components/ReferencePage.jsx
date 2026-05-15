@@ -79,7 +79,7 @@ const SECTION_VERSIONS = {
   'Atributos': 'v2.0',
   'Classes': 'v2.0',
   'Progressão': 'v2.0',
-  'Perícias': 'v2.0',
+  'Perícias': 'v2.1 — Mai 2026',
   'Triagens': 'v2.1 — Mai 2026',
   'Módulos Passivos': 'v2.0',
   'Módulos Especiais': 'v2.0',
@@ -133,7 +133,7 @@ export default function ReferencePage() {
       'Atributos': ['atributo', 'for', 'des', 'con', 'int', 'apa', 'am', 'forca', 'destreza', 'constituicao', 'inteligencia', 'aparencia', 'abilidade mental', 'modificador'],
       'Classes': ['classe', 'guerreiro', 'operativo', 'mistico', 'class'],
       'Progressão': ['progressao', 'nivel', 'level', 'peh', 'evolucao'],
-      'Perícias': ['pericia', 'skill', 'treinamento', 'grau', 'bloqueio', 'reflexo', 'percepcao', 'medicina', 'tecnologia', 'furtividade'],
+      'Perícias': ['pericia', 'skill', 'treinamento', 'grau', 'bloqueio', 'reflexo', 'percepcao', 'medicina', 'tecnologia', 'furtividade', 'lutar', 'pontaria', 'alquimia', 'conhecimento', 'dirigir', 'fortitude', 'intimidar', 'investigacao', 'pilotar', 'persuasao', 'poder', 'contra-ataque', 'atletismo', 'crime', 'vontade', 'estabilizar', 'kit medico', 'cura', 'diagnostico', 'veneno', 'escalar', 'arrombar', 'esconder', 'esquivar', 'coagir', 'convencer', 'diagnosticar'],
       'Triagens': ['triagem', 'tank', 'assassino', 'combate', 'atirador', 'tecnico', 'graduado', 'intuitivo', 'suporte'],
       'Módulos Passivos': ['modulo', 'passivo', 'module'],
       'Módulos Especiais': ['modulo', 'especial', 'module'],
@@ -1036,20 +1036,266 @@ function ProgressionSection() {
   )
 }
 
+function getSkillTheme(color) {
+  const t = {
+    red:     { border: 'border-red-400/20',     bg: 'bg-red-400/5',     accent: 'text-red-400',     hBg: 'bg-red-400/10' },
+    orange:  { border: 'border-orange-400/20',  bg: 'bg-orange-400/5',  accent: 'text-orange-400',  hBg: 'bg-orange-400/10' },
+    amber:   { border: 'border-amber-400/20',   bg: 'bg-amber-400/5',   accent: 'text-amber-400',   hBg: 'bg-amber-400/10' },
+    sky:     { border: 'border-sky-400/20',     bg: 'bg-sky-400/5',     accent: 'text-sky-400',     hBg: 'bg-sky-400/10' },
+    cyan:    { border: 'border-cyan-400/20',    bg: 'bg-cyan-400/5',    accent: 'text-cyan-400',    hBg: 'bg-cyan-400/10' },
+    emerald: { border: 'border-emerald-400/20', bg: 'bg-emerald-400/5', accent: 'text-emerald-400', hBg: 'bg-emerald-400/10' },
+    purple:  { border: 'border-purple-400/20',  bg: 'bg-purple-400/5',  accent: 'text-purple-400',  hBg: 'bg-purple-400/10' },
+    rose:    { border: 'border-rose-400/20',    bg: 'bg-rose-400/5',    accent: 'text-rose-400',    hBg: 'bg-rose-400/10' },
+    violet:  { border: 'border-violet-400/20',  bg: 'bg-violet-400/5',  accent: 'text-violet-400',  hBg: 'bg-violet-400/10' },
+    blue:    { border: 'border-blue-400/20',    bg: 'bg-blue-400/5',    accent: 'text-blue-400',    hBg: 'bg-blue-400/10' },
+    gold:    { border: 'border-gold/20',        bg: 'bg-gold/5',        accent: 'text-gold',        hBg: 'bg-gold/10' },
+  }
+  return t[color] || t.gold
+}
+
+const PERICIA_GUIDE = [
+  {
+    name: 'Lutar', attrs: 'FOR / DES', icon: '👊', color: 'red',
+    desc: 'Combate corpo a corpo — ataques, agarrões, empurrões e desarmes.',
+    usos: [
+      { titulo: 'Ataque Corpo a Corpo', mecanica: 'Teste de Lutar vs CA do alvo. Sucesso causa dano da arma + Mod.FOR (ou Mod.DES para armas leves/ágeis).', dt: 'CA do alvo' },
+      { titulo: 'Desarmar', mecanica: 'Ação padrão. Teste oposto de Lutar/FOR contra Lutar/FOR do alvo. Sucesso: o alvo solta a arma no chão.', dt: 'Teste oposto' },
+      { titulo: 'Agarrar', mecanica: 'Teste oposto FOR/Atletismo vs FOR/Atletismo do alvo. Sucesso: alvo fica Agarrado (velocidade 0, Desvantagem em ataques não-ágeis). Escapar exige ação + teste oposto.', dt: 'Teste oposto' },
+      { titulo: 'Empurrar / Derrubar', mecanica: 'Teste oposto FOR/Atletismo. Sucesso empurra 2m ou derruba o alvo no chão (Prone: Desvantagem em ataques, Vantagem para ataques corpo a corpo contra ele).', dt: 'Teste oposto' },
+    ],
+  },
+  {
+    name: 'Pontaria', attrs: 'DES', icon: '🎯', color: 'orange',
+    desc: 'Ataques à distância — tiros, arremessos e mira precisa.',
+    usos: [
+      { titulo: 'Ataque à Distância', mecanica: 'Teste de Pontaria vs CA do alvo. Sucesso causa dano da arma + Mod.DES. Alcance efetivo depende da arma; além do alcance, Desvantagem.', dt: 'CA do alvo' },
+      { titulo: 'Tiro Preciso (Mira)', mecanica: 'Gaste 1 ação preparando a mira. Próximo ataque de Pontaria ganha +2. Acumula com Vantagem.', dt: 'CA do alvo (−2 efetivo)' },
+      { titulo: 'Cobrir Aliado', mecanica: 'Ação padrão. Sucesso: o próximo ataque contra o aliado coberto sofre Desvantagem. Dura até seu próximo turno.', dt: 'CD 12' },
+      { titulo: 'Tiros em Movimento', mecanica: 'Veterano+ (grau 2). Pode atirar durante o deslocamento sem penalidade. Ainda consome a ação padrão.', dt: '—' },
+    ],
+  },
+  {
+    name: 'Bloqueio', attrs: 'FOR / CON', icon: '🛡️', color: 'amber',
+    desc: 'Defesa ativa — absorver e mitigar golpes recebidos.',
+    usos: [
+      { titulo: 'Bloquear Ataque', mecanica: 'Reação ao ser atacado. Reduz dano recebido em Mod.FOR + bônus de grau. Consome 1 Reação. Requer arma ou escudo equipado.', dt: 'Reação (usa slot)' },
+      { titulo: 'Bloqueio Total', mecanica: 'Ação completa. Dobra a redução de dano por 1 turno inteiro. Não pode atacar nem usar outras ações enquanto mantém.', dt: 'Ação completa' },
+      { titulo: 'Bloqueio Protetor', mecanica: 'Especialista+ (grau 3). Pode bloquear por um aliado adjacente como reação, absorvendo o dano no lugar dele.', dt: 'Reação' },
+    ],
+  },
+  {
+    name: 'Alquimia', attrs: 'INT', icon: '⚗️', color: 'cyan',
+    desc: 'Criação e análise de substâncias alquímicas — poções, venenos e compostos.',
+    usos: [
+      { titulo: 'Criar Poções / Itens', mecanica: 'Segue as regras de treinamento de Alquimia (ver seção Alquimia). Custo de espaço, materiais e tempo por círculo.', dt: 'Ver seção Alquimia' },
+      { titulo: 'Identificar Substância', mecanica: 'Identifica poções, venenos e compostos por contato visual ou odor. Sem teste para itens comuns já conhecidos.', dt: 'CD 12 (comum), 15 (incomum), 18 (raro+)' },
+      { titulo: 'Analisar Composto Desconhecido', mecanica: 'Determina efeitos e composição de material não-identificado. Requer 10 min e equipamento de alquimia.', dt: 'CD 15–20' },
+    ],
+    equipamento: 'Laboratório ou kit de alquimia para criação. Identificação sem equipamento: Desvantagem.',
+  },
+  {
+    name: 'Conhecimento', attrs: 'INT', icon: '📚', color: 'sky',
+    desc: 'Saber geral — identificar criaturas, recordar fatos e analisar itens e magia.',
+    usos: [
+      { titulo: 'Identificar Criatura', mecanica: 'Recall de informações sobre tipo, vulnerabilidades, resistências e comportamento de uma criatura.', dt: 'CD 10 (comum), 15 (incomum), 20 (raro+)' },
+      { titulo: 'Recordar Informação', mecanica: 'Lembre fatos históricos, geográficos, culturais ou técnicos relevantes à cena.', dt: 'CD por obscuridade (10–25)' },
+      { titulo: 'Analisar Item / Equipamento', mecanica: 'Identifica função, raridade aproximada e propriedades de itens encontrados. Não identifica maldições.', dt: 'CD 12–20' },
+      { titulo: 'Identificar Magia (básico)', mecanica: 'Reconhece escola e potência de um efeito mágico visível. Não identifica detalhes internos.', dt: 'CD 15 + círculo do efeito' },
+    ],
+  },
+  {
+    name: 'Dirigir', attrs: 'DES / INT', icon: '🚗', color: 'blue',
+    desc: 'Operação de veículos terrestres — carros, motos, transportes pesados.',
+    usos: [
+      { titulo: 'Manobra de Rotina', mecanica: 'Condução normal em estrada ou trânsito leve não exige teste.', dt: '—' },
+      { titulo: 'Manobra Difícil', mecanica: 'Curvas fechadas em alta velocidade, derrapagem controlada, estacionamento em espaço apertado.', dt: 'CD 15' },
+      { titulo: 'Perseguição Veicular', mecanica: 'Teste oposto de Dirigir entre perseguidor e fugitivo. Vantagem para quem tiver veículo mais rápido.', dt: 'Teste oposto' },
+      { titulo: 'Condições Adversas', mecanica: 'Chuva forte, neve, terreno acidentado, visibilidade baixa. Soma +5 sobre a CD base da manobra.', dt: 'CD base + 5' },
+    ],
+  },
+  {
+    name: 'Fortitude', attrs: 'CON', icon: '💪', color: 'amber',
+    desc: 'Resistência física — venenos, doenças, exaustão e condições extremas.',
+    usos: [
+      { titulo: 'Resistir Veneno', mecanica: 'Sucesso nega o efeito do veneno ou reduz dano/condição pela metade (conforme o veneno).', dt: 'CD do veneno (12–22)' },
+      { titulo: 'Resistir Doença', mecanica: 'Sucesso previne contração ou acelera recuperação em 1 dia por ponto excedente.', dt: 'CD da doença (12–20)' },
+      { titulo: 'Resistir Exaustão', mecanica: 'Evita ganhar nível de exaustão por esforço prolongado (marcha forçada, falta de descanso). Cada nível de exaustão aplica −2 em todos os testes.', dt: 'CD 10 + nível de exaustão atual' },
+      { titulo: 'Sobreviver Condições Extremas', mecanica: 'Frio intenso, calor extremo, pressão, falta de ar. Falha acumula níveis de exaustão.', dt: 'CD 15 (moderado), 20 (extremo)' },
+    ],
+  },
+  {
+    name: 'Furtividade', attrs: 'DES', icon: '🥷', color: 'purple',
+    desc: 'Mover-se sem ser percebido — esconder, esgueirar e emboscar.',
+    usos: [
+      { titulo: 'Esconder-se', mecanica: 'Teste oposto vs Percepção (ativa) ou Percepção passiva dos inimigos. Requer cobertura ou obscuridade. Falha revela sua posição.', dt: 'Teste oposto vs Percepção' },
+      { titulo: 'Mover-se em Silêncio', mecanica: 'Cada turno em Furtividade exige novo teste se houver observadores atentos. Deslocamento normal não impõe penalidade; correr impõe Desvantagem.', dt: 'Teste oposto vs Percepção' },
+      { titulo: 'Emboscar', mecanica: 'Se escondido ao realizar o primeiro ataque, o ataque surpresa tem Vantagem no teste de ofensiva.', dt: '—' },
+      { titulo: 'Esconder-se em Combate', mecanica: 'Veterano+ (grau 2). Pode tentar se esconder em combate como ação bônus, se tiver cobertura ou obscuridade.', dt: 'Teste oposto vs Percepção' },
+    ],
+  },
+  {
+    name: 'Intimidar', attrs: 'FOR / APA', icon: '😠', color: 'rose',
+    desc: 'Coerção e medo — forçar obediência, submissão ou rendição.',
+    usos: [
+      { titulo: 'Coagir NPC', mecanica: 'Força cooperação por medo. Alvo faz o que você quer, mas ganha atitude Hostil. Dura até a cena acabar ou até ser convencido.', dt: 'Teste oposto vs Vontade do alvo' },
+      { titulo: 'Demoralizar em Combate', mecanica: 'Ação padrão. Sucesso: alvo sofre Desvantagem no próximo teste ou ataque. Funciona apenas se o alvo puder ver/ouvir você.', dt: 'CD 15' },
+      { titulo: 'Forçar Rendição', mecanica: 'Inimigo em desvantagem clara (ferido, cercado, isolado). Falha: o inimigo pode se tornar mais agressivo (Vantagem no próximo ataque).', dt: 'Vontade do alvo + 5' },
+    ],
+  },
+  {
+    name: 'Investigação', attrs: 'INT', icon: '🔍', color: 'sky',
+    desc: 'Análise dedutiva — buscar pistas, examinar cenas e descobrir o oculto.',
+    usos: [
+      { titulo: 'Buscar Área', mecanica: 'Procura ativa por itens, passagens secretas ou pistas em até 10m. Cada busca consome 1 minuto.', dt: 'CD 10 (óbvio), 15 (moderado), 20 (bem oculto)' },
+      { titulo: 'Analisar Pistas', mecanica: 'Deduzir o que aconteceu em uma cena a partir de evidências físicas: sangue, pegadas, marcas de luta, objetos.', dt: 'CD 12–18' },
+      { titulo: 'Detectar Forgery / Disfarce', mecanica: 'Identificar documentos falsificados, disfarces ou mensagens codificadas.', dt: 'CD do criador (teste oposto)' },
+    ],
+  },
+  {
+    name: 'Pilotar', attrs: 'DES / INT', icon: '✈️', color: 'blue',
+    desc: 'Operação de veículos especiais — aeronaves, embarcações, mechs.',
+    usos: [
+      { titulo: 'Pilotar em Condição Normal', mecanica: 'Voo ou navegação de rotina não exige teste.', dt: '—' },
+      { titulo: 'Manobra Arriscada', mecanica: 'Evasão de projéteis, voo em espaços apertados, aterrissagem difícil ou navegação em tempestade.', dt: 'CD 15–20' },
+      { titulo: 'Perseguição Aérea / Aquática', mecanica: 'Teste oposto de Pilotar. Vantagem para o veículo mais rápido ou ágil.', dt: 'Teste oposto' },
+      { titulo: 'Pouso de Emergência', mecanica: 'Veículo danificado ou em queda livre. Sucesso: pouso com danos mínimos. Falha: naufrágio ou colisão.', dt: 'CD 18' },
+    ],
+  },
+  {
+    name: 'Percepção', attrs: 'DES / INT', icon: '👁️', color: 'sky',
+    desc: 'Sentidos aguçados — detectar ameaças, notar detalhes e perceber o invisível.',
+    usos: [
+      { titulo: 'Percepção Passiva', mecanica: 'Valor fixo: 10 + bônus de Percepção. Usado automaticamente para detectar emboscadas e Furtividade sem ação ativa.', dt: 'Passiva = 10 + bônus' },
+      { titulo: 'Percepção Ativa', mecanica: 'Busca ativa e concentrada por algo específico. Usa d20 + bônus de Percepção. Consome ação.', dt: 'CD do que está oculto' },
+      { titulo: 'Detectar Ilusão / Engano', mecanica: 'Perceber que algo não é real ou está disfarçado. Não revela a verdade, apenas que há engano.', dt: 'CD do criador da ilusão' },
+      { titulo: 'Opor-se a Furtividade', mecanica: 'Teste oposto vs Furtividade do inimigo. Sucesso revela a posição e impede ataque surpresa.', dt: 'Teste oposto vs Furtividade' },
+    ],
+  },
+  {
+    name: 'Persuasão', attrs: 'APA / INT', icon: '🗣️', color: 'rose',
+    desc: 'Influência social — convencer, negociar, cativar e recrutar.',
+    usos: [
+      { titulo: 'Convencer NPC', mecanica: 'Mudar atitude ou obter favor. NPCs amigáveis são mais fáceis; hostis são quase impossíveis sem contexto favorável.', dt: 'Teste oposto vs Vontade ou CD fixa' },
+      { titulo: 'Negociar', mecanica: 'Obter melhores preços, termos ou condições em comércio, alianças ou contratos.', dt: 'CD 12 (amigável), 18 (hostil)' },
+      { titulo: 'Recrutar Aliados', mecanica: 'Conseguir ajuda temporária ou permanente de NPCs. Quanto mais leal o alvo a outra causa, maior a CD.', dt: 'CD 15 + Nível/Lealdade do alvo' },
+      { titulo: 'Acalmar Situação', mecanica: 'Reduzir tensão em conflito social iminente. Evita que negociação vire combate.', dt: 'CD 15' },
+    ],
+  },
+  {
+    name: 'Poder', attrs: 'AM', icon: '✨', color: 'violet',
+    desc: 'Canalização de energia sobrenatural — base do poder místico e habilidades especiais.',
+    usos: [
+      { titulo: 'Canalizar Habilidade', mecanica: 'Base para ativação de habilidades místicas. Valor de Poder + Mod.AM define a potência do efeito.', dt: 'CD da habilidade' },
+      { titulo: 'Resistir Drenagem', mecanica: 'Quando uma força tenta drenar sua Energia, PE ou atributos.', dt: 'CD do efeito de drenagem' },
+      { titulo: 'Detectar Magia', mecanica: 'Sentir a presença de energia mágica em até 10m. Não identifica detalhes — apenas presença e potência aproximada.', dt: 'CD 15 (básico), 20 (oculto)' },
+      { titulo: 'Descarregar Energia', mecanica: 'Veterano+ (grau 2). Pode gastar PE extra para aumentar dano (+1d6 por 2 PE) ou alcance (+5m por 1 PE) de uma habilidade mística.', dt: '—' },
+    ],
+  },
+  {
+    name: 'Reflexo', attrs: 'DES', icon: '⚡', color: 'amber',
+    desc: 'Reações rápidas — esquivar, desviar e reagir a perigos súbitos.',
+    usos: [
+      { titulo: 'Esquivar de Área', mecanica: 'Quando atingido por efeito em área (explosão, magia em área). Sucesso reduz dano pela metade.', dt: 'CD do efeito' },
+      { titulo: 'Desviar Projétil Lento', mecanica: 'Defletir objeto arremessado ou projétil lento (facas, flechas). Não funciona contra balas.', dt: 'CD 20' },
+      { titulo: 'Apanhar Objeto', mecanica: 'Agarrar item em queda ou arremessado em sua direção como reação.', dt: 'CD 15' },
+      { titulo: 'Reagir a Emboscada', mecanica: 'Especialista+ (grau 3). Quando surpreendido, pode rolar Reflexo CD 18 para agir no turno da emboscada (apenas ação limitada).', dt: 'CD 18' },
+    ],
+  },
+  {
+    name: 'Contra-Ataque', attrs: 'DES / INT', icon: '⚔️', color: 'red',
+    desc: 'Retaliação — responder a ataques com contra-ofensivas imediatas.',
+    usos: [
+      { titulo: 'Ripostar', mecanica: 'Após defesa bem-sucedida (bloqueio ou esquiva), gasta 1 reação para atacar de volta com dano normal. Deve estar dentro do alcance.', dt: 'CA do alvo (ataque ofensivo)' },
+      { titulo: 'Interromper Conjuração', mecanica: 'Ataque rápido contra conjurador enquanto ele conjura. Sucesso interrompe a conjuração e desperdiça a ação.', dt: 'CD conjurador + 5' },
+      { titulo: 'Desarmar em Contra-Ataque', mecanica: 'Veterano+ (grau 2). Após bloqueio bem-sucedido, pode desarmar o atacante em vez de causar dano.', dt: 'Teste oposto Lutar + 5' },
+    ],
+  },
+  {
+    name: 'Atletismo', attrs: 'FOR / CON', icon: '🏃', color: 'amber',
+    desc: 'Proezas físicas — escalar, nadar, saltar e resistir a impedimentos.',
+    usos: [
+      { titulo: 'Escalar', mecanica: 'Superfície escalável. Falha por ≤4: não progride. Falha por ≥5: cai e sofre dano de queda.', dt: 'CD 10 (fácil), 15 (moderada), 20 (difícil)' },
+      { titulo: 'Nadar', mecanica: 'Águas calmas a tempestades. Falha por ≥5: começa a afogar (1 nível de exaustão por turno até sair).', dt: 'CD 10 (calma), 15 (correnteza), 20 (tempestade)' },
+      { titulo: 'Pular', mecanica: 'Base horizontal: 1,5m + Mod.FOR. Base vertical: 0,5m + Mod.FOR/2. Pular além da base exige teste.', dt: 'CD por distância extra (15 + 2/m extra)' },
+      { titulo: 'Resistir Impedimento', mecanica: 'Soltar de agarrão, escapar de amarras, arrombar porta com força ou derrubar obstáculo.', dt: 'Teste oposto FOR/Atletismo' },
+    ],
+  },
+  {
+    name: 'Crime', attrs: 'DES / INT', icon: '🔐', color: 'purple',
+    desc: 'Atividades ilícitas — arrombamento, prestidigitação, armadilhas e falsificação.',
+    usos: [
+      { titulo: 'Arrombar Fechadura', mecanica: 'Abrir porta, cofre ou mecanismo de travamento sem a chave. Falha por ≥5 pode quebrar ferramenta ou disparar armadilha.', dt: 'CD 10 (simples), 15 (média), 20 (complexa)' },
+      { titulo: 'Bolsar (Prestidigitação)', mecanica: 'Furtar item pequeno do alvo sem ser notado, ou plantar algo nele. Requer estar adjacente.', dt: 'Teste oposto vs Percepção' },
+      { titulo: 'Desarmar Armadilha', mecanica: 'Identificar e neutralizar armadilha mecânica ou mágica simples. Falha pode acionar a armadilha.', dt: 'CD 15 (simples), 18 (moderada), 22 (complexa)' },
+      { titulo: 'Falsificar Documento', mecanica: 'Criar ou alterar documento, assinatura ou selo. Qualidade depende do resultado vs CD.', dt: 'CD 15 (simples), 20 (detalhado)' },
+    ],
+    equipamento: 'Kit de Ladrão concede Vantagem em arrombamento e prestidigitação. Sem ferramentas: Desvantagem.',
+  },
+  {
+    name: 'Vontade', attrs: 'CON / AM', icon: '🧠', color: 'violet',
+    desc: 'Força mental — resistir controle, medo e manter concentração sob pressão.',
+    usos: [
+      { titulo: 'Resistir Controle Mental', mecanica: 'Dominar, encantar, possuir ou qualquer influência mental externa. Sucesso nega o efeito completamente.', dt: 'CD do efeito' },
+      { titulo: 'Resistir Medo / Terror', mecanica: 'Evitar condição Amedrontado ou pânico. Mesmo com sucesso, o Mestre pode aplicar tensão narrativa.', dt: 'CD da fonte de medo' },
+      { titulo: 'Manter Concentração', mecanica: 'Ao sofrer dano enquanto mantém efeito ativo (magia sustentada, canalização contínua). Falha encerra o efeito.', dt: 'CD 10 + dano sofrido ÷ 2' },
+      { titulo: 'Resistir Tortura / Coerção', mecanica: 'Não revelar informações sob coerção física ou psicológica. Pode manter silêncio ou dar informação falsa.', dt: 'CD 15 (leve), 20 (intensa)' },
+    ],
+  },
+  {
+    name: 'Medicina', attrs: 'INT', icon: '🏥', color: 'emerald', especial: true,
+    desc: 'Primeiros socorros e estabilização — cura, diagnóstico e tratamento de campo. Perícia especial: não está entre as 19 perícias base, mas pode ser treinada via equipamento Médico, habilidades de classe ou kits específicos.',
+    usos: [
+      { titulo: 'Estabilizar Morrendo', mecanica: 'Tira um aliado do estado Morrendo. Sucesso: estabiliza com 1 PV. Falha: desperdiça a ação (o aliado continua morrendo). Pode ser usada como ação padrão adjacente ao alvo.', dt: 'CD 15 + Nível do alvo ÷ 2' },
+      { titulo: 'Diagnosticar Condição', mecanica: 'Identifica veneno, doença, fratura ou condição anormal em um paciente. Requer exame de 1 minuto.', dt: 'CD 12 (comum), 15 (moderada), 18 (grave)' },
+      { titulo: 'Curar com Kit Médico', mecanica: 'Kit Médico Portátil: restaura 1d8 + Mod.INT Vida. 3 usos por kit. Não exige teste — consome 1 uso automaticamente como ação. Pode ser usado em aliados morrendo sem teste de Medicina.', dt: 'Sem teste (uso automático do kit)' },
+      { titulo: 'Tratar Veneno / Doença', mecanica: 'Primeiros socorros contra envenenamento ou doença ativa. Sucesso neutraliza o veneno ou reduz a CD de recuperação da doença em 5.', dt: 'CD do veneno / doença' },
+      { titulo: 'Cirurgia de Campo', mecanica: 'Especialista+ (grau 3). Procedimento avançado em condições precárias. Remove 1 condição grave (fratura, sangramento interno, etc.).', dt: 'CD 18. Requer Kit Médico + 10 min.' },
+    ],
+    equipamento: 'Kit Médico Portátil (3 usos, 1d8 + INT). Equipamento Médico concede +5 a +20 em Medicina conforme peças. Sem kit: Desvantagem em procedimentos.',
+  },
+]
+
 function PericiasSection() {
+  const [expanded, setExpanded] = useState(null)
+  const toggle = (name) => setExpanded(prev => prev === name ? null : name)
+
   return (
     <div>
       <SectionTitle>Perícias (19)</SectionTitle>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mb-6">
-        {PERICIAS.map(p => (
-          <div key={p.name} className="bg-void rounded px-3 py-2 border border-sep flex justify-between items-center">
-            <span className="text-txt-main">{p.name}</span>
-            <span className="text-txt-dim text-xs font-mono">{p.attrs.join('/')}</span>
-          </div>
-        ))}
+      <p className="text-txt-dim text-sm mb-4">
+        Perícias são habilidades treináveis que determinam o bônus de cada personagem em testes específicos.
+        Cada perícia usa o melhor modificador entre seus atributos-base + bônus de grau de treinamento.
+      </p>
+
+      <div className="bg-void rounded-xl border border-gold/20 p-4 mb-6">
+        <h3 className="text-gold text-sm font-semibold mb-2">Mecânica Base de Perícias</h3>
+        <div className="space-y-1.5 text-xs text-txt-dim">
+          <p>• <strong className="text-txt-main">Teste de Perícia:</strong> d20 + modificador do melhor atributo-base + bônus de grau (treinamento) vs CD fixa ou teste oposto.</p>
+          <p>• <strong className="text-txt-main">Não Treinado:</strong> Pode rolar d20 + modificador do atributo, mas sem bônus de grau (+0).</p>
+          <p>• <strong className="text-txt-main">Vantagem:</strong> Rola 2d20 e fica com o maior. <strong className="text-txt-main">Desvantagem:</strong> Rola 2d20 e fica com o menor.</p>
+          <p>• <strong className="text-txt-main">Teste Oposto:</strong> Ambos rolam d20 + bônus. Quem tirar mais alto vence. Empate: defensor vence.</p>
+        </div>
       </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mb-6">
+        {PERICIAS.map(p => {
+          const guide = PERICIA_GUIDE.find(g => g.name === p.name)
+          const theme = getSkillTheme(guide?.color || 'gold')
+          return (
+            <button key={p.name} onClick={() => toggle(p.name)}
+              className={`rounded px-3 py-2 border flex justify-between items-center text-left transition-colors ${expanded === p.name ? `${theme.border} ${theme.bg}` : 'border-sep bg-void hover:border-gold/30'}`}>
+              <span className="flex items-center gap-1.5">
+                <span className="text-sm">{guide?.icon || '📋'}</span>
+                <span className={`text-sm ${expanded === p.name ? theme.accent : 'text-txt-main'}`}>{p.name}</span>
+              </span>
+              <span className="text-txt-dim text-xs font-mono">{p.attrs.join('/')}</span>
+            </button>
+          )
+        })}
+      </div>
+
       <h3 className="text-gold-light text-lg mb-2">Graus de Treinamento por Faixa</h3>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto mb-8">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-sep text-txt-dim">
@@ -1068,6 +1314,58 @@ function PericiasSection() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <h3 className="text-gold-light text-lg mb-1">Guia de Uso por Perícia</h3>
+      <p className="text-txt-dim text-xs mb-4">Clique em uma perícia acima ou expanda os cards abaixo para ver regras detalhadas, CDs e usos de cada perícia.</p>
+
+      <div className="space-y-2">
+        {PERICIA_GUIDE.map(skill => {
+          const theme = getSkillTheme(skill.color)
+          const isOpen = expanded === skill.name
+          return (
+            <div key={skill.name} className={`rounded-lg border overflow-hidden transition-colors ${isOpen ? theme.border : 'border-sep/50'}`}>
+              <button onClick={() => toggle(skill.name)}
+                className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${isOpen ? theme.hBg : 'bg-void/40 hover:bg-void/60'}`}>
+                <span className="flex items-center gap-2">
+                  <span className="text-base">{skill.icon}</span>
+                  <span className={`font-semibold text-sm ${isOpen ? theme.accent : 'text-txt-main'}`}>{skill.name}</span>
+                  <span className="text-txt-dim text-xs font-mono">({skill.attrs})</span>
+                  {skill.especial && <span className="text-[10px] bg-emerald-400/15 text-emerald-400 px-1.5 py-0.5 rounded">ESPECIAL</span>}
+                </span>
+                <span className={`text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+              </button>
+              {isOpen && (
+                <div className={`px-4 py-3 border-t ${theme.border} ${theme.bg} space-y-3`}>
+                  <p className="text-txt-dim text-xs leading-relaxed">{skill.desc}</p>
+                  <div className="space-y-2">
+                    {skill.usos.map((uso, i) => (
+                      <div key={i} className="bg-deep rounded-lg border border-sep/30 p-2.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-xs font-semibold ${theme.accent}`}>{uso.titulo}</span>
+                          {uso.dt && uso.dt !== '—' && (
+                            <span className="text-[10px] font-mono bg-gold/10 text-gold px-1.5 py-0.5 rounded shrink-0 ml-2">
+                              {uso.dt.startsWith('CD') || uso.dt.startsWith('CA') || uso.dt.startsWith('Teste') || uso.dt.startsWith('Passiva') || uso.dt.startsWith('Reação') || uso.dt.startsWith('Ação')
+                                ? uso.dt
+                                : `CD ${uso.dt}`}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-txt-dim text-[11px] leading-relaxed">{uso.mecanica}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {skill.equipamento && (
+                    <div className="flex items-start gap-1.5 text-[11px] text-amber-300/80 bg-amber-300/5 border border-amber-300/15 rounded px-2.5 py-1.5">
+                      <span className="shrink-0">🔧</span>
+                      <span>{skill.equipamento}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
