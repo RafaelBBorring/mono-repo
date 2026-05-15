@@ -74,7 +74,7 @@ const checkoutEnabled = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED !== "fal
 const stripePaymentLinks: Record<string, string> = {};
 for (const plan of PLANS) {
   const monthly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_MONTHLY`];
-  const yearly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_YEARLY`];
+  const yearly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_ANUAL`];
   if (monthly) stripePaymentLinks[`${plan.id}-monthly`] = monthly;
   if (yearly) stripePaymentLinks[`${plan.id}-yearly`] = yearly;
 }
