@@ -137,6 +137,7 @@ export default function LandingPage() {
             >
               Entrar
             </Link>
+
             <a
               href="#planos"
               className="magnetic-button inline-flex items-center gap-1.5 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-3 py-2 font-body text-sm font-bold text-[var(--action-foreground)] shadow-xl shadow-black/20 sm:gap-2 sm:rounded-2xl sm:px-5 sm:py-3"
@@ -196,13 +197,13 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:gap-4">
-              <a
+              <Link
                 href="/app?subscribe=monthly"
                 className="magnetic-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-2xl shadow-black/25 sm:min-h-[58px] sm:gap-3 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
               >
                 Começar por R$ 30/mês
                 <ArrowRight size={20} />
-              </a>
+              </Link>
               <a
                 href="#experiencia"
                 className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-6 py-3 font-body text-base font-bold text-[var(--text-primary)] backdrop-blur transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:min-h-[58px] sm:gap-3 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
@@ -459,13 +460,13 @@ export default function LandingPage() {
                       </div>
                     ))}
                   </div>
-                  <a
+                  <Link
                     href={`/app?subscribe=${plan.name === "Anual" ? "yearly" : "monthly"}`}
                     className="magnetic-button mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-xl sm:mt-8 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
                   >
                     {plan.cta}
                     <ArrowRight size={20} />
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>
