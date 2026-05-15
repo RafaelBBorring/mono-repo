@@ -2,24 +2,38 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CreditCard, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Check,
+  CreditCard,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+} from "lucide-react";
 import { billingStatusLabel } from "@/lib/billing";
+import { PLANS, getPlanById, type PlanId } from "@/lib/plans";
 import { useApp } from "@/context/AppContext";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function BillingGate() {
-  const { clinic, refreshBilling, startCheckout, openBillingPortal, theme, checkoutEnabled } = useApp();
-  const [loadingPlan, setLoadingPlan] = useState<"monthly" | "yearly" | "portal" | null>(null);
+  const { clinic, refreshBilling, startCheckout, openBillingPortal, theme, checkoutEnabled } =
+    useApp();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
 
   useEffect(() => {
     refreshBilling();
   }, [refreshBilling]);
 
-  async function handleCheckout(plan: "monthly" | "yearly") {
-    setLoadingPlan(plan);
-    await startCheckout(plan, email);
+  async function handleCheckout(planId: PlanId) {
+    const key = `${planId}-${interval}`;
+    setLoadingPlan(key);
+    await startCheckout(planId, interval, email);
     setLoadingPlan(null);
   }
 
@@ -27,6 +41,19 @@ export default function BillingGate() {
     setLoadingPlan("portal");
     await openBillingPortal();
     setLoadingPlan(null);
+  }
+
+  const currentPlan = clinic?.stripePriceId ? getPlanByPriceIdFromEnv(clinic.stripePriceId) : null;
+
+  function getPlanByPriceIdFromEnv(priceId: string): PlanId | undefined {
+    const allPrices: Record<string, PlanId> = {};
+    for (const plan of PLANS) {
+      const m = process.env[`NEXT_PUBLIC_STRIPE_PRICE_${plan.id.toUpperCase()}_MONTHLY`];
+      const y = process.env[`NEXT_PUBLIC_STRIPE_PRICE_${plan.id.toUpperCase()}_YEARLY`];
+      if (m) allPrices[m] = plan.id;
+      if (y) allPrices[y] = plan.id;
+    }
+    return allPrices[priceId];
   }
 
   return (
@@ -44,51 +71,140 @@ export default function BillingGate() {
         <ThemeToggle />
       </div>
 
-      <main className="relative z-10 grid w-full max-w-5xl gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-        <section>
-          <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] text-[var(--action-foreground)] shadow-2xl">
+      <main className="relative z-10 w-full max-w-5xl">
+        <div className="mb-10 text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] text-[var(--action-foreground)] shadow-2xl">
             <ShieldCheck size={26} />
           </div>
           <p className="font-body text-sm font-extrabold uppercase tracking-[0.28em] text-[var(--accent-mint)]">
             Acesso protegido
           </p>
-          <h1 className="mt-4 font-brand text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
-            Ative a assinatura para usar o Morpheus.
+          <h1 className="mt-4 font-brand text-4xl font-semibold leading-tight sm:text-5xl">
+            Escolha o plano ideal para sua clínica
           </h1>
-          <p className="mt-5 max-w-xl font-body text-base leading-8 text-[var(--text-muted)] sm:text-lg">
-            O sistema só libera salas, profissionais e reservas quando o Stripe confirma uma assinatura ativa.
+          <p className="mx-auto mt-4 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] sm:text-lg">
+            Todos os planos incluem <strong>7 dias grátis</strong> para testar. Cancele quando quiser
+            durante o trial.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-4">
-            <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-              Clínica: {clinic?.name || "—"}
-            </p>
-            <p className="mt-2 font-brand text-2xl font-semibold">
-              {billingStatusLabel(clinic?.stripeStatus)}
-            </p>
-            {clinic?.currentPeriodEnd && (
-              <p className="mt-2 font-body text-sm font-bold text-[var(--text-muted)]">
-                Vigência até {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
-              </p>
-            )}
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              onClick={() => setInterval("monthly")}
+              className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+                interval === "monthly"
+                  ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                  : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setInterval("yearly")}
+              className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+                interval === "yearly"
+                  ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                  : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              Anual <span className="text-[var(--accent-mint)]">(economia de 20%)</span>
+            </button>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-5 shadow-2xl sm:rounded-[2rem] sm:p-7">
-          <div className="mb-5 flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--glass-soft)] text-[var(--accent-lavender)] ring-1 ring-[var(--border-light)]">
-              <CreditCard size={22} />
+        <div className="mb-8 grid gap-5 sm:grid-cols-3">
+          {PLANS.map((plan) => {
+            const isLoading = loadingPlan === `${plan.id}-${interval}`;
+            const price = interval === "monthly" ? plan.monthlyLabel : plan.yearlyLabel;
+            const isCurrent = currentPlan === plan.id;
+
+            return (
+              <div
+                key={plan.id}
+                className={`relative flex flex-col rounded-2xl border p-6 transition sm:rounded-3xl ${
+                  plan.highlight
+                    ? "border-[var(--accent-lavender)] bg-[var(--bg-elevated)] shadow-2xl ring-2 ring-[var(--accent-lavender)]"
+                    : "border-[var(--border-light)] bg-[var(--bg-elevated)] shadow-lg"
+                }`}
+              >
+                {plan.badge && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-4 py-1 font-body text-xs font-extrabold text-[var(--action-foreground)] shadow-lg">
+                    {plan.badge}
+                  </span>
+                )}
+
+                <div className="mb-4">
+                  <h3 className="font-brand text-2xl font-semibold">{plan.name}</h3>
+                  <p className="mt-1 font-body text-sm text-[var(--text-muted)]">
+                    {plan.description}
+                  </p>
+                </div>
+
+                <div className="mb-5">
+                  <span className="font-brand text-4xl font-bold">{price}</span>
+                  {interval === "yearly" && (
+                    <p className="mt-1 font-body text-sm font-bold text-[var(--accent-mint)]">
+                      {plan.yearlyMonthlyEquiv}
+                    </p>
+                  )}
+                </div>
+
+                <ul className="mb-6 flex-1 space-y-3">
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Building2 size={16} className="shrink-0 text-[var(--accent-sky)]" />
+                    <span>
+                      Até <strong>{plan.maxRooms} salas</strong>
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Users size={16} className="shrink-0 text-[var(--accent-lavender)]" />
+                    <span>
+                      Até <strong>{plan.maxDoctors} profissionais</strong>
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Sparkles size={16} className="shrink-0 text-[var(--accent-mint)]" />
+                    <span>
+                      <strong>7 dias grátis</strong> para testar
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Check size={16} className="shrink-0 text-[var(--accent-mint)]" />
+                    <span>Agenda completa</span>
+                  </li>
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Check size={16} className="shrink-0 text-[var(--accent-mint)]" />
+                    <span>Reservas e salas</span>
+                  </li>
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Check size={16} className="shrink-0 text-[var(--accent-mint)]" />
+                    <span>Suporte por e-mail</span>
+                  </li>
+                </ul>
+
+                <Button
+                  variant={plan.highlight ? "gradient" : "ghost"}
+                  size="xl"
+                  fullWidth
+                  onClick={() => handleCheckout(plan.id)}
+                  disabled={isLoading || !checkoutEnabled || isCurrent}
+                >
+                  <ArrowRight size={22} />
+                  {isLoading
+                    ? "Abrindo..."
+                    : isCurrent
+                      ? "Plano atual"
+                      : `Assinar ${plan.name}`}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mx-auto max-w-md space-y-3 text-center">
+          <label className="block text-left">
+            <span className="font-body text-sm font-bold text-[var(--text-soft)]">
+              E-mail de cobrança (opcional)
             </span>
-            <div>
-              <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Checkout seguro
-              </p>
-              <h2 className="font-brand text-2xl font-semibold">Escolha o plano</h2>
-            </div>
-          </div>
-
-          <label className="mb-4 block">
-            <span className="font-body text-sm font-bold text-[var(--text-soft)]">E-mail de cobrança</span>
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -98,46 +214,44 @@ export default function BillingGate() {
             />
           </label>
 
-          <div className="grid gap-3">
-            <Button
-              variant="gradient"
-              size="xl"
-              fullWidth
-              onClick={() => handleCheckout("monthly")}
-              disabled={loadingPlan !== null || !checkoutEnabled}
-            >
-              <ArrowRight size={22} />
-              {loadingPlan === "monthly" ? "Abrindo..." : "Assinar mensal por R$ 30"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="lg"
-              fullWidth
-              onClick={() => handleCheckout("yearly")}
-              disabled={loadingPlan !== null || !checkoutEnabled}
-            >
-              <ArrowRight size={20} />
-              {loadingPlan === "yearly" ? "Abrindo..." : "Assinar anual com desconto"}
-            </Button>
-            {clinic?.stripeCustomerId && (
-              <button
-                onClick={handlePortal}
-                disabled={loadingPlan !== null || !checkoutEnabled}
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-4 py-3 font-body text-base font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] disabled:opacity-60"
-              >
-                <CreditCard size={20} />
-                {loadingPlan === "portal" ? "Abrindo..." : "Gerenciar cobrança"}
-              </button>
-            )}
+          {clinic && (
+            <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-4 text-left">
+              <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                Clínica: {clinic.name || "—"}
+              </p>
+              <p className="mt-2 font-brand text-2xl font-semibold">
+                {billingStatusLabel(clinic.stripeStatus)}
+              </p>
+              {clinic.currentPeriodEnd && (
+                <p className="mt-2 font-body text-sm font-bold text-[var(--text-muted)]">
+                  Vigência até {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+            </div>
+          )}
+
+          {clinic?.stripeCustomerId && (
             <button
-              onClick={refreshBilling}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+              onClick={handlePortal}
+              disabled={loadingPlan === "portal" || !checkoutEnabled}
+              className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-4 py-3 font-body text-base font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] disabled:opacity-60"
             >
-              <RefreshCw size={16} className={theme === "dark" ? "text-[var(--accent-sky)]" : "text-[var(--accent-lavender)]"} />
-              Revalidar status
+              <CreditCard size={20} />
+              {loadingPlan === "portal" ? "Abrindo..." : "Gerenciar cobrança"}
             </button>
-          </div>
-        </section>
+          )}
+
+          <button
+            onClick={refreshBilling}
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+          >
+            <RefreshCw
+              size={16}
+              className={theme === "dark" ? "text-[var(--accent-sky)]" : "text-[var(--accent-lavender)]"}
+            />
+            Revalidar status
+          </button>
+        </div>
       </main>
     </div>
   );

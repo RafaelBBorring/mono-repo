@@ -4,6 +4,7 @@ export interface Clinic {
   adminEmail: string;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  stripePriceId?: string;
   stripeStatus: string;
   billingEnforced: boolean;
   currentPeriodEnd?: string;
@@ -55,6 +56,7 @@ export function mapClinic(row: SupabaseClinic): Clinic {
     adminEmail: row.admin_email,
     stripeCustomerId: row.stripe_customer_id ?? undefined,
     stripeSubscriptionId: row.stripe_subscription_id ?? undefined,
+    stripePriceId: row.stripe_price_id ?? undefined,
     stripeStatus: row.stripe_status,
     billingEnforced: row.billing_enforced,
     currentPeriodEnd: row.current_period_end ?? undefined,

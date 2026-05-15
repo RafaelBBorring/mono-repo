@@ -1,34 +1,62 @@
 import { NextResponse } from "next/server";
-import { DEFAULT_BILLING_ACCOUNT_ID } from "@/lib/billing";
 import { createSupabaseAdmin } from "@/lib/supabaseServer";
-import { getAppUrl, getStripe, getStripePriceId } from "@/lib/stripe";
+import { getAppUrl, getStripe } from "@/lib/stripe";
+import type { PlanId } from "@/lib/plans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const PRICE_MAP: Record<PlanId, { monthly: string; yearly: string }> = {
+  essential: {
+    monthly: process.env.STRIPE_PRICE_ESSENTIAL_MONTHLY || "",
+    yearly: process.env.STRIPE_PRICE_ESSENTIAL_YEARLY || "",
+  },
+  pro: {
+    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || "",
+    yearly: process.env.STRIPE_PRICE_PRO_YEARLY || "",
+  },
+  elite: {
+    monthly: process.env.STRIPE_PRICE_ELITE_MONTHLY || "",
+    yearly: process.env.STRIPE_PRICE_ELITE_YEARLY || "",
+  },
+};
+
+function getPriceId(plan: PlanId, interval: "monthly" | "yearly"): string | undefined {
+  return PRICE_MAP[plan]?.[interval] || undefined;
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as {
-      plan?: "monthly" | "yearly";
+      plan?: PlanId;
+      interval?: "monthly" | "yearly";
       email?: string;
+      clinicId?: string;
     };
-    const plan = body.plan === "yearly" ? "yearly" : "monthly";
-    const priceId = getStripePriceId(plan);
+
+    const plan: PlanId = body.plan || "pro";
+    const interval: "monthly" | "yearly" = body.interval || "monthly";
+    const priceId = getPriceId(plan, interval);
 
     if (!priceId) {
       return NextResponse.json({ error: "Plano Stripe não configurado." }, { status: 500 });
     }
 
     let stripeCustomerId: string | undefined;
+    let clinicId = body.clinicId;
 
     try {
       const supabase = createSupabaseAdmin();
-      const { data: account } = await supabase
-        .from("billing_accounts")
+      if (!clinicId) {
+        return NextResponse.json({ error: "clinicId é obrigatório." }, { status: 400 });
+      }
+
+      const { data: clinicRow } = await supabase
+        .from("clinics")
         .select("stripe_customer_id")
-        .eq("id", DEFAULT_BILLING_ACCOUNT_ID)
+        .eq("id", clinicId)
         .maybeSingle();
-      stripeCustomerId = account?.stripe_customer_id || undefined;
+      stripeCustomerId = clinicRow?.stripe_customer_id || undefined;
     } catch (error) {
       console.warn("Checkout will continue without an existing Stripe customer:", error);
     }
@@ -42,15 +70,17 @@ export async function POST(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
       success_url: `${appUrl}/app?checkout=success`,
-      cancel_url: `${appUrl}/landing?checkout=canceled`,
+      cancel_url: `${appUrl}/app?checkout=canceled`,
       metadata: {
-        billing_account_id: DEFAULT_BILLING_ACCOUNT_ID,
+        clinic_id: clinicId || "",
         plan,
+        interval,
       },
       subscription_data: {
         metadata: {
-          billing_account_id: DEFAULT_BILLING_ACCOUNT_ID,
+          clinic_id: clinicId || "",
           plan,
+          interval,
         },
       },
     });

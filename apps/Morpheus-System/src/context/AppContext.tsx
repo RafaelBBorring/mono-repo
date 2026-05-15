@@ -12,6 +12,8 @@ import type { AppView, Psychologist, Reservation, Room } from "@/types";
 import { isBillingActive } from "@/lib/billing";
 import type { AuthUser, Clinic } from "@/lib/auth";
 import { mapClinic, type SupabaseClinic, type SupabaseClinicDoctor } from "@/lib/auth";
+import type { PlanId } from "@/lib/plans";
+import { PLANS, getPlanById } from "@/lib/plans";
 import {
   COLOR_PALETTES,
   generateId,
@@ -59,15 +61,20 @@ interface AppContextType {
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
   refreshBilling: () => Promise<void>;
-  startCheckout: (plan: "monthly" | "yearly", email?: string) => Promise<void>;
+  startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
   openBillingPortal: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 const billingRequired = process.env.NEXT_PUBLIC_BILLING_REQUIRED === "true";
 const checkoutEnabled = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED !== "false";
-const stripePaymentLinkMonthly = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY || "";
-const stripePaymentLinkYearly = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY || "";
+const stripePaymentLinks: Record<string, string> = {};
+for (const plan of PLANS) {
+  const monthly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_MONTHLY`];
+  const yearly = process.env[`NEXT_PUBLIC_STRIPE_LINK_${plan.id.toUpperCase()}_YEARLY`];
+  if (monthly) stripePaymentLinks[`${plan.id}-monthly`] = monthly;
+  if (yearly) stripePaymentLinks[`${plan.id}-yearly`] = yearly;
+}
 const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
 
 function apiUrl(path: string) {
@@ -495,7 +502,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const startCheckout = useCallback(
-    async (plan: "monthly" | "yearly", email?: string) => {
+    async (plan: PlanId, interval: "monthly" | "yearly", email?: string) => {
       if (!checkoutEnabled) {
         addToast("Checkout indisponivel neste ambiente.", "info");
         return;
@@ -506,7 +513,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const response = await fetch(apiUrl("/api/stripe/checkout"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan, email }),
+            body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId }),
           });
           const payload = (await response.json()) as { url?: string; error?: string };
           if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
@@ -519,33 +526,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const paymentLinkUrl = plan === "yearly" ? stripePaymentLinkYearly : stripePaymentLinkMonthly;
-      if (!paymentLinkUrl) {
-        try {
-          const response = await fetch("/api/stripe/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan, email }),
-          });
-          const payload = (await response.json()) as { url?: string; error?: string };
-          if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
-          window.location.href = payload.url;
-          return;
-        } catch (err) {
-          console.error("Checkout failed:", err);
-          addToast("Nao foi possivel abrir o checkout.", "error");
-          return;
+      const linkKey = `${plan}-${interval}`;
+      const paymentLinkUrl = stripePaymentLinks[linkKey];
+      if (paymentLinkUrl) {
+        let url = paymentLinkUrl;
+        if (email) {
+          const separator = url.includes("?") ? "&" : "?";
+          url = `${url}${separator}prefilled_email=${encodeURIComponent(email)}`;
         }
+        window.location.href = url;
+        return;
       }
 
-      let url = paymentLinkUrl;
-      if (email) {
-        const separator = url.includes("?") ? "&" : "?";
-        url = `${url}${separator}prefilled_email=${encodeURIComponent(email)}`;
+      try {
+        const response = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId }),
+        });
+        const payload = (await response.json()) as { url?: string; error?: string };
+        if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
+        window.location.href = payload.url;
+      } catch (err) {
+        console.error("Checkout failed:", err);
+        addToast("Nao foi possivel abrir o checkout.", "error");
       }
-      window.location.href = url;
     },
-    [addToast]
+    [addToast, authUser]
   );
 
   const openBillingPortal = useCallback(async () => {
@@ -640,7 +647,7 @@ export function useApp() {
       toggleTheme: () => {},
       setTheme: (() => {}) as (theme: Theme) => void,
       refreshBilling: async () => {},
-      startCheckout: async () => {},
+      startCheckout: (async () => {}) as (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>,
       openBillingPortal: async () => {},
     } as AppContextType;
   }

@@ -1,7 +1,6 @@
 import "server-only";
 
 import type Stripe from "stripe";
-import { DEFAULT_BILLING_ACCOUNT_ID } from "@/lib/billing";
 import { createSupabaseAdmin } from "@/lib/supabaseServer";
 
 function toIsoDate(timestamp?: number | null) {
@@ -15,14 +14,19 @@ function customerIdFrom(subscription: Stripe.Subscription) {
 
 export async function upsertBillingFromSubscription(subscription: Stripe.Subscription) {
   const supabase = createSupabaseAdmin();
-  const accountId = subscription.metadata.billing_account_id || DEFAULT_BILLING_ACCOUNT_ID;
+  const clinicId = subscription.metadata.clinic_id;
+  if (!clinicId) {
+    console.warn("Webhook: subscription sem clinic_id nos metadados, ignorando.");
+    return;
+  }
+
   const firstItem = subscription.items.data[0];
   const periodEnd = (subscription as Stripe.Subscription & { current_period_end?: number | null })
     .current_period_end;
 
-  const { error } = await supabase.from("billing_accounts").upsert(
-    {
-      id: accountId,
+  const { error } = await supabase
+    .from("clinics")
+    .update({
       stripe_customer_id: customerIdFrom(subscription),
       stripe_subscription_id: subscription.id,
       stripe_price_id: firstItem?.price.id ?? null,
@@ -30,27 +34,26 @@ export async function upsertBillingFromSubscription(subscription: Stripe.Subscri
       current_period_end: toIsoDate(periodEnd),
       cancel_at_period_end: subscription.cancel_at_period_end,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" }
-  );
+    })
+    .eq("id", clinicId);
 
   if (error) throw error;
 }
 
 export async function rememberCheckoutSession(session: Stripe.Checkout.Session) {
   const supabase = createSupabaseAdmin();
-  const accountId = session.metadata?.billing_account_id || DEFAULT_BILLING_ACCOUNT_ID;
+  const clinicId = session.metadata?.clinic_id;
+  if (!clinicId) return;
+
   const customerId = typeof session.customer === "string" ? session.customer : null;
 
-  const { error } = await supabase.from("billing_accounts").upsert(
-    {
-      id: accountId,
+  const { error } = await supabase
+    .from("clinics")
+    .update({
       stripe_customer_id: customerId,
-      last_checkout_session_id: session.id,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" }
-  );
+    })
+    .eq("id", clinicId);
 
   if (error) throw error;
 }

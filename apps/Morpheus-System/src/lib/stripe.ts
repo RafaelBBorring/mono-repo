@@ -24,7 +24,9 @@ export function getAppUrl() {
   ).replace(/\/$/, "");
 }
 
-export function getStripePriceId(plan: string) {
-  if (plan === "yearly") return process.env.STRIPE_PRICE_YEARLY;
-  return process.env.STRIPE_PRICE_MONTHLY;
+export function getStripePriceId(plan: string): string | undefined {
+  const monthly = process.env.STRIPE_PRICE_MONTHLY;
+  const yearly = process.env.STRIPE_PRICE_YEARLY;
+  if (plan === "yearly" && yearly) return yearly;
+  return monthly;
 }
