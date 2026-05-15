@@ -114,6 +114,9 @@ if (_prA) stripePaymentLinks["pro-yearly"] = _prA;
 if (_edM) stripePaymentLinks["elite-monthly"] = _edM;
 if (_edA) stripePaymentLinks["elite-yearly"] = _edA;
 
+const _trialLink = process.env.NEXT_PUBLIC_STRIPE_LINK_TRIAL;
+if (_trialLink) stripePaymentLinks["trial"] = _trialLink;
+
 const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
 
 function apiUrl(path: string) {
@@ -521,7 +524,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (clinicError || !newClinic) {
-          addToast("Erro ao criar clínica.", "error");
+          console.error("Clinic creation error:", clinicError);
+          addToast(`Erro ao criar clínica: ${clinicError?.message || "desconhecido"}`, "error");
           return false;
         }
 
@@ -575,7 +579,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (error || !newClinic) {
-          addToast("Erro ao criar clínica.", "error");
+          console.error("Create clinic error:", error);
+          addToast(`Erro ao criar clínica: ${error?.message || "desconhecido"}`, "error");
           return false;
         }
 
@@ -1049,6 +1054,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const startTrial = useCallback(
     async (email?: string) => {
+      const trialLink = stripePaymentLinks["trial"];
+      if (trialLink) {
+        let url = trialLink;
+        if (email) {
+          const separator = url.includes("?") ? "&" : "?";
+          url = `${url}${separator}prefilled_email=${encodeURIComponent(email)}`;
+        }
+        window.location.href = url;
+        return;
+      }
       await startCheckout("essential", "monthly", email);
     },
     [startCheckout]

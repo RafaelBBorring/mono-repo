@@ -10,6 +10,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 import NewReservationModal from "@/components/modals/NewReservationModal";
 import ReservationDetailModal from "@/components/modals/ReservationDetailModal";
 import type { Psychologist, Reservation, Room } from "@/types";
+import type { Clinic } from "@/lib/auth";
+import type { PlanId } from "@/lib/plans";
+import { PLANS, getPlanById } from "@/lib/plans";
 import {
   BadgePlus,
   BookOpen,
@@ -20,11 +23,14 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
   DoorOpen,
   LayoutGrid,
   LogOut,
   Menu,
   Plus,
+  RefreshCw,
+  Settings,
   Shield,
   Sparkles,
   Trash2,
@@ -46,7 +52,7 @@ const LibraryVinesScene = dynamic(
   { ssr: false, loading: () => <div className="fixed inset-0 soft-grid opacity-20" /> }
 );
 
-type AdminSection = "overview" | "schedule" | "management";
+type AdminSection = "overview" | "schedule" | "management" | "settings";
 type AdminScheduleView = "grid" | "map";
 
 const SLOT_HEIGHT = 52;
@@ -109,6 +115,12 @@ export default function AdminDashboard() {
     addPsychologist,
     deletePsychologist,
     loading,
+    clinic,
+    billingActive,
+    refreshBilling,
+    startCheckout,
+    startTrial,
+    openBillingPortal,
   } = useApp();
   const [section, setSection] = useState<AdminSection>("overview");
   const [weekOffset, setWeekOffset] = useState(0);
@@ -247,6 +259,9 @@ export default function AdminDashboard() {
               <AdminNavButton active={section === "management"} onClick={() => { setSection("management"); setMobileMenuOpen(false); }} icon={<UsersRound size={18} />}>
                 Gerenciamento
               </AdminNavButton>
+              <AdminNavButton active={section === "settings"} onClick={() => { setSection("settings"); setMobileMenuOpen(false); }} icon={<Settings size={18} />}>
+                Plano & Cobrança
+              </AdminNavButton>
             </div>
           </nav>
         </header>
@@ -357,6 +372,17 @@ export default function AdminDashboard() {
             onDeletePsychologist={deletePsychologist}
             onConfirmDeleteRoom={setConfirmDeleteRoom}
             onConfirmDeletePsych={setConfirmDeletePsych}
+           />
+        )}
+
+        {section === "settings" && (
+          <AdminSettings
+            clinic={clinic}
+            billingActive={billingActive}
+            onRefresh={refreshBilling}
+            onCheckout={startCheckout}
+            onTrial={startTrial}
+            onPortal={openBillingPortal}
           />
         )}
       </div>
@@ -1193,6 +1219,196 @@ function AdminManagement({
               );
             })}
           </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function AdminSettings({
+  clinic,
+  billingActive,
+  onRefresh,
+  onCheckout,
+  onTrial,
+  onPortal,
+}: {
+  clinic: Clinic | null;
+  billingActive: boolean;
+  onRefresh: () => Promise<void>;
+  onCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
+  onTrial: (email?: string) => Promise<void>;
+  onPortal: () => Promise<void>;
+}) {
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
+  const [interval, setInterval_] = useState<"monthly" | "yearly">("monthly");
+
+  if (!clinic) return null;
+
+  const currentPlan = PLANS.find((p) => {
+    if (!clinic.stripePriceId) return false;
+    return true;
+  });
+
+  const plan = getPlanById(selectedPlan);
+  const price = interval === "monthly" ? plan.monthlyLabel : plan.yearlyLabel;
+
+  async function handleSubscribe() {
+    setLoadingAction(`sub-${selectedPlan}-${interval}`);
+    await onCheckout(selectedPlan, interval);
+    setLoadingAction(null);
+  }
+
+  async function handleTrial() {
+    setLoadingAction("trial");
+    await onTrial();
+    setLoadingAction(null);
+  }
+
+  async function handlePortal() {
+    setLoadingAction("portal");
+    await onPortal();
+    setLoadingAction(null);
+  }
+
+  const statusLabel = clinic.stripeStatus === "active" ? "Ativa" :
+    clinic.stripeStatus === "trialing" ? "Trial" :
+    clinic.stripeStatus === "past_due" ? "Atrasada" :
+    clinic.stripeStatus === "canceled" ? "Cancelada" :
+    clinic.stripeStatus === "inactive" ? "Inativa" : clinic.stripeStatus;
+
+  const statusColor = clinic.stripeStatus === "active" || clinic.stripeStatus === "trialing"
+    ? "var(--accent-mint)"
+    : clinic.stripeStatus === "past_due"
+      ? "var(--state-error)"
+      : "var(--text-muted)";
+
+  return (
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <section className="rounded-3xl premium-panel p-6 md:p-8 lg:p-10">
+        <div className="mb-8 flex items-center gap-3">
+          <CreditCard size={28} className="text-[var(--accent-lavender)]" />
+          <div>
+            <p className="font-body text-sm font-extrabold uppercase tracking-[0.24em] text-[var(--accent-mint)]">
+              Plano & Cobrança
+            </p>
+            <h2 className="font-brand text-3xl font-semibold md:text-4xl">Gerencie sua assinatura</h2>
+          </div>
+        </div>
+
+        <div className="mb-8 rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-5 md:rounded-3xl md:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                Status da assinatura
+              </p>
+              <p className="mt-2 font-brand text-2xl font-semibold" style={{ color: statusColor }}>
+                {statusLabel}
+              </p>
+              {clinic.currentPeriodEnd && (
+                <p className="mt-1 font-body text-sm font-bold text-[var(--text-muted)]">
+                  Vigência até {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onRefresh}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+              >
+                <RefreshCw size={16} />
+                Revalidar
+              </button>
+              {clinic.stripeCustomerId && (
+                <button
+                  onClick={handlePortal}
+                  disabled={loadingAction === "portal"}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-bold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] disabled:opacity-60"
+                >
+                  <CreditCard size={16} />
+                  {loadingAction === "portal" ? "Abrindo..." : "Portal Stripe"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <button
+            onClick={() => setInterval_("monthly")}
+            className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+              interval === "monthly"
+                ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Mensal
+          </button>
+          <button
+            onClick={() => setInterval_("yearly")}
+            className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+              interval === "yearly"
+                ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Anual <span className="text-[var(--accent-mint)]">(20% off)</span>
+          </button>
+        </div>
+
+        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+          {PLANS.map((p) => {
+            const isSelected = selectedPlan === p.id;
+            const pPrice = interval === "monthly" ? p.monthlyLabel : p.yearlyLabel;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPlan(p.id)}
+                className={`relative flex flex-col rounded-2xl border p-5 text-left transition ${
+                  isSelected
+                    ? "border-[var(--accent-lavender)] bg-[var(--bg-elevated)] shadow-xl ring-2 ring-[var(--accent-lavender)]"
+                    : "border-[var(--border-light)] bg-[var(--bg-elevated)] hover:border-[var(--accent-lavender)]"
+                }`}
+              >
+                {p.badge && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-3 py-1 font-body text-[10px] font-extrabold text-[var(--action-foreground)]">
+                    {p.badge}
+                  </span>
+                )}
+                <h3 className="font-brand text-xl font-semibold">{p.name}</h3>
+                <p className="mt-1 font-body text-xs text-[var(--text-muted)]">{p.description}</p>
+                <div className="my-3">
+                  <span className="font-brand text-2xl font-bold">{pPrice}</span>
+                </div>
+                <ul className="space-y-1 text-sm font-body text-[var(--text-soft)]">
+                  <li>Até {p.maxRooms} salas</li>
+                  <li>Até {p.maxDoctors} profissionais</li>
+                </ul>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            variant="gradient"
+            size="lg"
+            onClick={handleSubscribe}
+            disabled={loadingAction !== null}
+          >
+            <CreditCard size={20} />
+            {loadingAction?.startsWith("sub") ? "Abrindo..." : `Assinar ${plan.name} — ${price}`}
+          </Button>
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={handleTrial}
+            disabled={loadingAction !== null}
+          >
+            <Sparkles size={20} />
+            {loadingAction === "trial" ? "Abrindo..." : "Testar grátis 7 dias (requer cartão)"}
+          </Button>
         </div>
       </section>
     </main>

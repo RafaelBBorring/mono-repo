@@ -99,6 +99,7 @@ jobs:
           NEXT_PUBLIC_STRIPE_LINK_PRO_ANUAL: https://buy.stripe.com/test_7sYbJ15DI5pH3YjfV20oM08
           NEXT_PUBLIC_STRIPE_LINK_ELITE_MONTHLY: https://buy.stripe.com/test_8x25kD2rwcS91Qb6ks0oM09
           NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL: https://buy.stripe.com/test_eVqcN51ns19r9iDeQY0oM0a
+          NEXT_PUBLIC_STRIPE_LINK_TRIAL: https://buy.stripe.com/test_00w7sL1ns3hzfH1fV20oM0b
 
       # ── Assemble site ──
       - name: Assemble site
