@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { AppProvider } from "@/context/AppContext";
 import AppRouter from "@/components/AppRouter";
 import ParticleBackground from "@/components/ParticleBackground";
@@ -20,7 +21,9 @@ export default function AppPage() {
         />
 
         <main className="relative z-[1] w-full min-h-screen">
-          <AppRouter />
+          <Suspense>
+            <AppRouter />
+          </Suspense>
         </main>
         <ToastContainer />
       </SmoothScrollProvider>

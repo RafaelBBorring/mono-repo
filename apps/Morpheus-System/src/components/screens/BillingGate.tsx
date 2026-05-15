@@ -10,7 +10,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
-  Star,
   Users,
 } from "lucide-react";
 import { billingStatusLabel } from "@/lib/billing";
@@ -20,40 +19,37 @@ import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function BillingGate() {
-  const { clinic, refreshBilling, startCheckout, openBillingPortal, theme, checkoutEnabled } =
+  const { clinic, refreshBilling, startCheckout, startTrial, openBillingPortal, theme, checkoutEnabled } =
     useApp();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     refreshBilling();
   }, [refreshBilling]);
 
-  async function handleCheckout(planId: PlanId) {
-    const key = `${planId}-${interval}`;
-    setLoadingPlan(key);
-    await startCheckout(planId, interval, email);
-    setLoadingPlan(null);
+  const plan = getPlanById(selectedPlan);
+  const price = interval === "monthly" ? plan.monthlyLabel : plan.yearlyLabel;
+
+  async function handleSubscribe(planId: PlanId, planInterval: "monthly" | "yearly") {
+    const key = `${planId}-${planInterval}`;
+    setLoadingAction(key);
+    await startCheckout(planId, planInterval, email);
+    setLoadingAction(null);
+  }
+
+  async function handleTrial() {
+    setLoadingAction("trial");
+    await startTrial(email);
+    setLoadingAction(null);
   }
 
   async function handlePortal() {
-    setLoadingPlan("portal");
+    setLoadingAction("portal");
     await openBillingPortal();
-    setLoadingPlan(null);
-  }
-
-  const currentPlan = clinic?.stripePriceId ? getPlanByPriceIdFromEnv(clinic.stripePriceId) : null;
-
-  function getPlanByPriceIdFromEnv(priceId: string): PlanId | undefined {
-    const allPrices: Record<string, PlanId> = {};
-    for (const plan of PLANS) {
-      const m = process.env[`NEXT_PUBLIC_STRIPE_PRICE_${plan.id.toUpperCase()}_MONTHLY`];
-      const y = process.env[`NEXT_PUBLIC_STRIPE_PRICE_${plan.id.toUpperCase()}_YEARLY`];
-      if (m) allPrices[m] = plan.id;
-      if (y) allPrices[y] = plan.id;
-    }
-    return allPrices[priceId];
+    setLoadingAction(null);
   }
 
   return (
@@ -77,125 +73,88 @@ export default function BillingGate() {
             <ShieldCheck size={26} />
           </div>
           <p className="font-body text-sm font-extrabold uppercase tracking-[0.28em] text-[var(--accent-mint)]">
-            Acesso protegido
+            Ative sua assinatura
           </p>
-          <h1 className="mt-4 font-brand text-4xl font-semibold leading-tight sm:text-5xl">
-            Escolha o plano ideal para sua clínica
+          <h1 className="mt-4 font-brand text-3xl font-semibold leading-tight sm:text-4xl">
+            Escolha o plano e comece agora
           </h1>
           <p className="mx-auto mt-4 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] sm:text-lg">
-            Todos os planos incluem <strong>7 dias grátis</strong> para testar. Cancele quando quiser
-            durante o trial.
+            Todos os planos incluem <strong>7 dias grátis</strong>. Cancele quando quiser durante o trial.
           </p>
+        </div>
 
-          <div className="mt-6 flex items-center justify-center gap-2">
-            <button
-              onClick={() => setInterval("monthly")}
-              className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
-                interval === "monthly"
-                  ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
-                  : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              Mensal
-            </button>
-            <button
-              onClick={() => setInterval("yearly")}
-              className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
-                interval === "yearly"
-                  ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
-                  : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              Anual <span className="text-[var(--accent-mint)]">(economia de 20%)</span>
-            </button>
-          </div>
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <button
+            onClick={() => setInterval("monthly")}
+            className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+              interval === "monthly"
+                ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Mensal
+          </button>
+          <button
+            onClick={() => setInterval("yearly")}
+            className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+              interval === "yearly"
+                ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Anual <span className="text-[var(--accent-mint)]">(20% off)</span>
+          </button>
         </div>
 
         <div className="mb-8 grid gap-5 sm:grid-cols-3">
-          {PLANS.map((plan) => {
-            const isLoading = loadingPlan === `${plan.id}-${interval}`;
-            const price = interval === "monthly" ? plan.monthlyLabel : plan.yearlyLabel;
-            const isCurrent = currentPlan === plan.id;
+          {PLANS.map((p) => {
+            const isSelected = selectedPlan === p.id;
+            const pPrice = interval === "monthly" ? p.monthlyLabel : p.yearlyLabel;
+            const isLoading = loadingAction === `${p.id}-${interval}`;
 
             return (
-              <div
-                key={plan.id}
-                className={`relative flex flex-col rounded-2xl border p-6 transition sm:rounded-3xl ${
-                  plan.highlight
+              <button
+                key={p.id}
+                onClick={() => setSelectedPlan(p.id)}
+                className={`relative flex flex-col rounded-2xl border p-6 text-left transition sm:rounded-3xl ${
+                  isSelected
                     ? "border-[var(--accent-lavender)] bg-[var(--bg-elevated)] shadow-2xl ring-2 ring-[var(--accent-lavender)]"
-                    : "border-[var(--border-light)] bg-[var(--bg-elevated)] shadow-lg"
+                    : "border-[var(--border-light)] bg-[var(--bg-elevated)] shadow-lg hover:border-[var(--accent-lavender)]"
                 }`}
               >
-                {plan.badge && (
+                {p.badge && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-4 py-1 font-body text-xs font-extrabold text-[var(--action-foreground)] shadow-lg">
-                    {plan.badge}
+                    {p.badge}
                   </span>
                 )}
 
-                <div className="mb-4">
-                  <h3 className="font-brand text-2xl font-semibold">{plan.name}</h3>
-                  <p className="mt-1 font-body text-sm text-[var(--text-muted)]">
-                    {plan.description}
-                  </p>
-                </div>
+                <h3 className="font-brand text-2xl font-semibold">{p.name}</h3>
+                <p className="mt-1 font-body text-sm text-[var(--text-muted)]">{p.description}</p>
 
-                <div className="mb-5">
-                  <span className="font-brand text-4xl font-bold">{price}</span>
+                <div className="my-4">
+                  <span className="font-brand text-3xl font-bold">{pPrice}</span>
                   {interval === "yearly" && (
                     <p className="mt-1 font-body text-sm font-bold text-[var(--accent-mint)]">
-                      {plan.yearlyMonthlyEquiv}
+                      {p.yearlyMonthlyEquiv}
                     </p>
                   )}
                 </div>
 
-                <ul className="mb-6 flex-1 space-y-3">
+                <ul className="mb-4 flex-1 space-y-2">
                   <li className="flex items-center gap-2 font-body text-sm">
-                    <Building2 size={16} className="shrink-0 text-[var(--accent-sky)]" />
-                    <span>
-                      Até <strong>{plan.maxRooms} salas</strong>
-                    </span>
+                    <Building2 size={14} className="shrink-0 text-[var(--accent-sky)]" />
+                    Até {p.maxRooms} salas
                   </li>
                   <li className="flex items-center gap-2 font-body text-sm">
-                    <Users size={16} className="shrink-0 text-[var(--accent-lavender)]" />
-                    <span>
-                      Até <strong>{plan.maxDoctors} profissionais</strong>
-                    </span>
+                    <Users size={14} className="shrink-0 text-[var(--accent-lavender)]" />
+                    Até {p.maxDoctors} profissionais
                   </li>
                   <li className="flex items-center gap-2 font-body text-sm">
-                    <Sparkles size={16} className="shrink-0 text-[var(--accent-mint)]" />
-                    <span>
-                      <strong>7 dias grátis</strong> para testar
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2 font-body text-sm">
-                    <Check size={16} className="shrink-0 text-[var(--accent-mint)]" />
-                    <span>Agenda completa</span>
-                  </li>
-                  <li className="flex items-center gap-2 font-body text-sm">
-                    <Check size={16} className="shrink-0 text-[var(--accent-mint)]" />
-                    <span>Reservas e salas</span>
-                  </li>
-                  <li className="flex items-center gap-2 font-body text-sm">
-                    <Check size={16} className="shrink-0 text-[var(--accent-mint)]" />
-                    <span>Suporte por e-mail</span>
+                    <Check size={14} className="shrink-0 text-[var(--accent-mint)]" />
+                    Agenda completa
                   </li>
                 </ul>
-
-                <Button
-                  variant={plan.highlight ? "gradient" : "ghost"}
-                  size="xl"
-                  fullWidth
-                  onClick={() => handleCheckout(plan.id)}
-                  disabled={isLoading || !checkoutEnabled || isCurrent}
-                >
-                  <ArrowRight size={22} />
-                  {isLoading
-                    ? "Abrindo..."
-                    : isCurrent
-                      ? "Plano atual"
-                      : `Assinar ${plan.name}`}
-                </Button>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -214,16 +173,40 @@ export default function BillingGate() {
             />
           </label>
 
+          <Button
+            variant="gradient"
+            size="xl"
+            fullWidth
+            onClick={() => handleSubscribe(selectedPlan, interval)}
+            disabled={loadingAction !== null || !checkoutEnabled}
+          >
+            <ArrowRight size={22} />
+            {loadingAction === `${selectedPlan}-${interval}`
+              ? "Abrindo..."
+              : `Assinar ${plan.name} — ${price}`}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="lg"
+            fullWidth
+            onClick={handleTrial}
+            disabled={loadingAction !== null || !checkoutEnabled}
+          >
+            <Sparkles size={20} />
+            {loadingAction === "trial" ? "Abrindo..." : "Testar grátis por 7 dias (Essential)"}
+          </Button>
+
           {clinic && (
             <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-4 text-left">
               <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Clínica: {clinic.name || "—"}
+                Clínica: {clinic.name}
               </p>
-              <p className="mt-2 font-brand text-2xl font-semibold">
+              <p className="mt-2 font-brand text-xl font-semibold">
                 {billingStatusLabel(clinic.stripeStatus)}
               </p>
               {clinic.currentPeriodEnd && (
-                <p className="mt-2 font-body text-sm font-bold text-[var(--text-muted)]">
+                <p className="mt-1 font-body text-sm font-bold text-[var(--text-muted)]">
                   Vigência até {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
                 </p>
               )}
@@ -233,11 +216,11 @@ export default function BillingGate() {
           {clinic?.stripeCustomerId && (
             <button
               onClick={handlePortal}
-              disabled={loadingPlan === "portal" || !checkoutEnabled}
+              disabled={loadingAction === "portal" || !checkoutEnabled}
               className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-4 py-3 font-body text-base font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] disabled:opacity-60"
             >
               <CreditCard size={20} />
-              {loadingPlan === "portal" ? "Abrindo..." : "Gerenciar cobrança"}
+              {loadingAction === "portal" ? "Abrindo..." : "Gerenciar cobrança"}
             </button>
           )}
 

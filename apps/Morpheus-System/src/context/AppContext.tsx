@@ -43,10 +43,12 @@ interface AppContextType {
   loading: boolean;
   authUser: AuthUser | null;
   clinic: Clinic | null;
+  selectedPlan: PlanId | null;
   billingRequired: boolean;
   billingActive: boolean;
   checkoutEnabled: boolean;
   login: (email: string, passwordHash: string) => Promise<boolean>;
+  signup: (data: { clinicName: string; email: string; passwordHash: string }) => Promise<boolean>;
   logout: () => void;
   setView: (view: AppView) => void;
   setActivePsych: (psych: Psychologist | null) => void;
@@ -62,6 +64,7 @@ interface AppContextType {
   setTheme: (theme: Theme) => void;
   refreshBilling: () => Promise<void>;
   startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
+  startTrial: (email?: string) => Promise<void>;
   openBillingPortal: () => Promise<void>;
 }
 
@@ -89,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [clinic, setClinic] = useState<Clinic | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
@@ -246,6 +250,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     },
     [billingActive, loadOperationalData]
+  );
+
+  const signup = useCallback(
+    async (data: { clinicName: string; email: string; passwordHash: string }): Promise<boolean> => {
+      if (!isSupabaseConfigured) return false;
+
+      try {
+        const { data: existing } = await supabase
+          .from("clinics")
+          .select("id")
+          .eq("admin_email", data.email)
+          .maybeSingle();
+
+        if (existing) {
+          addToast("Este e-mail já está cadastrado.", "error");
+          return false;
+        }
+
+        const { data: newClinic, error } = await supabase
+          .from("clinics")
+          .insert({
+            name: data.clinicName,
+            admin_email: data.email,
+            admin_password_hash: data.passwordHash,
+            stripe_status: "inactive",
+            billing_enforced: true,
+          })
+          .select()
+          .single();
+
+        if (error || !newClinic) {
+          addToast("Erro ao criar conta.", "error");
+          return false;
+        }
+
+        const c = mapClinic(newClinic as SupabaseClinic);
+        const user: AuthUser = { role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name };
+        setAuthUser(user);
+        setClinic(c);
+        localStorage.setItem("morpheus_auth", JSON.stringify(user));
+
+        addToast("Conta criada com sucesso!", "success");
+        return true;
+      } catch (err) {
+        console.error("Signup failed:", err);
+        addToast("Erro ao criar conta.", "error");
+        return false;
+      }
+    },
+    [addToast]
   );
 
   const logout = useCallback(() => {
@@ -555,6 +609,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [addToast, authUser]
   );
 
+  const startTrial = useCallback(
+    async (email?: string) => {
+      await startCheckout("essential", "monthly", email);
+    },
+    [startCheckout]
+  );
+
   const openBillingPortal = useCallback(async () => {
     if (!checkoutEnabled) {
       addToast("Portal de cobranca indisponivel.", "info");
@@ -588,10 +649,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         loading,
         authUser,
         clinic,
+        selectedPlan,
         billingRequired,
         billingActive,
         checkoutEnabled,
         login,
+        signup,
         logout,
         setView,
         setActivePsych,
@@ -607,6 +670,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTheme,
         refreshBilling,
         startCheckout,
+        startTrial,
         openBillingPortal,
       }}
     >
@@ -629,10 +693,12 @@ export function useApp() {
       loading: false,
       authUser: null as AuthUser | null,
       clinic: null as Clinic | null,
+      selectedPlan: null as PlanId | null,
       billingRequired,
       billingActive: !billingRequired,
       checkoutEnabled,
       login: (async () => false) as (email: string, passwordHash: string) => Promise<boolean>,
+      signup: (async () => false) as (data: { clinicName: string; email: string; passwordHash: string }) => Promise<boolean>,
       logout: () => {},
       setView: () => {},
       setActivePsych: () => {},
@@ -648,6 +714,7 @@ export function useApp() {
       setTheme: (() => {}) as (theme: Theme) => void,
       refreshBilling: async () => {},
       startCheckout: (async () => {}) as (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>,
+      startTrial: (async () => {}) as (email?: string) => Promise<void>,
       openBillingPortal: async () => {},
     } as AppContextType;
   }

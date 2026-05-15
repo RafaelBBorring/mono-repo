@@ -89,22 +89,34 @@ const benefits = [
 
 const plans = [
   {
-    name: "Mensal",
+    id: "essential",
+    name: "Essential",
     price: "R$ 30",
     cadence: "/mês",
-    note: "Ideal para começar agora",
-    cta: "Assinar mensal",
+    note: "Para clínicas que estão começando",
+    cta: "Assinar Essential",
     highlight: false,
-    bullets: ["Salas ilimitadas", "Doutores ilimitados", "Agenda completa", "Cancelamento simples"],
+    bullets: ["Até 3 salas", "Até 10 profissionais", "Agenda completa", "Suporte por e-mail"],
   },
   {
-    name: "Anual",
-    price: "R$ 324",
-    cadence: "/ano",
-    note: "Equivale a R$ 27 por mês",
-    cta: "Assinar anual",
+    id: "pro",
+    name: "Pro",
+    price: "R$ 50",
+    cadence: "/mês",
+    note: "Para clínicas em crescimento",
+    cta: "Assinar Pro",
     highlight: true,
-    bullets: ["Economia de R$ 36", "Tudo do plano mensal", "Prioridade no onboarding", "Melhor custo para clínicas"],
+    bullets: ["Até 6 salas", "Até 15 profissionais", "Tudo do Essential", "Prioridade no suporte"],
+  },
+  {
+    id: "elite",
+    name: "Elite",
+    price: "R$ 80",
+    cadence: "/mês",
+    note: "Para clínicas consolidadas",
+    cta: "Assinar Elite",
+    highlight: false,
+    bullets: ["Até 10 salas", "Até 20 profissionais", "Tudo do Pro", "Onboarding assistido"],
   },
 ];
 
@@ -198,18 +210,18 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:gap-4">
               <Link
-                href="/app?subscribe=monthly"
+                href="/app?action=signup&plan=essential"
                 className="magnetic-button inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-2xl shadow-black/25 sm:min-h-[58px] sm:gap-3 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
               >
-                Começar por R$ 30/mês
-                <ArrowRight size={20} />
+                Testar grátis por 7 dias
+                <Sparkles size={20} />
               </Link>
               <a
-                href="#experiencia"
+                href="#planos"
                 className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-6 py-3 font-body text-base font-bold text-[var(--text-primary)] backdrop-blur transition hover:border-[var(--accent-lavender)] hover:bg-[var(--bg-elevated)] sm:min-h-[58px] sm:gap-3 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
               >
-                Ver experiência
-                <MousePointerClick size={20} />
+                Ver planos
+                <ArrowRight size={20} />
               </a>
             </div>
           </motion.div>
@@ -217,8 +229,8 @@ export default function LandingPage() {
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ["5s", "para encontrar um horário livre"],
-              ["1 clínica", "com múltiplos doutores"],
-              ["R$ 30", "por mês, sem pacote confuso"],
+              ["7 dias", "de teste grátis sem cartão"],
+              ["R$ 30", "por mês, plano mais acessível"],
             ].map(([value, label]) => (
               <div key={label} className="rounded-2xl border border-[var(--border-light)] bg-[var(--glass-strong)] p-4 backdrop-blur-xl sm:rounded-3xl sm:p-5">
                 <p className="font-brand text-3xl font-semibold text-[var(--accent-lavender)] sm:text-4xl">{value}</p>
@@ -429,21 +441,21 @@ export default function LandingPage() {
                 Preço simples para uma clínica inteira.
               </h2>
               <p className="mx-auto mt-4 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] md:text-lg">
-                Sem limitar salas ou profissionais. Escolha mensal ou anual com desconto leve.
+                Escolha o plano ideal. Todos incluem <strong>7 dias grátis</strong> para testar sem compromisso.
               </p>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-3">
               {plans.map((plan) => (
                 <div
-                  key={plan.name}
+                  key={plan.id}
                   className={`relative overflow-hidden rounded-2xl p-6 sm:rounded-[2rem] sm:p-7 ${
                     plan.highlight ? "border-2 border-[var(--accent-mint)] bg-[var(--bg-elevated)]" : "premium-panel"
                   }`}
                 >
                   {plan.highlight && (
                     <span className="absolute right-4 top-4 rounded-full bg-[var(--accent-mint)] px-3 py-1.5 font-body text-xs font-extrabold uppercase tracking-[0.16em] text-[#062019] sm:right-5 sm:top-5 sm:px-4 sm:py-2">
-                      melhor valor
+                      mais popular
                     </span>
                   )}
                   <h3 className="font-brand text-2xl font-semibold md:text-3xl">{plan.name}</h3>
@@ -461,7 +473,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <Link
-                    href={`/app?subscribe=${plan.name === "Anual" ? "yearly" : "monthly"}`}
+                    href={`/app?action=signup&plan=${plan.id}`}
                     className="magnetic-button mt-6 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(135deg,var(--action-primary),var(--action-secondary))] px-6 py-3 font-body text-base font-extrabold text-[var(--action-foreground)] shadow-xl sm:mt-8 sm:rounded-2xl sm:px-8 sm:py-4 sm:text-lg"
                   >
                     {plan.cta}
@@ -469,6 +481,19 @@ export default function LandingPage() {
                   </Link>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-8 text-center">
+              <Link
+                href="/app?action=signup&plan=essential"
+                className="magnetic-button inline-flex items-center gap-3 rounded-2xl border-2 border-[var(--accent-mint)] px-8 py-4 font-body text-lg font-extrabold text-[var(--accent-mint)] transition hover:bg-[var(--accent-mint)] hover:text-[#062019] sm:px-10 sm:py-5 sm:text-xl"
+              >
+                <Sparkles size={22} />
+                Testar grátis por 7 dias
+              </Link>
+              <p className="mt-3 font-body text-sm text-[var(--text-muted)]">
+                Sem cartão de crédito. Plano Essential durante o trial.
+              </p>
             </div>
           </div>
         </section>
