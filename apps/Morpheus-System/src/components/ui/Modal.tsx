@@ -10,14 +10,16 @@ interface ModalProps {
   children: React.ReactNode;
   colorRgb?: string;
   wide?: boolean;
+  title?: string;
 }
 
 export default function Modal({
   open,
   onClose,
   children,
-  colorRgb = "196,181,253",
+  colorRgb = "143,174,155",
   wide = false,
+  title,
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -44,26 +46,43 @@ export default function Modal({
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-[var(--bg-primary)]"
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6 bg-[var(--bg-primary)]"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={title ? "modal-title" : undefined}
     >
-      <div className="absolute inset-0 bg-[rgba(6,4,15,0.84)] backdrop-blur-lg" />
       <div
-        className={`relative bg-[var(--bg-elevated)] rounded-2xl p-6 md:p-8 max-h-[88vh] overflow-y-auto animate-slide-up shadow-2xl ${
-          wide ? "w-full max-w-[600px]" : "w-full max-w-[480px]"
+        className="absolute inset-0 backdrop-blur-lg"
+        style={{
+          background: "color-mix(in srgb, var(--bg-primary) 88%, rgba(36,49,45,0.18))",
+        }}
+      />
+      <div
+        className={`relative bg-[var(--bg-elevated)] rounded-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto animate-slide-up shadow-2xl ${
+          wide ? "w-full max-w-[700px]" : "w-full max-w-[540px]"
         }`}
         style={{
-          border: `1px solid rgba(${colorRgb},0.22)`,
+          border: `2px solid rgba(${colorRgb},0.25)`,
         }}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-light)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+          className="absolute top-5 right-5 w-12 h-12 min-w-[48px] min-h-[48px] rounded-2xl bg-[var(--bg-surface)] border-2 border-[var(--border-medium)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent-lavender)] transition-all cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-lavender)]/30"
+          aria-label="Fechar"
         >
-          <X size={16} />
+          <X size={24} />
         </button>
+        {title && (
+          <h2
+            id="modal-title"
+            className="font-display text-2xl md:text-3xl font-light text-[var(--text-primary)] mb-6 pr-16"
+          >
+            {title}
+          </h2>
+        )}
         {children}
       </div>
     </div>,

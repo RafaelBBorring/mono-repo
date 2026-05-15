@@ -19,8 +19,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        display: ["Playfair Display", "serif"],
-        body: ["Nunito", "sans-serif"],
+        display: ["Georgia", "Times New Roman", "serif"],
+        body: ["Inter", "Segoe UI", "Arial", "sans-serif"],
+        brand: ["Cinzel", "Georgia", "Times New Roman", "serif"],
       },
       fontSize: {
         "2xs": "0.65rem",

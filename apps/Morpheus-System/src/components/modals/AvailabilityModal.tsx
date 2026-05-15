@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Modal from "@/components/ui/Modal";
-import { ROOMS, PSYCHOLOGISTS } from "@/lib/data";
 import { themeHex, themeRgb } from "@/lib/utils";
 
 interface AvailabilityModalProps {
@@ -15,7 +14,7 @@ export default function AvailabilityModal({
   open,
   onClose,
 }: AvailabilityModalProps) {
-  const { reservations, theme } = useApp();
+  const { reservations, theme, rooms, psychologists } = useApp();
   const [avDate, setAvDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
@@ -65,7 +64,7 @@ export default function AvailabilityModal({
       </div>
 
       <div className="flex flex-col gap-3">
-        {ROOMS.map((room) => {
+        {rooms.map((room) => {
           const roomColor = themeHex(room, isDark);
           const roomRgb = themeRgb(room, isDark);
           const roomRes = dayRes.filter((r) => r.roomId === room.id);
@@ -96,7 +95,7 @@ export default function AvailabilityModal({
                   </div>
                 ) : (
                   roomRes.map((r) => {
-                    const psych = PSYCHOLOGISTS.find(
+                    const psych = psychologists.find(
                       (p) => p.id === r.psychId
                     );
                     if (!psych) return null;
@@ -140,7 +139,7 @@ export default function AvailabilityModal({
           Profissionais
         </p>
         <div className="flex flex-wrap gap-2">
-          {PSYCHOLOGISTS.map((p) => {
+          {psychologists.map((p) => {
             const color = themeHex(p, isDark);
             const rgb = themeRgb(p, isDark);
 

@@ -1,12 +1,11 @@
 "use client";
 
+import { Clock, FileText, MapPin, Trash2 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { themeHex, themeRgb } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import { ROOMS, PSYCHOLOGISTS } from "@/lib/data";
-import { themeHex, themeRgb } from "@/lib/utils";
 import type { Reservation } from "@/types";
-import { Clock, FileText, Trash2 } from "lucide-react";
 
 interface ReservationDetailModalProps {
   open: boolean;
@@ -19,12 +18,12 @@ export default function ReservationDetailModal({
   onClose,
   reservation,
 }: ReservationDetailModalProps) {
-  const { removeReservation, activePsych, view, theme } = useApp();
+  const { removeReservation, activePsych, view, theme, rooms, psychologists } = useApp();
 
   if (!reservation) return null;
 
-  const room = ROOMS.find((r) => r.id === reservation.roomId);
-  const psych = PSYCHOLOGISTS.find((p) => p.id === reservation.psychId);
+  const room = rooms.find((item) => item.id === reservation.roomId);
+  const psych = psychologists.find((item) => item.id === reservation.psychId);
   if (!room || !psych) return null;
 
   const isDark = theme === "dark";
@@ -32,90 +31,96 @@ export default function ReservationDetailModal({
   const roomRgb = themeRgb(room, isDark);
   const psychColor = themeHex(psych, isDark);
   const psychRgb = themeRgb(psych, isDark);
+  const canDelete = view === "admin" || activePsych?.id === reservation.psychId;
 
-  const dateFormatted = new Date(reservation.date + "T00:00:00").toLocaleDateString("pt-BR", {
+  const dateFormatted = new Date(`${reservation.date}T00:00:00`).toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 
-  const canDelete = view === "admin" || activePsych?.id === reservation.psychId;
-
   return (
-    <Modal open={open} onClose={onClose} colorRgb={roomRgb}>
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-1">
-          <div
-            className="w-4 h-4 rounded-full"
-            style={{ background: roomColor }}
-          />
-          <h2 className="font-display text-2xl text-[var(--text-primary)] font-light">
-            {room.name}
-          </h2>
-        </div>
-        <p className="font-body text-sm text-[var(--text-muted)] capitalize">
-          {dateFormatted}
-        </p>
-      </div>
-
-      <div
-        className="p-4 rounded-xl mb-6"
-        style={{
-          background: `rgba(${psychRgb},${isDark ? 0.09 : 0.07})`,
-          border: `1px solid rgba(${psychRgb},${isDark ? 0.2 : 0.18})`,
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center font-body text-sm font-bold flex-shrink-0"
-            style={{
-              background: `rgba(${psychRgb},${isDark ? 0.22 : 0.1})`,
-              color: psychColor,
-            }}
-          >
-            {psych.initials}
-          </div>
-          <div className="min-w-0">
-            <p className="font-body text-lg text-[var(--text-primary)] font-medium">
-              {psych.name}
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <Clock size={13} style={{ color: `rgba(${psychRgb},${isDark ? 0.66 : 0.8})` }} />
-              <span
-                className="font-body text-sm"
-                style={{ color: `rgba(${psychRgb},${isDark ? 0.66 : 0.8})` }}
-              >
-                {reservation.startTime} - {reservation.endTime}
+    <Modal open={open} onClose={onClose} colorRgb={roomRgb} title="Detalhes da reserva">
+      <div className="grid gap-5">
+        <section
+          className="rounded-3xl border p-5"
+          style={{
+            background: `rgba(${roomRgb},${isDark ? 0.1 : 0.07})`,
+            borderColor: `rgba(${roomRgb},${isDark ? 0.34 : 0.24})`,
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl border" style={{ color: roomColor, borderColor: roomColor }}>
+              <MapPin size={27} />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate font-brand text-3xl font-semibold" style={{ color: roomColor }}>
+                {room.name}
               </span>
-            </div>
-            {reservation.notes && (
-              <div className="flex items-start gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: `rgba(${psychRgb},0.12)` }}>
-                <FileText size={13} className="text-[var(--text-muted)] mt-0.5" />
-                <span className="font-body text-sm text-[var(--text-muted)]">
-                  {reservation.notes}
+              <span className="mt-1 block truncate font-body text-base text-[var(--text-muted)] capitalize">
+                {dateFormatted}
+              </span>
+            </span>
+          </div>
+        </section>
+
+        <section
+          className="rounded-3xl border p-5"
+          style={{
+            background: `rgba(${psychRgb},${isDark ? 0.1 : 0.07})`,
+            borderColor: `rgba(${psychRgb},${isDark ? 0.34 : 0.24})`,
+          }}
+        >
+          <div className="flex items-start gap-4">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border font-brand text-xl font-semibold" style={{ color: psychColor, borderColor: psychColor }}>
+              {psych.initials}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-brand text-2xl font-semibold text-[var(--text-primary)]">
+                {psych.name}
+              </p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-2xl border px-4 py-2" style={{ color: psychColor, borderColor: `rgba(${psychRgb},0.36)` }}>
+                <Clock size={19} />
+                <span className="font-body text-base font-extrabold">
+                  {reservation.startTime} - {reservation.endTime}
                 </span>
               </div>
-            )}
+
+              {reservation.notes && (
+                <div className="mt-5 flex items-start gap-3 border-t border-[var(--border-light)] pt-5">
+                  <FileText size={20} className="mt-0.5 shrink-0 text-[var(--text-muted)]" />
+                  <div>
+                    <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      Observação
+                    </p>
+                    <p className="mt-1 font-body text-base text-[var(--text-primary)]">
+                      {reservation.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div className="flex gap-3">
-        <Button variant="ghost" className="flex-1" onClick={onClose}>
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <Button variant="ghost" size="lg" className="flex-1" onClick={onClose}>
           Fechar
         </Button>
         {canDelete && (
           <Button
             variant="danger"
+            size="lg"
             className="flex-1"
             onClick={() => {
               removeReservation(reservation.id);
               onClose();
             }}
           >
-            <Trash2 size={16} />
-            Excluir Reserva
+            <Trash2 size={20} />
+            Excluir reserva
           </Button>
         )}
       </div>

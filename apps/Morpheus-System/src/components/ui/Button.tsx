@@ -3,36 +3,70 @@
 import { cn } from "@/lib/utils";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "ghost" | "danger";
+  variant?: "primary" | "ghost" | "danger" | "gradient";
   colorRgb?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
+  fullWidth?: boolean;
 }
 
 export default function Button({
   variant = "primary",
-  colorRgb = "196,181,253",
+  colorRgb = "143,174,155",
   size = "md",
+  fullWidth = false,
   className,
   children,
+  disabled,
   ...props
 }: ButtonProps) {
   const sizeClasses = {
-    sm: "px-3 py-2 text-sm",
-    md: "px-5 py-3 text-base",
-    lg: "px-7 py-4 text-lg",
+    sm: "px-5 py-3 text-base min-h-[44px]",
+    md: "px-7 py-4 text-lg min-h-[52px]",
+    lg: "px-9 py-5 text-xl min-h-[60px]",
+    xl: "px-12 py-6 text-2xl min-h-[68px]",
   };
+
+  const widthClass = fullWidth ? "w-full" : "";
+
+  const baseClasses = cn(
+    "rounded-2xl font-body cursor-pointer font-semibold",
+    "transition-all duration-[150ms] ease-[var(--ease-premium)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-lavender)]/30",
+    "inline-flex items-center justify-center gap-3",
+    "disabled:opacity-50 disabled:cursor-not-allowed",
+    sizeClasses[size],
+    widthClass,
+    className
+  );
+
+  if (variant === "gradient") {
+    return (
+      <button
+        className={cn(
+          baseClasses,
+          "text-[var(--action-foreground)] font-bold border border-white/10 shadow-xl shadow-black/20 magnetic-button",
+          "hover:shadow-2xl hover:shadow-[var(--accent-lavender)]/25 hover:translate-y-[-1px]"
+        )}
+        style={{
+          background: "linear-gradient(135deg, var(--action-primary), var(--action-secondary))",
+        }}
+        disabled={disabled}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  }
 
   if (variant === "ghost") {
     return (
       <button
         className={cn(
-          "rounded-xl border border-[var(--border-light)] bg-transparent",
-          "text-[var(--text-muted)] font-body cursor-pointer",
-          "transition-all duration-200 hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]",
-          "inline-flex items-center justify-center gap-2",
-          sizeClasses[size],
-          className
+          baseClasses,
+          "rounded-2xl border-2 border-[var(--border-medium)] bg-[var(--glass-soft)]",
+          "text-[var(--text-primary)] font-medium",
+          "hover:bg-[var(--bg-elevated)] hover:border-[var(--accent-lavender)]"
         )}
+        disabled={disabled}
         {...props}
       >
         {children}
@@ -44,13 +78,12 @@ export default function Button({
     return (
       <button
         className={cn(
-          "rounded-xl border border-[rgba(253,164,175,0.3)] bg-[rgba(253,164,175,0.07)]",
-          "text-[#fda4af] font-body cursor-pointer",
-          "transition-all duration-200 hover:bg-[rgba(253,164,175,0.18)]",
-          "inline-flex items-center justify-center gap-2",
-          sizeClasses[size],
-          className
+          baseClasses,
+          "border-2 border-[var(--state-error)] bg-[rgba(201,106,91,0.12)]",
+          "text-[var(--state-error)] font-semibold",
+          "hover:bg-[rgba(201,106,91,0.18)] hover:border-[var(--state-error)]"
         )}
+        disabled={disabled}
         {...props}
       >
         {children}
@@ -61,22 +94,16 @@ export default function Button({
   return (
     <button
       className={cn(
-        "rounded-xl font-body cursor-pointer text-[var(--text-primary)] font-medium",
-        "transition-all duration-200",
-        "inline-flex items-center justify-center gap-2",
-        sizeClasses[size],
-        className
+        baseClasses,
+        "border-2 font-semibold",
+        "hover:border-[var(--accent-lavender)] hover:scale-[1.02]"
       )}
       style={{
-        border: `1px solid rgba(${colorRgb},0.32)`,
-        background: `rgba(${colorRgb},0.09)`,
+        borderColor: `rgba(${colorRgb},0.35)`,
+        background: `linear-gradient(135deg, rgba(${colorRgb},0.2), rgba(${colorRgb},0.08))`,
+        color: "var(--text-primary)",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = `rgba(${colorRgb},0.2)`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = `rgba(${colorRgb},0.09)`;
-      }}
+      disabled={disabled}
       {...props}
     >
       {children}

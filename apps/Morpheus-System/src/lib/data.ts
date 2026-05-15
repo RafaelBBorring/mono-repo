@@ -1,55 +1,44 @@
 import type { Room, Psychologist, Reservation } from "@/types";
-import { format, addDays } from "date-fns";
+import type { SupabaseRoom, SupabasePsychologist, SupabaseReservation } from "@/types";
 
-export const ROOMS: Room[] = [
-  { id: 1, name: "Sala 01", hex: "#c4b5fd", rgb: "196,181,253", lightHex: "#6d28d9", lightRgb: "109,40,217" },
-  { id: 2, name: "Sala 02", hex: "#7dd3fc", rgb: "125,211,252", lightHex: "#0369a1", lightRgb: "3,105,161" },
-  { id: 3, name: "Sala 03", hex: "#fda4af", rgb: "253,164,175", lightHex: "#be123c", lightRgb: "190,18,60" },
-  { id: 4, name: "Sala 04", hex: "#6ee7b7", rgb: "110,231,183", lightHex: "#047857", lightRgb: "4,120,87" },
-];
-
-export const PSYCHOLOGISTS: Psychologist[] = [
+export const COLOR_PALETTES = [
   {
-    id: 1,
-    name: "Dra. Cátia Alves",
-    shortName: "Cátia Alves",
-    initials: "CA",
-    hex: "#c4b5fd",
-    rgb: "196,181,253",
-    lightHex: "#6d28d9",
-    lightRgb: "109,40,217",
+    hex: "#8fae9b",
+    rgb: "143,174,155",
+    lightHex: "#3f6b5b",
+    lightRgb: "63,107,91",
   },
   {
-    id: 2,
-    name: "Dr. Marcelo Dias",
-    shortName: "Marcelo Dias",
-    initials: "MD",
-    hex: "#7dd3fc",
-    rgb: "125,211,252",
-    lightHex: "#0369a1",
-    lightRgb: "3,105,161",
+    hex: "#a9d6e5",
+    rgb: "169,214,229",
+    lightHex: "#4f8fa5",
+    lightRgb: "79,143,165",
   },
   {
-    id: 3,
-    name: "Dra. Fernanda Cruz",
-    shortName: "Fernanda Cruz",
-    initials: "FC",
-    hex: "#fda4af",
-    rgb: "253,164,175",
-    lightHex: "#be123c",
-    lightRgb: "190,18,60",
+    hex: "#c98268",
+    rgb: "201,130,104",
+    lightHex: "#9b5e4a",
+    lightRgb: "155,94,74",
   },
   {
-    id: 4,
-    name: "Dra. Juliana Matos",
-    shortName: "Juliana Matos",
-    initials: "JM",
-    hex: "#6ee7b7",
-    rgb: "110,231,183",
-    lightHex: "#047857",
-    lightRgb: "4,120,87",
+    hex: "#6baa75",
+    rgb: "107,170,117",
+    lightHex: "#3f6b5b",
+    lightRgb: "63,107,91",
   },
-];
+  {
+    hex: "#d8a24a",
+    rgb: "216,162,74",
+    lightHex: "#946817",
+    lightRgb: "148,104,23",
+  },
+  {
+    hex: "#ece8dd",
+    rgb: "236,232,221",
+    lightHex: "#66736e",
+    lightRgb: "102,115,110",
+  },
+] as const;
 
 export const MONTHS = [
   "Janeiro",
@@ -67,16 +56,6 @@ export const MONTHS = [
 ];
 
 export const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-export const WEEKDAYS_FULL = [
-  "Domingo",
-  "Segunda",
-  "Terça",
-  "Quarta",
-  "Quinta",
-  "Sexta",
-  "Sábado",
-];
 
 export const HOURS = [
   "08:00",
@@ -106,200 +85,54 @@ export const HOURS = [
   "20:00",
 ];
 
-export const ADMIN_PIN = "1234";
-
-const today = new Date();
-
-function makeReservations(): Reservation[] {
-  const d = (n: number) => format(addDays(today, n), "yyyy-MM-dd");
-  return [
-    {
-      id: "r1",
-      roomId: 1,
-      psychId: 1,
-      date: d(0),
-      startTime: "09:00",
-      endTime: "10:00",
-      notes: "",
-    },
-    {
-      id: "r2",
-      roomId: 2,
-      psychId: 2,
-      date: d(0),
-      startTime: "10:00",
-      endTime: "11:30",
-      notes: "Avaliação inicial",
-    },
-    {
-      id: "r3",
-      roomId: 3,
-      psychId: 3,
-      date: d(0),
-      startTime: "14:00",
-      endTime: "15:00",
-      notes: "",
-    },
-    {
-      id: "r4",
-      roomId: 4,
-      psychId: 4,
-      date: d(0),
-      startTime: "16:00",
-      endTime: "17:00",
-      notes: "",
-    },
-    {
-      id: "r5",
-      roomId: 1,
-      psychId: 2,
-      date: d(1),
-      startTime: "09:00",
-      endTime: "10:00",
-      notes: "",
-    },
-    {
-      id: "r6",
-      roomId: 2,
-      psychId: 4,
-      date: d(1),
-      startTime: "11:00",
-      endTime: "12:00",
-      notes: "Grupo terapêutico",
-    },
-    {
-      id: "r7",
-      roomId: 3,
-      psychId: 1,
-      date: d(1),
-      startTime: "14:00",
-      endTime: "15:30",
-      notes: "",
-    },
-    {
-      id: "r8",
-      roomId: 1,
-      psychId: 3,
-      date: d(2),
-      startTime: "09:00",
-      endTime: "10:00",
-      notes: "",
-    },
-    {
-      id: "r9",
-      roomId: 4,
-      psychId: 2,
-      date: d(2),
-      startTime: "13:00",
-      endTime: "14:00",
-      notes: "",
-    },
-    {
-      id: "r10",
-      roomId: 2,
-      psychId: 1,
-      date: d(3),
-      startTime: "10:00",
-      endTime: "11:00",
-      notes: "",
-    },
-    {
-      id: "r11",
-      roomId: 3,
-      psychId: 4,
-      date: d(3),
-      startTime: "15:00",
-      endTime: "16:30",
-      notes: "",
-    },
-    {
-      id: "r12",
-      roomId: 1,
-      psychId: 2,
-      date: d(5),
-      startTime: "09:00",
-      endTime: "10:00",
-      notes: "",
-    },
-    {
-      id: "r13",
-      roomId: 4,
-      psychId: 3,
-      date: d(5),
-      startTime: "14:00",
-      endTime: "15:00",
-      notes: "",
-    },
-    {
-      id: "r14",
-      roomId: 2,
-      psychId: 1,
-      date: d(7),
-      startTime: "09:00",
-      endTime: "10:30",
-      notes: "",
-    },
-    {
-      id: "r15",
-      roomId: 3,
-      psychId: 2,
-      date: d(7),
-      startTime: "13:00",
-      endTime: "14:00",
-      notes: "",
-    },
-    {
-      id: "r16",
-      roomId: 1,
-      psychId: 4,
-      date: d(8),
-      startTime: "10:00",
-      endTime: "11:00",
-      notes: "Avaliação",
-    },
-    {
-      id: "r17",
-      roomId: 2,
-      psychId: 3,
-      date: d(10),
-      startTime: "09:00",
-      endTime: "10:00",
-      notes: "",
-    },
-    {
-      id: "r18",
-      roomId: 4,
-      psychId: 1,
-      date: d(14),
-      startTime: "14:00",
-      endTime: "15:00",
-      notes: "",
-    },
-    {
-      id: "r19",
-      roomId: 1,
-      psychId: 3,
-      date: d(14),
-      startTime: "09:00",
-      endTime: "10:00",
-      notes: "",
-    },
-    {
-      id: "r20",
-      roomId: 3,
-      psychId: 2,
-      date: d(21),
-      startTime: "11:00",
-      endTime: "12:00",
-      notes: "",
-    },
-  ];
+export function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 }
 
-export const INITIAL_RESERVATIONS = makeReservations();
+export function mapRoom(row: SupabaseRoom): Room {
+  return {
+    id: row.id,
+    name: row.name,
+    hex: row.hex,
+    rgb: row.rgb,
+    lightHex: row.light_hex,
+    lightRgb: row.light_rgb,
+  };
+}
 
-export function generateId(): string {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
-  );
+export function mapPsychologist(row: SupabasePsychologist): Psychologist {
+  return {
+    id: row.id,
+    name: row.name,
+    shortName: row.short_name,
+    initials: row.initials,
+    email: row.email ?? undefined,
+    hex: row.hex,
+    rgb: row.rgb,
+    lightHex: row.light_hex,
+    lightRgb: row.light_rgb,
+  };
+}
+
+export function mapReservation(row: SupabaseReservation): Reservation {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    psychId: row.psych_id,
+    date: row.date,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    notes: row.notes ?? "",
+  };
+}
+
+export function toReservationRow(data: Omit<Reservation, "id">): Omit<SupabaseReservation, "id" | "created_at"> {
+  return {
+    room_id: data.roomId,
+    psych_id: data.psychId,
+    date: data.date,
+    start_time: data.startTime,
+    end_time: data.endTime,
+    notes: data.notes,
+  };
 }

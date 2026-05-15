@@ -16,7 +16,7 @@ export default function ParticleBackground() {
       antialias: true,
       alpha: true,
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
 
@@ -29,16 +29,17 @@ export default function ParticleBackground() {
     );
     camera.position.z = 55;
 
-    const N = 180;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const N = reduce ? 72 : 140;
     const pos = new Float32Array(N * 3);
     const col = new Float32Array(N * 3);
     const vel = new Float32Array(N * 3);
 
     const pal = [
-      new THREE.Color("#c4b5fd"),
-      new THREE.Color("#7dd3fc"),
-      new THREE.Color("#fda4af"),
-      new THREE.Color("#6ee7b7"),
+      new THREE.Color("#8fae9b"),
+      new THREE.Color("#a9d6e5"),
+      new THREE.Color("#c98268"),
+      new THREE.Color("#6baa75"),
     ];
 
     for (let i = 0; i < N; i++) {
@@ -67,37 +68,51 @@ export default function ParticleBackground() {
     scene.add(new THREE.Points(geo, mat));
 
     let t = 0;
-    let animId: number;
+    let animId = 0;
+    let running = true;
+    let visible = document.visibilityState === "visible";
 
     function tick() {
+      if (!running) return;
       animId = requestAnimationFrame(tick);
+      if (!visible) return;
+
       t += 0.001;
       const p = geo.attributes.position.array as Float32Array;
-      for (let i = 0; i < N; i++) {
-        p[i * 3] += vel[i * 3];
-        p[i * 3 + 1] += vel[i * 3 + 1];
-        if (p[i * 3] > 65) p[i * 3] = -65;
-        if (p[i * 3] < -65) p[i * 3] = 65;
-        if (p[i * 3 + 1] > 42) p[i * 3 + 1] = -42;
-        if (p[i * 3 + 1] < -42) p[i * 3 + 1] = 42;
+      if (!reduce) {
+        for (let i = 0; i < N; i++) {
+          p[i * 3] += vel[i * 3];
+          p[i * 3 + 1] += vel[i * 3 + 1];
+          if (p[i * 3] > 65) p[i * 3] = -65;
+          if (p[i * 3] < -65) p[i * 3] = 65;
+          if (p[i * 3 + 1] > 42) p[i * 3 + 1] = -42;
+          if (p[i * 3 + 1] < -42) p[i * 3 + 1] = 42;
+        }
+        geo.attributes.position.needsUpdate = true;
+        mat.opacity = 0.28 + Math.sin(t * 0.8) * 0.07;
       }
-      geo.attributes.position.needsUpdate = true;
-      mat.opacity = 0.3 + Math.sin(t * 0.8) * 0.09;
       renderer.render(scene, camera);
     }
 
     tick();
 
     const handleResize = () => {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       renderer.setSize(window.innerWidth, window.innerHeight);
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
     };
+    const handleVisibility = () => {
+      visible = document.visibilityState === "visible";
+    };
     window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      running = false;
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibility);
       renderer.dispose();
       geo.dispose();
       mat.dispose();

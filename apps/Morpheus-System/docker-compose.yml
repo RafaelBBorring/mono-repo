@@ -1,0 +1,23 @@
+services:
+  morpheus-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: morpheus-app
+    restart: unless-stopped
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SUPABASE_URL: https://wjwjbfzusppinjlyxznk.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indqd2piZnp1c3BwaW5qbHl4em5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTA2MjMsImV4cCI6MjA5NDI2NjYyM30.npzBD5TWoyQ2wfvuVEcOhq5fWjfd7A_2AlrDu8bA3ig
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

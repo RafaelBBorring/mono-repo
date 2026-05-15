@@ -8,9 +8,9 @@ export default function ToastContainer() {
   const { toasts, removeToast } = useApp();
 
   const colorMap = {
-    success: { bg: "rgba(110,231,183,0.13)", border: "rgba(110,231,183,0.42)", text: "#6ee7b7", Icon: CheckCircle },
-    error: { bg: "rgba(253,164,175,0.13)", border: "rgba(253,164,175,0.42)", text: "#fda4af", Icon: XCircle },
-    info: { bg: "rgba(196,181,253,0.13)", border: "rgba(196,181,253,0.42)", text: "#c4b5fd", Icon: Info },
+    success: { bg: "rgba(107,170,117,0.13)", border: "rgba(107,170,117,0.42)", text: "var(--state-success)", Icon: CheckCircle },
+    error: { bg: "rgba(201,106,91,0.13)", border: "rgba(201,106,91,0.42)", text: "var(--state-error)", Icon: XCircle },
+    info: { bg: "rgba(79,143,165,0.13)", border: "rgba(79,143,165,0.42)", text: "var(--accent-sky)", Icon: Info },
   };
 
   return (
