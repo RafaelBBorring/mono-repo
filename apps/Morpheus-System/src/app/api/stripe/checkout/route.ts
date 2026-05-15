@@ -77,6 +77,7 @@ export async function POST(request: Request) {
         interval,
       },
       subscription_data: {
+        trial_period_days: 7,
         metadata: {
           clinic_id: clinicId || "",
           plan,

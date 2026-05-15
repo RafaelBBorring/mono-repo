@@ -71,13 +71,13 @@ interface AppContextType {
   workspaces: UserWorkspace[];
   pendingInvitations: ClinicInvitation[];
   login: (email: string, passwordHash: string) => Promise<boolean>;
-  signup: (data: { clinicName: string; email: string; passwordHash: string }) => Promise<boolean>;
+  signup: (data: { clinicName?: string; email: string; passwordHash: string; role: "admin" | "doctor" }) => Promise<boolean>;
   logout: () => void;
   setView: (view: AppView) => void;
   setActivePsych: (psych: Psychologist | null) => void;
   addRoom: (name: string) => Promise<Room | null>;
   deleteRoom: (id: number) => Promise<void>;
-  addPsychologist: (data: { name: string; email?: string }) => Promise<{ psych: Psychologist; credentials: DoctorCredentials } | null>;
+  addPsychologist: (data: { name: string; email?: string }) => Promise<{ psych: Psychologist; credentials?: DoctorCredentials } | null>;
   deletePsychologist: (id: number) => Promise<void>;
   addReservation: (data: Omit<Reservation, "id">) => Promise<boolean>;
   removeReservation: (id: string) => Promise<void>;
@@ -252,8 +252,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
     localStorage.setItem("morpheus_workspace", clinicId);
 
+    await loadOperationalData(c.id);
+
     if (ws.role === "admin") {
       loadPendingInvitations(clinicId);
+      setView(billingRequired && !isBillingActive({
+        id: c.id,
+        stripeStatus: c.stripeStatus,
+        billingEnforced: c.billingEnforced,
+        currentPeriodEnd: c.currentPeriodEnd,
+        cancelAtPeriodEnd: c.cancelAtPeriodEnd,
+        updatedAt: new Date().toISOString(),
+      }) ? "billing" : "admin");
+    } else {
+      setView("psych");
     }
   }, [user, workspaces, loadPendingInvitations]);
 
@@ -261,7 +273,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!mounted) return;
     try {
       const saved = localStorage.getItem("morpheus_auth");
-      const savedWorkspace = localStorage.getItem("morpheus_workspace");
       const savedUserId = localStorage.getItem("morpheus_user_id");
 
       if (saved) {
@@ -275,9 +286,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .eq("id", savedUserId)
             .maybeSingle()
             .then(({ data }) => {
-              if (data) {
-                setUser(mapUser(data as SupabaseUser));
-              }
+              if (data) setUser(mapUser(data as SupabaseUser));
             });
         }
 
@@ -386,15 +395,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
                 localStorage.setItem("morpheus_workspace", single.clinicId);
 
-                if (billingActive || !billingRequired) {
-                  await loadOperationalData(c.id);
-                }
+                await loadOperationalData(c.id);
 
                 if (single.role === "admin") {
                   loadPendingInvitations(single.clinicId);
+                  const ba = !billingRequired || !c.billingEnforced || isBillingActive({
+                    id: c.id,
+                    stripeStatus: c.stripeStatus,
+                    billingEnforced: c.billingEnforced,
+                    currentPeriodEnd: c.currentPeriodEnd,
+                    cancelAtPeriodEnd: c.cancelAtPeriodEnd,
+                    updatedAt: new Date().toISOString(),
+                  });
+                  setView(ba ? "admin" : "billing");
+                } else {
+                  setView("psych");
                 }
-
-                setView(single.role === "admin" ? "admin" : "psych");
               }
             } else {
               setView("workspace");
@@ -421,10 +437,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
           localStorage.setItem("morpheus_workspace", c.id);
 
-          if (billingActive || !billingRequired) {
-            await loadOperationalData(c.id);
-          }
-          setView("admin");
+          await loadOperationalData(c.id);
+
+          const ba = !billingRequired || !c.billingEnforced || isBillingActive({
+            id: c.id,
+            stripeStatus: c.stripeStatus,
+            billingEnforced: c.billingEnforced,
+            currentPeriodEnd: c.currentPeriodEnd,
+            cancelAtPeriodEnd: c.cancelAtPeriodEnd,
+            updatedAt: new Date().toISOString(),
+          });
+          setView(ba ? "admin" : "billing");
           return true;
         }
 
@@ -458,9 +481,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
           localStorage.setItem("morpheus_workspace", c.id);
 
-          if (billingActive || !billingRequired) {
-            await loadOperationalData(c.id);
-          }
+          await loadOperationalData(c.id);
           setView("psych");
           return true;
         }
@@ -475,7 +496,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const signup = useCallback(
-    async (data: { clinicName: string; email: string; passwordHash: string }): Promise<boolean> => {
+    async (data: { clinicName?: string; email: string; passwordHash: string; role: "admin" | "doctor" }): Promise<boolean> => {
       if (!isSupabaseConfigured) return false;
 
       try {
@@ -508,6 +529,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const u = mapUser(newUser as SupabaseUser);
         setUser(u);
         localStorage.setItem("morpheus_user_id", u.id);
+
+        if (data.role === "doctor" || !data.clinicName) {
+          addToast("Conta criada! Peça ao administrador para convidar seu e-mail.", "success");
+          setView("login");
+          return true;
+        }
 
         const { data: newClinic, error: clinicError } = await supabase
           .from("clinics")
@@ -625,49 +652,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .eq("email", trimmedEmail)
           .maybeSingle();
 
-        if (existingUser) {
-          const { data: existingMembership } = await supabase
-            .from("clinic_doctors")
-            .select("id")
-            .eq("user_id", existingUser.id)
-            .eq("clinic_id", authUser.clinicId)
-            .maybeSingle();
-
-          if (existingMembership) {
-            addToast("Este profissional já está na clínica.", "error");
-            return { success: false };
-          }
-
-          await supabase
-            .from("clinic_doctors")
-            .insert({
-              clinic_id: authUser.clinicId,
-              user_id: existingUser.id,
-              email: trimmedEmail,
-              password_hash: "",
-              display_name: trimmedName,
-              role: "doctor",
-            });
-
-          addToast(`${trimmedName} adicionado(a) à clínica.`, "success");
-          return { success: true };
+        if (!existingUser) {
+          addToast("Usuário não encontrado. O profissional precisa criar uma conta primeiro.", "error");
+          return { success: false };
         }
 
-        const rawPassword = Math.random().toString(36).slice(2, 10);
-        const passwordHash = await sha256(rawPassword);
+        const { data: existingMembership } = await supabase
+          .from("clinic_doctors")
+          .select("id")
+          .eq("user_id", existingUser.id)
+          .eq("clinic_id", authUser.clinicId)
+          .maybeSingle();
 
-        const { data: newUser } = await supabase
-          .from("users")
-          .insert({
-            email: trimmedEmail,
-            password_hash: passwordHash,
-            display_name: trimmedName,
-          })
-          .select()
-          .single();
-
-        if (!newUser) {
-          addToast("Erro ao criar conta do profissional.", "error");
+        if (existingMembership) {
+          addToast("Este profissional já está na clínica.", "error");
           return { success: false };
         }
 
@@ -675,15 +673,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .from("clinic_doctors")
           .insert({
             clinic_id: authUser.clinicId,
-            user_id: (newUser as any).id,
+            user_id: existingUser.id,
             email: trimmedEmail,
-            password_hash: passwordHash,
+            password_hash: "",
             display_name: trimmedName,
             role: "doctor",
           });
 
         addToast(`${trimmedName} adicionado(a) à clínica.`, "success");
-        return { success: true, credentials: { email: trimmedEmail, password: rawPassword } };
+        return { success: true };
       } catch {
         addToast("Erro ao convidar profissional.", "error");
         return { success: false };
@@ -930,7 +928,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const addPsychologist = useCallback(
-    async (data: { name: string; email?: string }): Promise<{ psych: Psychologist; credentials: DoctorCredentials } | null> => {
+    async (data: { name: string; email?: string }): Promise<{ psych: Psychologist; credentials?: DoctorCredentials } | null> => {
       if (!ensureBillingAccess() || !clinicIdForInsert) return null;
 
       const name = data.name.trim();
@@ -945,6 +943,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (!existingUser) {
+          addToast("Usuário não encontrado. O profissional precisa criar uma conta primeiro em /app.", "error");
+          return null;
+        }
+
+        const { data: existingMembership } = await supabase
+          .from("clinic_doctors")
+          .select("id")
+          .eq("user_id", existingUser.id)
+          .eq("clinic_id", clinicIdForInsert)
+          .maybeSingle();
+
+        if (existingMembership) {
+          addToast("Este profissional já está na clínica.", "error");
+          return null;
+        }
+
         const { data: existing } = await supabase
           .from("psychologists")
           .select("id")
@@ -981,19 +1002,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         const psych = mapPsychologist(inserted);
 
-        const inviteResult = await inviteDoctor(email, name);
+        await supabase
+          .from("clinic_doctors")
+          .insert({
+            clinic_id: clinicIdForInsert,
+            user_id: existingUser.id,
+            psychologist_id: psych.id,
+            email: email,
+            password_hash: "",
+            display_name: name,
+            role: "doctor",
+          });
 
         addToast(`${psych.shortName} adicionado(a) à clínica.`, "success");
-        if (inviteResult.credentials) {
-          return { psych, credentials: inviteResult.credentials };
-        }
-        return { psych, credentials: { email, password: "(usar conta existente)" } };
+        return { psych };
       } catch {
         addToast("Erro ao criar profissional.", "error");
         return null;
       }
     },
-    [addToast, ensureBillingAccess, clinicIdForInsert, inviteDoctor]
+    [addToast, ensureBillingAccess, clinicIdForInsert]
   );
 
   const deletePsychologist = useCallback(
@@ -1049,35 +1077,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const startTrial = useCallback(
-    async () => {
-      if (!authUser || !isSupabaseConfigured) {
-        addToast("Faça login antes de ativar o trial.", "error");
-        return;
-      }
-
-      try {
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 7);
-
-        const { error } = await supabase
-          .from("clinics")
-          .update({
-            stripe_status: "trialing",
-            current_period_end: trialEnd.toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", authUser.clinicId);
-
-        if (error) throw error;
-
-        await refreshBilling();
-        addToast("Trial de 7 dias ativado! Aproveite o Morpheus.", "success");
-      } catch (err) {
-        console.error("Trial activation failed:", err);
-        addToast("Erro ao ativar o trial.", "error");
-      }
+    async (email?: string) => {
+      await startCheckout("essential", "monthly", email);
     },
-    [authUser, addToast, refreshBilling]
+    [startCheckout]
   );
 
   const openBillingPortal = useCallback(async () => {
@@ -1173,7 +1176,7 @@ export function useApp() {
       workspaces: [] as UserWorkspace[],
       pendingInvitations: [] as ClinicInvitation[],
       login: (async () => false) as (email: string, passwordHash: string) => Promise<boolean>,
-      signup: (async () => false) as (data: { clinicName: string; email: string; passwordHash: string }) => Promise<boolean>,
+      signup: (async () => false) as (data: { clinicName?: string; email: string; passwordHash: string; role: "admin" | "doctor" }) => Promise<boolean>,
       logout: () => {},
       setView: () => {},
       setActivePsych: () => {},

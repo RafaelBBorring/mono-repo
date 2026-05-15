@@ -202,7 +202,7 @@ export default function BillingGate() {
             disabled={loadingAction !== null || !checkoutEnabled}
           >
             <Sparkles size={20} />
-            {loadingAction === "trial" ? "Abrindo..." : "Testar grátis por 7 dias (Essential)"}
+            {loadingAction === "trial" ? "Abrindo..." : "Testar grátis por 7 dias — Essential (requer cartão)"}
           </Button>
 
           {clinic && (

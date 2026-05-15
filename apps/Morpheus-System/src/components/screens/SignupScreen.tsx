@@ -7,8 +7,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Button from "@/components/ui/Button";
 import { ArrowRight, Building2, Eye, EyeOff, LockKeyhole, Mail, User, Wand2 } from "lucide-react";
 
+type SignupMode = "admin" | "doctor";
+
 export default function SignupScreen() {
   const { signup, addToast, setView } = useApp();
+  const [mode, setMode] = useState<SignupMode>("admin");
   const [clinicName, setClinicName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,28 +20,46 @@ export default function SignupScreen() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const trimmedName = clinicName.trim();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
 
-    if (!trimmedName) {
-      addToast("Informe o nome da clínica.", "error");
-      return;
-    }
-    if (!trimmedEmail || !trimmedPassword) {
-      addToast("Preencha e-mail e senha.", "error");
-      return;
-    }
-    if (trimmedPassword.length < 6) {
-      addToast("A senha deve ter pelo menos 6 caracteres.", "error");
-      return;
-    }
+    if (mode === "admin") {
+      const trimmedName = clinicName.trim();
+      if (!trimmedName) {
+        addToast("Informe o nome da clínica.", "error");
+        return;
+      }
+      if (!trimmedEmail || !trimmedPassword) {
+        addToast("Preencha e-mail e senha.", "error");
+        return;
+      }
+      if (trimmedPassword.length < 6) {
+        addToast("A senha deve ter pelo menos 6 caracteres.", "error");
+        return;
+      }
 
-    setLoading(true);
-    const hash = await sha256(trimmedPassword);
-    const ok = await signup({ clinicName: trimmedName, email: trimmedEmail, passwordHash: hash });
-    if (!ok) {
-      setLoading(false);
+      setLoading(true);
+      const hash = await sha256(trimmedPassword);
+      const ok = await signup({ clinicName: trimmedName, email: trimmedEmail, passwordHash: hash, role: "admin" });
+      if (!ok) {
+        setLoading(false);
+      }
+    } else {
+      if (!trimmedEmail || !trimmedPassword) {
+        addToast("Preencha e-mail e senha.", "error");
+        return;
+      }
+      if (trimmedPassword.length < 6) {
+        addToast("A senha deve ter pelo menos 6 caracteres.", "error");
+        return;
+      }
+
+      setLoading(true);
+      const hash = await sha256(trimmedPassword);
+      const ok = await signup({ email: trimmedEmail, passwordHash: hash, role: "doctor" });
+      if (!ok) {
+        setLoading(false);
+      }
     }
   }
 
@@ -64,28 +85,57 @@ export default function SignupScreen() {
           </div>
         </div>
 
-        <h1 className="mb-2 text-center font-brand text-3xl font-semibold sm:text-4xl">Criar conta</h1>
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <button
+            onClick={() => setMode("admin")}
+            className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+              mode === "admin"
+                ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Sou administrador
+          </button>
+          <button
+            onClick={() => setMode("doctor")}
+            className={`rounded-xl px-4 py-2 font-body text-sm font-extrabold transition ${
+              mode === "doctor"
+                ? "bg-[var(--action-primary)] text-[var(--action-foreground)]"
+                : "border border-[var(--border-medium)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Sou profissional
+          </button>
+        </div>
+
+        <h1 className="mb-2 text-center font-brand text-3xl font-semibold sm:text-4xl">
+          {mode === "admin" ? "Criar clínica" : "Criar conta"}
+        </h1>
         <p className="mb-8 text-center font-body text-sm text-[var(--text-muted)]">
-          Cadastre sua clínica e comece o teste grátis de 7 dias
+          {mode === "admin"
+            ? "Cadastre sua clínica e comece o teste grátis de 7 dias"
+            : "Crie sua conta para acessar clínicas que te convidaram"}
         </p>
 
         <form
           onSubmit={handleSubmit}
           className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-6 shadow-2xl sm:rounded-[2rem] sm:p-7"
         >
-          <div className="mb-4">
-            <label className="mb-2 block font-body text-sm font-bold text-[var(--text-soft)]">Nome da clínica</label>
-            <div className="relative">
-              <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-              <input
-                type="text"
-                value={clinicName}
-                onChange={(e) => setClinicName(e.target.value)}
-                placeholder="Clínica Exemplo"
-                className="min-h-[52px] w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] py-3 pl-10 pr-4 font-body text-base font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-lavender)] focus:outline-none"
-              />
+          {mode === "admin" && (
+            <div className="mb-4">
+              <label className="mb-2 block font-body text-sm font-bold text-[var(--text-soft)]">Nome da clínica</label>
+              <div className="relative">
+                <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  value={clinicName}
+                  onChange={(e) => setClinicName(e.target.value)}
+                  placeholder="Clínica Exemplo"
+                  className="min-h-[52px] w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] py-3 pl-10 pr-4 font-body text-base font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-lavender)] focus:outline-none"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mb-4">
             <label className="mb-2 block font-body text-sm font-bold text-[var(--text-soft)]">Seu e-mail</label>
@@ -95,7 +145,7 @@ export default function SignupScreen() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@sua-clinica.com"
+                placeholder={mode === "admin" ? "voce@sua-clinica.com" : "seu-email@example.com"}
                 autoComplete="email"
                 className="min-h-[52px] w-full rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] py-3 pl-10 pr-4 font-body text-base font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-lavender)] focus:outline-none"
               />
@@ -126,12 +176,18 @@ export default function SignupScreen() {
 
           <Button variant="gradient" size="xl" fullWidth disabled={loading} type="submit">
             <ArrowRight size={22} />
-            {loading ? "Criando conta..." : "Criar conta e testar grátis"}
+            {loading
+              ? "Criando..."
+              : mode === "admin"
+                ? "Criar clínica e testar grátis"
+                : "Criar minha conta"}
           </Button>
         </form>
 
         <p className="mt-6 text-center font-body text-xs text-[var(--text-muted)]">
-          Ao criar a conta, você recebe 7 dias grátis do plano Essential.
+          {mode === "admin"
+            ? "Ao criar a conta, você recebe 7 dias grátis do Essential."
+            : "Após criar sua conta, peça ao administrador para convidar seu e-mail."}
         </p>
       </main>
     </div>

@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import SplashScreen from "@/components/screens/SplashScreen";
 import PsychDashboard from "@/components/screens/PsychDashboard";
 import AdminDashboard from "@/components/screens/AdminDashboard";
 import BillingGate from "@/components/screens/BillingGate";
@@ -15,7 +14,17 @@ import type { PlanId } from "@/lib/plans";
 const VALID_PLANS: PlanId[] = ["essential", "pro", "elite"];
 
 export default function AppRouter() {
-  const { view, billingRequired, billingActive, loading, authUser, setView, acceptInvitation, user, workspaces } = useApp();
+  const {
+    view,
+    billingRequired,
+    billingActive,
+    loading,
+    authUser,
+    setView,
+    acceptInvitation,
+    user,
+    workspaces,
+  } = useApp();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -46,6 +55,23 @@ export default function AppRouter() {
     }
   }, [searchParams, authUser, setView, user, workspaces.length, acceptInvitation]);
 
+  useEffect(() => {
+    if (loading || !authUser) return;
+    if (view !== "splash") return;
+
+    if (workspaces.length > 1 && !localStorage.getItem("morpheus_workspace")) {
+      setView("workspace");
+    } else if (authUser.role === "admin") {
+      if (billingRequired && !billingActive) {
+        setView("billing");
+      } else {
+        setView("admin");
+      }
+    } else {
+      setView("psych");
+    }
+  }, [loading, authUser, view, workspaces.length, billingRequired, billingActive, setView]);
+
   if (loading) return null;
 
   if (!authUser) {
@@ -55,15 +81,10 @@ export default function AppRouter() {
 
   if (view === "workspace") return <WorkspaceScreen />;
 
-  if (authUser.role === "doctor") {
-    if (view === "admin") return <AdminDashboard />;
-    if (view === "psych") return <PsychDashboard />;
-    return <PsychDashboard />;
+  if (authUser.role === "admin") {
+    if (view === "billing" || (billingRequired && !billingActive)) return <BillingGate />;
+    return <AdminDashboard />;
   }
 
-  if (view === "billing" || (billingRequired && !billingActive)) return <BillingGate />;
-
-  if (view === "admin") return <AdminDashboard />;
-  if (view === "psych") return <PsychDashboard />;
-  return <SplashScreen />;
+  return <PsychDashboard />;
 }
