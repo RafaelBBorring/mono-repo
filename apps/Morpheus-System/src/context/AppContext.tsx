@@ -63,10 +63,39 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 const billingRequired = process.env.NEXT_PUBLIC_BILLING_REQUIRED === "true";
 const checkoutEnabled = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED !== "false";
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
+const stripePriceMonthly = process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY || "";
+const stripePriceYearly = process.env.NEXT_PUBLIC_STRIPE_PRICE_YEARLY || "";
 const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
 
 function apiUrl(path: string) {
   return publicApiBaseUrl ? `${publicApiBaseUrl}${path}` : path;
+}
+
+let stripeJsPromise: Promise<any> | null = null;
+
+function loadStripeInstance(): Promise<any> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  const win = window as any;
+  if (win.__morpheusStripeInstance) return Promise.resolve(win.__morpheusStripeInstance);
+  if (stripeJsPromise) return stripeJsPromise;
+
+  stripeJsPromise = new Promise((resolve, reject) => {
+    if (win.Stripe) {
+      win.__morpheusStripeInstance = win.Stripe(stripePublishableKey);
+      resolve(win.__morpheusStripeInstance);
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = "https://js.stripe.com/v3/";
+    s.onload = () => {
+      win.__morpheusStripeInstance = win.Stripe(stripePublishableKey);
+      resolve(win.__morpheusStripeInstance);
+    };
+    s.onerror = () => reject(new Error("Failed to load Stripe.js"));
+    document.head.appendChild(s);
+  });
+  return stripeJsPromise;
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -275,26 +304,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const startCheckout = useCallback(
     async (plan: "monthly" | "yearly", email?: string) => {
       if (!checkoutEnabled) {
-        addToast("Checkout indisponivel no modo estatico do GitHub Pages.", "info");
+        addToast("Checkout indisponivel neste ambiente.", "info");
         return;
       }
 
-      try {
-        const response = await fetch(apiUrl("/api/stripe/checkout"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan, email }),
-        });
-        const payload = (await response.json()) as { url?: string; error?: string };
+      const priceId = plan === "yearly" ? stripePriceYearly : stripePriceMonthly;
 
-        if (!response.ok || !payload.url) {
-          throw new Error(payload.error || "Checkout indisponível.");
+      if (publicApiBaseUrl || !stripePublishableKey || !priceId) {
+        try {
+          const response = await fetch(apiUrl("/api/stripe/checkout"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan, email }),
+          });
+          const payload = (await response.json()) as { url?: string; error?: string };
+
+          if (!response.ok || !payload.url) {
+            throw new Error(payload.error || "Checkout indisponivel.");
+          }
+
+          window.location.href = payload.url;
+          return;
+        } catch (err) {
+          console.error("Server checkout failed:", err);
+          addToast("Nao foi possivel abrir o checkout.", "error");
+          return;
         }
+      }
 
-        window.location.href = payload.url;
+      try {
+        const stripe = await loadStripeInstance();
+        if (!stripe) throw new Error("Stripe.js not loaded");
+
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+        const baseUrl = window.location.origin;
+
+        const { error } = await stripe.redirectToCheckout({
+          lineItems: [{ price: priceId, quantity: 1 }],
+          mode: "subscription",
+          ...(email ? { customerEmail: email } : {}),
+          successUrl: `${baseUrl}${basePath}/app?checkout=success`,
+          cancelUrl: `${baseUrl}${basePath}/landing?checkout=canceled`,
+          clientReferenceId: "default",
+        });
+
+        if (error) throw error;
       } catch (err) {
-        console.error("Checkout failed:", err);
-        addToast("Não foi possível abrir o checkout.", "error");
+        console.error("Client-side checkout failed:", err);
+        addToast("Nao foi possivel abrir o checkout.", "error");
       }
     },
     [addToast]

@@ -107,12 +107,6 @@ export default function BillingGate() {
           </label>
 
           <div className="grid gap-3">
-            {!checkoutEnabled && (
-              <div className="rounded-xl border border-[var(--border-light)] bg-[var(--glass-soft)] px-4 py-3 font-body text-sm font-bold leading-6 text-[var(--text-muted)]">
-                Modo GitHub Pages: teste estatico sem rotas de pagamento. O checkout Stripe precisa de Docker, Vercel,
-                Render ou outro backend.
-              </div>
-            )}
             <Button
               variant="gradient"
               size="xl"
