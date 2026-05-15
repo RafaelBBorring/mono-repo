@@ -9,17 +9,9 @@ import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export default function BillingGate() {
-  const {
-    billingAccount,
-    refreshBilling,
-    startCheckout,
-    openBillingPortal,
-    theme,
-    checkoutEnabled,
-  } = useApp();
+  const { clinic, refreshBilling, startCheckout, openBillingPortal, theme, checkoutEnabled } = useApp();
   const [loadingPlan, setLoadingPlan] = useState<"monthly" | "yearly" | "portal" | null>(null);
   const [email, setEmail] = useState("");
-  const isDark = theme === "dark";
 
   useEffect(() => {
     refreshBilling();
@@ -69,14 +61,14 @@ export default function BillingGate() {
 
           <div className="mt-6 rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-4">
             <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-              Status atual
+              Clínica: {clinic?.name || "—"}
             </p>
             <p className="mt-2 font-brand text-2xl font-semibold">
-              {billingStatusLabel(billingAccount?.stripeStatus)}
+              {billingStatusLabel(clinic?.stripeStatus)}
             </p>
-            {billingAccount?.currentPeriodEnd && (
+            {clinic?.currentPeriodEnd && (
               <p className="mt-2 font-body text-sm font-bold text-[var(--text-muted)]">
-                Vigência até {new Date(billingAccount.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                Vigência até {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
               </p>
             )}
           </div>
@@ -127,7 +119,7 @@ export default function BillingGate() {
               <ArrowRight size={20} />
               {loadingPlan === "yearly" ? "Abrindo..." : "Assinar anual com desconto"}
             </Button>
-            {billingAccount?.stripeCustomerId && (
+            {clinic?.stripeCustomerId && (
               <button
                 onClick={handlePortal}
                 disabled={loadingPlan !== null || !checkoutEnabled}
@@ -141,7 +133,7 @@ export default function BillingGate() {
               onClick={refreshBilling}
               className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
             >
-              <RefreshCw size={16} className={isDark ? "text-[var(--accent-sky)]" : "text-[var(--accent-lavender)]"} />
+              <RefreshCw size={16} className={theme === "dark" ? "text-[var(--accent-sky)]" : "text-[var(--accent-lavender)]"} />
               Revalidar status
             </button>
           </div>

@@ -5,11 +5,16 @@ import SplashScreen from "@/components/screens/SplashScreen";
 import PsychDashboard from "@/components/screens/PsychDashboard";
 import AdminDashboard from "@/components/screens/AdminDashboard";
 import BillingGate from "@/components/screens/BillingGate";
+import LoginScreen from "@/components/screens/LoginScreen";
 
 export default function AppRouter() {
-  const { view, billingRequired, billingActive, loading } = useApp();
+  const { view, billingRequired, billingActive, loading, authUser } = useApp();
 
-  if (billingRequired && !billingActive && !loading) return <BillingGate />;
+  if (loading) return null;
+
+  if (!authUser) return <LoginScreen />;
+
+  if (billingRequired && !billingActive) return <BillingGate />;
 
   if (view === "admin") return <AdminDashboard />;
   if (view === "psych") return <PsychDashboard />;

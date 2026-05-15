@@ -8,12 +8,13 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import type { AppView, BillingAccount, Psychologist, Reservation, Room } from "@/types";
+import type { AppView, Psychologist, Reservation, Room } from "@/types";
 import { isBillingActive } from "@/lib/billing";
+import type { AuthUser, Clinic } from "@/lib/auth";
+import { mapClinic, type SupabaseClinic, type SupabaseClinicDoctor } from "@/lib/auth";
 import {
   COLOR_PALETTES,
   generateId,
-  mapBillingAccount,
   mapRoom,
   mapPsychologist,
   mapReservation,
@@ -38,10 +39,13 @@ interface AppContextType {
   toasts: Toast[];
   theme: Theme;
   loading: boolean;
-  billingAccount: BillingAccount | null;
+  authUser: AuthUser | null;
+  clinic: Clinic | null;
   billingRequired: boolean;
   billingActive: boolean;
   checkoutEnabled: boolean;
+  login: (email: string, passwordHash: string) => Promise<boolean>;
+  logout: () => void;
   setView: (view: AppView) => void;
   setActivePsych: (psych: Psychologist | null) => void;
   addRoom: (name: string) => Promise<Room | null>;
@@ -50,7 +54,6 @@ interface AppContextType {
   deletePsychologist: (id: number) => Promise<void>;
   addReservation: (data: Omit<Reservation, "id">) => Promise<boolean>;
   removeReservation: (id: string) => Promise<void>;
-  validateAdminPin: (pin: string) => boolean;
   addToast: (message: string, type: Toast["type"]) => void;
   removeToast: (id: string) => void;
   toggleTheme: () => void;
@@ -77,17 +80,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [billingAccount, setBillingAccount] = useState<BillingAccount | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [clinic, setClinic] = useState<Clinic | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const billingActive = billingAccount ? isBillingActive(billingAccount) : !billingRequired;
+
+  const billingActive = clinic
+    ? !billingRequired || !clinic.billingEnforced || isBillingActive({
+        id: clinic.id,
+        stripeStatus: clinic.stripeStatus,
+        billingEnforced: clinic.billingEnforced,
+        currentPeriodEnd: clinic.currentPeriodEnd,
+        cancelAtPeriodEnd: clinic.cancelAtPeriodEnd,
+        updatedAt: new Date().toISOString(),
+      })
+    : !billingRequired;
 
   const applyTheme = useCallback((newTheme: Theme) => {
     const html = typeof document !== "undefined" ? document.documentElement : null;
     if (!html) return;
-
     html.classList.toggle("light", newTheme === "light");
     html.classList.toggle("dark", newTheme === "dark");
     localStorage.setItem("theme", newTheme);
@@ -125,15 +138,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const loadOperationalData = useCallback(async () => {
-    if (!isSupabaseConfigured) {
-      throw new Error("Supabase public environment variables are missing.");
-    }
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      const saved = localStorage.getItem("morpheus_auth");
+      if (saved) {
+        const parsed = JSON.parse(saved) as AuthUser;
+        setAuthUser(parsed);
+      }
+    } catch {}
+    setLoading(false);
+  }, [mounted]);
+
+  const loadOperationalData = useCallback(async (clinicId: string) => {
+    if (!isSupabaseConfigured) return;
+
+    const filter = { column: "clinic_id", value: clinicId };
 
     const [roomsRes, psychsRes, reservsRes] = await Promise.all([
-      supabase.from("rooms").select("*").order("id"),
-      supabase.from("psychologists").select("*").order("id"),
-      supabase.from("reservations").select("*").order("date"),
+      supabase.from("rooms").select("*").eq(filter.column, filter.value).order("id"),
+      supabase.from("psychologists").select("*").eq(filter.column, filter.value).order("id"),
+      supabase.from("reservations").select("*").eq(filter.column, filter.value).order("date"),
     ]);
 
     if (roomsRes.error) throw roomsRes.error;
@@ -145,119 +170,115 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReservations((reservsRes.data ?? []).map(mapReservation));
   }, []);
 
-  const refreshBilling = useCallback(async () => {
-    if (!isSupabaseConfigured) {
-      addToast("Supabase nao configurado neste ambiente.", "error");
-      return;
-    }
+  const login = useCallback(
+    async (email: string, passwordHash: string): Promise<boolean> => {
+      if (!isSupabaseConfigured) return false;
 
-    if (!billingRequired) {
-      setBillingAccount(null);
-      await loadOperationalData();
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("billing_accounts")
-        .select("*")
-        .eq("id", "default")
-        .maybeSingle();
-
-      if (error) throw error;
-      const mappedBilling = data ? mapBillingAccount(data) : null;
-      setBillingAccount(mappedBilling);
-
-      if (!billingRequired || isBillingActive(mappedBilling)) {
-        await loadOperationalData();
-      }
-    } catch (err) {
-      console.warn("Failed to load billing status:", err);
-      setBillingAccount(null);
-    }
-  }, [addToast, loadOperationalData]);
-
-  useEffect(() => {
-    async function loadInitialData() {
       try {
-        if (!isSupabaseConfigured) {
-          addToast("Supabase nao configurado neste ambiente.", "error");
-          setRooms([]);
-          setPsychologists([]);
-          setReservations([]);
-          return;
-        }
-
-        if (!billingRequired) {
-          setBillingAccount(null);
-          await loadOperationalData();
-          return;
-        }
-
-        const { data: billingData } = await supabase
-          .from("billing_accounts")
+        const { data: clinicRow } = await supabase
+          .from("clinics")
           .select("*")
-          .eq("id", "default")
+          .eq("admin_email", email)
+          .eq("admin_password_hash", passwordHash)
           .maybeSingle();
-        const mappedBilling = billingData ? mapBillingAccount(billingData) : null;
-        setBillingAccount(mappedBilling);
 
-        if (billingRequired && !isBillingActive(mappedBilling)) {
-          setRooms([]);
-          setPsychologists([]);
-          setReservations([]);
-          return;
+        if (clinicRow) {
+          const c = mapClinic(clinicRow as SupabaseClinic);
+          const user: AuthUser = { role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name };
+          setAuthUser(user);
+          setClinic(c);
+          localStorage.setItem("morpheus_auth", JSON.stringify(user));
+
+          if (billingActive || !billingRequired) {
+            await loadOperationalData(c.id);
+          }
+          setView("admin");
+          return true;
         }
 
-        await loadOperationalData();
-      } catch (err) {
-        console.error("Failed to load data from Supabase:", err);
-        addToast("Erro ao carregar dados do servidor.", "error");
-      } finally {
-        setLoading(false);
-      }
-    }
+        const { data: doctorRow } = await supabase
+          .from("clinic_doctors")
+          .select("*")
+          .eq("email", email)
+          .eq("password_hash", passwordHash)
+          .maybeSingle();
 
-    loadInitialData();
-  }, [addToast, loadOperationalData]);
+        if (doctorRow) {
+          const doc = doctorRow as SupabaseClinicDoctor;
+          const { data: clinicData } = await supabase
+            .from("clinics")
+            .select("*")
+            .eq("id", doc.clinic_id)
+            .maybeSingle();
+
+          if (!clinicData) return false;
+          const c = mapClinic(clinicData as SupabaseClinic);
+
+          const user: AuthUser = {
+            role: "doctor",
+            clinicId: c.id,
+            email: doc.email,
+            displayName: doc.display_name,
+            psychologistId: doc.psychologist_id ?? undefined,
+          };
+          setAuthUser(user);
+          setClinic(c);
+          localStorage.setItem("morpheus_auth", JSON.stringify(user));
+
+          if (billingActive || !billingRequired) {
+            await loadOperationalData(c.id);
+          }
+          setView("psych");
+          return true;
+        }
+
+        return false;
+      } catch (err) {
+        console.error("Login failed:", err);
+        return false;
+      }
+    },
+    [billingActive, loadOperationalData]
+  );
+
+  const logout = useCallback(() => {
+    setAuthUser(null);
+    setClinic(null);
+    setRooms([]);
+    setPsychologists([]);
+    setReservations([]);
+    setView("splash");
+    setActivePsych(null);
+    localStorage.removeItem("morpheus_auth");
+  }, []);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!authUser || !isSupabaseConfigured) return;
 
-    const channel = supabase.channel("morpheus-realtime");
-
-    if (billingRequired) {
-      channel.on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "billing_accounts" },
-        async () => {
-          await refreshBilling();
-        }
-      );
-    }
+    const channel = supabase.channel(`morpheus-${authUser.clinicId}`);
 
     channel
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "rooms" },
+        { event: "*", schema: "public", table: "rooms", filter: `clinic_id=eq.${authUser.clinicId}` },
         async () => {
-          const { data } = await supabase.from("rooms").select("*").order("id");
+          const { data } = await supabase.from("rooms").select("*").eq("clinic_id", authUser.clinicId).order("id");
           if (data) setRooms(data.map(mapRoom));
         }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "psychologists" },
+        { event: "*", schema: "public", table: "psychologists", filter: `clinic_id=eq.${authUser.clinicId}` },
         async () => {
-          const { data } = await supabase.from("psychologists").select("*").order("id");
+          const { data } = await supabase.from("psychologists").select("*").eq("clinic_id", authUser.clinicId).order("id");
           if (data) setPsychologists(data.map(mapPsychologist));
         }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "reservations" },
+        { event: "*", schema: "public", table: "reservations", filter: `clinic_id=eq.${authUser.clinicId}` },
         async () => {
-          const { data } = await supabase.from("reservations").select("*").order("date");
+          const { data } = await supabase.from("reservations").select("*").eq("clinic_id", authUser.clinicId).order("date");
           if (data) setReservations(data.map(mapReservation));
         }
       )
@@ -266,7 +287,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refreshBilling]);
+  }, [authUser]);
+
+  const refreshBilling = useCallback(async () => {
+    if (!authUser || !isSupabaseConfigured) return;
+
+    try {
+      const { data } = await supabase
+        .from("clinics")
+        .select("*")
+        .eq("id", authUser.clinicId)
+        .maybeSingle();
+
+      if (data) {
+        const c = mapClinic(data as SupabaseClinic);
+        setClinic(c);
+      }
+    } catch {
+      console.warn("Failed to refresh billing");
+    }
+  }, [authUser]);
 
   const ensureBillingAccess = useCallback(() => {
     if (billingActive) return true;
@@ -274,88 +314,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return false;
   }, [addToast, billingActive]);
 
-  const startCheckout = useCallback(
-    async (plan: "monthly" | "yearly", email?: string) => {
-      if (!checkoutEnabled) {
-        addToast("Checkout indisponivel neste ambiente.", "info");
-        return;
-      }
-
-      if (publicApiBaseUrl) {
-        try {
-          const response = await fetch(apiUrl("/api/stripe/checkout"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan, email }),
-          });
-          const payload = (await response.json()) as { url?: string; error?: string };
-
-          if (!response.ok || !payload.url) {
-            throw new Error(payload.error || "Checkout indisponivel.");
-          }
-
-          window.location.href = payload.url;
-          return;
-        } catch (err) {
-          console.error("Server checkout failed:", err);
-          addToast("Nao foi possivel abrir o checkout.", "error");
-          return;
-        }
-      }
-
-      const paymentLinkUrl = plan === "yearly" ? stripePaymentLinkYearly : stripePaymentLinkMonthly;
-      if (!paymentLinkUrl) {
-        try {
-          const response = await fetch("/api/stripe/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan, email }),
-          });
-          const payload = (await response.json()) as { url?: string; error?: string };
-
-          if (!response.ok || !payload.url) {
-            throw new Error(payload.error || "Checkout indisponivel.");
-          }
-
-          window.location.href = payload.url;
-          return;
-        } catch (err) {
-          console.error("Checkout failed:", err);
-          addToast("Nao foi possivel abrir o checkout.", "error");
-          return;
-        }
-      }
-
-      let url = paymentLinkUrl;
-      if (email) {
-        const separator = url.includes("?") ? "&" : "?";
-        url = `${url}${separator}prefilled_email=${encodeURIComponent(email)}`;
-      }
-      window.location.href = url;
-    },
-    [addToast]
-  );
-
-  const openBillingPortal = useCallback(async () => {
-    if (!checkoutEnabled) {
-      addToast("Portal de cobranca indisponivel no modo estatico do GitHub Pages.", "info");
-      return;
-    }
-
-    try {
-      const response = await fetch(apiUrl("/api/stripe/portal"), { method: "POST" });
-      const payload = (await response.json()) as { url?: string; error?: string };
-
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error || "Portal indisponível.");
-      }
-
-      window.location.href = payload.url;
-    } catch (err) {
-      console.error("Billing portal failed:", err);
-      addToast("Não foi possível abrir o portal de cobrança.", "error");
-    }
-  }, [addToast]);
+  const clinicIdForInsert = authUser?.clinicId;
 
   const addReservation = useCallback(
     async (data: Omit<Reservation, "id">): Promise<boolean> => {
@@ -375,7 +334,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const row = toReservationRow(data);
+        const row = { ...toReservationRow(data), clinic_id: clinicIdForInsert };
         const { error } = await supabase.from("reservations").insert(row);
         if (error) throw error;
         addToast("Reserva criada com sucesso!", "success");
@@ -385,7 +344,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [addToast, ensureBillingAccess, reservations]
+    [addToast, ensureBillingAccess, reservations, clinicIdForInsert]
   );
 
   const removeReservation = useCallback(
@@ -405,7 +364,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addRoom = useCallback(
     async (rawName: string): Promise<Room | null> => {
-      if (!ensureBillingAccess()) return null;
+      if (!ensureBillingAccess() || !clinicIdForInsert) return null;
 
       const name = rawName.trim();
       if (!name) {
@@ -417,6 +376,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { data: existing } = await supabase
           .from("rooms")
           .select("id")
+          .eq("clinic_id", clinicIdForInsert)
           .order("id", { ascending: false })
           .limit(1);
 
@@ -426,6 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { data, error } = await supabase
           .from("rooms")
           .insert({
+            clinic_id: clinicIdForInsert,
             name,
             hex: palette.hex,
             rgb: palette.rgb,
@@ -444,7 +405,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [addToast, ensureBillingAccess]
+    [addToast, ensureBillingAccess, clinicIdForInsert]
   );
 
   const deleteRoom = useCallback(
@@ -464,7 +425,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addPsychologist = useCallback(
     async (data: { name: string; email?: string }): Promise<Psychologist | null> => {
-      if (!ensureBillingAccess()) return null;
+      if (!ensureBillingAccess() || !clinicIdForInsert) return null;
 
       const name = data.name.trim();
       if (!name) {
@@ -476,6 +437,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { data: existing } = await supabase
           .from("psychologists")
           .select("id")
+          .eq("clinic_id", clinicIdForInsert)
           .order("id", { ascending: false })
           .limit(1);
 
@@ -492,6 +454,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { data: inserted, error } = await supabase
           .from("psychologists")
           .insert({
+            clinic_id: clinicIdForInsert,
             name,
             short_name: cleanName,
             initials: initials || "PS",
@@ -513,7 +476,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [addToast, ensureBillingAccess]
+    [addToast, ensureBillingAccess, clinicIdForInsert]
   );
 
   const deletePsychologist = useCallback(
@@ -531,7 +494,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [addToast, ensureBillingAccess]
   );
 
-  const validateAdminPin = useCallback((pin: string) => pin === "1234", []);
+  const startCheckout = useCallback(
+    async (plan: "monthly" | "yearly", email?: string) => {
+      if (!checkoutEnabled) {
+        addToast("Checkout indisponivel neste ambiente.", "info");
+        return;
+      }
+
+      if (publicApiBaseUrl) {
+        try {
+          const response = await fetch(apiUrl("/api/stripe/checkout"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan, email }),
+          });
+          const payload = (await response.json()) as { url?: string; error?: string };
+          if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
+          window.location.href = payload.url;
+          return;
+        } catch (err) {
+          console.error("Server checkout failed:", err);
+          addToast("Nao foi possivel abrir o checkout.", "error");
+          return;
+        }
+      }
+
+      const paymentLinkUrl = plan === "yearly" ? stripePaymentLinkYearly : stripePaymentLinkMonthly;
+      if (!paymentLinkUrl) {
+        try {
+          const response = await fetch("/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan, email }),
+          });
+          const payload = (await response.json()) as { url?: string; error?: string };
+          if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
+          window.location.href = payload.url;
+          return;
+        } catch (err) {
+          console.error("Checkout failed:", err);
+          addToast("Nao foi possivel abrir o checkout.", "error");
+          return;
+        }
+      }
+
+      let url = paymentLinkUrl;
+      if (email) {
+        const separator = url.includes("?") ? "&" : "?";
+        url = `${url}${separator}prefilled_email=${encodeURIComponent(email)}`;
+      }
+      window.location.href = url;
+    },
+    [addToast]
+  );
+
+  const openBillingPortal = useCallback(async () => {
+    if (!checkoutEnabled) {
+      addToast("Portal de cobranca indisponivel.", "info");
+      return;
+    }
+    try {
+      const response = await fetch(apiUrl("/api/stripe/portal"), { method: "POST" });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Portal indisponivel.");
+      window.location.href = payload.url;
+    } catch (err) {
+      console.error("Billing portal failed:", err);
+      addToast("Nao foi possivel abrir o portal de cobranca.", "error");
+    }
+  }, [addToast]);
 
   if (!mounted) {
     return <>{children}</>;
@@ -548,10 +579,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toasts,
         theme,
         loading,
-        billingAccount,
+        authUser,
+        clinic,
         billingRequired,
         billingActive,
         checkoutEnabled,
+        login,
+        logout,
         setView,
         setActivePsych,
         addRoom,
@@ -560,7 +594,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deletePsychologist,
         addReservation,
         removeReservation,
-        validateAdminPin,
         addToast,
         removeToast,
         toggleTheme,
@@ -580,17 +613,20 @@ export function useApp() {
   if (!ctx) {
     return {
       view: "splash" as AppView,
-      activePsych: null,
+      activePsych: null as Psychologist | null,
       rooms: [] as Room[],
       psychologists: [] as Psychologist[],
       reservations: [] as Reservation[],
       toasts: [] as Toast[],
       theme: "light" as Theme,
       loading: false,
-      billingAccount: null,
+      authUser: null as AuthUser | null,
+      clinic: null as Clinic | null,
       billingRequired,
       billingActive: !billingRequired,
       checkoutEnabled,
+      login: (async () => false) as (email: string, passwordHash: string) => Promise<boolean>,
+      logout: () => {},
       setView: () => {},
       setActivePsych: () => {},
       addRoom: (async () => null) as (name: string) => Promise<Room | null>,
@@ -599,7 +635,6 @@ export function useApp() {
       deletePsychologist: (async () => {}) as (id: number) => Promise<void>,
       addReservation: (async () => false) as (data: Omit<Reservation, "id">) => Promise<boolean>,
       removeReservation: (async () => {}) as (id: string) => Promise<void>,
-      validateAdminPin: (() => false) as (pin: string) => boolean,
       addToast: () => {},
       removeToast: () => {},
       toggleTheme: () => {},
