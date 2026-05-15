@@ -234,40 +234,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const ws = workspaces.find((w) => w.clinicId === clinicId);
     if (!ws) return;
 
-    const { data: clinicData } = await supabase
-      .from("clinics")
-      .select("*")
-      .eq("id", clinicId)
-      .maybeSingle();
+    try {
+      const { data: clinicData } = await supabase
+        .from("clinics")
+        .select("*")
+        .eq("id", clinicId)
+        .maybeSingle();
 
-    if (!clinicData) return;
-    const c = mapClinic(clinicData as SupabaseClinic);
+      if (!clinicData) {
+        addToast("Clínica não encontrada.", "error");
+        return;
+      }
+      const c = mapClinic(clinicData as SupabaseClinic);
 
-    const authUserData: AuthUser = ws.role === "admin"
-      ? { role: "admin", clinicId: c.id, email: user.email, displayName: user.displayName }
-      : { role: "doctor", clinicId: c.id, email: user.email, displayName: user.displayName, psychologistId: ws.psychologistId };
+      const authUserData: AuthUser = ws.role === "admin"
+        ? { role: "admin", clinicId: c.id, email: user.email, displayName: user.displayName }
+        : { role: "doctor", clinicId: c.id, email: user.email, displayName: user.displayName, psychologistId: ws.psychologistId };
 
-    setAuthUser(authUserData);
-    setClinic(c);
-    localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
-    localStorage.setItem("morpheus_workspace", clinicId);
+      setAuthUser(authUserData);
+      setClinic(c);
+      localStorage.setItem("morpheus_auth", JSON.stringify(authUserData));
+      localStorage.setItem("morpheus_workspace", clinicId);
 
-    await loadOperationalData(c.id);
+      await loadOperationalData(c.id);
 
-    if (ws.role === "admin") {
-      loadPendingInvitations(clinicId);
-      setView(billingRequired && !isBillingActive({
-        id: c.id,
-        stripeStatus: c.stripeStatus,
-        billingEnforced: c.billingEnforced,
-        currentPeriodEnd: c.currentPeriodEnd,
-        cancelAtPeriodEnd: c.cancelAtPeriodEnd,
-        updatedAt: new Date().toISOString(),
-      }) ? "billing" : "admin");
-    } else {
-      setView("psych");
+      if (ws.role === "admin") {
+        loadPendingInvitations(clinicId);
+        setView(billingRequired && !isBillingActive({
+          id: c.id,
+          stripeStatus: c.stripeStatus,
+          billingEnforced: c.billingEnforced,
+          currentPeriodEnd: c.currentPeriodEnd,
+          cancelAtPeriodEnd: c.cancelAtPeriodEnd,
+          updatedAt: new Date().toISOString(),
+        }) ? "billing" : "admin");
+      } else {
+        setView("psych");
+      }
+    } catch (err) {
+      console.error("selectWorkspace failed:", err);
+      addToast("Erro ao acessar a clínica.", "error");
     }
-  }, [user, workspaces, loadPendingInvitations]);
+  }, [user, workspaces, loadPendingInvitations, addToast]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -377,6 +385,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }));
             setWorkspaces(ws);
           }
+
+          setAuthUser({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName });
+          localStorage.setItem("morpheus_auth", JSON.stringify({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName }));
 
           setView("workspace");
           return true;
