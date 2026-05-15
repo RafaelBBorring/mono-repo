@@ -11,7 +11,7 @@ import React, {
 import type { AppView, Psychologist, Reservation, Room } from "@/types";
 import { isBillingActive } from "@/lib/billing";
 import type { AuthUser, Clinic } from "@/lib/auth";
-import { mapClinic, type SupabaseClinic, type SupabaseClinicDoctor } from "@/lib/auth";
+import { mapClinic, sha256, type SupabaseClinic, type SupabaseClinicDoctor } from "@/lib/auth";
 import type { PlanId } from "@/lib/plans";
 import { PLANS, getPlanById } from "@/lib/plans";
 import {
@@ -54,7 +54,7 @@ interface AppContextType {
   setActivePsych: (psych: Psychologist | null) => void;
   addRoom: (name: string) => Promise<Room | null>;
   deleteRoom: (id: number) => Promise<void>;
-  addPsychologist: (data: { name: string; email?: string }) => Promise<Psychologist | null>;
+  addPsychologist: (data: { name: string; email?: string }) => Promise<{ psych: Psychologist; credentials: DoctorCredentials } | null>;
   deletePsychologist: (id: number) => Promise<void>;
   addReservation: (data: Omit<Reservation, "id">) => Promise<boolean>;
   removeReservation: (id: string) => Promise<void>;
@@ -66,6 +66,11 @@ interface AppContextType {
   startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
   startTrial: (email?: string) => Promise<void>;
   openBillingPortal: () => Promise<void>;
+}
+
+interface DoctorCredentials {
+  email: string;
+  password: string;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -511,12 +516,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const addPsychologist = useCallback(
-    async (data: { name: string; email?: string }): Promise<Psychologist | null> => {
+    async (data: { name: string; email?: string }): Promise<{ psych: Psychologist; credentials: DoctorCredentials } | null> => {
       if (!ensureBillingAccess() || !clinicIdForInsert) return null;
 
       const name = data.name.trim();
+      const email = data.email?.trim() || "";
       if (!name) {
         addToast("Informe o nome do profissional.", "error");
+        return null;
+      }
+      if (!email) {
+        addToast("Informe o e-mail do profissional.", "error");
         return null;
       }
 
@@ -545,7 +555,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             name,
             short_name: cleanName,
             initials: initials || "PS",
-            email: data.email?.trim() || null,
+            email: email,
             hex: palette.hex,
             rgb: palette.rgb,
             light_hex: palette.lightHex,
@@ -556,8 +566,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (error) throw error;
         const psych = mapPsychologist(inserted);
+
+        const rawPassword = Math.random().toString(36).slice(2, 10);
+        const passwordHash = await sha256(rawPassword);
+
+        const { error: docError } = await supabase
+          .from("clinic_doctors")
+          .insert({
+            clinic_id: clinicIdForInsert,
+            psychologist_id: psych.id,
+            email: email,
+            password_hash: passwordHash,
+            display_name: name,
+          });
+
+        if (docError) {
+          console.error("Failed to create doctor login:", docError);
+        }
+
         addToast(`${psych.shortName} adicionado(a) à clínica.`, "success");
-        return psych;
+        return { psych, credentials: { email, password: rawPassword } };
       } catch {
         addToast("Erro ao criar profissional.", "error");
         return null;
@@ -619,10 +647,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const startTrial = useCallback(
-    async (email?: string) => {
-      await startCheckout("essential", "monthly", email);
+    async () => {
+      if (!authUser || !isSupabaseConfigured) {
+        addToast("Faça login antes de ativar o trial.", "error");
+        return;
+      }
+
+      try {
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 7);
+
+        const { error } = await supabase
+          .from("clinics")
+          .update({
+            stripe_status: "trialing",
+            current_period_end: trialEnd.toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", authUser.clinicId);
+
+        if (error) throw error;
+
+        await refreshBilling();
+        addToast("Trial de 7 dias ativado! Aproveite o Morpheus.", "success");
+      } catch (err) {
+        console.error("Trial activation failed:", err);
+        addToast("Erro ao ativar o trial.", "error");
+      }
     },
-    [startCheckout]
+    [authUser, addToast, refreshBilling]
   );
 
   const openBillingPortal = useCallback(async () => {
@@ -723,7 +776,7 @@ export function useApp() {
       setTheme: (() => {}) as (theme: Theme) => void,
       refreshBilling: async () => {},
       startCheckout: (async () => {}) as (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>,
-      startTrial: (async () => {}) as (email?: string) => Promise<void>,
+      startTrial: (async () => {}) as () => Promise<void>,
       openBillingPortal: async () => {},
     } as AppContextType;
   }

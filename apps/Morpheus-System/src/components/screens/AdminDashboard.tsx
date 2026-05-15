@@ -162,12 +162,15 @@ export default function AdminDashboard() {
     if (created) setRoomName("");
   }
 
+  const [lastCredentials, setLastCredentials] = useState<{ email: string; password: string } | null>(null);
+
   async function submitPsychologist(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const created = await addPsychologist({ name: psychName, email: psychEmail });
-    if (created) {
+    const result = await addPsychologist({ name: psychName, email: psychEmail });
+    if (result) {
       setPsychName("");
       setPsychEmail("");
+      setLastCredentials(result.credentials);
     }
   }
 
@@ -332,14 +335,15 @@ export default function AdminDashboard() {
         )}
 
         {section === "management" && (
-          <AdminManagement
-            rooms={rooms}
-            psychologists={psychologists}
-            isDark={isDark}
-            roomName={roomName}
-            psychName={psychName}
-            psychEmail={psychEmail}
-            confirmDeleteRoom={confirmDeleteRoom}
+    <AdminManagement
+      rooms={rooms}
+      psychologists={psychologists}
+      isDark={isDark}
+      roomName={roomName}
+      psychName={psychName}
+      psychEmail={psychEmail}
+      lastCredentials={lastCredentials}
+      confirmDeleteRoom={confirmDeleteRoom}
             confirmDeletePsych={confirmDeletePsych}
             onRoomName={setRoomName}
             onPsychName={setPsychName}
@@ -963,6 +967,7 @@ function AdminManagement({
   roomName,
   psychName,
   psychEmail,
+  lastCredentials,
   confirmDeleteRoom,
   confirmDeletePsych,
   onRoomName,
@@ -981,6 +986,7 @@ function AdminManagement({
   roomName: string;
   psychName: string;
   psychEmail: string;
+  lastCredentials: { email: string; password: string } | null;
   confirmDeleteRoom: number | null;
   confirmDeletePsych: number | null;
   onRoomName: (value: string) => void;
@@ -1048,6 +1054,30 @@ function AdminManagement({
               <UserRoundPlus size={20} />
               Criar conta
             </Button>
+
+            {lastCredentials && (
+              <div className="mt-4 rounded-xl border-2 border-[var(--accent-mint)] bg-[var(--bg-primary)] p-4">
+                <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--accent-mint)]">
+                  Credenciais de acesso
+                </p>
+                <p className="mt-2 font-body text-sm text-[var(--text-soft)]">
+                  Envie estas credenciais para o profissional:
+                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="font-body text-sm">
+                    <span className="font-bold text-[var(--text-muted)]">E-mail:</span>{" "}
+                    <span className="font-semibold text-[var(--text-primary)]">{lastCredentials.email}</span>
+                  </p>
+                  <p className="font-body text-sm">
+                    <span className="font-bold text-[var(--text-muted)]">Senha:</span>{" "}
+                    <span className="font-mono text-sm font-semibold text-[var(--accent-lavender)]">{lastCredentials.password}</span>
+                  </p>
+                </div>
+                <p className="mt-2 font-body text-xs text-[var(--text-muted)]">
+                  O profissional acessa /app e faz login com essas credenciais.
+                </p>
+              </div>
+            )}
           </form>
         </div>
       </section>
