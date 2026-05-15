@@ -93,8 +93,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.MORPHEUS_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_BILLING_REQUIRED: "true"
           NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED: "true"
-          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY: ${{ secrets.MORPHEUS_STRIPE_PAYMENT_LINK_MONTHLY }}
-          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY: ${{ secrets.MORPHEUS_STRIPE_PAYMENT_LINK_YEARLY }}
+          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY: https://buy.stripe.com/test_aFafZh1ns6tLdyTbEM0oM00
+          NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY: https://buy.stripe.com/test_eVq28r7LQ2dvamH9wE0oM01
 
       # ── Assemble site ──
       - name: Assemble site
