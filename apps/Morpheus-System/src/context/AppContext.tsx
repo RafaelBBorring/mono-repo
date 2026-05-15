@@ -183,15 +183,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, passwordHash: string): Promise<boolean> => {
-      if (!isSupabaseConfigured) return false;
+      if (!isSupabaseConfigured) {
+        console.error("Login: Supabase not configured");
+        return false;
+      }
 
       try {
-        const { data: clinicRow } = await supabase
+        const { data: clinicRow, error: clinicError } = await supabase
           .from("clinics")
           .select("*")
           .eq("admin_email", email)
           .eq("admin_password_hash", passwordHash)
           .maybeSingle();
+
+        if (clinicError) {
+          console.error("Login: clinic query error", clinicError);
+        }
 
         if (clinicRow) {
           const c = mapClinic(clinicRow as SupabaseClinic);

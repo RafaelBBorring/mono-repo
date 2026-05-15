@@ -25,10 +25,15 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    const hash = await sha256(trimmedPassword);
-    const ok = await login(trimmedEmail, hash);
-    if (!ok) {
-      addToast("E-mail ou senha incorretos.", "error");
+    try {
+      const hash = await sha256(trimmedPassword);
+      const ok = await login(trimmedEmail, hash);
+      if (!ok) {
+        addToast("E-mail ou senha incorretos.", "error");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      addToast("Erro ao fazer login. Tente novamente.", "error");
     }
     setLoading(false);
   }
