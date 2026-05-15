@@ -14,6 +14,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+ARG NEXT_OUTPUT
+ARG NEXT_PUBLIC_BASE_PATH
+ENV NEXT_OUTPUT=$NEXT_OUTPUT
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
+
 RUN npm run build
 
 FROM base AS runner

@@ -83,6 +83,9 @@ jobs:
           npm ci
           npm run build
         working-directory: apps/Morpheus-System
+        env:
+          NEXT_OUTPUT: export
+          NEXT_PUBLIC_BASE_PATH: /mono-repo/morpheus-system
 
       # ── Assemble site ──
       - name: Assemble site
