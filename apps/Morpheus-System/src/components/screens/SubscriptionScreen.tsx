@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   CalendarClock,
@@ -35,6 +36,7 @@ function goBack(fallback: () => void) {
 }
 
 export default function SubscriptionScreen() {
+  const searchParams = useSearchParams();
   const {
     clinic,
     checkoutEnabled,
@@ -61,6 +63,13 @@ export default function SubscriptionScreen() {
       : clinic?.stripeStatus === "past_due"
         ? "var(--state-error)"
         : "var(--text-muted)";
+
+  useEffect(() => {
+    const plan = searchParams.get("plan") as PlanId | null;
+    if (plan && PLANS.some((item) => item.id === plan)) {
+      setSelectedPlan(plan);
+    }
+  }, [searchParams]);
 
   const periodText = useMemo(() => {
     if (!clinic?.currentPeriodEnd) return "Periodo ainda nao sincronizado pelo Stripe.";

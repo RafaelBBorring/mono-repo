@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  Warehouse,
 } from "lucide-react";
 import { billingStatusLabel } from "@/lib/billing";
 import { PLANS, getPlanById, type PlanId } from "@/lib/plans";
@@ -175,6 +176,10 @@ export default function BillingGate() {
                   <li className="flex items-center gap-2 font-body text-sm">
                     <Users size={14} className="shrink-0 text-[var(--accent-lavender)]" />
                     Até {p.maxDoctors} profissionais
+                  </li>
+                  <li className="flex items-center gap-2 font-body text-sm">
+                    <Warehouse size={14} className="shrink-0 text-[var(--accent-amber)]" />
+                    Até {p.maxWorkspaces} {p.maxWorkspaces === 1 ? "clínica" : "clínicas"}
                   </li>
                   <li className="flex items-center gap-2 font-body text-sm">
                     <Check size={14} className="shrink-0 text-[var(--accent-mint)]" />

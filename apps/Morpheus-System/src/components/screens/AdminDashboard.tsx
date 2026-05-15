@@ -27,6 +27,7 @@ import {
   ChevronRight,
   CreditCard,
   DoorOpen,
+  Home,
   KeyRound,
   LayoutGrid,
   LogOut,
@@ -225,6 +226,11 @@ export default function AdminDashboard() {
     setView("login");
   }
 
+  function goToLanding() {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+    window.location.href = `${basePath}/landing`;
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
@@ -241,7 +247,7 @@ export default function AdminDashboard() {
       <div className="morpheus-screen-wash fixed inset-0 z-0" />
 
       <div className="relative z-10 min-h-screen">
-        <header className="sticky top-0 z-40 overflow-hidden border-b border-[var(--border-light)] bg-[var(--glass-strong)] backdrop-blur-2xl">
+        <header className="sticky top-0 z-40 overflow-visible border-b border-[var(--border-light)] bg-[var(--glass-strong)] backdrop-blur-2xl">
           <LibraryVinesScene className="pointer-events-none absolute inset-x-0 top-0 z-0 h-full opacity-70" />
           <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
             <div className="flex items-center gap-3">
@@ -297,6 +303,9 @@ export default function AdminDashboard() {
                       </AccountMenuButton>
                       <AccountMenuButton icon={<UserCog size={17} />} onClick={openAccountSettings}>
                         Alterar dados da conta
+                      </AccountMenuButton>
+                      <AccountMenuButton icon={<Home size={17} />} onClick={goToLanding}>
+                        Landing page
                       </AccountMenuButton>
                       <div className="my-2 h-px bg-[var(--border-light)]" />
                       <AccountMenuButton danger icon={<LogOut size={17} />} onClick={handleLogout}>
@@ -1562,6 +1571,7 @@ function AdminSettings({
                 <ul className="space-y-1 text-sm font-body text-[var(--text-soft)]">
                   <li>Até {p.maxRooms} salas</li>
                   <li>Até {p.maxDoctors} profissionais</li>
+                  <li>Até {p.maxWorkspaces} {p.maxWorkspaces === 1 ? "clínica" : "clínicas"}</li>
                 </ul>
               </button>
             );
