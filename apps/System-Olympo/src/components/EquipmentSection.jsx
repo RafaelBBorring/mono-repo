@@ -231,7 +231,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
   const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
   const enrichedLegendary = useMemo(() => {
     return legendaryAssigned.map(item => {
-      const forge = legendaryForgeItems.find(fi => fi.id === item.sourceId)
+      const forge = legendaryForgeItems.find(fi => fi.id === item.sourceId || fi.id === item.id)
       return forge
         ? { ...item, name: forge.name || item.name, image: forge.image || item.image, tipo: forge.base || item.tipo, power_level: forge.power_level }
         : item
@@ -675,7 +675,7 @@ export default function EquipmentSection({ char, canEdit, onUpdate, onCharacterU
       {viewLegendaryIdx !== null && createPortal(
         <LegendaryWeaponDrawer
           item={enrichedLegendary[viewLegendaryIdx]}
-          forgeItem={legendaryForgeItems.find(fi => fi.id === enrichedLegendary[viewLegendaryIdx]?.sourceId) || null}
+          forgeItem={legendaryForgeItems.find(fi => fi.id === (enrichedLegendary[viewLegendaryIdx]?.sourceId || enrichedLegendary[viewLegendaryIdx]?.id)) || null}
           canRemove={canEdit && isAdmin}
           onRemove={() => { removeLegendary(viewLegendaryIdx); setViewLegendaryIdx(null) }}
           onClose={() => setViewLegendaryIdx(null)}

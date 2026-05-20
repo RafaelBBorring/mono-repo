@@ -2880,31 +2880,18 @@ function WeaponMartialPanel({ char, update, canEdit }) {
             {showLegendary && (
               <div className="mt-2 space-y-2">
                 <p className="text-txt-dim/50 text-[9px] italic">Armas exclusivas da narrativa. Apenas o Mestre pode atribuí-las a personagens.</p>
-                {LEGENDARY_WEAPONS.map(lw => (
-                  <div key={lw.id} className="bg-void/50 border border-amber-400/20 rounded-lg p-2.5">
+                {(char.armasLendarias || []).length === 0 && (
+                  <p className="text-txt-dim/40 text-[10px] italic">Nenhuma arma lendária atribuída a este personagem.</p>
+                )}
+                {(char.armasLendarias || []).map((lw, li) => (
+                  <div key={lw.id || li} className="bg-void/50 border border-amber-400/20 rounded-lg p-2.5">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-amber-400 text-sm">★</span>
                       <span className="text-txt-main text-xs font-semibold">{lw.name}</span>
-                      <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank}</span>
-                      <span className="text-[9px] text-txt-dim/50">{lw.tipo}</span>
+                      <span className="text-[9px] bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20">{lw.rank || 'Lendária'}</span>
+                      {lw.tipo && <span className="text-[9px] text-txt-dim/50">{lw.tipo}</span>}
                     </div>
-                    <p className="text-txt-dim/70 text-[10px] leading-relaxed">{lw.descricao}</p>
-                    <div className="flex gap-3 mt-1 text-[10px]">
-                      <span className="text-red-400/80 font-mono">Dano: {lw.dano}</span>
-                      <span className="text-txt-dim/50">{lw.attr}</span>
-                    </div>
-                    <p className="text-gold/50 text-[9px] mt-1 italic">{lw.mec}</p>
-                    {(lw.habilidades || []).length > 0 && (
-                      <div className="mt-1.5 space-y-1">
-                        {(lw.habilidades || []).map((h, hi) => (
-                          <div key={hi} className="bg-amber-400/5 border border-amber-400/10 rounded px-2 py-1">
-                            <span className="text-amber-400/80 text-[10px] font-semibold">{h.nome}</span>
-                            <span className="text-[8px] text-amber-400/40 ml-1">{h.potencia} · {h.tipo}</span>
-                            <p className="text-txt-dim/60 text-[9px]">{h.descricao}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {lw.descricao && <p className="text-txt-dim/70 text-[10px] leading-relaxed">{lw.descricao}</p>}
                   </div>
                 ))}
               </div>

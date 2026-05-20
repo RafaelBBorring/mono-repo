@@ -177,6 +177,24 @@ function buildEntries(char) {
     entries.push({ key: `item:${item.id || idx}`, source: 'inventory', idx, item })
   })
 
+  ;(char.armasLendarias || []).forEach((item, idx) => {
+    entries.push({
+      key: `legendary:${item.id || idx}`,
+      source: 'legendary',
+      idx,
+      item: {
+        id: item.id,
+        nome: item.name,
+        categoria: 'Arma Lendária',
+        rank: item.rank || 'Lendária',
+        imagem: item.image,
+        equipado: true,
+        local: 'equipado',
+        inventoryGrid: item.inventoryGrid,
+      },
+    })
+  })
+
   return entries
 }
 

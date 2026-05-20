@@ -4,13 +4,14 @@ import { PROGRESSION } from '../data/progression'
 import { TRIAGES } from '../data/triages'
 import { PERICIAS, GRAU_NAMES, GRAUS_BY_TIER } from '../data/pericias'
 import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '../data/modules'
-import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, WEAPON_LIMITS, MARTIAL_ARTS_LIMITS, LEGENDARY_WEAPONS } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, WEAPON_LIMITS, MARTIAL_ARTS_LIMITS, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS as MA_GRAU_LABELS } from '../data/martialArts'
 import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../data/races'
 import { ALCHEMY_FALLBACK_RITUALS } from '../data/alchemyFallbackRituals'
 import { SPELL_FALLBACK_RITUALS, SPELL_TRADITIONS } from '../data/spellFallbackRituals'
 import { RUNE_FALLBACK_RITUALS, RUNE_GRADES } from '../data/runeFallbackRituals'
 import { ALCHEMY_TRAINING_RULES, BASE_RULES_BY_LEVEL, CLASS_AFFINITY, RACE_AFFINITY, SPACE_COST_BY_CIRCLE } from '../utils/alchemyRules'
+import { fetchMysticWeapons } from '../services/alchemyService'
 import { SPELL_TRAINING_RULES } from '../utils/spellRules'
 import { RUNE_TRAINING_RULES } from '../utils/runeRules'
 import { getRuneGradeBadge, getTraditionBadge } from './MysticLibrarySection'
@@ -2066,6 +2067,35 @@ function CraftingSection() {
 }
 
 function LegendaryWeaponsSection() {
+  const [forgeWeapons, setForgeWeapons] = useState([])
+
+  useEffect(() => {
+    let alive = true
+    fetchMysticWeapons().then(res => {
+      if (alive) setForgeWeapons(res.data || [])
+    })
+    return () => { alive = false }
+  }, [])
+
+  const allLegendary = [
+    ...LEGENDARY_WEAPONS,
+    ...forgeWeapons.map(fw => ({
+      id: fw.id,
+      name: fw.name,
+      rank: 'Lendária',
+      tipo: fw.range || fw.law_name || fw.base || 'Forja Lendária',
+      descricao: fw.short_description || fw.effect || '',
+      dano: fw.damage || '',
+      attr: fw.attribute || '',
+      mec: fw.mechanic || fw.effect || '',
+      habilidades: fw.abilities || [],
+      power_level: fw.power_level || '',
+      _source: 'forge',
+    })),
+  ]
+
+  const powerLabel = (pl) => (WEAPON_POWER_LEVELS.find(p => p.value === pl) || {}).label || pl || ''
+
   return (
     <div className="space-y-6">
       <SectionTitle>Armas Lendárias</SectionTitle>
@@ -2088,7 +2118,10 @@ function LegendaryWeaponsSection() {
       </div>
 
       <div className="space-y-4">
-        {LEGENDARY_WEAPONS.map(lw => (
+        {allLegendary.length === 0 && (
+          <p className="text-txt-dim/50 text-sm italic">Nenhuma arma lendária criada ainda.</p>
+        )}
+        {allLegendary.map(lw => (
           <div key={lw.id} className="bg-void/60 border border-lime-300/20 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-lg bg-lime-300/10 border border-lime-300/30 flex items-center justify-center text-2xl">⚔</div>
@@ -2096,31 +2129,41 @@ function LegendaryWeaponsSection() {
                 <div className="flex items-center gap-2">
                   <span className="text-lime-200 font-cinzel text-lg font-bold">{lw.name}</span>
                   <span className="text-[10px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded border border-lime-300/20">{lw.rank}</span>
-                  <span className="text-[10px] text-txt-dim">{lw.tipo}</span>
+                  {lw.tipo && <span className="text-[10px] text-txt-dim">{lw.tipo}</span>}
+                  {lw._source === 'forge' && <span className="text-[8px] bg-amber-400/10 text-amber-400 px-1 py-0.5 rounded">Forja</span>}
+                  {lw.power_level && <span className="text-[8px] bg-purple-400/10 text-purple-400 px-1 py-0.5 rounded">{powerLabel(lw.power_level)}</span>}
                 </div>
-                <p className="text-txt-dim text-xs mt-0.5">{lw.descricao}</p>
+                {lw.descricao && <p className="text-txt-dim text-xs mt-0.5">{lw.descricao}</p>}
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
-                <span className="text-txt-dim text-[9px] uppercase">Dano</span>
-                <p className="text-red-400 font-mono text-sm">{lw.dano}</p>
+            {(lw.dano || lw.attr) && (
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                {lw.dano && (
+                  <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
+                    <span className="text-txt-dim text-[9px] uppercase">Dano</span>
+                    <p className="text-red-400 font-mono text-sm">{lw.dano}</p>
+                  </div>
+                )}
+                {lw.attr && (
+                  <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
+                    <span className="text-txt-dim text-[9px] uppercase">Atributo</span>
+                    <p className="text-txt-main font-mono text-sm">{lw.attr}</p>
+                  </div>
+                )}
+                <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
+                  <span className="text-txt-dim text-[9px] uppercase">Rank</span>
+                  <p className="text-lime-300 font-mono text-sm">{lw.rank}</p>
+                </div>
               </div>
-              <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
-                <span className="text-txt-dim text-[9px] uppercase">Atributo</span>
-                <p className="text-txt-main font-mono text-sm">{lw.attr}</p>
-              </div>
-              <div className="bg-deep rounded-lg border border-sep/30 p-2 text-center">
-                <span className="text-txt-dim text-[9px] uppercase">Rank</span>
-                <p className="text-lime-300 font-mono text-sm">{lw.rank}</p>
-              </div>
-            </div>
+            )}
 
-            <div className="bg-deep rounded-lg border border-sep/30 p-2.5 mb-3">
-              <span className="text-txt-dim text-[9px] uppercase">Mecânica Única</span>
-              <p className="text-gold/80 text-xs mt-0.5 leading-relaxed">{lw.mec}</p>
-            </div>
+            {lw.mec && (
+              <div className="bg-deep rounded-lg border border-sep/30 p-2.5 mb-3">
+                <span className="text-txt-dim text-[9px] uppercase">Mecânica Única</span>
+                <p className="text-gold/80 text-xs mt-0.5 leading-relaxed">{lw.mec}</p>
+              </div>
+            )}
 
             {(lw.habilidades || []).length > 0 && (
               <div>
@@ -2130,8 +2173,8 @@ function LegendaryWeaponsSection() {
                     <div key={i} className="bg-lime-300/5 border border-lime-300/15 rounded-lg p-2.5">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-lime-200 text-xs font-semibold">{h.nome}</span>
-                        <span className="text-[9px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded">{h.potencia}</span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded ${h.tipo === 'Passiva' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-sky-400/10 text-sky-400'}`}>{h.tipo}</span>
+                        {h.potencia && <span className="text-[9px] bg-lime-300/10 text-lime-300 px-1.5 py-0.5 rounded">{h.potencia}</span>}
+                        {h.tipo && <span className={`text-[9px] px-1.5 py-0.5 rounded ${h.tipo === 'Passiva' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-sky-400/10 text-sky-400'}`}>{h.tipo}</span>}
                         {h.custo && <span className="text-[9px] text-gold/60 font-mono ml-auto">{h.custo}</span>}
                       </div>
                       <p className="text-txt-dim text-[11px] leading-relaxed">{h.descricao}</p>

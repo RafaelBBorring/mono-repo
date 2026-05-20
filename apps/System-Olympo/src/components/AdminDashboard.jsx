@@ -14,6 +14,7 @@ import RuneAdminPanel from './RuneAdminPanel'
 import MagicAdminPanel from './MagicAdminPanel'
 import MysticWeaponAdminPanel from './MysticWeaponAdminPanel'
 import GrimoireAdminPage from './GrimoireAdminPage'
+import SessionTracker from './SessionTracker'
 import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, getSystemSkillById, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 import { createSystemSkillAssignment, createSystemSkillNotification, createDefaultEffectsForSkill, summarizeSystemSkillBonuses } from '../utils/systemSkills'
 
@@ -167,7 +168,7 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
     }
     const entry = lw
       ? { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo }
-      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge' }
+      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge', sourceId: fw.id }
     await handlePatch(sheet, { armasLendarias: [...existing, entry] })
   }
 
@@ -182,6 +183,7 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
         </div>
         <div className="flex flex-wrap justify-end gap-1">
           {[
+            { key: 'session', label: 'Sessão', icon: 'campaign' },
             { key: 'sheets', label: 'Fichas' },
             { key: 'abilities', label: 'Habilidades' },
             { key: 'skills', label: `Skills${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0) ? ` (${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0)})` : ''}` },
@@ -196,6 +198,8 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
           ))}
         </div>
       </div>
+
+      {tab === 'session' && <SessionTracker onViewSheet={onViewSheet} />}
 
       {tab === 'sheets' && (
         <div className="space-y-4">
@@ -1129,7 +1133,7 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
     if (existing.some(l => l.id === legendaryId)) return
     const entry = lw
       ? { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo, descricao: lw.descricao }
-      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge' }
+      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge', sourceId: fw.id }
     setData(prev => ({
       ...prev,
       armasLendarias: [...existing, entry],
