@@ -7,9 +7,9 @@ import { ATTR_ICONS, getModifier, getAttrCap } from '../../data/attributes'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
 import { RANK_COLORS } from '../../data/colors'
-import { calcPEHTotal } from '../../utils/calculator'
+import { calcPEHTotal, calcPericiasAvailable } from '../../utils/calculator'
 import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket } from '../../utils/skillEvolution'
-import { PERICIAS, GRAU_NAMES, getGrauBonus } from '../../data/pericias'
+import { PERICIAS, GRAU_NAMES, getGrauBonus, getMaxGrauForLevel } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
 import { getRaceAdjustedAttrs, getRaceLabel, calculateRaceBonus, getSelectedSubrace, ATTR_KEYS } from '../../utils/raceCalculator'
@@ -248,6 +248,37 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const [sheetView, setSheetView] = useState('full')
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false)
   const [forgeMenuOpen, setForgeMenuOpen] = useState(false)
+  const [editingPericias, setEditingPericias] = useState(false)
+
+  const periciasTotal = cls ? calcPericiasAvailable(cls, char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char) : 0
+  const periciasUsed = Object.values(char.pericias || {}).reduce((s, g) => s + (g > 0 ? g : 0), 0)
+  const periciasMaxGrau = getMaxGrauForLevel(char.nivel || 1)
+
+  function cyclePericia(periciaName, currentGrau) {
+    if (!update) return
+    const pericias = { ...(char.pericias || {}) }
+    const remaining = periciasTotal - periciasUsed
+    if (currentGrau === 0) {
+      if (remaining <= 0) return
+      pericias[periciaName] = 1
+    } else if (currentGrau < periciasMaxGrau) {
+      if (remaining <= 0) return
+      pericias[periciaName] = currentGrau + 1
+    } else {
+      pericias[periciaName] = 0
+    }
+    update({ pericias })
+  }
+
+  function adjustPericia(periciaName, delta) {
+    if (!update) return
+    const pericias = { ...(char.pericias || {}) }
+    const current = pericias[periciaName] || 0
+    const next = Math.max(0, Math.min(periciasMaxGrau, current + delta))
+    if (next === current) return
+    pericias[periciaName] = next
+    update({ pericias })
+  }
 
   function toggleKnowledge(key, currentlyEnabled) {
     if (!update) return
@@ -636,8 +667,75 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
               {/* PERÍCIAS */}
               <section className={visible('traits') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="📜" title="Perícias Treinadas" color="bg-cyan-400" />
-                {periciasArr.length > 0 ? (
+                <div className="flex items-center justify-between">
+                  <SectionHeader icon="📜" title="Perícias Treinadas" color="bg-cyan-400" />
+                  {canEdit && cls && (
+                    <button
+                      onClick={() => setEditingPericias(!editingPericias)}
+                      className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${
+                        editingPericias
+                          ? 'bg-cyan-400/15 border-cyan-400/40 text-cyan-300'
+                          : 'bg-void border-sep/30 text-txt-dim hover:border-cyan-400/30 hover:text-cyan-300'
+                      }`}
+                    >
+                      {editingPericias ? 'Fechar' : 'Editar'}
+                    </button>
+                  )}
+                </div>
+                {cls && (
+                  <div className="mb-2 flex items-center gap-2 text-[10px] text-txt-dim">
+                    <span>Pontos: <span className={`font-mono ${(periciasTotal - periciasUsed) > 0 ? 'text-cyan-400' : 'text-ok'}`}>{periciasUsed}/{periciasTotal}</span></span>
+                    <span className="text-txt-dim/40">|</span>
+                    <span>Grau máx: <span className="font-mono text-gold">{periciasMaxGrau} ({GRAU_NAMES[periciasMaxGrau]})</span></span>
+                  </div>
+                )}
+                {editingPericias && canEdit && cls ? (
+                  <div className="space-y-1.5">
+                    {PERICIAS.map(pericia => {
+                      const grau = (char.pericias || {})[pericia.name] || 0
+                      const bestAttr = pericia.attrs.map(a => ({ a, v: totalAttr(a) })).reduce((a, b) => a.v >= b.v ? a : b)
+                      const bonus = Math.max(...pericia.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau)
+                      const remaining = periciasTotal - periciasUsed
+                      const canUpgrade = remaining > 0 && (grau < periciasMaxGrau)
+                      return (
+                        <div
+                          key={pericia.name}
+                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors ${
+                            grau > 0
+                              ? 'border-cyan-400/30 bg-cyan-400/5'
+                              : 'border-sep/20 bg-void/30'
+                          }`}
+                        >
+                          <span className={`text-xs flex-1 min-w-0 truncate ${grau > 0 ? 'text-txt-main' : 'text-txt-dim/60'}`}>{pericia.name}</span>
+                          <span className="text-[9px] text-txt-dim/50 w-10 text-center">{pericia.attrs.join('/')}</span>
+                          <span className="text-[9px] text-gold/60 font-mono w-6 text-center">{bestAttr.a}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => adjustPericia(pericia.name, -1)}
+                              disabled={grau <= 0}
+                              className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${
+                                grau > 0 ? 'bg-err/10 text-err/60 hover:bg-err/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'
+                              }`}
+                            >−</button>
+                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded text-center min-w-[70px] ${
+                              grau > 0 ? 'bg-cyan-400/15 text-cyan-300' : 'bg-void text-txt-dim/40'
+                            }`}>{GRAU_NAMES[grau]}</span>
+                            <button
+                              onClick={() => adjustPericia(pericia.name, 1)}
+                              disabled={!canUpgrade && grau === 0}
+                              className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${
+                                canUpgrade || grau > 0 ? 'bg-ok/10 text-ok/60 hover:bg-ok/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'
+                              }`}
+                            >+</button>
+                          </div>
+                          <span className={`font-mono text-xs w-8 text-right ${grau > 0 ? 'text-cyan-400' : 'text-txt-dim/30'}`}>
+                            {bonus >= 0 ? '+' : ''}{grau > 0 ? bonus : 0}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : periciasArr.length > 0 ? (
                   <div className="overflow-hidden rounded-lg border border-sep/60">
                     <table className="w-full text-sm">
                       <thead>

@@ -253,7 +253,19 @@ function FullSheetViewer({ sheetId, onBack }) {
     if (error || !data) {
       setSheet(null)
     } else {
-      setSheet(data)
+      setSheet({
+        ...data,
+        data: {
+          pericias: {},
+          sistemaOptIn: {},
+          inventario: [],
+          equipamentos: [],
+          modulosAdquiridos: [],
+          skeletonHistory: [],
+          systemSkills: [],
+          ...data.data,
+        },
+      })
     }
   }
 
