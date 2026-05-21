@@ -274,6 +274,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
     if (!update) return
     const pericias = { ...(char.pericias || {}) }
     const current = pericias[periciaName] || 0
+    if (delta > 0) {
+      const remaining = periciasTotal - periciasUsed
+      if (remaining <= 0) return
+    }
     const next = Math.max(0, Math.min(periciasMaxGrau, current + delta))
     if (next === current) return
     pericias[periciaName] = next
@@ -722,7 +726,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                             }`}>{GRAU_NAMES[grau]}</span>
                             <button
                               onClick={() => adjustPericia(pericia.name, 1)}
-                              disabled={!canUpgrade && grau === 0}
+                              disabled={!canUpgrade}
                               className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${
                                 canUpgrade || grau > 0 ? 'bg-ok/10 text-ok/60 hover:bg-ok/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'
                               }`}

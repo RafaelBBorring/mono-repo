@@ -305,6 +305,9 @@ export default function ResidentInventorySection({
       update({ equipamentos: (char.equipamentos || []).filter((_, i) => i !== entry.idx) })
       setEquipDrawer(null)
     }
+    if (entry.source === 'legendary') {
+      update({ armasLendarias: (char.armasLendarias || []).filter((_, i) => i !== entry.idx) })
+    }
     if (entry.source === 'primary') {
       update({ arma: null, armaRank: 'Comum', armaEquipada: true, armaLocal: 'equipado', armaHabilidades: [], armaNome: '', armaImagem: null })
       setShowWeaponDrawer(false)
