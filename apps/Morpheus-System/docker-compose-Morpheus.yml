@@ -30,7 +30,7 @@ services:
     labels:
       traefik.enable: "true"
       traefik.http.services.morpheus-app.loadbalancer.server.port: "3000"
-      traefik.http.routers.morpheus-app.rule: Host(`${MORPHEUS_DOMAIN:-morpheus.localhost}`)
+      traefik.http.routers.morpheus-app.rule: Host(`${MORPHEUS_DOMAIN:-morpheus.olympo.quest}`)
       traefik.http.routers.morpheus-app.entrypoints: web
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000"]
