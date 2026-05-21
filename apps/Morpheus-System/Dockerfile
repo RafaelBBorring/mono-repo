@@ -62,7 +62,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-RUN if [ -d /app/public ]; then cp -r /app/public ./public; fi
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 USER nextjs
 
