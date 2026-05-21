@@ -1133,7 +1133,7 @@ function FullSheetEditor({ sheet, onSave, onCancel, forgeWeapons }) {
     if (existing.some(l => l.id === legendaryId)) return
     const entry = lw
       ? { id: lw.id, name: lw.name, rank: lw.rank, tipo: lw.tipo, descricao: lw.descricao }
-      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge', sourceId: fw.id }
+      : { id: fw.id, name: fw.name, rank: 'Lendária', tipo: fw.range || fw.law_name || 'Forja Lendária', source: 'forge', sourceId: fw.id, image: fw.image || null, descricao: fw.short_description || fw.effect || '', dano: fw.damage || fw.dano || '', attr: fw.attribute || fw.attr || '', effect: fw.effect || '', lore: fw.lore || '', power_level: fw.power_level || '', habilidades: fw.abilities || fw.habilidades || '' }
     setData(prev => ({
       ...prev,
       armasLendarias: [...existing, entry],

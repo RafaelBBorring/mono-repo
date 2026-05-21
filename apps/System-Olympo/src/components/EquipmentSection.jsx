@@ -1241,7 +1241,7 @@ function LegendaryAssignedCard({ item, onClick }) {
   )
 }
 
-function LegendaryWeaponDrawer({ item, forgeItem, canRemove, onRemove, onClose }) {
+export function LegendaryWeaponDrawer({ item, forgeItem, canRemove, onRemove, onClose }) {
   const habs = forgeItem?.habilidades
     ? (typeof forgeItem.habilidades === 'string'
         ? JSON.parse(forgeItem.habilidades || '{}')

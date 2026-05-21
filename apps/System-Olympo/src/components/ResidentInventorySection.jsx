@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ITEM_COLORS } from '../data/colors'
-import { WEAPONS, WEAPON_RANKS, getWeaponWeight } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_POWER_LEVELS, getWeaponWeight } from '../data/weapons'
 import { EQUIPMENT_TYPES, calcEquipStats, estimateEquipmentWeight } from '../data/equipment'
 import { estimateInventoryItemWeight } from '../utils/calculator'
 import { suggestItemWeight } from '../services/aiService'
-import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer } from './EquipmentSection'
+import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer, LegendaryWeaponDrawer } from './EquipmentSection'
+import { fetchMysticWeapons } from '../services/alchemyService'
 
 const GRID_COLS = 10
 const GRID_ROWS = 8
@@ -240,8 +241,18 @@ export default function ResidentInventorySection({
   const [equipEditMode, setEquipEditMode] = useState(false)
   const [showWeaponDrawer, setShowWeaponDrawer] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState(null)
+  const [legendaryDrawer, setLegendaryDrawer] = useState(null)
+  const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
   const itemImgRef = useRef(null)
   const equipImgRef = useRef(null)
+
+  useEffect(() => {
+    let alive = true
+    fetchMysticWeapons().then(res => {
+      if (alive) setLegendaryForgeItems(res.data || [])
+    })
+    return () => { alive = false }
+  }, [])
 
   const allEntries = useMemo(() => buildEntries(char), [char])
   const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
@@ -307,6 +318,7 @@ export default function ResidentInventorySection({
     }
     if (entry.source === 'legendary') {
       update({ armasLendarias: (char.armasLendarias || []).filter((_, i) => i !== entry.idx) })
+      setLegendaryDrawer(null)
     }
     if (entry.source === 'primary') {
       update({ arma: null, armaRank: 'Comum', armaEquipada: true, armaLocal: 'equipado', armaHabilidades: [], armaNome: '', armaImagem: null })
@@ -349,6 +361,8 @@ export default function ResidentInventorySection({
   function openEntry(entry) {
     if (entry.source === 'primary') {
       setShowWeaponDrawer(true)
+    } else if (entry.source === 'legendary') {
+      setLegendaryDrawer(entry)
     } else if (entry.item.categoria === 'Traje') {
       setOutfitDrawer(entry)
     } else if (entry.source === 'equipment') {
@@ -926,6 +940,26 @@ export default function ResidentInventorySection({
           onDelete={() => removeEntry({ source: 'primary' })}
           onTransfer={onTransferItem ? () => onTransferItem('armaPrincipal', null) : null}
           onClose={() => setShowWeaponDrawer(false)}
+        />,
+        document.body
+      )}
+
+      {legendaryDrawer && createPortal(
+        <LegendaryWeaponDrawer
+          item={{
+            name: legendaryDrawer.item.nome,
+            tipo: legendaryDrawer.item.tipo || 'Arma Lendária',
+            image: legendaryDrawer.item.imagem,
+            rank: legendaryDrawer.item.rank || 'Lendária',
+          }}
+          forgeItem={(() => {
+            const lw = (char.armasLendarias || [])[legendaryDrawer.idx]
+            const sourceId = lw?.sourceId || lw?.id
+            return legendaryForgeItems.find(fi => fi.id === sourceId) || null
+          })()}
+          canRemove={canEdit}
+          onRemove={() => removeEntry(legendaryDrawer)}
+          onClose={() => setLegendaryDrawer(null)}
         />,
         document.body
       )}
