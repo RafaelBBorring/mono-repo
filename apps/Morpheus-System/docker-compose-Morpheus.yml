@@ -1,0 +1,46 @@
+services:
+  morpheus-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_BILLING_REQUIRED: ${NEXT_PUBLIC_BILLING_REQUIRED:-true}
+        NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED: ${NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED:-true}
+        NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_MONTHLY: ${NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_MONTHLY:-}
+        NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_ANUAL: ${NEXT_PUBLIC_STRIPE_LINK_ESSENTIAL_ANUAL:-}
+        NEXT_PUBLIC_STRIPE_LINK_PRO_MONTHLY: ${NEXT_PUBLIC_STRIPE_LINK_PRO_MONTHLY:-}
+        NEXT_PUBLIC_STRIPE_LINK_PRO_ANUAL: ${NEXT_PUBLIC_STRIPE_LINK_PRO_ANUAL:-}
+        NEXT_PUBLIC_STRIPE_LINK_ELITE_MONTHLY: ${NEXT_PUBLIC_STRIPE_LINK_ELITE_MONTHLY:-}
+        NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL: ${NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL:-}
+        NEXT_PUBLIC_STRIPE_LINK_TRIAL: ${NEXT_PUBLIC_STRIPE_LINK_TRIAL:-}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+        NEXT_PUBLIC_SERVER_API_AVAILABLE: ${NEXT_PUBLIC_SERVER_API_AVAILABLE:-true}
+    container_name: morpheus-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    labels:
+      traefik.enable: "true"
+      traefik.http.services.morpheus-app.loadbalancer.server.port: "3000"
+      traefik.http.routers.morpheus-app.rule: Host(`${MORPHEUS_DOMAIN:-morpheus.localhost}`)
+      traefik.http.routers.morpheus-app.entrypoints: web
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
