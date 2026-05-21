@@ -107,7 +107,7 @@ export default function BillingGate() {
             Escolha o plano e comece agora
           </h1>
           <p className="mx-auto mt-4 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] sm:text-lg">
-            Todos os planos incluem <strong>7 dias grátis</strong>. Cancele quando quiser durante o trial.
+            Todos os planos incluem <strong>7 dias gratis</strong>. Cancele quando quiser durante o trial.
           </p>
         </div>
 
@@ -137,7 +137,8 @@ export default function BillingGate() {
         <div className="mb-8 grid gap-5 sm:grid-cols-3">
           {PLANS.map((p) => {
             const isSelected = selectedPlan === p.id;
-            const pPrice = interval === "monthly" ? p.monthlyLabel : p.yearlyLabel;
+            const pPrice = interval === "monthly" ? p.monthlyPriceBRL : p.yearlyPriceBRL;
+            const pSuffix = interval === "monthly" ? "/mes" : "/ano";
             const isLoading = loadingAction === `${p.id}-${interval}`;
 
             return (
@@ -159,27 +160,29 @@ export default function BillingGate() {
                 <h3 className="font-brand text-2xl font-semibold">{p.name}</h3>
                 <p className="mt-1 font-body text-sm text-[var(--text-muted)]">{p.description}</p>
 
-                <div className="my-4">
+                <div className="my-4 flex items-baseline gap-1">
+                  <span className="font-brand text-sm font-bold text-[var(--text-muted)]">R$</span>
                   <span className="font-brand text-3xl font-bold">{pPrice}</span>
-                  {interval === "yearly" && (
-                    <p className="mt-1 font-body text-sm font-bold text-[var(--accent-mint)]">
-                      {p.yearlyMonthlyEquiv}
-                    </p>
-                  )}
+                  <span className="font-body text-sm font-bold text-[var(--text-muted)]">{pSuffix}</span>
                 </div>
+                {interval === "yearly" && (
+                  <p className="-mt-2 mb-4 font-body text-sm font-bold text-[var(--accent-mint)]">
+                    {p.yearlyMonthlyEquiv}
+                  </p>
+                )}
 
                 <ul className="mb-4 flex-1 space-y-2">
                   <li className="flex items-center gap-2 font-body text-sm">
                     <Building2 size={14} className="shrink-0 text-[var(--accent-sky)]" />
-                    Até {p.maxRooms} salas
+                    Ate {p.maxRooms} salas
                   </li>
                   <li className="flex items-center gap-2 font-body text-sm">
                     <Users size={14} className="shrink-0 text-[var(--accent-lavender)]" />
-                    Até {p.maxDoctors} profissionais
+                    Ate {p.maxDoctors} profissionais
                   </li>
                   <li className="flex items-center gap-2 font-body text-sm">
                     <Warehouse size={14} className="shrink-0 text-[var(--accent-amber)]" />
-                    Até {p.maxWorkspaces} {p.maxWorkspaces === 1 ? "clínica" : "clínicas"}
+                    Ate {p.maxWorkspaces} {p.maxWorkspaces === 1 ? "clinica" : "clinicas"}
                   </li>
                   <li className="flex items-center gap-2 font-body text-sm">
                     <Check size={14} className="shrink-0 text-[var(--accent-mint)]" />
@@ -194,7 +197,7 @@ export default function BillingGate() {
         <div className="mx-auto max-w-md space-y-3 text-center">
           <label className="block text-left">
             <span className="font-body text-sm font-bold text-[var(--text-soft)]">
-              E-mail de cobrança (opcional)
+              E-mail de cobranca (opcional)
             </span>
             <input
               value={email}
@@ -218,28 +221,30 @@ export default function BillingGate() {
               : `Assinar ${plan.name} — ${price}`}
           </Button>
 
-          <Button
-            variant="ghost"
-            size="lg"
-            fullWidth
-            onClick={handleTrial}
-            disabled={loadingAction !== null || !checkoutEnabled}
-          >
-            <Sparkles size={20} />
-            {loadingAction === "trial" ? "Abrindo..." : "Testar grátis por 7 dias — Essential (requer cartão)"}
-          </Button>
+          {selectedPlan === "essential" && (
+            <Button
+              variant="ghost"
+              size="lg"
+              fullWidth
+              onClick={handleTrial}
+              disabled={loadingAction !== null || !checkoutEnabled}
+            >
+              <Sparkles size={20} />
+              {loadingAction === "trial" ? "Abrindo..." : "Teste gratis 7 dias — Essential (requer cartao)"}
+            </Button>
+          )}
 
           {clinic && (
             <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-4 text-left">
               <p className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                Clínica: {clinic.name}
+                Clinica: {clinic.name}
               </p>
               <p className="mt-2 font-brand text-xl font-semibold">
                 {billingStatusLabel(clinic.stripeStatus)}
               </p>
               {clinic.currentPeriodEnd && (
                 <p className="mt-1 font-body text-sm font-bold text-[var(--text-muted)]">
-                  Vigência até {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                  Vigencia ate {new Date(clinic.currentPeriodEnd).toLocaleDateString("pt-BR")}
                 </p>
               )}
             </div>
@@ -252,7 +257,7 @@ export default function BillingGate() {
               className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-4 py-3 font-body text-base font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] disabled:opacity-60"
             >
               <CreditCard size={20} />
-              {loadingAction === "portal" ? "Abrindo..." : "Gerenciar cobrança"}
+              {loadingAction === "portal" ? "Abrindo..." : "Alterar forma de pagamento"}
             </button>
           )}
 

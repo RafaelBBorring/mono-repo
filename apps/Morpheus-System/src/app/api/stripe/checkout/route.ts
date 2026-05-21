@@ -78,12 +78,16 @@ export async function POST(request: Request) {
       },
       subscription_data: {
         trial_period_days: 7,
+        trial_settings: {
+          end_behavior: { missing_payment_method: "pause" },
+        },
         metadata: {
           clinic_id: clinicId || "",
           plan,
           interval,
         },
       },
+      payment_method_collection: "if_required",
     });
 
     return NextResponse.json({ url: session.url });

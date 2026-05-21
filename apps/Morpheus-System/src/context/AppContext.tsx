@@ -121,7 +121,7 @@ const _trialLink = process.env.NEXT_PUBLIC_STRIPE_LINK_TRIAL;
 if (_trialLink) stripePaymentLinks["trial"] = _trialLink;
 
 const publicApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "";
-const serverApiAvailable = checkoutEnabled && !!publicApiBaseUrl;
+const serverApiAvailable = process.env.NEXT_PUBLIC_SERVER_API_AVAILABLE !== "false";
 
 function apiUrl(path: string) {
   return publicApiBaseUrl ? `${publicApiBaseUrl}${path}` : path;
@@ -673,7 +673,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cancelSubscription = useCallback(async () => {
     if (!clinic?.stripeSubscriptionId) { addToast("Nenhuma assinatura para cancelar.", "info"); return; }
     try {
-      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subscriptionId: clinic.stripeSubscriptionId }) });
+      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId: clinic.id }) });
       const payload = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Falha ao cancelar.");
       addToast("Assinatura cancelada.", "success");

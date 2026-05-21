@@ -12,15 +12,15 @@ export function isBillingActive(account: BillingAccount | null) {
 export function billingStatusLabel(status?: string) {
   const labels: Record<string, string> = {
     active: "Assinatura ativa",
-    trialing: "Período de teste ativo",
+    trialing: "Periodo de teste ativo",
     past_due: "Pagamento pendente",
     unpaid: "Pagamento em atraso",
     canceled: "Assinatura cancelada",
     incomplete: "Pagamento incompleto",
     incomplete_expired: "Pagamento expirado",
     paused: "Assinatura pausada",
-    inactive: "Assinatura inativa",
+    inactive: "Nenhuma assinatura",
   };
 
-  return labels[status || "inactive"] || "Assinatura não confirmada";
+  return labels[status || "inactive"] || "Nenhuma assinatura";
 }
