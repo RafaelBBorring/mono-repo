@@ -215,6 +215,14 @@
   <script src="js/supabase.js"></script>
   <script src="js/db.js"></script>
   <script>
+    (function() {
+      var mode = localStorage.getItem('codex_storage_mode');
+      if (mode === 'local') {
+        window.location.href = '/hub.html';
+        return;
+      }
+    })();
+
     // Redireciona se já logado
     getSession().then(session => {
         if (session) window.location.href = '/hub.html';

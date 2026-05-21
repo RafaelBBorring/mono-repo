@@ -14,7 +14,7 @@ const DB = (() => {
   // ── Persistência do modo escolhido ──────────────────────
   const MODE_KEY = 'codex_storage_mode';
 
-  let _mode = localStorage.getItem(MODE_KEY) || 'supabase';
+  let _mode = localStorage.getItem(MODE_KEY) || 'local';
 
   // Usuário em memória (preenchido pelo initAuth de cada página)
   let _currentUser = null;

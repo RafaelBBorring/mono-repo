@@ -288,6 +288,7 @@ export default function HomeMenu({
   const recentSheets = sheets.slice(0, 6)
 
   const adminActions = [
+    { key: 'session', label: 'Sessão ao Vivo', detail: 'Acompanhe recursos dos personagens em tempo real.', icon: 'campaign' },
     { key: 'grimoire', label: 'Grimório do Mestre', detail: 'Gestão de feitiços e conhecimentos proibidos.', icon: 'menu_book' },
     { key: 'mysticWeapons', label: 'Forja Lendária', detail: 'Criação e manutenção de artefatos únicos.', icon: 'auto_fix_high' },
     { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens registrados.`, icon: 'groups' },

@@ -36,6 +36,49 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function extractJSON(response) {
+  let text = response.trim()
+  text = text.replace(/```json\s*\n?/gi, '').replace(/```\s*\n?/g, '').trim()
+
+  try { return JSON.parse(text) } catch {}
+
+  const firstBrace = text.indexOf('{')
+  const lastBrace = text.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)) } catch {}
+  }
+
+  if (firstBrace !== -1 && lastBrace <= firstBrace) {
+    for (let i = text.length; i >= firstBrace; i--) {
+      const candidates = [i, i + 1, i + 2]
+        .map(pos => text.slice(firstBrace, pos) + '}'.repeat(countOpen(text.slice(firstBrace, pos))))
+        .filter(s => s.length > 2)
+      for (const candidate of candidates) {
+        try { return JSON.parse(candidate) } catch {}
+      }
+    }
+  }
+
+  const firstBracket = text.indexOf('[')
+  const lastBracket = text.lastIndexOf(']')
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    try { return JSON.parse(text.slice(firstBracket, lastBracket + 1)) } catch {}
+  }
+
+  console.error('[extractJSON] Falha ao parsear resposta da IA. Primeiros 500 chars:', text.slice(0, 500))
+  console.error('[extractJSON] Ultimos 500 chars:', text.slice(-500))
+  throw new Error('A IA retornou um formato inválido. Tente novamente.')
+}
+
+function countOpen(str) {
+  let open = 0
+  for (const ch of str) {
+    if (ch === '{' || ch === '[') open++
+    if (ch === '}' || ch === ']') open--
+  }
+  return Math.max(0, open)
+}
+
 function getRetryDelay(attempt) {
   return BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500
 }
@@ -47,7 +90,7 @@ function isRetryable(status) {
 async function callAI(messages, { maxTokens = 4096 } = {}) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const { data, error } = await supabase.functions.invoke('openrouter-chat', {
+      const { data, error } = await supabase.functions.invoke('openrouter-proxy', {
         body: { messages, temperature: 0.35, max_tokens: maxTokens },
       })
       if (error) {
@@ -65,11 +108,16 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
       return content
     } catch (edgeError) {
       const status = edgeError?.context?.status || edgeError?.status || 0
+      console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
       if (isRetryable(status) && attempt < MAX_RETRIES) {
         await sleep(getRetryDelay(attempt))
         continue
       }
-      if (!OPENROUTER_API_KEY) throw edgeError
+      if (!OPENROUTER_API_KEY) {
+        console.error('[callAI] Sem OPENROUTER_API_KEY para fallback')
+        throw edgeError
+      }
+      console.warn('[callAI] Usando fallback direto OpenRouter')
       try {
         for (let fbAttempt = 0; fbAttempt <= MAX_RETRIES; fbAttempt++) {
           const response = await fetch(OPENROUTER_URL, {
@@ -114,7 +162,7 @@ async function callAIStream(messages, onChunk) {
   const body = { messages, temperature: 0.35, max_tokens: 4096, stream: true }
 
   try {
-    const { data, error } = await supabase.functions.invoke('openrouter-chat', {
+    const { data, error } = await supabase.functions.invoke('openrouter-proxy', {
       body,
     })
     if (error) throw error
@@ -563,11 +611,10 @@ Responda EXCLUSIVAMENTE com JSON:
   const response = await callAI([
     { role: 'system', content: buildSystemContext() },
     { role: 'user',   content: userMessage },
-  ])
+  ], { maxTokens: 8192 })
 
   try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    return extractJSON(response)
   } catch {
     throw new Error('A IA retornou um formato inválido. Tente novamente.')
   }
@@ -651,8 +698,7 @@ Responda EXCLUSIVAMENTE com JSON:
     { role: 'user',   content: prompt },
   ])
   try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    return extractJSON(response)
   } catch {
     throw new Error('A IA retornou um formato inválido. Tente novamente.')
   }
@@ -701,8 +747,7 @@ Responda EXCLUSIVAMENTE com JSON:
     { role: 'user', content: prompt },
   ], { maxTokens: 1200 })
   try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    return extractJSON(response)
   } catch {
     throw new Error('A IA retornou um formato invalido para o encantamento.')
   }
@@ -752,8 +797,7 @@ Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habi
     { role: 'user',   content: prompt },
   ])
   try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    return extractJSON(response)
   } catch {
     throw new Error('A IA retornou um formato inválido. Tente novamente.')
   }
@@ -922,8 +966,7 @@ async function analyzeMysticDraft(systemType, draft, context = {}) {
   ])
 
   try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    return extractJSON(response)
   } catch {
     throw new Error('A IA retornou um formato invalido para o cadastro mistico.')
   }
@@ -1151,8 +1194,7 @@ RESPONDA EXCLUSIVAMENTE COM JSON VALIDO
   ], { maxTokens: 8192 })
 
   try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    return extractJSON(response)
   } catch {
     throw new Error('A IA retornou um formato invalido para a arma lendaria.')
   }
