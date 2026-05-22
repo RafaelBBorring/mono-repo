@@ -32,14 +32,16 @@ export async function POST(request: Request) {
       interval?: "monthly" | "yearly";
       email?: string;
       clinicId?: string;
+      trial?: boolean;
     };
 
     const plan: PlanId = body.plan || "pro";
     const interval: "monthly" | "yearly" = body.interval || "monthly";
+    const isTrial = body.trial === true;
     const priceId = getPriceId(plan, interval);
 
     if (!priceId) {
-      return NextResponse.json({ error: "Plano Stripe não configurado." }, { status: 500 });
+      return NextResponse.json({ error: "Plano Stripe nao configurado." }, { status: 500 });
     }
 
     let stripeCustomerId: string | undefined;
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
     try {
       const supabase = createSupabaseAdmin();
       if (!clinicId) {
-        return NextResponse.json({ error: "clinicId é obrigatório." }, { status: 400 });
+        return NextResponse.json({ error: "clinicId e obrigatorio." }, { status: 400 });
       }
 
       const { data: clinicRow } = await supabase
@@ -63,7 +65,8 @@ export async function POST(request: Request) {
 
     const appUrl = getAppUrl();
     const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
+
+    const sessionConfig: Record<string, unknown> = {
       mode: "subscription",
       customer: stripeCustomerId,
       customer_email: stripeCustomerId ? undefined : body.email?.trim() || undefined,
@@ -75,24 +78,31 @@ export async function POST(request: Request) {
         clinic_id: clinicId || "",
         plan,
         interval,
+        trial: isTrial ? "true" : "false",
       },
       subscription_data: {
-        trial_period_days: 7,
-        trial_settings: {
-          end_behavior: { missing_payment_method: "pause" },
-        },
         metadata: {
           clinic_id: clinicId || "",
           plan,
           interval,
         },
       },
-      payment_method_collection: "if_required",
-    });
+    };
+
+    if (isTrial) {
+      (sessionConfig.subscription_data as Record<string, unknown>).trial_period_days = 7;
+      (sessionConfig.subscription_data as Record<string, unknown>).trial_settings = {
+        end_behavior: { missing_payment_method: "cancel" },
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(
+      sessionConfig as Stripe.Checkout.SessionCreateParams
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("Stripe checkout failed:", error);
-    return NextResponse.json({ error: "Não foi possível iniciar o pagamento." }, { status: 500 });
+    return NextResponse.json({ error: "Nao foi possivel iniciar o pagamento." }, { status: 500 });
   }
 }

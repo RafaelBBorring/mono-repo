@@ -605,11 +605,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [addToast, ensureBillingAccess]);
 
   const startCheckout = useCallback(
-    async (plan: PlanId, interval: "monthly" | "yearly", email?: string) => {
-      if (!checkoutEnabled) { addToast("Checkout indisponível.", "info"); return; }
+    async (plan: PlanId, interval: "monthly" | "yearly", email?: string, isTrial = false) => {
+      if (!checkoutEnabled) { addToast("Checkout indisponivel.", "info"); return; }
       const linkKey = `${plan}-${interval}`;
       const paymentLinkUrl = stripePaymentLinks[linkKey];
-      if (paymentLinkUrl) {
+      if (paymentLinkUrl && !isTrial) {
         let url = paymentLinkUrl;
         if (email) { url += `${url.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(email)}`; }
         window.location.href = url; return;
@@ -617,12 +617,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const response = await fetch(apiUrl("/api/stripe/checkout"), {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId }),
+          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, trial: isTrial }),
         });
         const payload = (await response.json()) as { url?: string; error?: string };
-        if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponível.");
+        if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
         window.location.href = payload.url;
-      } catch (err) { console.error("Checkout failed:", err); addToast("Não foi possível abrir o checkout.", "error"); }
+      } catch (err) { console.error("Checkout failed:", err); addToast("Nao foi possivel abrir o checkout.", "error"); }
     }, [addToast, authUser]
   );
 
@@ -634,7 +634,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (email) { url += `${url.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(email)}`; }
         window.location.href = url; return;
       }
-      await startCheckout("essential", "monthly", email);
+      await startCheckout("essential", "monthly", email, true);
     }, [startCheckout]
   );
 
