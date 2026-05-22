@@ -96,9 +96,7 @@ export async function POST(request: Request) {
       };
     }
 
-    const session = await stripe.checkout.sessions.create(
-      sessionConfig as Stripe.Checkout.SessionCreateParams
-    );
+    const session = await stripe.checkout.sessions.create(sessionConfig as Parameters<typeof stripe.checkout.sessions.create>[0]);
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
