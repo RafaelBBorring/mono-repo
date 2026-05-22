@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabaseServer";
 import { getAppUrl, getStripe } from "@/lib/stripe";
 import type { PlanId } from "@/lib/plans";
+import { validateClinicAccess } from "@/lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,11 +28,14 @@ function getPriceId(plan: PlanId, interval: "monthly" | "yearly"): string | unde
 
 export async function POST(request: Request) {
   try {
+    const access = await validateClinicAccess(request);
+    if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+    const { clinicId } = access;
+
     const body = (await request.json().catch(() => ({}))) as {
       plan?: PlanId;
       interval?: "monthly" | "yearly";
       email?: string;
-      clinicId?: string;
       trial?: boolean;
     };
 
@@ -44,15 +48,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Plano Stripe nao configurado." }, { status: 500 });
     }
 
-    let stripeCustomerId: string | undefined;
-    let clinicId = body.clinicId;
+    if (isTrial) {
+      const supabase = createSupabaseAdmin();
+      const { data: clinic } = await supabase
+        .from("clinics")
+        .select("trial_used")
+        .eq("id", clinicId)
+        .maybeSingle();
+      if (clinic?.trial_used) {
+        return NextResponse.json({ error: "Periodo de teste ja utilizado." }, { status: 400 });
+      }
+    }
 
+    let stripeCustomerId: string | undefined;
     try {
       const supabase = createSupabaseAdmin();
-      if (!clinicId) {
-        return NextResponse.json({ error: "clinicId e obrigatorio." }, { status: 400 });
-      }
-
       const { data: clinicRow } = await supabase
         .from("clinics")
         .select("stripe_customer_id")
@@ -60,7 +70,7 @@ export async function POST(request: Request) {
         .maybeSingle();
       stripeCustomerId = clinicRow?.stripe_customer_id || undefined;
     } catch (error) {
-      console.warn("Checkout will continue without an existing Stripe customer:", error);
+      console.warn("Checkout will continue without an existing Stripe customer.");
     }
 
     const appUrl = getAppUrl();
@@ -75,14 +85,14 @@ export async function POST(request: Request) {
       success_url: `${appUrl}/app?checkout=success`,
       cancel_url: `${appUrl}/app?checkout=canceled`,
       metadata: {
-        clinic_id: clinicId || "",
+        clinic_id: clinicId,
         plan,
         interval,
         trial: isTrial ? "true" : "false",
       },
       subscription_data: {
         metadata: {
-          clinic_id: clinicId || "",
+          clinic_id: clinicId,
           plan,
           interval,
         },
@@ -91,12 +101,11 @@ export async function POST(request: Request) {
 
     if (isTrial) {
       (sessionConfig.subscription_data as Record<string, unknown>).trial_period_days = 7;
-      (sessionConfig.subscription_data as Record<string, unknown>).trial_settings = {
-        end_behavior: { missing_payment_method: "cancel" },
-      };
     }
 
-    const session = await stripe.checkout.sessions.create(sessionConfig as Parameters<typeof stripe.checkout.sessions.create>[0]);
+    const session = await stripe.checkout.sessions.create(
+      sessionConfig as Parameters<typeof stripe.checkout.sessions.create>[0]
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

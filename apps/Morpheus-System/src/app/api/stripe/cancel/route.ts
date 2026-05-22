@@ -1,42 +1,40 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabaseServer";
 import { getStripe } from "@/lib/stripe";
+import { validateClinicAccess } from "@/lib/apiAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as { clinicId?: string };
-
-    if (!body.clinicId) {
-      return NextResponse.json({ error: "clinicId e obrigatorio." }, { status: 400 });
-    }
+    const access = await validateClinicAccess(request);
+    if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+    const { clinicId } = access;
 
     const supabase = createSupabaseAdmin();
     const { data: clinic, error } = await supabase
       .from("clinics")
-      .select("stripe_subscription_id")
-      .eq("id", body.clinicId)
+      .select("stripe_subscription_id, current_period_end")
+      .eq("id", clinicId)
       .maybeSingle();
-
     if (error) throw error;
     if (!clinic?.stripe_subscription_id) {
-      return NextResponse.json({ error: "Assinatura Stripe nao encontrada." }, { status: 404 });
+      return NextResponse.json({ error: "Assinatura nao encontrada." }, { status: 404 });
     }
 
-    const subscription = await getStripe().subscriptions.cancel(clinic.stripe_subscription_id);
+    const subscription = await getStripe().subscriptions.update(
+      clinic.stripe_subscription_id,
+      { cancel_at_period_end: true }
+    );
 
     const { error: updateError } = await supabase
       .from("clinics")
       .update({
-        stripe_status: subscription.status,
-        cancel_at_period_end: subscription.cancel_at_period_end,
-        current_period_end: null,
+        cancel_at_period_end: true,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", body.clinicId);
-
+      .eq("id", clinicId);
     if (updateError) throw updateError;
 
     return NextResponse.json({ ok: true, status: subscription.status });

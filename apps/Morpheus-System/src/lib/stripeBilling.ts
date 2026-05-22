@@ -24,17 +24,25 @@ export async function upsertBillingFromSubscription(subscription: Stripe.Subscri
   const periodEnd = (subscription as Stripe.Subscription & { current_period_end?: number | null })
     .current_period_end;
 
+  const isTrial = subscription.status === "trialing";
+
+  const updates: Record<string, unknown> = {
+    stripe_customer_id: customerIdFrom(subscription),
+    stripe_subscription_id: subscription.id,
+    stripe_price_id: firstItem?.price.id ?? null,
+    stripe_status: subscription.status,
+    current_period_end: toIsoDate(periodEnd),
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (isTrial) {
+    updates.trial_used = true;
+  }
+
   const { error } = await supabase
     .from("clinics")
-    .update({
-      stripe_customer_id: customerIdFrom(subscription),
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: firstItem?.price.id ?? null,
-      stripe_status: subscription.status,
-      current_period_end: toIsoDate(periodEnd),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updates)
     .eq("id", clinicId);
 
   if (error) throw error;

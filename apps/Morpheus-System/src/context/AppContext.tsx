@@ -543,7 +543,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const removeReservation = useCallback(async (id: string) => {
     if (!ensureBillingAccess()) return;
-    try { const { error } = await supabase.from("reservations").delete().eq("id", id); if (error) throw error; addToast("Reserva removida.", "info"); }
+    try { const { error } = await supabase.from("reservations").delete().eq("id", id).eq("clinic_id", clinicIdForInsert); if (error) throw error; addToast("Reserva removida.", "info"); }
     catch { addToast("Erro ao remover.", "error"); }
   }, [addToast, ensureBillingAccess]);
 
@@ -565,7 +565,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteRoom = useCallback(async (id: number) => {
     if (!ensureBillingAccess()) return;
-    try { const { error } = await supabase.from("rooms").delete().eq("id", id); if (error) throw error; addToast("Sala removida.", "success"); }
+    try { const { error } = await supabase.from("rooms").delete().eq("id", id).eq("clinic_id", clinicIdForInsert); if (error) throw error; addToast("Sala removida.", "success"); }
     catch { addToast("Erro ao remover.", "error"); }
   }, [addToast, ensureBillingAccess]);
 
@@ -600,7 +600,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deletePsychologist = useCallback(async (id: number) => {
     if (!ensureBillingAccess()) return;
-    try { const { error } = await supabase.from("psychologists").delete().eq("id", id); if (error) throw error; addToast("Removido.", "success"); }
+    try { const { error } = await supabase.from("psychologists").delete().eq("id", id).eq("clinic_id", clinicIdForInsert); if (error) throw error; addToast("Removido.", "success"); }
     catch { addToast("Erro ao remover.", "error"); }
   }, [addToast, ensureBillingAccess]);
 
@@ -617,7 +617,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const response = await fetch(apiUrl("/api/stripe/checkout"), {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, trial: isTrial }),
+          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, userId: user?.id, trial: isTrial }),
         });
         const payload = (await response.json()) as { url?: string; error?: string };
         if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
@@ -639,9 +639,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const openBillingPortal = useCallback(async () => {
-    if (!checkoutEnabled) { addToast("Portal indisponível.", "info"); return; }
+    if (!checkoutEnabled) { addToast("Portal indisponivel.", "info"); return; }
     try {
-      const response = await fetch(apiUrl("/api/stripe/portal"), { method: "POST" });
+      const response = await fetch(apiUrl("/api/stripe/portal"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicId: clinic?.id, userId: user?.id }),
+      });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Portal indisponível.");
       window.location.href = payload.url;
@@ -673,7 +677,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cancelSubscription = useCallback(async () => {
     if (!clinic?.stripeSubscriptionId) { addToast("Nenhuma assinatura para cancelar.", "info"); return; }
     try {
-      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId: clinic.id }) });
+      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId: clinic.id, userId: user?.id }) });
       const payload = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Falha ao cancelar.");
       addToast("Assinatura cancelada.", "success");
