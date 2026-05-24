@@ -28,6 +28,12 @@ import { RACES } from './data/races'
 import { WEAPONS } from './data/weapons'
 import { calcExtraAbilities, calcExtraAbilitiesTypes } from './utils/calculator'
 
+const BASE_LOCATIONS = [
+  { id: 'carregado', label: 'Personagem', icon: 'person' },
+  { id: 'quarto', label: 'Quarto', icon: 'bed' },
+  { id: 'base', label: 'Base', icon: 'home' },
+]
+
 const STEPS = [
   { id: 1, label: 'Identidade', comp: Step1Identity },
   { id: 2, label: 'Raça', comp: StepRace },
@@ -184,7 +190,10 @@ function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
   )
 }
 
-function TransferItemModal({ item, targets, onConfirm, onClose }) {
+function TransferItemModal({ item, targets, locations, onConfirm, onConfirmLocation, onClose }) {
+  const itemQty = Number(item?.quantidade) || 1
+  const [transferQty, setTransferQty] = useState(itemQty)
+
   return (
     <div className="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="codex-card !bg-deep border-primary/25 rounded-xl w-full max-w-2xl shadow-2xl shadow-black/60 max-h-[86vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -200,28 +209,60 @@ function TransferItemModal({ item, targets, onConfirm, onClose }) {
             <div className="w-14 h-14 rounded-lg border border-sep/40 bg-black/25 overflow-hidden grid place-items-center shrink-0">
               {item?.imagem ? <img src={item.imagem} alt="" className="w-full h-full object-cover" /> : <span className="text-txt-dim/45 text-[10px]">ITEM</span>}
             </div>
-            <div className="min-w-0">
-              <p className="text-txt-main text-sm font-semibold truncate">{item?.nome || 'Item'}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-txt-main text-sm font-semibold truncate">{item?.nome || 'Item'}{itemQty > 1 ? ` x${itemQty}` : ''}</p>
               <p className="text-txt-dim/55 text-[10px]">{item?.categoria || 'Inventario'} {item?.rank ? `- ${item.rank}` : ''}</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {targets.map(target => (
-              <div key={target.id} className="rounded-lg border border-sep/35 bg-void/40 p-3 flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full border border-gold/30 bg-black/25 overflow-hidden grid place-items-center shrink-0">
-                  {target.data?.avatar ? <img src={target.data.avatar} alt="" className="w-full h-full object-cover" /> : <span className="text-txt-dim/45 text-sm">?</span>}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-txt-main text-sm font-semibold truncate">{target.data?.nome || target.name || 'Sem Nome'}</p>
-                  <p className="text-txt-dim/55 text-[10px] truncate">{target.data?.classe || 'Classe'} - Nivel {target.data?.nivel || 1}</p>
-                </div>
-                <button onClick={() => onConfirm(target)}
-                  className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors shrink-0">
-                  Transferir
-                </button>
+
+          {itemQty > 1 && (
+            <div className="flex items-center gap-3 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
+              <label className="text-txt-dim/70 text-[10px] uppercase shrink-0">Quantidade a transferir</label>
+              <input type="number" min="1" max={itemQty} value={transferQty}
+                onChange={e => setTransferQty(Math.max(1, Math.min(itemQty, Number(e.target.value) || 1)))}
+                className="w-20 bg-void/60 border border-sep/40 rounded px-2 py-1 text-xs text-txt-main text-center" />
+              <span className="text-txt-dim/50 text-[10px]">de {itemQty}</span>
+            </div>
+          )}
+
+          {locations && locations.length > 0 && (
+            <div>
+              <h4 className="text-txt-dim/70 text-[10px] uppercase tracking-wider mb-2">Locais do Personagem</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {locations.map(loc => (
+                  <button key={loc.id} type="button"
+                    onClick={() => onConfirmLocation(loc.id, transferQty)}
+                    className="rounded-lg border border-sep/35 bg-void/40 p-3 flex items-center gap-2 hover:border-gold/30 hover:bg-gold/5 transition-colors text-left">
+                    <span className="material-symbols-outlined text-gold/60 text-sm">{loc.icon}</span>
+                    <span className="text-txt-main text-xs">{loc.label}</span>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {targets.length > 0 && (
+            <div>
+              <h4 className="text-txt-dim/70 text-[10px] uppercase tracking-wider mb-2">Outros Personagens</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {targets.map(target => (
+                  <div key={target.id} className="rounded-lg border border-sep/35 bg-void/40 p-3 flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-full border border-gold/30 bg-black/25 overflow-hidden grid place-items-center shrink-0">
+                      {target.data?.avatar ? <img src={target.data.avatar} alt="" className="w-full h-full object-cover" /> : <span className="text-txt-dim/45 text-sm">?</span>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-txt-main text-sm font-semibold truncate">{target.data?.nome || target.name || 'Sem Nome'}</p>
+                      <p className="text-txt-dim/55 text-[10px] truncate">{target.data?.classe || 'Classe'} - Nivel {target.data?.nivel || 1}</p>
+                    </div>
+                    <button onClick={() => onConfirm(target, transferQty)}
+                      className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors shrink-0">
+                      Transferir
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -355,18 +396,36 @@ function FullSheetViewer({ sheetId, onBack }) {
   function handleTransferItem(collection, index) {
     const previewItem = getTransferItem(collection, index)
     if (!previewItem) return
-    if (!transferTargets.length) {
-      alert('Nenhuma outra ficha disponivel para receber o item.')
+    const customLocs = Array.isArray(sheet.data?.inventoryLocations) ? sheet.data.inventoryLocations : []
+    const allItemLocs = new Set()
+    const sources = [sheet.data?.inventario || [], sheet.data?.equipamentos || []]
+    sources.forEach(arr => arr.forEach(item => {
+      const loc = item?.local
+      if (loc && !BASE_LOCATIONS.some(bl => bl.id === loc) && !customLocs.some(cl => cl.id === loc)) {
+        allItemLocs.add(loc)
+      }
+    }))
+    if (sheet.data?.armaLocal && !BASE_LOCATIONS.some(bl => bl.id === sheet.data.armaLocal) && !customLocs.some(cl => cl.id === sheet.data.armaLocal)) {
+      allItemLocs.add(sheet.data.armaLocal)
+    }
+    const detectedLocs = [...allItemLocs].map(id => ({ id, label: id, icon: 'inventory_2' }))
+    const allLocs = [...BASE_LOCATIONS, ...customLocs, ...detectedLocs]
+    if (!transferTargets.length && allLocs.length === 0) {
+      alert('Nenhuma outra ficha ou local disponivel para receber o item.')
       return
     }
-    setTransferRequest({ collection, index, item: previewItem })
+    setTransferRequest({ collection, index, item: previewItem, locations: allLocs })
   }
 
-  async function confirmTransferItem(target) {
+  async function confirmTransferItem(target, qty = 0) {
     if (!sheet || !transferRequest || !target) return
     const { collection, index } = transferRequest
     const item = getTransferItem(collection, index)
     if (!item) return
+
+    const itemQty = Number(item.quantidade) || 1
+    const transferQty = qty > 0 ? Math.min(qty, itemQty) : itemQty
+    const remainingQty = itemQty - transferQty
 
     let nextSourceData = sheet.data
     let targetCollection = collection
@@ -406,10 +465,18 @@ function FullSheetViewer({ sheetId, onBack }) {
         id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         equipado: false,
         local: 'guardado',
+        quantidade: transferQty > 1 ? transferQty : undefined,
       }
-      nextSourceData = {
-        ...sheet.data,
-        [collection]: sourceItems.filter((_, i) => i !== index),
+
+      if (remainingQty > 0) {
+        const updatedItems = [...sourceItems]
+        updatedItems[index] = { ...item, quantidade: remainingQty }
+        nextSourceData = { ...sheet.data, [collection]: updatedItems }
+      } else {
+        nextSourceData = {
+          ...sheet.data,
+          [collection]: sourceItems.filter((_, i) => i !== index),
+        }
       }
     }
 
@@ -434,6 +501,44 @@ function FullSheetViewer({ sheetId, onBack }) {
       return next
     })
     setTransferTargets(prev => prev.map(t => t.id === target.id ? { ...t, data: nextTargetData } : t))
+    setTransferRequest(null)
+  }
+
+  function confirmTransferToLocation(locationId, qty = 0) {
+    if (!sheet || !transferRequest) return
+    const { collection, index } = transferRequest
+    const item = getTransferItem(collection, index)
+    if (!item) return
+
+    const itemQty = Number(item.quantidade) || 1
+    const transferQty = qty > 0 ? Math.min(qty, itemQty) : itemQty
+    const remainingQty = itemQty - transferQty
+
+    let nextSourceData = sheet.data
+
+    if (collection === 'armaPrincipal') {
+      nextSourceData = {
+        ...sheet.data,
+        armaLocal: locationId,
+        armaEquipada: locationId === 'carregado',
+      }
+    } else {
+      const sourceItems = [...(sheet.data?.[collection] || [])]
+      if (remainingQty > 0) {
+        sourceItems[index] = { ...item, quantidade: remainingQty }
+        const movedItem = { ...item, id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, local: locationId, equipado: false, quantidade: transferQty > 1 ? transferQty : undefined }
+        nextSourceData = { ...sheet.data, [collection]: [...sourceItems, movedItem] }
+      } else {
+        sourceItems[index] = { ...item, local: locationId, equipado: false }
+        nextSourceData = { ...sheet.data, [collection]: sourceItems }
+      }
+    }
+
+    setSheet(prev => {
+      const next = { ...prev, data: nextSourceData }
+      debouncedSave(next)
+      return next
+    })
     setTransferRequest(null)
   }
 
@@ -504,7 +609,9 @@ function FullSheetViewer({ sheetId, onBack }) {
         <TransferItemModal
           item={transferRequest.item}
           targets={transferTargets}
+          locations={transferRequest.locations || []}
           onConfirm={confirmTransferItem}
+          onConfirmLocation={confirmTransferToLocation}
           onClose={() => setTransferRequest(null)}
         />
       )}

@@ -44,14 +44,19 @@ function entryBaseSize(entry) {
   const item = entry.item || {}
   const override = item.inventorySize
   if (override && override.w && override.h) return override
-  if (entry.source === 'primary') {
-    const wName = (item.nome || item.id || '').toLowerCase()
-    if (/espingarda|rifle|baioneta/i.test(wName)) return { w: 4, h: 1 }
-    if (/machado|martelo|martel[ao]|macha/i.test(wName)) return { w: 2, h: 2 }
-    if (/lanca|alabarda|tridente|glaive/i.test(wName)) return { w: 1, h: 4 }
-    if (/adaga|punhal|faca|kunai/i.test(wName)) return { w: 1, h: 1 }
-    if (/pistola|revolver|arma.*curta/i.test(wName)) return { w: 1, h: 2 }
-    if (/arco|besta/i.test(wName)) return { w: 2, h: 3 }
+  if (entry.source === 'primary' || entry.source === 'legendary') {
+    const wName = (item.nome || item.name || item.id || '').toLowerCase()
+    const wType = (item.tipo || '').toLowerCase()
+    if (/espingarda|rifle|baioneta/i.test(wName) || /rifle|sniper|espingarda/i.test(wType)) return { w: 4, h: 1 }
+    if (/machado|martelo|martel[ao]|macha/i.test(wName) || /machado|martelo/i.test(wType)) return { w: 2, h: 2 }
+    if (/lanca|alabarda|tridente|glaive/i.test(wName) || /lanca|alabarda|tridente/i.test(wType)) return { w: 1, h: 4 }
+    if (/adaga|punhal|faca|kunai/i.test(wName) || /adaga|punhal/i.test(wType)) return { w: 1, h: 1 }
+    if (/pistola|revolver|arma.*curta/i.test(wName) || /pistola|revolver/i.test(wType)) return { w: 1, h: 2 }
+    if (/arco|besta/i.test(wName) || /arco|besta/i.test(wType)) return { w: 2, h: 3 }
+    if (/espada|sabre|katana|cutelo/i.test(wName)) return { w: 2, h: 1 }
+    if (/sub.metralhadora|smg/i.test(wName)) return { w: 2, h: 1 }
+    if (/escudo/i.test(wName) || /escudo/i.test(wType)) return { w: 2, h: 3 }
+    if (entry.source === 'legendary') return { w: 2, h: 1 }
     return { w: 3, h: 1 }
   }
   if (item.categoria === 'Traje') return { w: 2, h: 3 }
@@ -144,7 +149,7 @@ function buildLocations(char, entries) {
   return [...BASE_LOCATIONS, ...custom, ...used]
 }
 
-function buildEntries(char) {
+function buildEntries(char, forgeItems = []) {
   const weapon = WEAPONS.find(w => w.id === char.arma)
   const weaponRank = WEAPON_RANKS.find(r => r.rank === char.armaRank) || WEAPON_RANKS[0]
   const entries = []
@@ -163,6 +168,7 @@ function buildEntries(char) {
         equipado: char.armaEquipada !== false,
         local: char.armaEquipada === false ? (char.armaLocal || 'carregado') : 'equipado',
         inventoryGrid: char.armaInventoryGrid,
+        imageRotation: char.armaImageRotation || 0,
         dano: weapon.dano,
       },
       weapon,
@@ -179,19 +185,37 @@ function buildEntries(char) {
   })
 
   ;(char.armasLendarias || []).forEach((item, idx) => {
+    const forgeMatch = forgeItems.find(fi => fi.id === item.sourceId || fi.id === item.id)
+    const baseWeaponName = (item.name || item.nome || '').toLowerCase()
+    let baseWeaponId = forgeMatch?.base
+    if (!baseWeaponId || baseWeaponId === 'custom') {
+      if (/pistola|revolver/i.test(baseWeaponName)) baseWeaponId = 'pistola'
+      else if (/espingarda|escopeta/i.test(baseWeaponName)) baseWeaponId = 'espingarda'
+      else if (/rifle/i.test(baseWeaponName)) baseWeaponId = 'rifle'
+      else if (/sniper/i.test(baseWeaponName)) baseWeaponId = 'sniper'
+      else if (/sub.metralhadora|smg/i.test(baseWeaponName)) baseWeaponId = 'submetralhadora'
+      else if (/espada|sabre|katana/i.test(baseWeaponName)) baseWeaponId = 'espada_longa'
+      else if (/machado/i.test(baseWeaponName)) baseWeaponId = 'machado_guerra'
+      else if (/adaga|punhal|faca/i.test(baseWeaponName)) baseWeaponId = 'adaga'
+      else if (/arco/i.test(baseWeaponName)) baseWeaponId = 'arco_longo'
+      else if (/besta/i.test(baseWeaponName)) baseWeaponId = 'besta'
+    }
     entries.push({
       key: `legendary:${item.id || idx}`,
       source: 'legendary',
       idx,
       item: {
         id: item.id,
-        nome: item.name,
+        nome: item.name || item.nome,
         categoria: 'Arma Lendária',
         rank: item.rank || 'Lendária',
-        imagem: item.image,
+        imagem: item.image || forgeMatch?.image || null,
         equipado: true,
         local: 'equipado',
         inventoryGrid: item.inventoryGrid,
+        imageRotation: item.imageRotation || 0,
+        tipo: forgeMatch?.base || baseWeaponId || item.tipo || '',
+        dano: forgeMatch?.dano || '',
       },
     })
   })
@@ -254,7 +278,7 @@ export default function ResidentInventorySection({
     return () => { alive = false }
   }, [])
 
-  const allEntries = useMemo(() => buildEntries(char), [char])
+  const allEntries = useMemo(() => buildEntries(char, legendaryForgeItems), [char, legendaryForgeItems])
   const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
   const activeEntries = useMemo(() => allEntries.filter(entry => !entry.item.trajeId && normalizeLocation(entry.item.local, entry.item) === activeLocation), [allEntries, activeLocation])
   const gridEntries = useMemo(() => layoutEntries(activeEntries, activeLocation), [activeEntries, activeLocation])
@@ -263,7 +287,21 @@ export default function ResidentInventorySection({
     if (!canEdit) return
     function onKeyDown(e) {
       if (e.key === 'r' || e.key === 'R') {
-        if (selectedEntry) rotateEntry(selectedEntry)
+        if (e.shiftKey && (selectedEntry || dragging)) {
+          const target = selectedEntry || dragging?.entry
+          if (target) {
+            const currentRot = target.item?.imageRotation || 0
+            const nextRot = (currentRot + 90) % 360
+            if (target.source === 'primary') update({ armaImageRotation: nextRot })
+            else if (target.source === 'equipment') patchEquipment(target.idx, { imageRotation: nextRot })
+            else if (target.source === 'inventory') patchInventoryItem(target.idx, { imageRotation: nextRot })
+            else if (target.source === 'legendary') {
+              const armasLendarias = [...(char.armasLendarias || [])]
+              armasLendarias[target.idx] = { ...armasLendarias[target.idx], imageRotation: nextRot }
+              update({ armasLendarias })
+            }
+          }
+        } else if (selectedEntry) rotateEntry(selectedEntry)
         else if (dragging) {
           const base = entryBaseSize(dragging.entry)
           if (base.w !== base.h) setDragging(current => current ? { ...current, rotated: ((current.rotated || 0) + 90) % 360 } : null)
@@ -765,7 +803,7 @@ export default function ResidentInventorySection({
                 ))}
               </div>
             </div>
-            <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · Duplo clique para detalhes · <kbd>R</kbd> rotaciona o item selecionado</p>
+            <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · Duplo clique para detalhes · <kbd>R</kbd> rotaciona item · <kbd>Shift+R</kbd> rotaciona apenas a imagem</p>
           </div>
         </div>
       </section>
@@ -857,7 +895,7 @@ export default function ResidentInventorySection({
               removeEntry(itemDrawer)
             }
           }}
-          onTransfer={null}
+          onTransfer={onTransferItem ? () => onTransferItem('inventario', itemDrawer.idx) : null}
           onMove={itemDrawer.source === 'backpack-content' ? null : (loc) => moveEntry(itemDrawer, loc)}
           onClose={() => { setItemDrawer(null); if (itemDrawer.source === 'backpack-content') { setBackpackDrawer({ idx: itemDrawer.backpackIdx, item: char.inventario?.[itemDrawer.backpackIdx] }) } }}
           onImageChange={handleItemImage}
@@ -996,13 +1034,16 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
   const item = entry.item || {}
   const image = item.imagem || item.image
   const weight = entry.source === 'inventory'
-    ? estimateInventoryItemWeight(item)
+    ? estimateInventoryItemWeight(item) * (Number(item.quantidade) || 1)
     : entry.source === 'primary'
-      ? getWeaponWeight(item.id, item.rank)
-      : estimateEquipmentWeight(item)
+      ? getWeaponWeight(item.id, item.rank) * (Number(item.quantidade) || 1)
+      : entry.source === 'legendary'
+        ? getWeaponWeight(item.id, item.rank) * (Number(item.quantidade) || 1)
+        : estimateEquipmentWeight(item) * (Number(item.quantidade) || 1)
   const area = rect.w * rect.h
   const isSmall = area <= 2
   const rotationDeg = rect.rotated || 0
+  const imageRotation = item.imageRotation || 0
   const quantity = Number(item.quantidade || item.qtd || 0)
   const hasQuantity = quantity > 1
 
@@ -1037,10 +1078,10 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
       onDoubleClick={onOpen}
       onClick={() => onSelect?.()}
     >
-      <div className="resident-grid-card-visual">
+      <div className="resident-grid-card-visual" style={imageRotation ? { overflow: 'hidden' } : undefined}>
         {image
-          ? <img src={image} alt="" draggable={false} />
-          : <span className="material-symbols-outlined">{item.categoria === 'Arma' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>
+          ? <img src={image} alt="" draggable={false} style={imageRotation ? { transform: `rotate(${imageRotation}deg)`, transformOrigin: 'center center', objectFit: 'cover', width: '100%', height: '100%', maxWidth: '140%', maxHeight: '140%' } : undefined} />
+          : <span className="material-symbols-outlined">{item.categoria === 'Arma' || item.categoria === 'Arma Lendária' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>
         }
         {hasQuantity && <span className="resident-grid-card-qty">x{quantity}</span>}
       </div>
@@ -1239,7 +1280,7 @@ function BackpackGridDrawer({ backpack, canEdit, externalDrag, onUpdateContents,
                   ))}
                 </div>
               </div>
-              <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · <kbd>R</kbd> rotaciona selecionado</p>
+              <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · <kbd>R</kbd> rotaciona selecionado · <kbd>Shift+R</kbd> rotaciona imagem</p>
             </div>
           </div>
 
@@ -1351,10 +1392,10 @@ const BACKPACK_PRESETS = [
 function InventoryItemCreateModal({ kind, onSave, onClose }) {
   const [draft, setDraft] = useState(
     kind === 'consumivel'
-      ? CONSUMABLE_PRESETS[0]
+      ? { ...CONSUMABLE_PRESETS[0], quantidade: 1 }
       : kind === 'mochila'
-        ? BACKPACK_PRESETS[0]
-        : { nome: '', descricao: '', peso: 0.1, cor: 'gray' }
+        ? { ...BACKPACK_PRESETS[0], quantidade: 1 }
+        : { nome: '', descricao: '', peso: 0.1, cor: 'gray', quantidade: 1 }
   )
   const [aiLoading, setAiLoading] = useState(false)
 
@@ -1405,7 +1446,8 @@ function InventoryItemCreateModal({ kind, onSave, onClose }) {
         )}
         <div className="resident-form-grid">
           <input value={draft.nome || ''} onChange={e => setDraft({ ...draft, nome: e.target.value })} placeholder="Nome" />
-          <input type="number" step="0.1" value={draft.peso ?? ''} onChange={e => setDraft({ ...draft, peso: Number(e.target.value) })} placeholder="Peso kg" />
+          <input type="number" step="0.1" value={draft.peso ?? ''} onChange={e => setDraft({ ...draft, peso: Number(e.target.value) })} placeholder="Peso kg (unidade)" />
+          <input type="number" min="1" value={draft.quantidade || 1} onChange={e => setDraft({ ...draft, quantidade: Math.max(1, Number(e.target.value)) })} placeholder="Quantidade" />
           <textarea value={draft.descricao || ''} onChange={e => setDraft({ ...draft, descricao: e.target.value })} placeholder="Descricao, efeito, usos..." />
           {kind === 'mochila' && (
             <input type="number" min="4" max="30" value={draft.slotSize || 12} onChange={e => setDraft({ ...draft, slotSize: Number(e.target.value) })} placeholder="Slots" />
@@ -1448,6 +1490,10 @@ function InventoryItemDrawer({ entry, item, canEdit, editMode, locations, onEdit
               <input value={draft.nome || ''} onChange={e => setDraft({ ...draft, nome: e.target.value })} className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main" />
               <textarea value={draft.descricao || ''} onChange={e => setDraft({ ...draft, descricao: e.target.value })} rows={5} className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main resize-none" />
               <input type="number" step="0.1" value={draft.peso ?? ''} onChange={e => setDraft({ ...draft, peso: Number(e.target.value) })} className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main" />
+              <div className="flex items-center gap-2">
+                <label className="text-txt-dim/50 text-[10px] uppercase shrink-0">Qtd</label>
+                <input type="number" min="1" value={draft.quantidade || 1} onChange={e => setDraft({ ...draft, quantidade: Math.max(1, Number(e.target.value)) })} className="flex-1 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-sm text-txt-main" />
+              </div>
             </>
           ) : (
             <>
@@ -1455,7 +1501,10 @@ function InventoryItemDrawer({ entry, item, canEdit, editMode, locations, onEdit
               <h4 className="text-txt-main text-sm font-semibold">{item.nome || 'Item'}</h4>
               <span className="inline-flex text-[9px] text-txt-dim/70 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">{item.local || 'carregado'}</span>
               {item.descricao ? <p className="text-txt-dim/80 text-xs leading-relaxed">{item.descricao}</p> : <p className="text-txt-dim/35 text-xs italic">Sem descricao</p>}
-              <div className="inventory-drawer-weight"><span>Peso</span><strong>{estimateInventoryItemWeight(item).toFixed(1)} kg</strong></div>
+              <div className="inventory-drawer-weight"><span>Peso</span><strong>{(estimateInventoryItemWeight(item) * (Number(item.quantidade) || 1)).toFixed(1)} kg{Number(item.quantidade) > 1 ? ` (${estimateInventoryItemWeight(item).toFixed(1)} un.)` : ''}</strong></div>
+              {Number(item.quantidade) > 1 && (
+                <div className="inventory-drawer-weight"><span>Quantidade</span><strong className="text-sky-300">{item.quantidade}</strong></div>
+              )}
               {canEdit && (
                 <div className="resident-move-list">
                   {locations.map(loc => (

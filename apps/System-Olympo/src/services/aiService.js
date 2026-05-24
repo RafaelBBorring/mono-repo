@@ -608,10 +608,112 @@ Responda EXCLUSIVAMENTE com JSON:
   ]
 }`
 
+  const habilidadesCount = habilidadesData.length
+  const needsChunking = habilidadesCount > 5
+
+  if (needsChunking) {
+    const chunkSize = 4
+    const chunks = []
+    for (let i = 0; i < habilidadesData.length; i += chunkSize) {
+      chunks.push(habilidadesData.slice(i, i + chunkSize))
+    }
+
+    const allResults = { habilidades: [], armaHabilidades: [], systemSkillSuggestions: [] }
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const chunkMessage = `${fichaCompleta}
+
+LOTE ${ci + 1}/${chunks.length} de HABILIDADES (analise SOMENTE este lote):
+${JSON.stringify(chunks[ci], null, 2)}
+
+${ci === 0 ? `HABILIDADES DA ARMA:\n${JSON.stringify(armaHabs, null, 2)}` : '(armaHabilidades ja analisadas no lote anterior - NAO repita)'}
+
+CATALOGO DE SKILLS SISTEMICAS DISPONIVEIS AO MESTRE:
+${JSON.stringify(SYSTEM_SKILLS.map(s => ({ id: s.id, name: s.name, category: s.category, short: s.short, effectTypes: s.effectTypes })), null, 2)}
+
+TIPOS DE EFEITO E PARAMETROS:
+${JSON.stringify(Object.entries(EFFECT_PARAM_DEFS).map(([type, def]) => ({ type, label: def.label, params: Object.entries(def.params).map(([k, p]) => ({ key: k, label: p.label, type: p.type, default: p.default })) })), null, 2)}
+
+INSTRUÇÕES CRÍTICAS:
+- Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
+- O dano da habilidade é EXTRA ao dano base+arma+atributo que o personagem já possui.
+- PEH Total: ${pehTotal} | Gasto: ${pehSpent}. Habilidades com evolucaoNivel > 0 receberam INVESTIMENTO do jogador e devem ser proporcionais.
+- Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH ou criar combos quebrados.
+- Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
+- NUNCA aprove cegamente. Verifique combos e acumulações.
+
+VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
+ANTES de responder, VOCÊ DEVE:
+1. Listar TODOS os bônus de ataque das habilidades DESTE LOTE. Somar: ${stats.ataqueBaseNum} (base) + TOTAL_BONUS_HABILIDADES. Se > limite da faixa, REDUZA.
+2. Listar TODOS os bônus de esquiva/defesa. Mesma verificação.
+3. Listar TODOS os bônus de CA. Verificar contra limite.
+4. Listar TODOS os ataques extras. Verificar contra limite.
+5. Para CADA habilidade, verificar: dano vs HP Cross-Class (40% do Guerreiro HP = limite de atenção).
+6. Verificar COMBOS: habilidade A amplifica habilidade B. Qual o pior cenário? Está dentro de 150% TDH?
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "habilidades": [
+    {
+      "index": ${chunks[ci][0]?.index ?? 0},
+      "nome": "mantenha o nome original",
+      "descricao": "MANTEHA EXATAMENTE a descrição original do jogador.",
+      "descricaoBalanceada": "A MESMA descrição com valores numéricos atualizados.",
+      "custoEnergia": 0,
+      "dano": "XdY+MOD ajustado ou vazio",
+      "duracao": "X rodadas ajustado ou vazio",
+      "status": "aprovada|ajustada|irbalanceavel",
+      "feedback": "explique"
+    }
+  ]${ci === 0 ? `,
+  "armaHabilidades": [
+    {
+      "index": 0,
+      "nome": "mantenha o nome",
+      "descricao": "MANTEHA a descrição original.",
+      "descricaoBalanceada": "Descrição com valores atualizados.",
+      "tipo": "Ativa ou Passiva",
+      "custo": "custo ajustado",
+      "feedback": "explicação"
+    }
+  ],
+  "systemSkillSuggestions": []` : ''}
+}`
+
+      const chunkResponse = await callAI([
+        { role: 'system', content: buildSystemContext() },
+        { role: 'user', content: chunkMessage },
+      ], { maxTokens: 8192 })
+
+      try {
+        const chunkResult = extractJSON(chunkResponse)
+        if (chunkResult.habilidades) allResults.habilidades.push(...chunkResult.habilidades)
+        if (ci === 0 && chunkResult.armaHabilidades) allResults.armaHabilidades = chunkResult.armaHabilidades
+        if (ci === 0 && chunkResult.systemSkillSuggestions) allResults.systemSkillSuggestions = chunkResult.systemSkillSuggestions
+      } catch {
+        chunks[ci].forEach(h => {
+          allResults.habilidades.push({
+            index: h.index,
+            nome: h.nome,
+            descricao: h.descricao,
+            descricaoBalanceada: h.descricao,
+            custoEnergia: h.custoEnergia,
+            dano: h.dano,
+            duracao: h.duracao,
+            status: 'ajustada',
+            feedback: 'Lote processado com erro de parse. Revise manualmente.',
+          })
+        })
+      }
+    }
+
+    return allResults
+  }
+
   const response = await callAI([
     { role: 'system', content: buildSystemContext() },
     { role: 'user',   content: userMessage },
-  ], { maxTokens: 8192 })
+  ], { maxTokens: 16384 })
 
   try {
     return extractJSON(response)
@@ -836,16 +938,19 @@ No campo "short_description", inclua UMA frase breve explicando como a lei físi
         '- Todo ritual enfraquece o Véu. Quanto maior o círculo, maior o risco de Ruptura.',
       ],
       balance: [
-        '- 1o círculo: utilitário ou tático leve. PE 4-10. CD 13-15. Custo estrutural: 4 espaços.',
-        '- 2o círculo: impacto consistente. PE 10-20. CD 15-17. Custo estrutural: 6 espaços.',
-        '- 3o círculo: poder alto e identidade forte. PE 20-30. CD 18-20. Custo estrutural: 10 espaços.',
-        '- 4o círculo: catastrófico e raro. PE 30-45. CD 21-25. Custo estrutural: 15 espaços.',
+        '- 1o círculo: utilitário ou tático leve. PE 4-8. CD 12-14. Custo estrutural: 4 espaços.',
+        '- 2o círculo: impacto moderado. PE 8-16. CD 14-16. Custo estrutural: 6 espaços.',
+        '- 3o círculo: poder alto com limitações claras. PE 16-24. CD 17-19. Custo estrutural: 10 espaços.',
+        '- 4o círculo: devastador e raro. PE 24-38. CD 20-23. Custo estrutural: 15 espaços.',
       ],
       protocol: [
         '- SCP 2 para rituais táticos. SCP 3 apenas para fenômenos épicos/catastróficos.',
-        '- Cura imediata: máximo 30% da vida esperada da faixa.',
+        '- Dano TOTAL (direto+condições) por ritual: C1 max 2d8+MOD, C2 max 3d10+8, C3 max 5d10+15, C4 max 8d12+20.',
+        '- Cura imediata: máximo 20% da vida esperada da faixa. NUNCA acima de 30%.',
         '- Controle total: máximo 1 rodada em círculos 3-4; prefira penalidade parcial.',
+        '- Buffs/Debuffs: máximo ±2 em atributos/CA/ataque por ritual. Stacking proibido sem contrapeso.',
         '- TODO efeito deve ter mecânica de jogo concreta: testes, CD, NdN, condições, durações.',
+        '- Risco de Ruptura proporcional ao círculo: C1=1, C2=2, C3=3, C4=5.',
       ],
     },
     spell: {
@@ -857,15 +962,17 @@ No campo "short_description", inclua UMA frase breve explicando como a lei físi
         '- A descrição curta deve explicar BREVEMENTE como a lei física é distorcida.',
       ],
       balance: [
-        '- 1o círculo: resposta curta, suporte básico. PE 8-15. Custo estrutural: 4 espaços.',
-        '- 2o círculo: consistência de combate. PE 10-22. Custo estrutural: 6 espaços.',
-        '- 3o círculo: assinatura de escola, impacto alto. PE 20-32. Custo estrutural: 10 espaços.',
-        '- 4o círculo: raro, épico. PE 32-45. Custo estrutural: 15 espaços.',
+        '- 1o círculo: resposta curta, suporte básico. PE 6-12. CD 12-14. Custo estrutural: 4 espaços.',
+        '- 2o círculo: consistência de combate. PE 12-18. CD 14-16. Custo estrutural: 6 espaços.',
+        '- 3o círculo: assinatura de escola, impacto alto com limitações. PE 18-28. CD 17-19. Custo estrutural: 10 espaços.',
+        '- 4o círculo: raro, épico. PE 28-40. CD 20-23. Custo estrutural: 15 espaços.',
       ],
       protocol: [
         '- Feitiços de Bruxaria podem cobrar componentes ou custo narrativo. Arcana pode cobrar janela de vulnerabilidade.',
-        '- Cura: máximo 30% da vida da faixa por uso imediato.',
+        '- Dano TOTAL por feitiço: C1 max 2d8+MOD, C2 max 3d10+8, C3 max 5d10+15, C4 max 7d12+18.',
+        '- Cura: máximo 20% da vida da faixa por uso imediato.',
         '- Controle total: máximo 1 rodada; prefira lentidão, queda de resultado, selos parciais.',
+        '- Buffs/Debuffs: máximo ±2 em atributos/CA/ataque. Stacking proibido sem contrapeso.',
         '- TODO efeito deve ter mecânica de jogo concreta.',
       ],
     },
@@ -894,15 +1001,17 @@ No campo "short_description", inclua UMA frase breve explicando como a lei físi
         '- A descrição curta deve explicar BREVEMENTE como a lei física é distorcida.',
       ],
       balance: [
-        '- 1o círculo: magia básica. PE 6-14. Custo estrutural: 4 espaços.',
-        '- 2o círculo: magia de combate confiável. PE 10-22. Custo estrutural: 6 espaços.',
-        '- 3o círculo: magia densa, risco real. PE 20-35. Custo estrutural: 10 espaços.',
-        '- 4o círculo: magia suprema. PE 35-50. Custo estrutural: 15 espaços.',
+        '- 1o círculo: magia básica. PE 5-10. CD 12-14. Custo estrutural: 4 espaços.',
+        '- 2o círculo: magia de combate confiável. PE 10-18. CD 14-16. Custo estrutural: 6 espaços.',
+        '- 3o círculo: magia densa, risco real, limitações claras. PE 18-28. CD 17-20. Custo estrutural: 10 espaços.',
+        '- 4o círculo: magia suprema. PE 28-42. CD 21-24. Custo estrutural: 15 espaços.',
       ],
       protocol: [
-        '- Magias são mais poderosas que feitiços do mesmo círculo.',
+        '- Magias são mais poderosas que feitiços do mesmo círculo: +10-15% nos tetos de dano.',
+        '- Dano TOTAL por magia: C1 max 2d10+MOD, C2 max 4d10+10, C3 max 6d10+18, C4 max 9d12+24.',
         '- Cada magia reflete a escola/regente: termodinâmica = dano/controle térmico, relatividade = espaço/gravidade, inércia = força/movimento, biofísica = vida/morte.',
-        '- Cura: máximo 30% da vida da faixa. Controle total: 1 rodada.',
+        '- Cura: máximo 25% da vida da faixa. Controle total: 1 rodada.',
+        '- Buffs/Debuffs: máximo ±3 em atributos/CA/ataque para magias (maior que feitiços).',
         '- TODO efeito deve ter mecânica de jogo concreta.',
       ],
     },
@@ -963,7 +1072,7 @@ async function analyzeMysticDraft(systemType, draft, context = {}) {
   const response = await callAI([
     { role: 'system', content: buildSystemContext() },
     { role: 'user', content: prompt },
-  ])
+  ], { maxTokens: 8192 })
 
   try {
     return extractJSON(response)

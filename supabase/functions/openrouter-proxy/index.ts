@@ -55,7 +55,7 @@ serve(async (req) => {
         model: MODEL,
         messages,
         temperature: temperature ?? 0.35,
-        max_tokens: max_tokens ?? 4096,
+        max_tokens: max_tokens ?? 8192,
       }),
     })
 

@@ -1851,6 +1851,7 @@ export function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arm
   const [equipado, setEquipado] = useState(false)
   const [materialEspecial, setMaterialEspecial] = useState('')
   const [peso, setPeso] = useState('')
+  const [quantidade, setQuantidade] = useState(1)
   const [local, setLocal] = useState('guardado')
   const fileRef = useRef(null)
   const modalRef = useRef(null)
@@ -2049,6 +2050,7 @@ export function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arm
       setId: itemCategory === 'Equipamento' ? armorType : null,
       equipado: itemCategory === 'Equipamento' || itemCategory === 'Arma' ? equipado : false,
       durabilidadeAtual: itemCategory === 'Equipamento' ? durabilityMax : null,
+      quantidade: quantidade > 1 ? quantidade : undefined,
     })
   }
 
@@ -2296,13 +2298,15 @@ export function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arm
               )}
               <div className={`grid gap-2 ${itemCategory === 'Utilidade' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <div className="flex gap-1.5">
-                  <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg"
+                  <input type="number" step="0.1" value={peso} onChange={e => setPeso(e.target.value)} placeholder="Peso kg (unidade)"
                     className="min-w-0 flex-1 bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
                   <button type="button" onClick={handleAIWeight} disabled={genLoading || !nome.trim()} title="Sugerir peso com IA"
                     className="shrink-0 px-2.5 py-2 text-[10px] border border-indigo-400/30 text-indigo-300 rounded-lg hover:bg-indigo-400/10 transition-colors disabled:opacity-40">
                     IA
                   </button>
                 </div>
+                <input type="number" min="1" value={quantidade} onChange={e => setQuantidade(Math.max(1, Number(e.target.value)))} placeholder="Quantidade"
+                  className="bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
                 {itemCategory === 'Utilidade' && (
                   <select value={local} onChange={e => setLocal(e.target.value)}
                     className="bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main focus:border-gold/40 focus:outline-none">
@@ -2458,6 +2462,7 @@ export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdi
   const [editArmorType, setEditArmorType] = useState(item.armorType || item.setId || null)
   const [editMaterialEspecial, setEditMaterialEspecial] = useState(item.materialEspecial || '')
   const [editPeso, setEditPeso] = useState(item.peso ?? '')
+  const [editQuantidade, setEditQuantidade] = useState(Number(item.quantidade) || 1)
   const [editLocal, setEditLocal] = useState(item.local || (item.equipado ? 'equipado' : 'guardado'))
   const [editDurabilidadeAtual, setEditDurabilidadeAtual] = useState(item.durabilidadeAtual ?? item.durabilityAtual ?? item.armorAtual ?? '')
   const [editItemHabilidades, setEditItemHabilidades] = useState(item.habilidades || [])
@@ -2538,6 +2543,7 @@ export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdi
       local: (item.categoria === 'Arma' || item.categoria === 'Equipamento') ? (editEquipado ? 'equipado' : 'guardado') : editLocal,
       durabilidadeAtual: editDurabilidadeAtual === '' ? null : Number(editDurabilidadeAtual),
       quebrado: editDurabilidadeAtual !== '' && Number(editDurabilidadeAtual) <= 0,
+      quantidade: editQuantidade > 1 ? editQuantidade : undefined,
     })
     onCancelEdit()
   }
@@ -2631,8 +2637,13 @@ export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdi
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-txt-dim/50 text-[9px] uppercase">Peso kg</label>
+                  <label className="text-txt-dim/50 text-[9px] uppercase">Peso kg (unidade)</label>
                   <input type="number" step="0.1" value={editPeso} onChange={e => setEditPeso(e.target.value)} placeholder="auto"
+                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-txt-dim/50 text-[9px] uppercase">Quantidade</label>
+                  <input type="number" min="1" value={editQuantidade} onChange={e => setEditQuantidade(Math.max(1, Number(e.target.value)))}
                     className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
                 </div>
                 {item.categoria === 'Utilidade' && <div>
@@ -2765,24 +2776,36 @@ export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdi
                   </div>
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
                     <span className="text-txt-dim/50 text-[9px] uppercase">Peso</span>
-                    <p className="text-txt-main text-sm font-mono mt-0.5">{estimateEquipmentWeight(item).toFixed(1)} kg</p>
+                    <p className="text-txt-main text-sm font-mono mt-0.5">{(estimateEquipmentWeight(item) * (Number(item.quantidade) || 1)).toFixed(1)} kg</p>
                   </div>
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
                     <span className="text-txt-dim/50 text-[9px] uppercase">Penalidade</span>
                     <p className="text-amber-300 text-sm font-mono mt-0.5">{equipType.penalty ? `${equipType.penalty} DES` : '0'}</p>
                   </div>
+                  {Number(item.quantidade) > 1 && (
+                    <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2 col-span-2">
+                      <span className="text-txt-dim/50 text-[9px] uppercase">Quantidade</span>
+                      <p className="text-sky-300 text-sm font-mono mt-0.5">{item.quantidade}x</p>
+                    </div>
+                  )}
                 </div>
               )}
               {item.categoria !== 'Equipamento' && (
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
                     <span className="text-txt-dim/50 text-[9px] uppercase">Peso</span>
-                    <p className="text-txt-main text-sm font-mono mt-0.5">{estimateEquipmentWeight(item).toFixed(1)} kg</p>
+                    <p className="text-txt-main text-sm font-mono mt-0.5">{(estimateEquipmentWeight(item) * (Number(item.quantidade) || 1)).toFixed(1)} kg</p>
                   </div>
                   <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2">
                     <span className="text-txt-dim/50 text-[9px] uppercase">{item.categoria === 'Arma' ? 'Estado' : 'Local'}</span>
                     <p className="text-txt-main text-sm font-mono mt-0.5">{item.categoria === 'Arma' ? (item.equipado ? 'equipada' : 'guardada') : (item.local || 'guardado')}</p>
                   </div>
+                  {Number(item.quantidade) > 1 && (
+                    <div className="bg-void/50 border border-sep/30 rounded-lg px-3 py-2 col-span-2">
+                      <span className="text-txt-dim/50 text-[9px] uppercase">Quantidade</span>
+                      <p className="text-sky-300 text-sm font-mono mt-0.5">{item.quantidade}x</p>
+                    </div>
+                  )}
                 </div>
               )}
               {item.dano && (
