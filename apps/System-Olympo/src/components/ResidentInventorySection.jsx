@@ -270,6 +270,17 @@ function makeLegendaryAssignment(item = {}) {
   }
 }
 
+function isLegendaryMoveGhostItem(item = {}) {
+  if (!item || !item.inventoryGrid) return false
+  const meaningfulKeys = ['id', 'nome', 'name', 'descricao', 'imagem', 'image', 'tipo', 'categoria', 'peso', 'quantidade', 'contents']
+  if (meaningfulKeys.some(key => item[key] !== undefined && item[key] !== null && item[key] !== '')) return false
+  return Object.keys(item).every(key => ['inventoryGrid', 'local'].includes(key))
+}
+
+function cleanLegendaryMoveGhosts(inventario = []) {
+  return inventario.filter(item => item && !isLegendaryMoveGhostItem(item))
+}
+
 function layoutBackpackContents(contents, cols, rows) {
   const occupied = []
   return (contents || []).map((item, idx) => {
@@ -362,7 +373,7 @@ function buildEntries(char, forgeItems = []) {
         rank: item.rank || 'Lendária',
         imagem: item.image || forgeMatch?.image || null,
         equipado: true,
-        local: 'equipado',
+        local: item.local || 'equipado',
         inventoryGrid: item.inventoryGrid,
         imageRotation: item.imageRotation || 0,
         imageTransform: item.imageTransform || null,
@@ -484,6 +495,13 @@ export default function ResidentInventorySection({
 
   useEffect(() => {
     if (!canEdit) return
+    const inventario = char.inventario || []
+    const cleanedInventario = cleanLegendaryMoveGhosts(inventario)
+    if (cleanedInventario.length !== inventario.length) update({ inventario: cleanedInventario })
+  }, [canEdit, char.inventario, update])
+
+  useEffect(() => {
+    if (!canEdit) return
     function onKeyDown(e) {
       if (e.key === 'r' || e.key === 'R') {
         if (e.shiftKey) return
@@ -525,10 +543,24 @@ export default function ResidentInventorySection({
     update({ equipamentos })
   }
 
+  function patchLegendary(idx, patch) {
+    const armasLendarias = [...(char.armasLendarias || [])]
+    if (!armasLendarias[idx]) return
+    armasLendarias[idx] = { ...armasLendarias[idx], ...patch }
+
+    const inventario = char.inventario || []
+    const cleanedInventario = cleanLegendaryMoveGhosts(inventario)
+    update({
+      armasLendarias,
+      ...(cleanedInventario.length !== inventario.length ? { inventario: cleanedInventario } : {}),
+    })
+  }
+
   function patchEntry(entry, patch) {
     if (entry.source === 'inventory') patchInventoryItem(entry.idx, patch)
-    if (entry.source === 'equipment') patchEquipment(entry.idx, patch)
-    if (entry.source === 'primary') update(patch)
+    else if (entry.source === 'equipment') patchEquipment(entry.idx, patch)
+    else if (entry.source === 'legendary') patchLegendary(entry.idx, patch)
+    else if (entry.source === 'primary') update(patch)
   }
 
   function removeEntry(entry) {
@@ -691,6 +723,8 @@ export default function ResidentInventorySection({
     } else if (dragging.entry.source === 'equipment') {
       patch.equipado = activeLocation === 'carregado' ? dragging.entry.item.equipado : false
       patchEquipment(dragging.entry.idx, patch)
+    } else if (dragging.entry.source === 'legendary') {
+      patchLegendary(dragging.entry.idx, patch)
     } else {
       patchInventoryItem(dragging.entry.idx, patch)
     }
@@ -726,6 +760,8 @@ export default function ResidentInventorySection({
       update({ armaInventoryGrid: rect })
     } else if (entry.source === 'equipment') {
       patchEquipment(entry.idx, { inventoryGrid: rect })
+    } else if (entry.source === 'legendary') {
+      patchLegendary(entry.idx, { inventoryGrid: rect })
     } else {
       patchInventoryItem(entry.idx, { inventoryGrid: rect })
     }
@@ -859,12 +895,21 @@ export default function ResidentInventorySection({
         const equipamentos = updates.equipamentos || [...(char.equipamentos || [])]
         equipamentos[entry.idx] = { ...equipamentos[entry.idx], inventoryGrid: rect }
         updates.equipamentos = equipamentos
+      } else if (entry.source === 'legendary') {
+        const armasLendarias = updates.armasLendarias || [...(char.armasLendarias || [])]
+        armasLendarias[entry.idx] = { ...armasLendarias[entry.idx], inventoryGrid: rect }
+        updates.armasLendarias = armasLendarias
       } else {
         const inventario = updates.inventario || [...(char.inventario || [])]
         inventario[entry.idx] = { ...inventario[entry.idx], inventoryGrid: rect }
         updates.inventario = inventario
       }
     })
+    if (updates.armasLendarias) {
+      const inventario = updates.inventario || char.inventario || []
+      const cleanedInventario = cleanLegendaryMoveGhosts(inventario)
+      if (cleanedInventario.length !== inventario.length) updates.inventario = cleanedInventario
+    }
     update(updates)
   }
 
@@ -918,9 +963,7 @@ export default function ResidentInventorySection({
         update({ inventario })
       }
     } else if (maskEditor.source === 'legendary') {
-      const armasLendarias = [...(char.armasLendarias || [])]
-      armasLendarias[maskEditor.idx] = { ...armasLendarias[maskEditor.idx], ...itemPatch }
-      update({ armasLendarias })
+      patchLegendary(maskEditor.idx, itemPatch)
     }
     setMaskEditor(null)
   }
