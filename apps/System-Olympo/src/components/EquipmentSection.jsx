@@ -842,7 +842,7 @@ function WeaponCard({ weapon, rank, habilidades, triagemBonus = [], image, displ
   )
 }
 
-export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onTransfer, onClose }) {
+export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdate, onDelete, onTransfer, onAdjustImage, onClose }) {
   const { isAdmin } = useAuth()
   const rc = RANK_COLORS[rank.rank] || RANK_COLORS.Comum
   const [analyzing, setAnalyzing] = useState(false)
@@ -983,6 +983,12 @@ export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdat
                 <button type="button" onClick={onTransfer}
                   className="w-full text-[10px] px-3 py-2 rounded-lg border border-sky-400/30 text-sky-300 bg-sky-400/10 hover:bg-sky-400/15 transition-colors">
                   Transferir arma
+                </button>
+              )}
+              {char.armaImagem && onAdjustImage && (
+                <button type="button" onClick={onAdjustImage}
+                  className="w-full text-[10px] px-3 py-2 rounded-lg border border-purple-400/30 text-purple-300 bg-purple-400/10 hover:bg-purple-400/15 transition-colors">
+                  Ajustar Imagem
                 </button>
               )}
             </div>
@@ -1241,7 +1247,7 @@ function LegendaryAssignedCard({ item, onClick }) {
   )
 }
 
-export function LegendaryWeaponDrawer({ item, forgeItem, canRemove, onRemove, onClose }) {
+export function LegendaryWeaponDrawer({ item, forgeItem, canRemove, onRemove, onAdjustImage, onClose }) {
   const habs = forgeItem?.habilidades
     ? (typeof forgeItem.habilidades === 'string'
         ? JSON.parse(forgeItem.habilidades || '{}')
@@ -1332,7 +1338,13 @@ export function LegendaryWeaponDrawer({ item, forgeItem, canRemove, onRemove, on
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-sep/30 flex justify-end shrink-0">
+        <div className="px-5 py-3 border-t border-sep/30 flex justify-end gap-2 shrink-0">
+          {item.image && onAdjustImage && (
+            <button onClick={onAdjustImage}
+              className="text-[10px] border border-purple-400/25 text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-400/10 transition-colors">
+              Ajustar Imagem
+            </button>
+          )}
           {canRemove && (
             <button onClick={() => { if (confirm('Remover esta arma lendária do personagem?')) onRemove() }}
               className="text-[10px] border border-err/25 text-err/80 px-3 py-1.5 rounded-lg hover:bg-err/10 hover:text-err transition-colors">
@@ -2444,7 +2456,7 @@ export function EquipCreateModal({ char, onSave, onClose, initialCategory = 'Arm
   )
 }
 
-export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef }) {
+export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdit, onSaveEdit, onDelete, onTransfer, onClose, onImageChange, imgRef, onAdjustImage }) {
   const { isAdmin } = useAuth()
   const rc = RANK_COLORS[item.rank] || RANK_COLORS.Comum
   const equipType = getEquipmentType(item)
@@ -2905,6 +2917,7 @@ export function EquipDrawer({ item, char, canEdit, editMode, onEdit, onCancelEdi
               )}
               <button onClick={onEdit} className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">Editar</button>
               <button onClick={onDelete} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Excluir</button>
+              {item.imagem && onAdjustImage && <button onClick={onAdjustImage} className="text-[10px] border border-purple-400/30 text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-400/10 transition-colors">Ajustar Imagem</button>}
               {onTransfer && <button onClick={onTransfer} className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors">Transferir</button>}
             </>
           )}

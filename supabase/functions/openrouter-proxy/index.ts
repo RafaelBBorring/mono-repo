@@ -10,21 +10,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders },
-  })
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { status: 200, headers: corsHeaders })
   }
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401)
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -33,15 +28,20 @@ serve(async (req) => {
     )
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return jsonResponse({ error: 'User not found.' }, 401)
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'User not found.' }), { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+    }
 
-    const { messages, temperature, max_tokens } = await req.json()
+    const body = await req.json()
+    const { messages, temperature, max_tokens } = body
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return jsonResponse({ error: 'Messages array is required.' }, 400)
+      return new Response(JSON.stringify({ error: 'Messages array is required.' }), { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
     }
 
     const apiKey = Deno.env.get('OPENROUTER_API_KEY')
-    if (!apiKey) return jsonResponse({ error: 'API key not configured.' }, 500)
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'API key not configured.' }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+    }
 
     const response = await fetch(OPENROUTER_URL, {
       method: 'POST',
@@ -60,10 +60,12 @@ serve(async (req) => {
     })
 
     const data = await response.json()
-    if (!response.ok) return jsonResponse({ error: data }, response.status)
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: data }), { status: response.status, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+    }
 
-    return jsonResponse(data)
+    return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
   } catch (err) {
-    return jsonResponse({ error: err.message }, 500)
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
   }
 })

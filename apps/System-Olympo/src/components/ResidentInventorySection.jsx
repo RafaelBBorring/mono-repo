@@ -7,6 +7,7 @@ import { estimateInventoryItemWeight } from '../utils/calculator'
 import { suggestItemWeight } from '../services/aiService'
 import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer, LegendaryWeaponDrawer } from './EquipmentSection'
 import { fetchMysticWeapons } from '../services/alchemyService'
+import ImageMaskEditor from './ImageMaskEditor'
 
 const GRID_COLS = 10
 const GRID_ROWS = 8
@@ -169,6 +170,7 @@ function buildEntries(char, forgeItems = []) {
         local: char.armaEquipada === false ? (char.armaLocal || 'carregado') : 'equipado',
         inventoryGrid: char.armaInventoryGrid,
         imageRotation: char.armaImageRotation || 0,
+        imageTransform: char.armaImageTransform || null,
         dano: weapon.dano,
       },
       weapon,
@@ -214,6 +216,7 @@ function buildEntries(char, forgeItems = []) {
         local: 'equipado',
         inventoryGrid: item.inventoryGrid,
         imageRotation: item.imageRotation || 0,
+        imageTransform: item.imageTransform || null,
         tipo: forgeMatch?.base || baseWeaponId || item.tipo || '',
         dano: forgeMatch?.dano || '',
       },
@@ -267,6 +270,7 @@ export default function ResidentInventorySection({
   const [selectedEntry, setSelectedEntry] = useState(null)
   const [legendaryDrawer, setLegendaryDrawer] = useState(null)
   const [legendaryForgeItems, setLegendaryForgeItems] = useState([])
+  const [maskEditor, setMaskEditor] = useState(null)
   const itemImgRef = useRef(null)
   const equipImgRef = useRef(null)
 
@@ -287,21 +291,8 @@ export default function ResidentInventorySection({
     if (!canEdit) return
     function onKeyDown(e) {
       if (e.key === 'r' || e.key === 'R') {
-        if (e.shiftKey && (selectedEntry || dragging)) {
-          const target = selectedEntry || dragging?.entry
-          if (target) {
-            const currentRot = target.item?.imageRotation || 0
-            const nextRot = (currentRot + 90) % 360
-            if (target.source === 'primary') update({ armaImageRotation: nextRot })
-            else if (target.source === 'equipment') patchEquipment(target.idx, { imageRotation: nextRot })
-            else if (target.source === 'inventory') patchInventoryItem(target.idx, { imageRotation: nextRot })
-            else if (target.source === 'legendary') {
-              const armasLendarias = [...(char.armasLendarias || [])]
-              armasLendarias[target.idx] = { ...armasLendarias[target.idx], imageRotation: nextRot }
-              update({ armasLendarias })
-            }
-          }
-        } else if (selectedEntry) rotateEntry(selectedEntry)
+        if (e.shiftKey) return
+        if (selectedEntry) rotateEntry(selectedEntry)
         else if (dragging) {
           const base = entryBaseSize(dragging.entry)
           if (base.w !== base.h) setDragging(current => current ? { ...current, rotated: ((current.rotated || 0) + 90) % 360 } : null)
@@ -686,6 +677,19 @@ export default function ResidentInventorySection({
     e.target.value = ''
   }
 
+  function handleMaskSave(patch) {
+    if (!maskEditor) return
+    if (maskEditor.source === 'primary') update(patch)
+    else if (maskEditor.source === 'equipment') patchEquipment(maskEditor.idx, patch)
+    else if (maskEditor.source === 'inventory') patchInventoryItem(maskEditor.idx, patch)
+    else if (maskEditor.source === 'legendary') {
+      const armasLendarias = [...(char.armasLendarias || [])]
+      armasLendarias[maskEditor.idx] = { ...armasLendarias[maskEditor.idx], ...patch }
+      update({ armasLendarias })
+    }
+    setMaskEditor(null)
+  }
+
   const activeLabel = locationLabel(locations, activeLocation)
 
   return (
@@ -803,7 +807,7 @@ export default function ResidentInventorySection({
                 ))}
               </div>
             </div>
-            <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · Duplo clique para detalhes · <kbd>R</kbd> rotaciona item · <kbd>Shift+R</kbd> rotaciona apenas a imagem</p>
+            <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · Duplo clique para detalhes · <kbd>R</kbd> rotaciona item</p>
           </div>
         </div>
       </section>
@@ -900,6 +904,16 @@ export default function ResidentInventorySection({
           onClose={() => { setItemDrawer(null); if (itemDrawer.source === 'backpack-content') { setBackpackDrawer({ idx: itemDrawer.backpackIdx, item: char.inventario?.[itemDrawer.backpackIdx] }) } }}
           onImageChange={handleItemImage}
           imgRef={itemImgRef}
+          onAdjustImage={() => setMaskEditor({
+            source: itemDrawer.source === 'backpack-content' ? 'inventory' : itemDrawer.source,
+            idx: itemDrawer.source === 'backpack-content' ? itemDrawer.backpackIdx : itemDrawer.idx,
+            image: (itemDrawer.source === 'backpack-content'
+              ? char.inventario?.[itemDrawer.backpackIdx]?.contents?.[itemDrawer.idx]
+              : char.inventario?.[itemDrawer.idx])?.imagem || itemDrawer.item?.imagem,
+            imageTransform: (itemDrawer.source === 'backpack-content'
+              ? char.inventario?.[itemDrawer.backpackIdx]?.contents?.[itemDrawer.idx]
+              : char.inventario?.[itemDrawer.idx])?.imageTransform,
+          })}
         />,
         document.body
       )}
@@ -939,6 +953,12 @@ export default function ResidentInventorySection({
           onClose={() => setEquipDrawer(null)}
           onImageChange={handleEquipImage}
           imgRef={equipImgRef}
+          onAdjustImage={() => setMaskEditor({
+            source: 'equipment',
+            idx: equipDrawer.idx,
+            image: char.equipamentos?.[equipDrawer.idx]?.imagem || equipDrawer.item?.imagem,
+            imageTransform: char.equipamentos?.[equipDrawer.idx]?.imageTransform,
+          })}
         />,
         document.body
       )}
@@ -977,6 +997,12 @@ export default function ResidentInventorySection({
           onUpdate={update}
           onDelete={() => removeEntry({ source: 'primary' })}
           onTransfer={onTransferItem ? () => onTransferItem('armaPrincipal', null) : null}
+          onAdjustImage={() => setMaskEditor({
+            source: 'primary',
+            idx: null,
+            image: char.armaImagem,
+            imageTransform: char.armaImageTransform,
+          })}
           onClose={() => setShowWeaponDrawer(false)}
         />,
         document.body
@@ -997,7 +1023,23 @@ export default function ResidentInventorySection({
           })()}
           canRemove={canEdit}
           onRemove={() => removeEntry(legendaryDrawer)}
+          onAdjustImage={() => setMaskEditor({
+            source: 'legendary',
+            idx: legendaryDrawer.idx,
+            image: legendaryDrawer.item.imagem,
+            imageTransform: (char.armasLendarias || [])[legendaryDrawer.idx]?.imageTransform,
+          })}
           onClose={() => setLegendaryDrawer(null)}
+        />,
+        document.body
+      )}
+
+      {maskEditor && createPortal(
+        <ImageMaskEditor
+          imageSrc={maskEditor.image}
+          initialTransform={maskEditor.imageTransform}
+          onSave={(t) => handleMaskSave({ imageTransform: t })}
+          onClose={() => setMaskEditor(null)}
         />,
         document.body
       )}
@@ -1043,7 +1085,7 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
   const area = rect.w * rect.h
   const isSmall = area <= 2
   const rotationDeg = rect.rotated || 0
-  const imageRotation = item.imageRotation || 0
+  const imageTransform = item.imageTransform || (item.imageRotation ? { scale: 1, rotation: item.imageRotation || 0, translateX: 0, translateY: 0 } : null)
   const quantity = Number(item.quantidade || item.qtd || 0)
   const hasQuantity = quantity > 1
 
@@ -1078,9 +1120,17 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
       onDoubleClick={onOpen}
       onClick={() => onSelect?.()}
     >
-      <div className="resident-grid-card-visual" style={imageRotation ? { overflow: 'hidden' } : undefined}>
+      <div className="resident-grid-card-visual" style={imageTransform ? { overflow: 'hidden' } : undefined}>
         {image
-          ? <img src={image} alt="" draggable={false} style={imageRotation ? { transform: `rotate(${imageRotation}deg)`, transformOrigin: 'center center', objectFit: 'cover', width: '100%', height: '100%', maxWidth: '140%', maxHeight: '140%' } : undefined} />
+          ? <img src={image} alt="" draggable={false} style={imageTransform ? {
+            transform: `translate(${imageTransform.translateX || 0}px, ${imageTransform.translateY || 0}px) rotate(${imageTransform.rotation || 0}deg) scale(${imageTransform.scale || 1})`,
+            transformOrigin: 'center center',
+            objectFit: 'cover',
+            width: '100%',
+            height: '100%',
+            maxWidth: '140%',
+            maxHeight: '140%',
+          } : undefined} />
           : <span className="material-symbols-outlined">{item.categoria === 'Arma' || item.categoria === 'Arma Lendária' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>
         }
         {hasQuantity && <span className="resident-grid-card-qty">x{quantity}</span>}
@@ -1280,7 +1330,7 @@ function BackpackGridDrawer({ backpack, canEdit, externalDrag, onUpdateContents,
                   ))}
                 </div>
               </div>
-              <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · <kbd>R</kbd> rotaciona selecionado · <kbd>Shift+R</kbd> rotaciona imagem</p>
+              <p className="resident-grid-hint">Arraste para organizar · Roda do mouse para rotacionar · <kbd>R</kbd> rotaciona selecionado</p>
             </div>
           </div>
 
@@ -1465,7 +1515,7 @@ function InventoryItemCreateModal({ kind, onSave, onClose }) {
   )
 }
 
-function InventoryItemDrawer({ entry, item, canEdit, editMode, locations, onEdit, onCancelEdit, onSave, onDelete, onTransfer, onMove, onClose, onImageChange, imgRef }) {
+function InventoryItemDrawer({ entry, item, canEdit, editMode, locations, onEdit, onCancelEdit, onSave, onDelete, onTransfer, onMove, onClose, onImageChange, imgRef, onAdjustImage }) {
   const [draft, setDraft] = useState(item)
   const color = ITEM_COLORS.find(c => c.id === (item.cor || 'gray')) || ITEM_COLORS[0]
 
@@ -1522,6 +1572,7 @@ function InventoryItemDrawer({ entry, item, canEdit, editMode, locations, onEdit
           {canEdit && !editMode && (
             <>
               <button onClick={onEdit} className="text-[10px] border border-gold/30 text-gold px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-colors">Editar</button>
+              {item.imagem && onAdjustImage && <button onClick={onAdjustImage} className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors">Ajustar Imagem</button>}
               <button onClick={onDelete} className="text-[10px] border border-err/30 text-err px-3 py-1.5 rounded-lg hover:bg-err/10 transition-colors">Excluir</button>
               {onTransfer && <button onClick={onTransfer} className="text-[10px] border border-sky-400/30 text-sky-300 px-3 py-1.5 rounded-lg hover:bg-sky-400/10 transition-colors">Transferir</button>}
             </>
