@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ITEM_COLORS } from '../data/colors'
-import { WEAPONS, WEAPON_RANKS, WEAPON_POWER_LEVELS, getWeaponWeight } from '../data/weapons'
+import { WEAPONS, WEAPON_RANKS, WEAPON_POWER_LEVELS, LEGENDARY_WEAPONS, getWeaponWeight } from '../data/weapons'
 import { EQUIPMENT_TYPES, calcEquipStats, estimateEquipmentWeight } from '../data/equipment'
 import { estimateInventoryItemWeight } from '../utils/calculator'
 import { suggestItemWeight } from '../services/aiService'
 import { EquipCreateModal, EquipDrawer, OutfitCreateModalClean, OutfitDrawerClean, WeaponDrawer, LegendaryWeaponDrawer } from './EquipmentSection'
 import { fetchMysticWeapons } from '../services/alchemyService'
 import ImageMaskEditor from './ImageMaskEditor'
+import { useAuth } from '../contexts/AuthContext'
+import { getSupabaseAdmin } from '../lib/supabase'
 
 const GRID_COLS = 10
 const GRID_ROWS = 8
@@ -163,6 +165,111 @@ function getStoredImageTransform(item = {}) {
   return item.imageTransform || (item.imageRotation ? { scale: 1, rotation: item.imageRotation || 0, translateX: 0, translateY: 0 } : null)
 }
 
+function getLegendaryVariants(item = {}) {
+  const raw = [item.id, item.sourceId, item.source_id].filter(Boolean).map(String)
+  const values = new Set()
+  raw.forEach((value) => {
+    values.add(value)
+    const stripped = value.replace(/^(static|forge)_/, '')
+    values.add(stripped)
+    values.add(`static_${stripped}`)
+    values.add(`forge_${stripped}`)
+  })
+  return values
+}
+
+function legendaryMatches(a = {}, b = {}) {
+  const av = getLegendaryVariants(a)
+  const bv = getLegendaryVariants(b)
+  return [...av].some(value => bv.has(value))
+}
+
+function buildLegendaryOwners(sheets = [], currentChar = {}, currentCharacterId = null) {
+  const owners = []
+  sheets.forEach(sheet => {
+    ;(sheet.data?.armasLendarias || []).forEach(item => {
+      owners.push({
+        characterId: sheet.id,
+        characterName: sheet.data?.nome || sheet.name || 'Personagem',
+        variants: getLegendaryVariants(item),
+      })
+    })
+  })
+  ;(currentChar.armasLendarias || []).forEach(item => {
+    owners.push({
+      characterId: currentCharacterId || 'current',
+      characterName: currentChar.nome || 'Esta ficha',
+      variants: getLegendaryVariants(item),
+      current: true,
+    })
+  })
+  return owners
+}
+
+function getLegendaryOwnerState(item, owners = [], currentCharacterId = null) {
+  const variants = getLegendaryVariants(item)
+  const matching = owners.filter(owner => [...variants].some(value => owner.variants.has(value)))
+  const other = matching.find(owner => currentCharacterId ? owner.characterId !== currentCharacterId : !owner.current)
+  const current = matching.find(owner => owner.current || (currentCharacterId && owner.characterId === currentCharacterId))
+  return {
+    assignedToCurrent: !!current && !other,
+    assignedToOther: !!other,
+    owner: other || current || null,
+  }
+}
+
+function makeLegendaryCatalog(forgeItems = []) {
+  return [
+    ...LEGENDARY_WEAPONS.map(item => ({
+      id: `static_${item.id}`,
+      sourceId: item.id,
+      catalogSource: 'static',
+      name: item.name,
+      rank: item.rank || 'Lendária',
+      tipo: item.tipo || 'Arma Lendária',
+      image: item.image || item.imagem || '',
+      descricao: item.descricao || '',
+      effect: item.effect || '',
+      power_level: item.power_level || '',
+    })),
+    ...forgeItems.map(item => ({
+      id: `forge_${item.id}`,
+      sourceId: item.id,
+      catalogSource: 'forge',
+      name: item.name,
+      rank: 'Lendária',
+      tipo: item.base || item.range || item.law_name || 'Forja Lendária',
+      image: item.image || '',
+      descricao: item.short_description || item.effect || '',
+      effect: item.effect || '',
+      power_level: item.power_level || 'notavel',
+      dano: item.damage || item.dano || '',
+      attr: item.attribute || item.attr || '',
+      habilidades: item.abilities || item.habilidades || '',
+      lore: item.lore || '',
+    })),
+  ]
+}
+
+function makeLegendaryAssignment(item = {}) {
+  return {
+    id: item.id,
+    sourceId: item.sourceId,
+    source: item.catalogSource || item.source || 'forge',
+    name: item.name,
+    rank: item.rank || 'Lendária',
+    tipo: item.tipo || 'Forja Lendária',
+    image: item.image || '',
+    descricao: item.descricao || item.effect || '',
+    effect: item.effect || '',
+    power_level: item.power_level || '',
+    dano: item.dano || item.damage || '',
+    attr: item.attr || item.attribute || '',
+    habilidades: item.habilidades || item.abilities || '',
+    lore: item.lore || '',
+  }
+}
+
 function layoutBackpackContents(contents, cols, rows) {
   const occupied = []
   return (contents || []).map((item, idx) => {
@@ -286,18 +393,24 @@ function layoutEntries(entries, activeLocation) {
 
 export default function ResidentInventorySection({
   char,
+  characterId = null,
   canEdit,
   update,
   onTransferItem,
   maxCarry,
   totalCarryWeight,
 }) {
+  const { isAdmin } = useAuth()
   const [activeLocation, setActiveLocation] = useState('carregado')
   const [showCreateHub, setShowCreateHub] = useState(false)
   const [showEquipCreate, setShowEquipCreate] = useState(null)
   const [showOutfitCreate, setShowOutfitCreate] = useState(false)
   const [pieceOutfitId, setPieceOutfitId] = useState(null)
   const [showItemCreate, setShowItemCreate] = useState(null)
+  const [showLegendaryCatalog, setShowLegendaryCatalog] = useState(false)
+  const [legendaryAssignmentSheets, setLegendaryAssignmentSheets] = useState([])
+  const [legendaryAssignmentsLoading, setLegendaryAssignmentsLoading] = useState(false)
+  const [legendaryAssigningId, setLegendaryAssigningId] = useState(null)
   const [newLocationName, setNewLocationName] = useState('')
   const [dragging, setDragging] = useState(null)
   const [hoverSlot, setHoverSlot] = useState(null)
@@ -324,10 +437,50 @@ export default function ResidentInventorySection({
     return () => { alive = false }
   }, [])
 
+  async function refreshLegendaryAssignments() {
+    if (!isAdmin) {
+      setLegendaryAssignmentSheets([])
+      return []
+    }
+    setLegendaryAssignmentsLoading(true)
+    const { data, error } = await getSupabaseAdmin()
+      .from('characters')
+      .select('id,name,data')
+      .order('updated_at', { ascending: false })
+    if (!error) setLegendaryAssignmentSheets(data || [])
+    setLegendaryAssignmentsLoading(false)
+    return error ? null : (data || [])
+  }
+
+  useEffect(() => {
+    let alive = true
+    if (!isAdmin) {
+      setLegendaryAssignmentSheets([])
+      return
+    }
+    setLegendaryAssignmentsLoading(true)
+    getSupabaseAdmin()
+      .from('characters')
+      .select('id,name,data')
+      .order('updated_at', { ascending: false })
+      .then(({ data }) => {
+        if (alive) setLegendaryAssignmentSheets(data || [])
+      })
+      .finally(() => {
+        if (alive) setLegendaryAssignmentsLoading(false)
+      })
+    return () => { alive = false }
+  }, [isAdmin])
+
   const allEntries = useMemo(() => buildEntries(char, legendaryForgeItems), [char, legendaryForgeItems])
   const locations = useMemo(() => buildLocations(char, allEntries), [char, allEntries])
   const activeEntries = useMemo(() => allEntries.filter(entry => !entry.item.trajeId && normalizeLocation(entry.item.local, entry.item) === activeLocation), [allEntries, activeLocation])
   const gridEntries = useMemo(() => layoutEntries(activeEntries, activeLocation), [activeEntries, activeLocation])
+  const legendaryCatalog = useMemo(() => makeLegendaryCatalog(legendaryForgeItems), [legendaryForgeItems])
+  const legendaryOwners = useMemo(
+    () => buildLegendaryOwners(legendaryAssignmentSheets, char, characterId),
+    [legendaryAssignmentSheets, char, characterId]
+  )
 
   useEffect(() => {
     if (!canEdit) return
@@ -468,6 +621,32 @@ export default function ResidentInventorySection({
   function addInventoryItem(item) {
     update({ inventario: [...(char.inventario || []), { id: Date.now(), local: activeLocation, inventoryGrid: null, ...item }] })
     setShowItemCreate(null)
+  }
+
+  async function assignLegendary(item) {
+    if (!isAdmin || !item) return
+    const alreadyHere = (char.armasLendarias || []).some(existing => legendaryMatches(existing, item))
+    if (alreadyHere) return
+
+    setLegendaryAssigningId(item.id)
+    try {
+      const latestSheets = await refreshLegendaryAssignments()
+      if (!latestSheets) {
+        alert('Não foi possível verificar se esta arma já está atribuída a outro personagem.')
+        return
+      }
+      const latestOwners = buildLegendaryOwners(latestSheets, char, characterId)
+      const ownerState = getLegendaryOwnerState(item, latestOwners, characterId)
+      if (ownerState.assignedToOther) {
+        alert(`Esta arma lendária já está com ${ownerState.owner?.characterName || 'outro personagem'}.`)
+        return
+      }
+      update({
+        armasLendarias: [...(char.armasLendarias || []), makeLegendaryAssignment(item)],
+      })
+    } finally {
+      setLegendaryAssigningId(null)
+    }
   }
 
   function addOutfit(item) {
@@ -874,6 +1053,21 @@ export default function ResidentInventorySection({
           onChooseEquipment={(category) => { setShowCreateHub(false); setShowEquipCreate(category) }}
           onChooseOutfit={() => { setShowCreateHub(false); setShowOutfitCreate(true) }}
           onChooseItem={(kind) => { setShowCreateHub(false); setShowItemCreate(kind) }}
+          onChooseLegendary={() => { setShowCreateHub(false); setShowLegendaryCatalog(true) }}
+        />,
+        document.body
+      )}
+
+      {showLegendaryCatalog && createPortal(
+        <ResidentLegendaryCatalogModal
+          items={legendaryCatalog}
+          owners={legendaryOwners}
+          currentCharacterId={characterId}
+          isAdmin={isAdmin}
+          loadingAssignments={legendaryAssignmentsLoading}
+          assigningId={legendaryAssigningId}
+          onAssign={assignLegendary}
+          onClose={() => setShowLegendaryCatalog(false)}
         />,
         document.body
       )}
@@ -1430,7 +1624,7 @@ function OutfitInventoryCard({ entry, pieces, onClick, onToggle, canEdit }) {
   )
 }
 
-function CreateHub({ onClose, onChooseEquipment, onChooseOutfit, onChooseItem }) {
+function CreateHub({ onClose, onChooseEquipment, onChooseOutfit, onChooseItem, onChooseLegendary }) {
   const cards = [
     { id: 'Arma', title: 'Arma', icon: 'swords', desc: 'Armas com rank, dano, material e encantamentos.' },
     { id: 'Equipamento', title: 'Equipamento', icon: 'shield', desc: 'Pecas de armadura, traje e defesa.' },
@@ -1455,6 +1649,11 @@ function CreateHub({ onClose, onChooseEquipment, onChooseOutfit, onChooseItem })
               <p>{card.desc}</p>
             </button>
           ))}
+          <button type="button" onClick={onChooseLegendary} className="resident-legendary-create-card">
+            <span className="material-symbols-outlined">auto_awesome</span>
+            <strong>Armas Lendárias</strong>
+            <p>Relíquias únicas da Forja Lendária, visíveis no catálogo do inventário.</p>
+          </button>
           <button type="button" onClick={onChooseOutfit}>
             <span className="material-symbols-outlined">checkroom</span>
             <strong>Traje</strong>
@@ -1476,6 +1675,78 @@ function CreateHub({ onClose, onChooseEquipment, onChooseOutfit, onChooseItem })
             <p>Pocoes e seringas de vida, energia e PE temporario.</p>
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ResidentLegendaryCatalogModal({ items, owners, currentCharacterId, isAdmin, loadingAssignments, assigningId, onAssign, onClose }) {
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center p-4">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm drawer-overlay" onClick={onClose} />
+      <div className="resident-legendary-modal">
+        <header>
+          <div>
+            <span className="material-symbols-outlined">auto_awesome</span>
+            <h3>Armas Lendárias</h3>
+          </div>
+          <button type="button" onClick={onClose}>×</button>
+        </header>
+
+        {items.length === 0 ? (
+          <div className="resident-legendary-empty">
+            <span className="material-symbols-outlined">swords</span>
+            <strong>Nenhuma arma lendária cadastrada</strong>
+          </div>
+        ) : (
+          <div className="resident-legendary-grid">
+            {items.map(item => {
+              const ownerState = getLegendaryOwnerState(item, owners, currentCharacterId)
+              const assignedToOther = ownerState.assignedToOther
+              const assignedToCurrent = ownerState.assignedToCurrent
+              const disabled = !isAdmin || loadingAssignments || assigningId === item.id || assignedToOther || assignedToCurrent
+              const powerLabel = WEAPON_POWER_LEVELS.find(p => p.value === item.power_level)?.label || item.power_level || 'Lendária'
+
+              return (
+                <article key={item.id} className={`resident-legendary-card ${assignedToOther ? 'is-locked' : ''}`}>
+                  <div className="resident-legendary-image">
+                    {item.image ? <img src={item.image} alt="" /> : <span className="material-symbols-outlined">swords</span>}
+                  </div>
+                  <div className="resident-legendary-info">
+                    <div>
+                      <h4>{item.name || 'Arma Lendária'}</h4>
+                      <span>{item.tipo || 'Forja Lendária'}</span>
+                    </div>
+                    <em>{powerLabel}</em>
+                  </div>
+                  {item.descricao && <p>{item.descricao}</p>}
+                  <div className="resident-legendary-action">
+                    {ownerState.owner && (
+                      <span className={assignedToOther ? 'is-other' : 'is-current'}>
+                        {assignedToOther ? ownerState.owner.characterName : 'Nesta ficha'}
+                      </span>
+                    )}
+                    {isAdmin ? (
+                      <button type="button" disabled={disabled} onClick={() => onAssign(item)}>
+                        {loadingAssignments
+                          ? 'Verificando'
+                          : assigningId === item.id
+                            ? 'Atribuindo'
+                            : assignedToCurrent
+                              ? 'Atribuída'
+                              : assignedToOther
+                                ? 'Indisponível'
+                                : 'Atribuir'}
+                      </button>
+                    ) : (
+                      <span className="resident-legendary-restricted">Restrita ao Mestre</span>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -4918,6 +4918,211 @@ body {
   margin-top: 0.35rem;
 }
 
+.resident-create-grid button.resident-legendary-create-card {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(190, 242, 100, 0.35);
+  background:
+    linear-gradient(135deg, rgba(190, 242, 100, 0.12), rgba(245, 200, 76, 0.07) 42%, rgba(56, 189, 248, 0.08)),
+    rgba(5, 9, 8, 0.78);
+  box-shadow: inset 0 0 22px rgba(190, 242, 100, 0.06), 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.resident-create-grid button.resident-legendary-create-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.18) 44%, transparent 64%);
+  transform: translateX(-130%);
+  transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.resident-create-grid button.resident-legendary-create-card:hover::before {
+  transform: translateX(130%);
+}
+
+.resident-create-grid button.resident-legendary-create-card .material-symbols-outlined,
+.resident-create-grid button.resident-legendary-create-card strong {
+  color: #d9f99d;
+}
+
+.resident-legendary-modal {
+  position: relative;
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(190, 242, 100, 0.28);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(20, 28, 18, 0.98), rgba(12, 13, 15, 0.99)),
+    rgba(10, 10, 12, 0.98);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6), inset 0 0 46px rgba(190, 242, 100, 0.035);
+}
+
+.resident-legendary-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(190, 242, 100, 0.14);
+  padding: 1rem 1.15rem;
+  flex: 0 0 auto;
+}
+
+.resident-legendary-modal header div {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.resident-legendary-modal header .material-symbols-outlined,
+.resident-legendary-modal h3 {
+  color: #d9f99d;
+}
+
+.resident-legendary-modal h3 {
+  font-family: Cinzel, serif;
+  font-size: 0.98rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.resident-legendary-modal header button {
+  color: rgba(216, 249, 157, 0.62);
+  font-size: 1.35rem;
+}
+
+.resident-legendary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.85rem;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.resident-legendary-card {
+  overflow: hidden;
+  border: 1px solid rgba(190, 242, 100, 0.2);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(190, 242, 100, 0.075), rgba(56, 189, 248, 0.04)),
+    rgba(0, 0, 0, 0.28);
+}
+
+.resident-legendary-card.is-locked {
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.resident-legendary-image {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(190, 242, 100, 0.13);
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.resident-legendary-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.resident-legendary-image .material-symbols-outlined {
+  color: rgba(216, 249, 157, 0.45);
+  font-size: 2.1rem;
+}
+
+.resident-legendary-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0.8rem 0.4rem;
+}
+
+.resident-legendary-info h4 {
+  color: #ecfccb;
+  font-family: Cinzel, serif;
+  font-size: 0.86rem;
+  line-height: 1.2;
+}
+
+.resident-legendary-info span,
+.resident-legendary-card p {
+  color: rgba(166, 163, 186, 0.72);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.resident-legendary-info em {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  border: 1px solid rgba(245, 200, 76, 0.22);
+  border-radius: 999px;
+  color: #fde68a;
+  font-size: 0.58rem;
+  font-style: normal;
+  padding: 0.12rem 0.4rem;
+}
+
+.resident-legendary-card p {
+  padding: 0 0.8rem;
+}
+
+.resident-legendary-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+}
+
+.resident-legendary-action > span:not(.resident-legendary-restricted) {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.62rem;
+}
+
+.resident-legendary-action .is-current {
+  color: #86efac;
+}
+
+.resident-legendary-action .is-other {
+  color: #fbbf24;
+}
+
+.resident-legendary-action button,
+.resident-legendary-restricted {
+  margin-left: auto;
+  border: 1px solid rgba(190, 242, 100, 0.28);
+  border-radius: 8px;
+  color: #d9f99d;
+  font-size: 0.66rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.resident-legendary-action button:not(:disabled):hover {
+  background: rgba(190, 242, 100, 0.1);
+}
+
+.resident-legendary-action button:disabled,
+.resident-legendary-restricted {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(166, 163, 186, 0.5);
+}
+
+.resident-legendary-empty {
+  display: grid;
+  place-items: center;
+  gap: 0.5rem;
+  min-height: 220px;
+  color: rgba(166, 163, 186, 0.6);
+}
+
 .resident-form-grid {
   display: grid;
   grid-template-columns: 1fr 8rem;

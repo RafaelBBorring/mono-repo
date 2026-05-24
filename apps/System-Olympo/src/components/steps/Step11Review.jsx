@@ -783,6 +783,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                 <SectionHeader icon="🎒" title="Inventário & Equipamentos" color="bg-amber-400" />
                 <ResidentInventorySection
                   char={char}
+                  characterId={characterId}
                   canEdit={canEdit}
                   update={update}
                   onTransferItem={onTransferItem}
