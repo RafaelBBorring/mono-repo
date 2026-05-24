@@ -515,7 +515,7 @@ Campos não alterados mantenham o valor atual.`
     addMessage({ role: 'system', content: 'Oráculo está analisando...' })
 
     try {
-      const data = await analyzeBalance(char)
+      const data = await analyzeBalance(char, null)
       setLastResult(data)
       const habs = data.habilidades || []
       const weaponHabs = data.armaHabilidades || []

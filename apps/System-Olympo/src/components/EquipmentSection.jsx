@@ -868,11 +868,11 @@ export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdat
     })
   }
 
-  async function handleAnalyze() {
+  async function handleAnalyze(dir) {
     setAnalyzing(true)
     setError('')
     try {
-      const data = await analyzeBalance(char)
+      const data = await analyzeBalance(char, dir || null)
       setResult(data)
     } catch (err) {
       setError(err.message)
@@ -1149,13 +1149,31 @@ export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdat
               <span className="text-txt-dim text-[10px] uppercase tracking-wider">Análise de Balanceamento</span>
             </div>
             <button
-              onClick={handleAnalyze}
+              onClick={() => handleAnalyze(null)}
               disabled={analyzing}
               className="w-full bg-indigo-500/10 border border-indigo-400/30 text-indigo-400 text-[10px] px-3 py-2 rounded hover:bg-indigo-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {analyzing && <span className="animate-spin inline-block w-3 h-3 border border-indigo-400/40 border-t-indigo-400 rounded-full" />}
               {analyzing ? 'Analisando...' : '✦ Analisar Habilidades com IA'}
             </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => handleAnalyze('buff')}
+                disabled={analyzing}
+                className="bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 text-[10px] px-3 py-1.5 rounded hover:bg-emerald-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[12px]">arrow_upward</span>
+                Buff
+              </button>
+              <button
+                onClick={() => handleAnalyze('nerf')}
+                disabled={analyzing}
+                className="bg-red-500/10 border border-red-400/30 text-red-400 text-[10px] px-3 py-1.5 rounded hover:bg-red-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[12px]">arrow_downward</span>
+                Nerf
+              </button>
+            </div>
             {error && <p className="text-err text-[10px] mt-2">{error}</p>}
             {result && (
               <div className="mt-3 space-y-2">

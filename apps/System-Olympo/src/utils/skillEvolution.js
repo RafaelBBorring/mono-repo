@@ -137,20 +137,37 @@ export function calcPEHSpent(habilidades) {
 /**
  * Monta um resumo textual da evolução para enviar à IA durante análise.
  */
+const BRACKET_TIERS = ['FRACA', 'MEDIA', 'FORTE', 'ULTIMATE']
+
+export function getEffectiveBracket(bracket, evolucaoNivel, tipo) {
+  if (tipo === 'Passiva') return 'PASSIVA'
+  if (tipo === 'Ultimate') return 'ULTIMATE'
+  const tierIdx = BRACKET_TIERS.indexOf(bracket)
+  const upgrades = Math.floor((evolucaoNivel || 0) / 2)
+  const effectiveIdx = Math.min(tierIdx + upgrades, BRACKET_TIERS.indexOf('FORTE'))
+  return BRACKET_TIERS[effectiveIdx]
+}
+
 export function buildEvolucaoContext(habilidades, charNivel) {
   return (habilidades || []).map((h, i) => {
     const autoEvo = h.tipo === 'Passiva' ? calcPassivaAutoEvolucao(charNivel) : null
     const evoNivel = autoEvo !== null ? autoEvo : (h.evolucaoNivel || 0)
     const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
+    const tdhEfetivo = getEffectiveBracket(bracket, evoNivel, h.tipo)
+    const maxEvo = getMaxEvolucao(h.tipo)
+    const instrucaoIA = evoNivel === 0
+      ? 'Calibrar para valores base do nível do personagem.'
+      : tdhEfetivo !== bracket
+        ? `EVOLUÇÃO Nível ${evoNivel}/${maxEvo}: o jogador INVESTIU ${evoNivel} PEH. O bracket base é ${bracket}, mas a evolução PROMOVE o TDH efetivo para ${tdhEfetivo}. Use a tabela TDH do bracket ${tdhEfetivo} para esta habilidade, NÃO use ${bracket}. Escale danos, duração, bônus e CDs proporcionalmente ao investimento.`
+        : `EVOLUÇÃO Nível ${evoNivel}/${maxEvo}: o jogador INVESTIU ${evoNivel} PEH no bracket ${bracket}. Escale todos os efeitos proporcionalmente ao nível de evolução dentro do bracket ${bracket}.`
     return {
       index: i,
       nome: h.nome || `Habilidade ${i + 1}`,
       tipo: h.tipo,
       evolucaoNivel: evoNivel,
       bracket,
-      instrucaoIA: evoNivel === 0
-        ? 'Calibrar para valores base do nível do personagem.'
-        : `Calibrar para Evolução Nível ${evoNivel}/${getMaxEvolucao(h.tipo)}: escalar todos os efeitos (dano, duração, bônus, CDs) proporcionalmente ao bracket ${bracket}.`,
+      tdhBracketEfetivo: tdhEfetivo,
+      instrucaoIA,
     }
   })
 }

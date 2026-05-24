@@ -396,6 +396,14 @@ Você receberá:
 PEH — PONTOS DE EVOLUÇÃO DE HABILIDADE:
 - evolucaoNivel > 0 = jogador INVESTIU recursos — habilidade proporcionalmente mais forte.
 - Por bracket: Fraca(+1d6,+4 flat,+2E) | Média(+1d8,+6 flat,+3E) | Forte(+1d10,+8 flat,+5E) | Ult(+2d10,+12 flat,+8E)
+- TDH EFETIVO: Quando evolucaoNivel ≥ 2, o bracket base PROMOVE na tabela TDH:
+  * Fraca com evo 2-3 → usa TDH de Média
+  * Fraca com evo 4-5 → usa TDH de Forte
+  * Média com evo 2-3 → usa TDH de Forte
+  * Média com evo 4-5 → usa TDH de Forte
+  * Forte/Ultimate → mantém próprio TDH (já é o mais alto)
+- O campo "tdhBracketEfetivo" indica qual TDH usar. OBEDEÇA esse campo — NÃO use o bracket base para o TDH quando tdhBracketEfetivo for diferente.
+- IMPORTANTE: NUNCA diga "TDH Fraca" para uma habilidade com tdhBracketEfetivo diferente de FRACA.
 
 SCP — SISTEMA DE CAMADAS DE PODER (Seção 14.1):
 Camada 1 (Base): Perícia + Atributo — SEM LIMITE.
@@ -471,7 +479,7 @@ Responda SEMPRE em JSON válido, sem markdown, sem code blocks.`
 
 // ─── analyzeBalance ───────────────────────────────────────────────────────
 
-export async function analyzeBalance(char) {
+export async function analyzeBalance(char, direction = null) {
   const stats  = computeCharStats(char)
   const evoCtx = buildEvolucaoContext(char.habilidades, char.nivel || 1)
   const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
@@ -520,6 +528,7 @@ VALORES BASE PARA CÁLCULO LCP:
       status: h.status || 'Pendente',
       evolucaoNivel: evo.evolucaoNivel || 0,
       bracket: evo.bracket || 'FRACA',
+      tdhBracketEfetivo: evo.tdhBracketEfetivo || evo.bracket || 'FRACA',
       instrucaoEvolucao: evo.instrucaoIA || 'Calibrar para valores base.',
       jogadorJaDefiniuValores: !!(h.dano || h.custoEnergia || h.duracao),
     }
@@ -547,11 +556,12 @@ ${JSON.stringify(SYSTEM_SKILLS.map(s => ({ id: s.id, name: s.name, category: s.c
 TIPOS DE EFEITO E PARAMETROS:
 ${JSON.stringify(Object.entries(EFFECT_PARAM_DEFS).map(([type, def]) => ({ type, label: def.label, params: Object.entries(def.params).map(([k, p]) => ({ key: k, label: p.label, type: p.type, default: p.default })) })), null, 2)}
 
-  INSTRUÇÕES CRÍTICAS:
+${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — O mestre julga que as habilidades estão FRACAS DEMAIS. Aumente danos em ~30-50%, reduza custos em ~20%, aumente durações. Aplique o TDH EFETIVO como MÍNIMO, não como teto. Se a habilidade está dentro do TDH mas parece subpotente, BUFF mesmo assim. O mestre tem a palavra final.\n' : ''}${direction === 'nerf' ? '⚠️ DIREÇÃO DO MESTRE: NERF — O mestre julga que as habilidades estão FORTES DEMAIS. Reduza danos em ~30-50%, aumente custos em ~20%, reduza durações, adicione restrições. Seja AGRESSIVO na redução — o mestre quer equilibrar para baixo.\n' : ''}  INSTRUÇÕES CRÍTICAS:
 - Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
 - O dano da habilidade é EXTRA ao dano base+arma+atributo que o personagem já possui.
 - PEH Total: ${pehTotal} | Gasto: ${pehSpent}. Habilidades com evolucaoNivel > 0 receberam INVESTIMENTO do jogador e devem ser proporcionais.
-- Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH ou criar combos quebrados.
+- REGRAS DE TDH EFETIVO: cada habilidade tem um campo "tdhBracketEfetivo". USE ESSE CAMPO para consultar o teto de dano na tabela TDH, NÃO use o campo "bracket". Exemplo: se bracket=FRACA mas tdhBracketEfetivo=FORTE, use o TDH de Forte.
+- Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH EFETIVO (não o bracket base) ou criar combos quebrados.
 - Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 
@@ -634,11 +644,12 @@ ${JSON.stringify(SYSTEM_SKILLS.map(s => ({ id: s.id, name: s.name, category: s.c
 TIPOS DE EFEITO E PARAMETROS:
 ${JSON.stringify(Object.entries(EFFECT_PARAM_DEFS).map(([type, def]) => ({ type, label: def.label, params: Object.entries(def.params).map(([k, p]) => ({ key: k, label: p.label, type: p.type, default: p.default })) })), null, 2)}
 
-INSTRUÇÕES CRÍTICAS:
+${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — Aumente danos ~30-50%, reduza custos ~20%, aumente durações. Use TDH EFETIVO como MÍNIMO.\n' : ''}${direction === 'nerf' ? '⚠️ DIREÇÃO DO MESTRE: NERF — Reduza danos ~30-50%, aumente custos ~20%, reduza durações, adicione restrições.\n' : ''}INSTRUÇÕES CRÍTICAS:
 - Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa como referência.
 - O dano da habilidade é EXTRA ao dano base+arma+atributo que o personagem já possui.
 - PEH Total: ${pehTotal} | Gasto: ${pehSpent}. Habilidades com evolucaoNivel > 0 receberam INVESTIMENTO do jogador e devem ser proporcionais.
-- Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH ou criar combos quebrados.
+- REGRAS DE TDH EFETIVO: cada habilidade tem um campo "tdhBracketEfetivo". USE ESSE CAMPO para consultar o teto de dano na tabela TDH, NÃO use o campo "bracket". Exemplo: se bracket=FRACA mas tdhBracketEfetivo=FORTE, use o TDH de Forte.
+- Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH EFETIVO (não o bracket base) ou criar combos quebrados.
 - Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 

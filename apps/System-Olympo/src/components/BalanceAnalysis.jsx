@@ -10,12 +10,12 @@ export default function BalanceAnalysis({ char, onApply, characterId }) {
   const [error, setError] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
 
-  async function handleAnalyze() {
+  async function handleAnalyze(dir) {
     setAnalyzing(true)
     setError('')
     setResult(null)
     try {
-      const data = await analyzeBalance(char)
+      const data = await analyzeBalance(char, dir || null)
       setResult(data)
     } catch (err) {
       setError(err.message)
@@ -70,6 +70,22 @@ export default function BalanceAnalysis({ char, onApply, characterId }) {
             ) : (
               'Analisar Habilidades'
             )}
+          </button>
+          <button
+            onClick={() => handleAnalyze('buff')}
+            disabled={analyzing}
+            title="Direcionar IA para buffar habilidades"
+            className="bg-emerald-500/10 border border-emerald-400/30 text-emerald-400 text-[10px] px-2 py-1.5 rounded hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
+          </button>
+          <button
+            onClick={() => handleAnalyze('nerf')}
+            disabled={analyzing}
+            title="Direcionar IA para nerfar habilidades"
+            className="bg-red-500/10 border border-red-400/30 text-red-400 text-[10px] px-2 py-1.5 rounded hover:bg-red-500/20 transition-colors disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[14px]">arrow_downward</span>
           </button>
         </div>
         {error && <p className="text-err text-[10px] mt-2">{error}</p>}
