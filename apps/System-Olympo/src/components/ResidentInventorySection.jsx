@@ -122,34 +122,20 @@ function getBackpackGridDims(capacity) {
   return { cols: 6, rows: 5 }
 }
 
-function getRotationCoverScale(rotation, width, height) {
-  const radians = ((Number(rotation) || 0) * Math.PI) / 180
-  const cos = Math.abs(Math.cos(radians))
-  const sin = Math.abs(Math.sin(radians))
-  const safeWidth = Math.max(1, width)
-  const safeHeight = Math.max(1, height)
-  return Math.max(
-    cos + (safeHeight / safeWidth) * sin,
-    cos + (safeWidth / safeHeight) * sin,
-    1
-  )
-}
-
-function getImageTransformStyle(transform, rect) {
+function getImageTransformStyle(transform) {
   if (!transform) return undefined
   const legacy = transform.unit !== 'ratio'
   const rotation = Number(transform.rotation) || 0
   const baseScale = Number(transform.scale) || 1
-  const coverScale = getRotationCoverScale(rotation, rect?.w || 1, rect?.h || 1)
   const translateX = Number(transform.translateX) || 0
   const translateY = Number(transform.translateY) || 0
   const x = legacy ? `${(translateX / LEGACY_IMAGE_PREVIEW_SIZE) * 100}%` : `${translateX * 100}%`
   const y = legacy ? `${(translateY / LEGACY_IMAGE_PREVIEW_SIZE) * 100}%` : `${translateY * 100}%`
 
   return {
-    transform: `translate(${x}, ${y}) rotate(${rotation}deg) scale(${Math.max(baseScale, coverScale)})`,
+    transform: `translate(${x}, ${y}) rotate(${rotation}deg) scale(${baseScale})`,
     transformOrigin: 'center center',
-    objectFit: 'cover',
+    objectFit: 'contain',
     width: '100%',
     height: '100%',
     willChange: 'transform',
@@ -1166,7 +1152,7 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
   const isSmall = area <= 2
   const rotationDeg = rect.rotated || 0
   const imageTransform = getStoredImageTransform(item)
-  const imageTransformStyle = getImageTransformStyle(imageTransform, rect)
+  const imageTransformStyle = getImageTransformStyle(imageTransform)
   const quantity = Number(item.quantidade || item.qtd || 0)
   const hasQuantity = quantity > 1
 

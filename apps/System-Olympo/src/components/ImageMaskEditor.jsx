@@ -3,7 +3,8 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 const LEGACY_PREVIEW_SIZE = 280
 const MAX_PREVIEW_WIDTH = 340
 const MAX_PREVIEW_HEIGHT = 260
-const MAX_SCALE = 8
+const MIN_SCALE = 0.05
+const MAX_SCALE = 12
 
 function clampAspect(value) {
   const aspect = Number(value) || 1
@@ -21,19 +22,6 @@ function getPreviewSize(maskAspect = 1) {
   return { width: Math.round(width), height: Math.round(height), aspect }
 }
 
-function getRotationCoverScale(rotation, width, height) {
-  const radians = ((Number(rotation) || 0) * Math.PI) / 180
-  const cos = Math.abs(Math.cos(radians))
-  const sin = Math.abs(Math.sin(radians))
-  const safeWidth = Math.max(1, width)
-  const safeHeight = Math.max(1, height)
-  return Math.max(
-    cos + (safeHeight / safeWidth) * sin,
-    cos + (safeWidth / safeHeight) * sin,
-    1
-  )
-}
-
 function toEditorTransform(initialTransform, previewSize) {
   const scale = Number(initialTransform?.scale) || 1
   const rotation = Number(initialTransform?.rotation) || 0
@@ -47,8 +35,7 @@ function toEditorTransform(initialTransform, previewSize) {
     translateX: legacy ? (translateX / LEGACY_PREVIEW_SIZE) * previewSize.width : translateX * previewSize.width,
     translateY: legacy ? (translateY / LEGACY_PREVIEW_SIZE) * previewSize.height : translateY * previewSize.height,
   }
-  const minScale = getRotationCoverScale(next.rotation, previewSize.width, previewSize.height)
-  return { ...next, scale: Math.max(next.scale, minScale) }
+  return { ...next, scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, next.scale)) }
 }
 
 export default function ImageMaskEditor({ imageSrc, initialTransform, maskAspect = 1, onSave, onClose }) {
@@ -60,14 +47,11 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, maskAspect
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [transStart, setTransStart] = useState({ x: 0, y: 0 })
   const containerRef = useRef(null)
-  const minScale = getRotationCoverScale(transform.rotation, previewSize.width, previewSize.height)
-  const sliderMax = Math.min(MAX_SCALE, Math.max(4, Math.ceil(minScale * 1.6)))
 
   function clampTransform(next) {
-    const nextMin = getRotationCoverScale(next.rotation, previewSize.width, previewSize.height)
     return {
       ...next,
-      scale: Math.max(nextMin, Math.min(MAX_SCALE, Number(next.scale) || 1)),
+      scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, Number(next.scale) || 1)),
     }
   }
 
@@ -142,7 +126,7 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, maskAspect
   function handleSave() {
     const normalized = {
       unit: 'ratio',
-      scale: Math.max(transform.scale, minScale),
+      scale: transform.scale,
       rotation: transform.rotation,
       translateX: transform.translateX / previewSize.width,
       translateY: transform.translateY / previewSize.height,
@@ -185,7 +169,7 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, maskAspect
                 ...imgStyle,
                 width: previewSize.width,
                 height: previewSize.height,
-                objectFit: 'cover',
+                objectFit: 'contain',
                 cursor: dragging ? 'grabbing' : 'grab',
               }}
               onMouseDown={handleMouseDown}
@@ -221,9 +205,9 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, maskAspect
               <span className="text-txt-dim/60 text-[10px] uppercase w-12 shrink-0">Zoom</span>
               <input
                 type="range"
-                min={minScale}
-                max={sliderMax}
-                step="0.05"
+                min={MIN_SCALE}
+                max={MAX_SCALE}
+                step="0.01"
                 value={transform.scale}
                 onChange={e => setTransform(prev => clampTransform({ ...prev, scale: Number(e.target.value) }))}
                 className="flex-1 accent-gold"
