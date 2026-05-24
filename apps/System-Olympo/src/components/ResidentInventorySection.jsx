@@ -11,6 +11,7 @@ import ImageMaskEditor from './ImageMaskEditor'
 
 const GRID_COLS = 10
 const GRID_ROWS = 8
+const LEGACY_IMAGE_PREVIEW_SIZE = 280
 const BASE_LOCATIONS = [
   { id: 'carregado', label: 'Personagem', icon: 'person' },
   { id: 'quarto', label: 'Quarto', icon: 'bed' },
@@ -121,6 +122,61 @@ function getBackpackGridDims(capacity) {
   return { cols: 6, rows: 5 }
 }
 
+function getRotationCoverScale(rotation, width, height) {
+  const radians = ((Number(rotation) || 0) * Math.PI) / 180
+  const cos = Math.abs(Math.cos(radians))
+  const sin = Math.abs(Math.sin(radians))
+  const safeWidth = Math.max(1, width)
+  const safeHeight = Math.max(1, height)
+  return Math.max(
+    cos + (safeHeight / safeWidth) * sin,
+    cos + (safeWidth / safeHeight) * sin,
+    1
+  )
+}
+
+function getImageTransformStyle(transform, rect) {
+  if (!transform) return undefined
+  const legacy = transform.unit !== 'ratio'
+  const rotation = Number(transform.rotation) || 0
+  const baseScale = Number(transform.scale) || 1
+  const coverScale = getRotationCoverScale(rotation, rect?.w || 1, rect?.h || 1)
+  const translateX = Number(transform.translateX) || 0
+  const translateY = Number(transform.translateY) || 0
+  const x = legacy ? `${(translateX / LEGACY_IMAGE_PREVIEW_SIZE) * 100}%` : `${translateX * 100}%`
+  const y = legacy ? `${(translateY / LEGACY_IMAGE_PREVIEW_SIZE) * 100}%` : `${translateY * 100}%`
+
+  return {
+    transform: `translate(${x}, ${y}) rotate(${rotation}deg) scale(${Math.max(baseScale, coverScale)})`,
+    transformOrigin: 'center center',
+    objectFit: 'cover',
+    width: '100%',
+    height: '100%',
+    willChange: 'transform',
+  }
+}
+
+function getMaskAspectForEntry(entry, fallbackItem = null) {
+  const rect = entry?.rect || entry?.item?.inventoryGrid || fallbackItem?.inventoryGrid
+  if (rect?.w && rect?.h) return rect.w / rect.h
+  if (entry?.item || fallbackItem) {
+    const size = resolveSize({ ...entry, item: entry?.item || fallbackItem }, rect?.rotated || 0)
+    return size.w / size.h
+  }
+  return 1
+}
+
+function buildImagePatch(transform) {
+  return {
+    imageTransform: transform,
+    imageRotation: transform?.rotation || 0,
+  }
+}
+
+function getStoredImageTransform(item = {}) {
+  return item.imageTransform || (item.imageRotation ? { scale: 1, rotation: item.imageRotation || 0, translateX: 0, translateY: 0 } : null)
+}
+
 function layoutBackpackContents(contents, cols, rows) {
   const occupied = []
   return (contents || []).map((item, idx) => {
@@ -169,8 +225,8 @@ function buildEntries(char, forgeItems = []) {
         equipado: char.armaEquipada !== false,
         local: char.armaEquipada === false ? (char.armaLocal || 'carregado') : 'equipado',
         inventoryGrid: char.armaInventoryGrid,
-        imageRotation: char.armaImageRotation || 0,
-        imageTransform: char.armaImageTransform || null,
+        imageRotation: char.armaImageRotation || char.imageRotation || 0,
+        imageTransform: char.armaImageTransform || char.imageTransform || null,
         dano: weapon.dano,
       },
       weapon,
@@ -679,12 +735,26 @@ export default function ResidentInventorySection({
 
   function handleMaskSave(patch) {
     if (!maskEditor) return
-    if (maskEditor.source === 'primary') update(patch)
-    else if (maskEditor.source === 'equipment') patchEquipment(maskEditor.idx, patch)
-    else if (maskEditor.source === 'inventory') patchInventoryItem(maskEditor.idx, patch)
-    else if (maskEditor.source === 'legendary') {
+    const transform = patch.imageTransform || null
+    const itemPatch = buildImagePatch(transform)
+    if (maskEditor.source === 'primary') {
+      update({ armaImageTransform: transform, armaImageRotation: transform?.rotation || 0, imageTransform: null, imageRotation: 0 })
+    } else if (maskEditor.source === 'equipment') {
+      patchEquipment(maskEditor.idx, itemPatch)
+    } else if (maskEditor.source === 'inventory') {
+      patchInventoryItem(maskEditor.idx, itemPatch)
+    } else if (maskEditor.source === 'backpack-content') {
+      const inventario = [...(char.inventario || [])]
+      const backpack = inventario[maskEditor.backpackIdx]
+      const contents = [...(backpack?.contents || [])]
+      if (backpack && contents[maskEditor.idx]) {
+        contents[maskEditor.idx] = { ...contents[maskEditor.idx], ...itemPatch }
+        inventario[maskEditor.backpackIdx] = { ...backpack, contents }
+        update({ inventario })
+      }
+    } else if (maskEditor.source === 'legendary') {
       const armasLendarias = [...(char.armasLendarias || [])]
-      armasLendarias[maskEditor.idx] = { ...armasLendarias[maskEditor.idx], ...patch }
+      armasLendarias[maskEditor.idx] = { ...armasLendarias[maskEditor.idx], ...itemPatch }
       update({ armasLendarias })
     }
     setMaskEditor(null)
@@ -904,16 +974,19 @@ export default function ResidentInventorySection({
           onClose={() => { setItemDrawer(null); if (itemDrawer.source === 'backpack-content') { setBackpackDrawer({ idx: itemDrawer.backpackIdx, item: char.inventario?.[itemDrawer.backpackIdx] }) } }}
           onImageChange={handleItemImage}
           imgRef={itemImgRef}
-          onAdjustImage={() => setMaskEditor({
-            source: itemDrawer.source === 'backpack-content' ? 'inventory' : itemDrawer.source,
-            idx: itemDrawer.source === 'backpack-content' ? itemDrawer.backpackIdx : itemDrawer.idx,
-            image: (itemDrawer.source === 'backpack-content'
+          onAdjustImage={() => {
+            const currentItem = itemDrawer.source === 'backpack-content'
               ? char.inventario?.[itemDrawer.backpackIdx]?.contents?.[itemDrawer.idx]
-              : char.inventario?.[itemDrawer.idx])?.imagem || itemDrawer.item?.imagem,
-            imageTransform: (itemDrawer.source === 'backpack-content'
-              ? char.inventario?.[itemDrawer.backpackIdx]?.contents?.[itemDrawer.idx]
-              : char.inventario?.[itemDrawer.idx])?.imageTransform,
-          })}
+              : char.inventario?.[itemDrawer.idx]
+            setMaskEditor({
+              source: itemDrawer.source === 'backpack-content' ? 'backpack-content' : itemDrawer.source,
+              idx: itemDrawer.idx,
+              backpackIdx: itemDrawer.backpackIdx,
+              image: currentItem?.imagem || itemDrawer.item?.imagem,
+              imageTransform: getStoredImageTransform(currentItem || itemDrawer.item),
+              maskAspect: getMaskAspectForEntry(itemDrawer, currentItem || itemDrawer.item),
+            })
+          }}
         />,
         document.body
       )}
@@ -931,7 +1004,7 @@ export default function ResidentInventorySection({
           onOpenItem={(entry) => {
             const contentItem = char.inventario?.[backpackDrawer.idx]?.contents?.[entry.idx]
             if (!contentItem) return
-            setItemDrawer({ source: 'backpack-content', idx: entry.idx, item: contentItem, key: entry.key, backpackIdx: backpackDrawer.idx })
+            setItemDrawer({ source: 'backpack-content', idx: entry.idx, item: contentItem, key: entry.key, backpackIdx: backpackDrawer.idx, rect: entry.rect })
             setBackpackDrawer(null)
           }}
           onClose={() => { setBackpackDrawer(null); setBackpackDragging(null) }}
@@ -957,7 +1030,8 @@ export default function ResidentInventorySection({
             source: 'equipment',
             idx: equipDrawer.idx,
             image: char.equipamentos?.[equipDrawer.idx]?.imagem || equipDrawer.item?.imagem,
-            imageTransform: char.equipamentos?.[equipDrawer.idx]?.imageTransform,
+            imageTransform: getStoredImageTransform(char.equipamentos?.[equipDrawer.idx] || equipDrawer.item),
+            maskAspect: getMaskAspectForEntry(equipDrawer, char.equipamentos?.[equipDrawer.idx] || equipDrawer.item),
           })}
         />,
         document.body
@@ -997,12 +1071,16 @@ export default function ResidentInventorySection({
           onUpdate={update}
           onDelete={() => removeEntry({ source: 'primary' })}
           onTransfer={onTransferItem ? () => onTransferItem('armaPrincipal', null) : null}
-          onAdjustImage={() => setMaskEditor({
-            source: 'primary',
-            idx: null,
-            image: char.armaImagem,
-            imageTransform: char.armaImageTransform,
-          })}
+          onAdjustImage={() => {
+            const primaryEntry = gridEntries.find(entry => entry.source === 'primary') || allEntries.find(entry => entry.source === 'primary')
+            setMaskEditor({
+              source: 'primary',
+              idx: null,
+              image: char.armaImagem,
+              imageTransform: char.armaImageTransform || char.imageTransform || (char.armaImageRotation || char.imageRotation ? { scale: 1, rotation: char.armaImageRotation || char.imageRotation || 0, translateX: 0, translateY: 0 } : null),
+              maskAspect: getMaskAspectForEntry(primaryEntry),
+            })
+          }}
           onClose={() => setShowWeaponDrawer(false)}
         />,
         document.body
@@ -1027,7 +1105,8 @@ export default function ResidentInventorySection({
             source: 'legendary',
             idx: legendaryDrawer.idx,
             image: legendaryDrawer.item.imagem,
-            imageTransform: (char.armasLendarias || [])[legendaryDrawer.idx]?.imageTransform,
+            imageTransform: getStoredImageTransform((char.armasLendarias || [])[legendaryDrawer.idx]),
+            maskAspect: getMaskAspectForEntry(legendaryDrawer),
           })}
           onClose={() => setLegendaryDrawer(null)}
         />,
@@ -1038,6 +1117,7 @@ export default function ResidentInventorySection({
         <ImageMaskEditor
           imageSrc={maskEditor.image}
           initialTransform={maskEditor.imageTransform}
+          maskAspect={maskEditor.maskAspect}
           onSave={(t) => handleMaskSave({ imageTransform: t })}
           onClose={() => setMaskEditor(null)}
         />,
@@ -1085,7 +1165,8 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
   const area = rect.w * rect.h
   const isSmall = area <= 2
   const rotationDeg = rect.rotated || 0
-  const imageTransform = item.imageTransform || (item.imageRotation ? { scale: 1, rotation: item.imageRotation || 0, translateX: 0, translateY: 0 } : null)
+  const imageTransform = getStoredImageTransform(item)
+  const imageTransformStyle = getImageTransformStyle(imageTransform, rect)
   const quantity = Number(item.quantidade || item.qtd || 0)
   const hasQuantity = quantity > 1
 
@@ -1122,15 +1203,7 @@ function InventoryGridCard({ entry, rect, canEdit, dragging, selected, onOpen, o
     >
       <div className="resident-grid-card-visual" style={imageTransform ? { overflow: 'hidden' } : undefined}>
         {image
-          ? <img src={image} alt="" draggable={false} style={imageTransform ? {
-            transform: `translate(${imageTransform.translateX || 0}px, ${imageTransform.translateY || 0}px) rotate(${imageTransform.rotation || 0}deg) scale(${imageTransform.scale || 1})`,
-            transformOrigin: 'center center',
-            objectFit: 'cover',
-            width: '100%',
-            height: '100%',
-            maxWidth: '140%',
-            maxHeight: '140%',
-          } : undefined} />
+          ? <img src={image} alt="" draggable={false} style={imageTransformStyle} />
           : <span className="material-symbols-outlined">{item.categoria === 'Arma' || item.categoria === 'Arma Lendária' ? 'swords' : item.categoria === 'Equipamento' ? 'shield' : item.tipo === 'mochila' ? 'backpack' : 'inventory_2'}</span>
         }
         {hasQuantity && <span className="resident-grid-card-qty">x{quantity}</span>}

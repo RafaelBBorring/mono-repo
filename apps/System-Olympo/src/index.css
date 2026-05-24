@@ -609,6 +609,36 @@ button:active:not(:disabled) {
     z-index: 1;
   }
 
+  .knowledge-library p[class~="text-xs"],
+  .knowledge-library p[class~="text-[11px]"],
+  .knowledge-library article p {
+    font-size: 0.875rem;
+    line-height: 1.65;
+  }
+
+  .knowledge-library [class~="text-xs"]:not(button):not(input):not(select),
+  .knowledge-library [class~="text-[11px]"]:not(button):not(input):not(select) {
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+
+  .knowledge-library [class~="text-[10px]"],
+  .knowledge-library [class~="text-[9px]"] {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .oracle-chat-panel [class~="text-[11px]"],
+  .oracle-chat-panel p[class~="text-[10px]"] {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+
+  .oracle-chat-panel [class~="text-[10px]"] {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
   .player-board {
     border: 1px solid rgba(111, 82, 42, 0.52);
     border-radius: 18px;

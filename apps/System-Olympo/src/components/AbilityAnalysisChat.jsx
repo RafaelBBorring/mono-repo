@@ -285,7 +285,7 @@ function MessageBubble({ msg, char, onApplySingle, onRefine, onGmRequest }) {
   if (msg.role === 'system') {
     return (
       <div className="flex justify-center">
-        <div className="bg-gold/5 border border-gold/15 rounded-full px-3 py-1 text-[10px] text-gold/60">
+        <div className="bg-gold/5 border border-gold/15 rounded-full px-3 py-1 text-xs text-gold/70">
           {msg.content}
         </div>
       </div>
@@ -301,7 +301,7 @@ function MessageBubble({ msg, char, onApplySingle, onRefine, onGmRequest }) {
         <div className="space-y-2 min-w-0 flex-1">
           <div className="bg-deep/80 border border-gold/15 rounded-lg rounded-tl-sm p-4 backdrop-blur-sm">
             {msg.content && (
-              <p className="text-txt-main text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              <p className="text-txt-main text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
             )}
           </div>
           {msg.type === 'analysis' && msg.data && (
@@ -335,7 +335,7 @@ function MessageBubble({ msg, char, onApplySingle, onRefine, onGmRequest }) {
   return (
     <div className="flex justify-end">
       <div className="bg-void/70 border border-sep/20 rounded-lg rounded-tr-sm p-4 max-w-[85%] backdrop-blur-sm">
-        <p className="text-txt-dim text-[13px] leading-relaxed">{msg.content}</p>
+        <p className="text-txt-dim text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
       </div>
     </div>
   )
@@ -667,14 +667,14 @@ Campos não alterados mantenham o valor atual.`
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex justify-end">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm drawer-overlay" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-lg h-full bg-deep/98 border-l border-gold/20 shadow-2xl shadow-black/50 flex flex-col drawer-panel">
+          <div className="oracle-chat-panel relative w-full max-w-xl h-full bg-deep/98 border-l border-gold/20 shadow-2xl shadow-black/50 flex flex-col drawer-panel">
             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gold/15 bg-gradient-to-r from-void/80 via-deep/90 to-void/80">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/25 to-amber-600/15 border border-gold/30 flex items-center justify-center text-gold text-base font-cinzel font-bold">
                 O
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-gold text-sm font-cinzel font-semibold">Oráculo</h3>
-                <p className="text-txt-dim/50 text-[11px]">Motor de Balanceamento</p>
+                <p className="text-txt-dim/60 text-xs">Motor de Balanceamento</p>
               </div>
               <button onClick={() => setOpen(false)}
                 className="text-txt-dim/40 hover:text-txt-dim text-lg px-2 transition-colors">
@@ -713,7 +713,7 @@ Campos não alterados mantenham o valor atual.`
                   placeholder="Pergunte ou solicite análise... (Shift+Enter para nova linha)"
                   disabled={loading}
                   rows={1}
-                  className="flex-1 bg-void/60 border border-sep/25 rounded-lg px-4 py-2.5 text-[13px] text-txt-main placeholder:text-txt-dim/25 focus:border-gold/30 focus:outline-none disabled:opacity-40 transition-colors resize-none leading-relaxed min-h-[40px] max-h-[120px] overflow-y-auto"
+                  className="flex-1 bg-void/60 border border-sep/25 rounded-lg px-4 py-2.5 text-sm text-txt-main placeholder:text-txt-dim/25 focus:border-gold/30 focus:outline-none disabled:opacity-40 transition-colors resize-none leading-relaxed min-h-[40px] max-h-[120px] overflow-y-auto"
                   onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px' }}
                 />
                 <button

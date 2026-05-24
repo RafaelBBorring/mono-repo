@@ -162,7 +162,7 @@ export default function MysticLibrarySection({ char, update, config, compact = f
   const badges = ruleBadges({ char, profile, selectedItems, spaceUsed }) || []
 
   return (
-    <section className={`mystic-grimoire codex-card ${sectionBorder} ${compact ? 'p-4' : 'p-5'} space-y-4`}>
+    <section className={`knowledge-library mystic-grimoire codex-card ${sectionBorder} ${compact ? 'p-4' : 'p-5'} space-y-4`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">

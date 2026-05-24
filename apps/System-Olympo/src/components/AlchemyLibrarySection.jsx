@@ -150,7 +150,7 @@ export default function AlchemyLibrarySection({ char, update, compact = false, w
   }
 
   return (
-    <section className={`codex-card border-teal-400/20 ${compact ? 'p-4' : 'p-5'} space-y-4`}>
+    <section className={`knowledge-library codex-card border-teal-400/20 ${compact ? 'p-4' : 'p-5'} space-y-4`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1">

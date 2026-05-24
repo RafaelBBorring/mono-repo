@@ -1,18 +1,75 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 
-const PREVIEW_SIZE = 280
+const LEGACY_PREVIEW_SIZE = 280
+const MAX_PREVIEW_WIDTH = 340
+const MAX_PREVIEW_HEIGHT = 260
+const MAX_SCALE = 8
 
-export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, onClose }) {
+function clampAspect(value) {
+  const aspect = Number(value) || 1
+  return Math.max(0.25, Math.min(4, aspect))
+}
+
+function getPreviewSize(maskAspect = 1) {
+  const aspect = clampAspect(maskAspect)
+  let width = MAX_PREVIEW_WIDTH
+  let height = width / aspect
+  if (height > MAX_PREVIEW_HEIGHT) {
+    height = MAX_PREVIEW_HEIGHT
+    width = height * aspect
+  }
+  return { width: Math.round(width), height: Math.round(height), aspect }
+}
+
+function getRotationCoverScale(rotation, width, height) {
+  const radians = ((Number(rotation) || 0) * Math.PI) / 180
+  const cos = Math.abs(Math.cos(radians))
+  const sin = Math.abs(Math.sin(radians))
+  const safeWidth = Math.max(1, width)
+  const safeHeight = Math.max(1, height)
+  return Math.max(
+    cos + (safeHeight / safeWidth) * sin,
+    cos + (safeWidth / safeHeight) * sin,
+    1
+  )
+}
+
+function toEditorTransform(initialTransform, previewSize) {
+  const scale = Number(initialTransform?.scale) || 1
+  const rotation = Number(initialTransform?.rotation) || 0
+  const legacy = initialTransform && initialTransform.unit !== 'ratio'
+  const translateX = Number(initialTransform?.translateX) || 0
+  const translateY = Number(initialTransform?.translateY) || 0
+
+  const next = {
+    scale,
+    rotation,
+    translateX: legacy ? (translateX / LEGACY_PREVIEW_SIZE) * previewSize.width : translateX * previewSize.width,
+    translateY: legacy ? (translateY / LEGACY_PREVIEW_SIZE) * previewSize.height : translateY * previewSize.height,
+  }
+  const minScale = getRotationCoverScale(next.rotation, previewSize.width, previewSize.height)
+  return { ...next, scale: Math.max(next.scale, minScale) }
+}
+
+export default function ImageMaskEditor({ imageSrc, initialTransform, maskAspect = 1, onSave, onClose }) {
+  const previewSize = useMemo(() => getPreviewSize(maskAspect), [maskAspect])
   const [transform, setTransform] = useState(() => ({
-    scale: initialTransform?.scale ?? 1,
-    rotation: initialTransform?.rotation ?? 0,
-    translateX: initialTransform?.translateX ?? 0,
-    translateY: initialTransform?.translateY ?? 0,
+    ...toEditorTransform(initialTransform, previewSize),
   }))
   const [dragging, setDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [transStart, setTransStart] = useState({ x: 0, y: 0 })
   const containerRef = useRef(null)
+  const minScale = getRotationCoverScale(transform.rotation, previewSize.width, previewSize.height)
+  const sliderMax = Math.min(MAX_SCALE, Math.max(4, Math.ceil(minScale * 1.6)))
+
+  function clampTransform(next) {
+    const nextMin = getRotationCoverScale(next.rotation, previewSize.width, previewSize.height)
+    return {
+      ...next,
+      scale: Math.max(nextMin, Math.min(MAX_SCALE, Number(next.scale) || 1)),
+    }
+  }
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -24,7 +81,6 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
 
   function handleMouseDown(e) {
     e.preventDefault()
-    const rect = containerRef.current.getBoundingClientRect()
     setDragging(true)
     setDragStart({ x: e.clientX, y: e.clientY })
     setTransStart({ x: transform.translateX, y: transform.translateY })
@@ -33,9 +89,8 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
   function handleMouseMove(e) {
     if (!dragging) return
     const rect = containerRef.current.getBoundingClientRect()
-    const displayScale = PREVIEW_SIZE / rect.width
-    const dx = (e.clientX - dragStart.x) * displayScale
-    const dy = (e.clientY - dragStart.y) * displayScale
+    const dx = (e.clientX - dragStart.x) * (previewSize.width / rect.width)
+    const dy = (e.clientY - dragStart.y) * (previewSize.height / rect.height)
     setTransform(prev => ({ ...prev, translateX: transStart.x + dx, translateY: transStart.y + dy }))
   }
 
@@ -46,7 +101,7 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
   function handleWheel(e) {
     e.preventDefault()
     const delta = e.deltaY > 0 ? 0.95 : 1.05
-    setTransform(prev => ({ ...prev, scale: Math.max(0.1, Math.min(10, prev.scale * delta)) }))
+    setTransform(prev => clampTransform({ ...prev, scale: prev.scale * delta }))
   }
 
   function handleTouchStart(e) {
@@ -62,10 +117,9 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
     if (!dragging || e.touches.length !== 1) return
     e.preventDefault()
     const rect = containerRef.current.getBoundingClientRect()
-    const displayScale = PREVIEW_SIZE / rect.width
     const t = e.touches[0]
-    const dx = (t.clientX - dragStart.x) * displayScale
-    const dy = (t.clientY - dragStart.y) * displayScale
+    const dx = (t.clientX - dragStart.x) * (previewSize.width / rect.width)
+    const dy = (t.clientY - dragStart.y) * (previewSize.height / rect.height)
     setTransform(prev => ({ ...prev, translateX: transStart.x + dx, translateY: transStart.y + dy }))
   }
 
@@ -74,11 +128,11 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
   }
 
   function rotateLeft() {
-    setTransform(prev => ({ ...prev, rotation: prev.rotation - 90 }))
+    setTransform(prev => clampTransform({ ...prev, rotation: prev.rotation - 90 }))
   }
 
   function rotateRight() {
-    setTransform(prev => ({ ...prev, rotation: prev.rotation + 90 }))
+    setTransform(prev => clampTransform({ ...prev, rotation: prev.rotation + 90 }))
   }
 
   function resetTransform() {
@@ -86,8 +140,16 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
   }
 
   function handleSave() {
-    const hasTransform = transform.scale !== 1 || transform.rotation !== 0 || transform.translateX !== 0 || transform.translateY !== 0
-    onSave(hasTransform ? transform : null)
+    const normalized = {
+      unit: 'ratio',
+      scale: Math.max(transform.scale, minScale),
+      rotation: transform.rotation,
+      translateX: transform.translateX / previewSize.width,
+      translateY: transform.translateY / previewSize.height,
+      maskAspect: previewSize.aspect,
+    }
+    const hasTransform = normalized.scale !== 1 || normalized.rotation !== 0 || normalized.translateX !== 0 || normalized.translateY !== 0
+    onSave(hasTransform ? normalized : null)
   }
 
   const imgStyle = {
@@ -113,7 +175,7 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
           <div
             ref={containerRef}
             className="mx-auto rounded-lg border-2 border-gold/30 overflow-hidden bg-void/70"
-            style={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE }}
+            style={{ width: previewSize.width, height: previewSize.height, touchAction: 'none' }}
           >
             <img
               src={imageSrc}
@@ -121,8 +183,8 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
               draggable={false}
               style={{
                 ...imgStyle,
-                width: PREVIEW_SIZE,
-                height: PREVIEW_SIZE,
+                width: previewSize.width,
+                height: previewSize.height,
                 objectFit: 'cover',
                 cursor: dragging ? 'grabbing' : 'grab',
               }}
@@ -159,11 +221,11 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
               <span className="text-txt-dim/60 text-[10px] uppercase w-12 shrink-0">Zoom</span>
               <input
                 type="range"
-                min="0.2"
-                max="4"
+                min={minScale}
+                max={sliderMax}
                 step="0.05"
                 value={transform.scale}
-                onChange={e => setTransform(prev => ({ ...prev, scale: Number(e.target.value) }))}
+                onChange={e => setTransform(prev => clampTransform({ ...prev, scale: Number(e.target.value) }))}
                 className="flex-1 accent-gold"
               />
               <span className="text-txt-dim text-[10px] font-mono w-10 text-right">{transform.scale.toFixed(2)}x</span>
@@ -176,7 +238,7 @@ export default function ImageMaskEditor({ imageSrc, initialTransform, onSave, on
                 max="180"
                 step="1"
                 value={transform.rotation}
-                onChange={e => setTransform(prev => ({ ...prev, rotation: Number(e.target.value) }))}
+                onChange={e => setTransform(prev => clampTransform({ ...prev, rotation: Number(e.target.value) }))}
                 className="flex-1 accent-gold"
               />
               <span className="text-txt-dim text-[10px] font-mono w-10 text-right">{transform.rotation}°</span>
