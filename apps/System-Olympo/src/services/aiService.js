@@ -31,6 +31,7 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemini-3.5-flash'
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
+const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 3840
 
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
@@ -93,6 +94,12 @@ function isRetryable(status) {
   return status === 429 || status === 502 || status === 503 || status === 504
 }
 
+function clampMaxTokens(maxTokens) {
+  const requested = Number(maxTokens)
+  const parsed = Number.isFinite(requested) ? requested : 4096
+  return Math.max(16, Math.min(Math.floor(parsed), OPENROUTER_MAX_TOKENS))
+}
+
 function getStatus(error) {
   return error?.status || error?.context?.status || 0
 }
@@ -138,6 +145,11 @@ function createTaggedError(message, props = {}) {
   return err
 }
 
+function getAffordableTokenLimit(message) {
+  const match = String(message || '').match(/can only afford\s+(\d+)/i)
+  return match ? Number(match[1]) : 0
+}
+
 async function normalizeFunctionError(error, functionName) {
   let status = getStatus(error)
   let retryAfter = 0
@@ -167,7 +179,14 @@ async function normalizeFunctionError(error, functionName) {
     message = `Edge Function "${functionName}" falhou${status ? ` (${status})` : ''}: ${rawMessage}`
   }
 
-  return createTaggedError(message, { status, retryAfter, source, functionName, cause: error })
+  return createTaggedError(message, {
+    status,
+    retryAfter,
+    source,
+    functionName,
+    affordableMaxTokens: getAffordableTokenLimit(rawMessage),
+    cause: error,
+  })
 }
 
 async function invokeOpenRouterFunction(body) {
@@ -203,6 +222,7 @@ async function createOpenRouterResponseError(response) {
   return createTaggedError(openRouterErrorMessage(response.status, rawMessage), {
     status: response.status,
     retryAfter: Number(response.headers.get('Retry-After')) || 0,
+    affordableMaxTokens: getAffordableTokenLimit(rawMessage),
     source: 'openrouter',
   })
 }
@@ -217,13 +237,15 @@ function getOpenRouterHeaders() {
 }
 
 async function callAI(messages, { maxTokens = 4096 } = {}) {
+  let effectiveMaxTokens = clampMaxTokens(maxTokens)
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const data = await invokeOpenRouterFunction({
         model: OPENROUTER_MODEL,
         messages,
         temperature: 0.35,
-        max_tokens: maxTokens,
+        max_tokens: effectiveMaxTokens,
       })
       if (!data) throw new Error('Resposta vazia da Edge Function.')
       const content = data.choices?.[0]?.message?.content
@@ -232,6 +254,11 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
     } catch (edgeError) {
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
+      if (status === 402 && edgeError?.affordableMaxTokens >= 16 && edgeError.affordableMaxTokens < effectiveMaxTokens && attempt < MAX_RETRIES) {
+        effectiveMaxTokens = clampMaxTokens(edgeError.affordableMaxTokens)
+        await sleep(getRetryDelay(attempt))
+        continue
+      }
       if (isRetryable(status) && attempt < MAX_RETRIES) {
         await sleep(getRetryDelay(attempt, edgeError?.retryAfter))
         continue
@@ -250,11 +277,16 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
               model: OPENROUTER_MODEL,
               messages,
               temperature: 0.35,
-              max_tokens: maxTokens,
+              max_tokens: effectiveMaxTokens,
             }),
           })
           if (!response.ok) {
             const responseError = await createOpenRouterResponseError(response)
+            if (response.status === 402 && responseError?.affordableMaxTokens >= 16 && responseError.affordableMaxTokens < effectiveMaxTokens && fbAttempt < MAX_RETRIES) {
+              effectiveMaxTokens = clampMaxTokens(responseError.affordableMaxTokens)
+              await sleep(getRetryDelay(fbAttempt))
+              continue
+            }
             if (isRetryable(response.status) && fbAttempt < MAX_RETRIES) {
               await sleep(getRetryDelay(fbAttempt, responseError.retryAfter))
               continue
@@ -276,7 +308,8 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
 }
 
 async function callAIStream(messages, onChunk) {
-  const body = { model: OPENROUTER_MODEL, messages, temperature: 0.35, max_tokens: 4096, stream: true }
+  const streamMaxTokens = clampMaxTokens(4096)
+  const body = { model: OPENROUTER_MODEL, messages, temperature: 0.35, max_tokens: streamMaxTokens, stream: true }
 
   try {
     const data = await invokeOpenRouterFunction(body)
@@ -317,7 +350,7 @@ async function callAIStream(messages, onChunk) {
         model: OPENROUTER_MODEL,
         messages,
         temperature: 0.35,
-        max_tokens: 4096,
+        max_tokens: streamMaxTokens,
         stream: true,
       }),
     })

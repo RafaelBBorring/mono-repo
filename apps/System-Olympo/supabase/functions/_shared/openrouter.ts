@@ -2,6 +2,7 @@ const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
 const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-3.5-flash'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
+const OPENROUTER_MAX_TOKENS = Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 3840
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 export const corsHeaders = {
@@ -30,7 +31,7 @@ function getMaxTokens(payload: ChatRequest) {
   const raw = payload.max_completion_tokens ?? payload.max_tokens ?? 4096
   const parsed = Number(raw)
   if (!Number.isFinite(parsed)) return 4096
-  return Math.max(16, Math.floor(parsed))
+  return Math.max(16, Math.min(Math.floor(parsed), OPENROUTER_MAX_TOKENS))
 }
 
 function getTemperature(payload: ChatRequest) {
