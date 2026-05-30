@@ -28,13 +28,15 @@ import { SYSTEM_SKILLS, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemini-3.5-flash'
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite'
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
 const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
 
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
+const JSON_RESPONSE_FORMAT = { type: 'json_object' }
+const JSON_REPAIR_MAX_CHARS = 12000
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -247,17 +249,37 @@ function getOpenRouterHeaders() {
   }
 }
 
-async function callAI(messages, { maxTokens = 4096 } = {}) {
+function withJsonInstruction(messages) {
+  const instruction = 'Responda somente com um objeto JSON valido e compacto. Nao use markdown, comentarios, texto antes/depois, nem trailing commas. Strings devem ser concisas.'
+  const next = [...messages]
+  const firstSystemIndex = next.findIndex(m => m.role === 'system')
+
+  if (firstSystemIndex >= 0) {
+    next[firstSystemIndex] = {
+      ...next[firstSystemIndex],
+      content: `${next[firstSystemIndex].content}\n\n${instruction}`,
+    }
+  } else {
+    next.unshift({ role: 'system', content: instruction })
+  }
+
+  return next
+}
+
+async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const data = await invokeOpenRouterFunction({
+      const body = {
         model: OPENROUTER_MODEL,
         messages,
         temperature: 0.35,
         max_tokens: effectiveMaxTokens,
-      })
+      }
+      if (responseFormat) body.response_format = responseFormat
+
+      const data = await invokeOpenRouterFunction(body)
       if (!data) throw new Error('Resposta vazia da Edge Function.')
       const content = data.choices?.[0]?.message?.content
       if (!content) throw new Error('IA retornou conteúdo vazio.')
@@ -292,6 +314,7 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
               messages,
               temperature: 0.35,
               max_tokens: effectiveMaxTokens,
+              ...(responseFormat ? { response_format: responseFormat } : {}),
             }),
           })
           if (!response.ok) {
@@ -322,6 +345,41 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
     }
   }
   throw new Error('Falha após múltiplas tentativas. Tente novamente em alguns segundos.')
+}
+
+async function callAIJson(messages, options = {}) {
+  const response = await callAI(withJsonInstruction(messages), {
+    ...options,
+    responseFormat: JSON_RESPONSE_FORMAT,
+  })
+
+  try {
+    return extractJSON(response)
+  } catch (firstError) {
+    console.warn('[callAIJson] JSON invalido, tentando reparo:', firstError?.message || firstError)
+    const repairMessages = [
+      {
+        role: 'system',
+        content: 'Voce e um corretor de JSON. Retorne somente um objeto JSON valido, sem markdown e sem explicacoes.',
+      },
+      {
+        role: 'user',
+        content: `Corrija a resposta abaixo para JSON valido. Preserve os campos e valores existentes. Se um campo foi cortado, complete com string vazia ou array vazio conforme apropriado.\n\nRESPOSTA:\n${String(response).slice(0, JSON_REPAIR_MAX_CHARS)}`,
+      },
+    ]
+
+    const repaired = await callAI(repairMessages, {
+      maxTokens: Math.min(options.maxTokens || OPENROUTER_MAX_TOKENS, OPENROUTER_MAX_TOKENS),
+      responseFormat: JSON_RESPONSE_FORMAT,
+    })
+
+    try {
+      return extractJSON(repaired)
+    } catch (repairError) {
+      console.error('[callAIJson] Reparo de JSON falhou:', repairError?.message || repairError)
+      throw new Error('A IA retornou JSON invalido mesmo apos reparo. Tente novamente com uma solicitacao menor.')
+    }
+  }
 }
 
 async function callAIStream(messages, onChunk) {
@@ -849,40 +907,24 @@ Responda EXCLUSIVAMENTE com JSON:
   "systemSkillSuggestions": []` : ''}
 }`
 
-      const chunkResponse = await callAI([
+      const chunkResult = await callAIJson([
         { role: 'system', content: buildSystemContext() },
         { role: 'user', content: chunkMessage },
       ], { maxTokens: 8192 })
 
-      try {
-        const chunkResult = extractJSON(chunkResponse)
-        if (chunkResult.habilidades) allResults.habilidades.push(...chunkResult.habilidades)
-        if (ci === 0 && chunkResult.armaHabilidades) allResults.armaHabilidades = chunkResult.armaHabilidades
-        if (ci === 0 && chunkResult.systemSkillSuggestions) allResults.systemSkillSuggestions = chunkResult.systemSkillSuggestions
-      } catch {
-        chunks[ci].forEach(h => {
-          allResults.habilidades.push({
-            index: h.index,
-            nome: h.nome,
-            descricao: h.descricao,
-            descricaoBalanceada: h.descricao,
-            custoEnergia: h.custoEnergia,
-            dano: h.dano,
-            duracao: h.duracao,
-            status: 'ajustada',
-            feedback: 'Lote processado com erro de parse. Revise manualmente.',
-          })
-        })
-      }
+      if (chunkResult.habilidades) allResults.habilidades.push(...chunkResult.habilidades)
+      if (ci === 0 && chunkResult.armaHabilidades) allResults.armaHabilidades = chunkResult.armaHabilidades
+      if (ci === 0 && chunkResult.systemSkillSuggestions) allResults.systemSkillSuggestions = chunkResult.systemSkillSuggestions
     }
 
     return allResults
   }
 
-  const response = await callAI([
+  const response = await callAIJson([
     { role: 'system', content: buildSystemContext() },
     { role: 'user',   content: userMessage },
   ], { maxTokens: 16384 })
+  return response
 
   try {
     return extractJSON(response)
@@ -964,10 +1006,11 @@ Responda EXCLUSIVAMENTE com JSON:
   ]
 }`
 
-  const response = await callAI([
+  const response = await callAIJson([
     { role: 'system', content: buildSystemContext() },
     { role: 'user',   content: prompt },
   ])
+  return response
   try {
     return extractJSON(response)
   } catch {
@@ -1013,10 +1056,11 @@ Responda EXCLUSIVAMENTE com JSON:
   "feedback": "explicacao curta do balanceamento"
 }`
 
-  const response = await callAI([
+  const response = await callAIJson([
     { role: 'system', content: buildSystemContext() },
     { role: 'user', content: prompt },
   ], { maxTokens: 1200 })
+  return response
   try {
     return extractJSON(response)
   } catch {
@@ -1063,10 +1107,11 @@ Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habi
   ]
 }`
 
-  const response = await callAI([
+  const response = await callAIJson([
     { role: 'system', content: buildSystemContext() },
     { role: 'user',   content: prompt },
   ])
+  return response
   try {
     return extractJSON(response)
   } catch {
@@ -1238,10 +1283,11 @@ Responda EXCLUSIVAMENTE com JSON:
 async function analyzeMysticDraft(systemType, draft, context = {}) {
   const prompt = buildMysticDraftPrompt(systemType, draft, context)
 
-  const response = await callAI([
+  const response = await callAIJson([
     { role: 'system', content: buildSystemContext() },
     { role: 'user', content: prompt },
   ], { maxTokens: 8192 })
+  return response
 
   try {
     return extractJSON(response)
@@ -1466,10 +1512,11 @@ RESPONDA EXCLUSIVAMENTE COM JSON VALIDO
   "ai_feedback": "Resumo: dano base escolhido (referencia da tabela). Cada habilidade: nome, mecanica preservada/criada, custoPE. Pedidos do Mestre atendidos."
 }`
 
-  const response = await callAI([
+  const response = await callAIJson([
     { role: 'system', content: buildSystemContext() },
     { role: 'user', content: prompt },
   ], { maxTokens: 8192 })
+  return response
 
   try {
     return extractJSON(response)
@@ -1519,6 +1566,7 @@ MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
 6. NUNCA simplesmente concorde — SEMPRE verifique contra os limites do sistema.
 
 FORMATO DE RESPOSTA PARA AJUSTES:
+IMPORTANTE: comece SEMPRE pelo bloco JSON. Depois do JSON, use no maximo 3 linhas de analise. O JSON e obrigatorio para o sistema aplicar mudancas.
 Quando o usuário pede alterações em uma habilidade específica, inclua SEMPRE um bloco JSON no formato:
 \`\`\`json
 {
@@ -1643,13 +1691,8 @@ Responda APENAS com JSON:
     { role: 'user', content: `Crie ${totalSlots} habilidade(s) para este equipamento tipo "${typeDef?.label || equipType}" rank ${equipRank}: ${activeSlots} ativa(s) e ${passiveSlots} passiva(s). Seja conciso e balanceado.` },
   ]
 
-  const data = await callAI(messages)
-  try {
-    const parsed = typeof data === 'string' ? JSON.parse(data) : data
-    return { passivas: (parsed.passivas || []).slice(0, totalSlots) }
-  } catch {
-    return { passivas: [] }
-  }
+  const parsed = await callAIJson(messages)
+  return { passivas: (parsed.passivas || []).slice(0, totalSlots) }
 }
 
 export async function suggestItemWeight(nome, descricao) {

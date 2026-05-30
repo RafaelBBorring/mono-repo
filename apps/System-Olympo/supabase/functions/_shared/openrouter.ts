@@ -1,5 +1,5 @@
 const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-3.5-flash'
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-3.1-flash-lite'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
 const OPENROUTER_MAX_TOKENS = Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 1800
@@ -16,6 +16,7 @@ type ChatRequest = {
   temperature?: unknown
   max_tokens?: unknown
   max_completion_tokens?: unknown
+  response_format?: unknown
   stream?: unknown
   model?: unknown
 }
@@ -117,6 +118,10 @@ export async function handleOpenRouterRequest(req: Request) {
       messages: payload.messages,
       temperature: getTemperature(payload),
       max_tokens: getMaxTokens(payload),
+    }
+
+    if (payload.response_format && typeof payload.response_format === 'object') {
+      body.response_format = payload.response_format
     }
 
     if (payload.stream) body.stream = true

@@ -460,6 +460,7 @@ ${ability.descricaoBalanceada ? `Descrição balanceada atual: ${ability.descric
 ${ability.feedback ? `Feedback anterior: ${ability.feedback}` : ''}
 
 PEDIDO DO MESTRE: ${gmNote}${forceInstruction}
+FORMATO CRITICO: comece pelo bloco JSON. Depois dele, escreva no maximo 3 linhas de analise.
 
 Retorne sua análise e OBRIGATORIAMENTE um bloco JSON com os valores FINAIS:
 \`\`\`json
