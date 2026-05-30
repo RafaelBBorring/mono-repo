@@ -31,7 +31,7 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemini-3.5-flash'
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
-const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 3840
+const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
 
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
@@ -101,7 +101,9 @@ function clampMaxTokens(maxTokens) {
 }
 
 function getStatus(error) {
-  return error?.status || error?.context?.status || 0
+  const raw = error?.status || error?.context?.status || 0
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function getMessageFromBody(body, fallback) {
@@ -150,6 +152,15 @@ function getAffordableTokenLimit(message) {
   return match ? Number(match[1]) : 0
 }
 
+function getReducedMaxTokens(currentMaxTokens, affordableMaxTokens = 0) {
+  const current = clampMaxTokens(currentMaxTokens)
+  const affordable = Number(affordableMaxTokens)
+  if (Number.isFinite(affordable) && affordable >= 16) {
+    return clampMaxTokens(Math.max(16, Math.floor(affordable * 0.85)))
+  }
+  return clampMaxTokens(Math.max(16, Math.floor(current * 0.6)))
+}
+
 async function normalizeFunctionError(error, functionName) {
   let status = getStatus(error)
   let retryAfter = 0
@@ -163,7 +174,7 @@ async function normalizeFunctionError(error, functionName) {
 
   if (response?.clone || response?.text) {
     const { body, text } = await readResponseBody(response)
-    if (body && typeof body.status === 'number') status = body.status
+    if (body && 'status' in body) status = Number(body.status) || status
     if (body && typeof body.source === 'string') source = body.source
     rawMessage = getMessageFromBody(body, text.trim() || rawMessage)
   }
@@ -254,10 +265,13 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
     } catch (edgeError) {
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
-      if (status === 402 && edgeError?.affordableMaxTokens >= 16 && edgeError.affordableMaxTokens < effectiveMaxTokens && attempt < MAX_RETRIES) {
-        effectiveMaxTokens = clampMaxTokens(edgeError.affordableMaxTokens)
-        await sleep(getRetryDelay(attempt))
-        continue
+      if (status === 402 && attempt < MAX_RETRIES) {
+        const reducedMaxTokens = getReducedMaxTokens(effectiveMaxTokens, edgeError?.affordableMaxTokens)
+        if (reducedMaxTokens < effectiveMaxTokens) {
+          effectiveMaxTokens = reducedMaxTokens
+          await sleep(getRetryDelay(attempt))
+          continue
+        }
       }
       if (isRetryable(status) && attempt < MAX_RETRIES) {
         await sleep(getRetryDelay(attempt, edgeError?.retryAfter))
@@ -282,10 +296,13 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
           })
           if (!response.ok) {
             const responseError = await createOpenRouterResponseError(response)
-            if (response.status === 402 && responseError?.affordableMaxTokens >= 16 && responseError.affordableMaxTokens < effectiveMaxTokens && fbAttempt < MAX_RETRIES) {
-              effectiveMaxTokens = clampMaxTokens(responseError.affordableMaxTokens)
-              await sleep(getRetryDelay(fbAttempt))
-              continue
+            if (response.status === 402 && fbAttempt < MAX_RETRIES) {
+              const reducedMaxTokens = getReducedMaxTokens(effectiveMaxTokens, responseError?.affordableMaxTokens)
+              if (reducedMaxTokens < effectiveMaxTokens) {
+                effectiveMaxTokens = reducedMaxTokens
+                await sleep(getRetryDelay(fbAttempt))
+                continue
+              }
             }
             if (isRetryable(response.status) && fbAttempt < MAX_RETRIES) {
               await sleep(getRetryDelay(fbAttempt, responseError.retryAfter))
