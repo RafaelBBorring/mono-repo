@@ -28,6 +28,9 @@ import { SYSTEM_SKILLS, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemini-3.5-flash'
+const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
+const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
 
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
@@ -79,7 +82,10 @@ function countOpen(str) {
   return Math.max(0, open)
 }
 
-function getRetryDelay(attempt) {
+function getRetryDelay(attempt, retryAfterSeconds = 0) {
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return retryAfterSeconds * 1000
+  }
   return BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500
 }
 
@@ -87,30 +93,147 @@ function isRetryable(status) {
   return status === 429 || status === 502 || status === 503 || status === 504
 }
 
+function getStatus(error) {
+  return error?.status || error?.context?.status || 0
+}
+
+function getMessageFromBody(body, fallback) {
+  if (!body || typeof body !== 'object') return fallback
+  if (typeof body.error === 'string') return body.error
+  if (body.error && typeof body.error === 'object' && typeof body.error.message === 'string') {
+    return body.error.message
+  }
+  if (typeof body.message === 'string') return body.message
+  return fallback
+}
+
+async function readResponseBody(response) {
+  const safeResponse = typeof response?.clone === 'function' ? response.clone() : response
+  const contentType = safeResponse?.headers?.get?.('Content-Type') || ''
+
+  if (contentType.includes('application/json')) {
+    const body = await safeResponse.json().catch(() => null)
+    return { body, text: '' }
+  }
+
+  const text = await safeResponse?.text?.().catch(() => '') || ''
+  return { body: null, text }
+}
+
+function openRouterErrorMessage(status, message) {
+  const clean = message || 'Erro desconhecido'
+  if (status === 401) return `OpenRouter 401: chave API invalida ou revogada. (${clean})`
+  if (status === 402) return `OpenRouter 402: creditos insuficientes na conta/chave. (${clean})`
+  if (status === 403) return `OpenRouter 403: acesso negado pela chave, provider ou moderacao. (${clean})`
+  if (status === 404) return `OpenRouter 404: modelo ou rota nao encontrado. (${clean})`
+  if (status === 413) return `OpenRouter 413: prompt grande demais para esta requisicao. (${clean})`
+  if (status === 429) return `OpenRouter 429: limite de requisicoes atingido. Aguarde e tente novamente. (${clean})`
+  if (status === 502 || status === 503 || status === 504) return `OpenRouter ${status}: modelo/provider indisponivel no momento. (${clean})`
+  return `OpenRouter ${status || ''}: ${clean}`.trim()
+}
+
+function createTaggedError(message, props = {}) {
+  const err = new Error(message)
+  Object.assign(err, props)
+  return err
+}
+
+async function normalizeFunctionError(error, functionName) {
+  let status = getStatus(error)
+  let retryAfter = 0
+  let source = ''
+  let rawMessage = error?.message || 'Edge Function failed'
+
+  const response = error?.context
+  if (response?.headers?.get) {
+    retryAfter = Number(response.headers.get('Retry-After')) || 0
+  }
+
+  if (response?.clone || response?.text) {
+    const { body, text } = await readResponseBody(response)
+    if (body && typeof body.status === 'number') status = body.status
+    if (body && typeof body.source === 'string') source = body.source
+    rawMessage = getMessageFromBody(body, text.trim() || rawMessage)
+  }
+
+  let message
+  if (source === 'openrouter' || /^OpenRouter/i.test(rawMessage)) {
+    message = openRouterErrorMessage(status, rawMessage)
+  } else if (status === 404) {
+    message = `Edge Function "${functionName}" nao encontrada. Implante "openrouter-chat" ou "openrouter-proxy" no Supabase.`
+  } else if (/OPENROUTER_API_KEY/i.test(rawMessage)) {
+    message = `Edge Function "${functionName}" sem OPENROUTER_API_KEY configurada nos secrets do Supabase.`
+  } else {
+    message = `Edge Function "${functionName}" falhou${status ? ` (${status})` : ''}: ${rawMessage}`
+  }
+
+  return createTaggedError(message, { status, retryAfter, source, functionName, cause: error })
+}
+
+async function invokeOpenRouterFunction(body) {
+  let lastError = null
+
+  for (let i = 0; i < OPENROUTER_FUNCTIONS.length; i++) {
+    const functionName = OPENROUTER_FUNCTIONS[i]
+    const { data, error } = await supabase.functions.invoke(functionName, { body })
+    if (!error) return data
+
+    const normalized = await normalizeFunctionError(error, functionName)
+    lastError = normalized
+
+    const canTryNextAlias =
+      normalized.source !== 'openrouter' &&
+      i < OPENROUTER_FUNCTIONS.length - 1 &&
+      (normalized.status === 404 || (normalized.status === 401 && /User not found/i.test(normalized.message)))
+
+    if (canTryNextAlias) {
+      console.warn(`[callAI] Edge Function "${functionName}" indisponivel (${normalized.status}), tentando proximo alias.`)
+      continue
+    }
+
+    throw normalized
+  }
+
+  throw lastError || new Error('Nenhuma Edge Function OpenRouter disponivel.')
+}
+
+async function createOpenRouterResponseError(response) {
+  const { body, text } = await readResponseBody(response)
+  const rawMessage = getMessageFromBody(body, text.trim() || `OpenRouter error: ${response.status}`)
+  return createTaggedError(openRouterErrorMessage(response.status, rawMessage), {
+    status: response.status,
+    retryAfter: Number(response.headers.get('Retry-After')) || 0,
+    source: 'openrouter',
+  })
+}
+
+function getOpenRouterHeaders() {
+  return {
+    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': window.location.origin,
+    'X-Title': 'System Olympo 2.0',
+  }
+}
+
 async function callAI(messages, { maxTokens = 4096 } = {}) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const { data, error } = await supabase.functions.invoke('openrouter-proxy', {
-        body: { messages, temperature: 0.35, max_tokens: maxTokens },
+      const data = await invokeOpenRouterFunction({
+        model: OPENROUTER_MODEL,
+        messages,
+        temperature: 0.35,
+        max_tokens: maxTokens,
       })
-      if (error) {
-        const status = error?.context?.status || error?.status || 0
-        if (isRetryable(status) && attempt < MAX_RETRIES) {
-          await sleep(getRetryDelay(attempt))
-          continue
-        }
-        if (status === 429) throw new Error('Limite de requisições atingido. Aguarde alguns segundos e tente novamente.')
-        throw error
-      }
       if (!data) throw new Error('Resposta vazia da Edge Function.')
       const content = data.choices?.[0]?.message?.content
       if (!content) throw new Error('IA retornou conteúdo vazio.')
       return content
     } catch (edgeError) {
-      const status = edgeError?.context?.status || edgeError?.status || 0
+      const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
       if (isRetryable(status) && attempt < MAX_RETRIES) {
-        await sleep(getRetryDelay(attempt))
+        await sleep(getRetryDelay(attempt, edgeError?.retryAfter))
         continue
       }
       if (!OPENROUTER_API_KEY) {
@@ -122,27 +245,21 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
         for (let fbAttempt = 0; fbAttempt <= MAX_RETRIES; fbAttempt++) {
           const response = await fetch(OPENROUTER_URL, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': window.location.origin,
-              'X-Title': 'System Olympo 2.0',
-            },
+            headers: getOpenRouterHeaders(),
             body: JSON.stringify({
-              model: 'google/gemini-2.0-flash-001',
+              model: OPENROUTER_MODEL,
               messages,
               temperature: 0.35,
               max_tokens: maxTokens,
             }),
           })
           if (!response.ok) {
+            const responseError = await createOpenRouterResponseError(response)
             if (isRetryable(response.status) && fbAttempt < MAX_RETRIES) {
-              await sleep(getRetryDelay(fbAttempt))
+              await sleep(getRetryDelay(fbAttempt, responseError.retryAfter))
               continue
             }
-            const err = await response.json().catch(() => ({}))
-            if (response.status === 429) throw new Error('Limite de requisições atingido (OpenRouter). Aguarde alguns segundos e tente novamente.')
-            throw new Error(`OpenRouter ${response.status}: ${err.error?.message || 'Erro desconhecido'}`)
+            throw responseError
           }
           const data = await response.json()
           const content = data.choices?.[0]?.message?.content
@@ -159,13 +276,10 @@ async function callAI(messages, { maxTokens = 4096 } = {}) {
 }
 
 async function callAIStream(messages, onChunk) {
-  const body = { messages, temperature: 0.35, max_tokens: 4096, stream: true }
+  const body = { model: OPENROUTER_MODEL, messages, temperature: 0.35, max_tokens: 4096, stream: true }
 
   try {
-    const { data, error } = await supabase.functions.invoke('openrouter-proxy', {
-      body,
-    })
-    if (error) throw error
+    const data = await invokeOpenRouterFunction(body)
 
     if (data && typeof data === 'object' && data.choices) {
       const content = data.choices?.[0]?.message?.content || ''
@@ -198,14 +312,9 @@ async function callAIStream(messages, onChunk) {
     if (!OPENROUTER_API_KEY) throw edgeErr
     const response = await fetch(OPENROUTER_URL, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'System Olympo 2.0',
-      },
+      headers: getOpenRouterHeaders(),
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
+        model: OPENROUTER_MODEL,
         messages,
         temperature: 0.35,
         max_tokens: 4096,
@@ -214,8 +323,7 @@ async function callAIStream(messages, onChunk) {
     })
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      throw new Error(`OpenRouter ${response.status}: ${err.error?.message || 'Erro desconhecido'}`)
+      throw await createOpenRouterResponseError(response)
     }
 
     const reader = response.body.getReader()
