@@ -28,7 +28,7 @@ import { SYSTEM_SKILLS, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemini-3.1-flash-lite'
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openrouter/free'
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
 const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
@@ -37,6 +37,7 @@ const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }
 const JSON_REPAIR_MAX_CHARS = 12000
+const PROMPT_TOKEN_CHAR_RATIO = 3
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -154,6 +155,51 @@ function getAffordableTokenLimit(message) {
   return match ? Number(match[1]) : 0
 }
 
+function getPromptTokenLimit(message) {
+  const match = String(message || '').match(/Prompt tokens limit exceeded:\s*(\d+)\s*>\s*(\d+)/i)
+  return match ? { requested: Number(match[1]), limit: Number(match[2]) } : null
+}
+
+function estimatePromptTokens(messages = []) {
+  const chars = messages.reduce((sum, msg) => sum + String(msg?.content || '').length, 0)
+  return Math.ceil(chars / PROMPT_TOKEN_CHAR_RATIO)
+}
+
+function truncateMiddle(text, maxChars) {
+  const value = String(text || '')
+  if (value.length <= maxChars) return value
+  if (maxChars <= 200) return value.slice(0, Math.max(0, maxChars))
+
+  const marker = '\n\n[...contexto compactado para caber no limite da API...]\n\n'
+  const available = Math.max(0, maxChars - marker.length)
+  const head = Math.floor(available * 0.55)
+  const tail = available - head
+  return value.slice(0, head) + marker + value.slice(-tail)
+}
+
+function compactMessagesForPromptLimit(messages, promptLimitTokens = 0) {
+  const limit = Number(promptLimitTokens)
+  if (!Number.isFinite(limit) || limit <= 0) return messages
+
+  const targetChars = Math.max(1800, Math.floor(limit * PROMPT_TOKEN_CHAR_RATIO * 0.78))
+  const totalChars = messages.reduce((sum, msg) => sum + String(msg?.content || '').length, 0)
+  if (totalChars <= targetChars) return messages
+
+  const lastUserIndex = [...messages].map(m => m.role).lastIndexOf('user')
+  const systemCount = Math.max(1, messages.filter(m => m.role === 'system').length)
+  const otherCount = Math.max(1, messages.length - systemCount - (lastUserIndex >= 0 ? 1 : 0))
+  const systemBudget = Math.floor(targetChars * 0.24)
+  const lastUserBudget = Math.floor(targetChars * 0.62)
+  const otherBudget = Math.max(120, targetChars - systemBudget - lastUserBudget)
+
+  return messages.map((msg, index) => {
+    if (!msg || typeof msg.content !== 'string') return msg
+    if (index === lastUserIndex) return { ...msg, content: truncateMiddle(msg.content, lastUserBudget) }
+    if (msg.role === 'system') return { ...msg, content: truncateMiddle(msg.content, Math.floor(systemBudget / systemCount)) }
+    return { ...msg, content: truncateMiddle(msg.content, Math.floor(otherBudget / otherCount)) }
+  })
+}
+
 function getReducedMaxTokens(currentMaxTokens, affordableMaxTokens = 0) {
   const current = clampMaxTokens(currentMaxTokens)
   const affordable = Number(affordableMaxTokens)
@@ -198,6 +244,7 @@ async function normalizeFunctionError(error, functionName) {
     source,
     functionName,
     affordableMaxTokens: getAffordableTokenLimit(rawMessage),
+    promptTokenLimit: getPromptTokenLimit(rawMessage),
     cause: error,
   })
 }
@@ -236,6 +283,7 @@ async function createOpenRouterResponseError(response) {
     status: response.status,
     retryAfter: Number(response.headers.get('Retry-After')) || 0,
     affordableMaxTokens: getAffordableTokenLimit(rawMessage),
+    promptTokenLimit: getPromptTokenLimit(rawMessage),
     source: 'openrouter',
   })
 }
@@ -267,13 +315,14 @@ function withJsonInstruction(messages) {
 }
 
 async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
+  let effectiveMessages = messages
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const body = {
         model: OPENROUTER_MODEL,
-        messages,
+        messages: effectiveMessages,
         temperature: 0.35,
         max_tokens: effectiveMaxTokens,
       }
@@ -288,6 +337,17 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
       if (status === 402 && attempt < MAX_RETRIES) {
+        const promptLimit = edgeError?.promptTokenLimit?.limit
+        if (promptLimit) {
+          const compactedMessages = compactMessagesForPromptLimit(effectiveMessages, promptLimit)
+          if (estimatePromptTokens(compactedMessages) < estimatePromptTokens(effectiveMessages)) {
+            effectiveMessages = compactedMessages
+            effectiveMaxTokens = Math.min(effectiveMaxTokens, 900)
+            await sleep(getRetryDelay(attempt))
+            continue
+          }
+        }
+
         const reducedMaxTokens = getReducedMaxTokens(effectiveMaxTokens, edgeError?.affordableMaxTokens)
         if (reducedMaxTokens < effectiveMaxTokens) {
           effectiveMaxTokens = reducedMaxTokens
@@ -311,7 +371,7 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
             headers: getOpenRouterHeaders(),
             body: JSON.stringify({
               model: OPENROUTER_MODEL,
-              messages,
+              messages: effectiveMessages,
               temperature: 0.35,
               max_tokens: effectiveMaxTokens,
               ...(responseFormat ? { response_format: responseFormat } : {}),
@@ -320,6 +380,17 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
           if (!response.ok) {
             const responseError = await createOpenRouterResponseError(response)
             if (response.status === 402 && fbAttempt < MAX_RETRIES) {
+              const promptLimit = responseError?.promptTokenLimit?.limit
+              if (promptLimit) {
+                const compactedMessages = compactMessagesForPromptLimit(effectiveMessages, promptLimit)
+                if (estimatePromptTokens(compactedMessages) < estimatePromptTokens(effectiveMessages)) {
+                  effectiveMessages = compactedMessages
+                  effectiveMaxTokens = Math.min(effectiveMaxTokens, 900)
+                  await sleep(getRetryDelay(fbAttempt))
+                  continue
+                }
+              }
+
               const reducedMaxTokens = getReducedMaxTokens(effectiveMaxTokens, responseError?.affordableMaxTokens)
               if (reducedMaxTokens < effectiveMaxTokens) {
                 effectiveMaxTokens = reducedMaxTokens
@@ -835,10 +906,10 @@ Responda EXCLUSIVAMENTE com JSON:
 }`
 
   const habilidadesCount = habilidadesData.length
-  const needsChunking = habilidadesCount > 5
+  const needsChunking = habilidadesCount > 1
 
   if (needsChunking) {
-    const chunkSize = 4
+    const chunkSize = 1
     const chunks = []
     for (let i = 0; i < habilidadesData.length; i += chunkSize) {
       chunks.push(habilidadesData.slice(i, i + chunkSize))
@@ -1604,7 +1675,7 @@ Seja direto e objetivo. Cite números e limites quando relevante.`
     { role: 'user', content: `${charContext}\n\nPERGUNTA DO JOGADOR: ${userMessage}` },
   ]
 
-  return await callAIStream(messages)
+  return await callAI(messages, { maxTokens: 900 })
 }
 
 export async function generateEquipmentAbilities(char, equipType, equipRank, activeSlotsOrPassiveSlots, passiveSlotsArg, userDescArg = '', armorTypeArg = '') {

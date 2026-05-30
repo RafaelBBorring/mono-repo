@@ -1,5 +1,5 @@
 const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemini-3.1-flash-lite'
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'openrouter/free'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
 const OPENROUTER_MAX_TOKENS = Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 1800
