@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
-import { uploadFile, uploadAPI } from '../api/client'
+import { uploadFile, uploadAPI, updateVideoMedia } from '../api/client'
 import { Upload, CheckCircle, XCircle, Loader2, Waves, Film } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -19,6 +19,29 @@ const STATUS_LABEL = {
   unclassified:    { label: 'Não classificado', color: 'text-rose-400' },
 }
 
+function extractThumbnail(videoUrl) {
+  return new Promise(resolve => {
+    const video = document.createElement('video')
+    video.src = videoUrl
+    video.muted = true
+    video.preload = 'auto'
+    video.crossOrigin = 'anonymous'
+    const timeout = setTimeout(() => { video.src = ''; resolve(null) }, 6000)
+    video.onloadeddata = () => { video.currentTime = Math.min(1, video.duration * 0.1) }
+    video.onseeked = () => {
+      clearTimeout(timeout)
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = 320
+        canvas.height = Math.max(1, Math.round(320 * (video.videoHeight / Math.max(video.videoWidth, 1))))
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.7))
+      } catch { resolve(null) }
+    }
+    video.onerror = () => { clearTimeout(timeout); resolve(null) }
+  })
+}
+
 function FileRow({ file }) {
   const pct     = file.uploadPct ?? 0
   const status  = file.status ?? 'pending'
@@ -26,12 +49,16 @@ function FileRow({ file }) {
 
   return (
     <div className="flex items-center gap-3 py-3 border-b border-slate-800 last:border-0">
-      <Film size={14} className="text-slate-500 shrink-0" />
+      {file.thumbnailUrl ? (
+        <img src={file.thumbnailUrl} alt="" className="w-10 h-7 rounded object-cover shrink-0 bg-slate-800" />
+      ) : (
+        <Film size={14} className="text-slate-500 shrink-0" />
+      )}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-1">
           <span className="text-sm text-slate-300 truncate">{file.name}</span>
-          <span className="flex items-center gap-1 shrink-0 text-xs text-slate-400">
+          <span className="flex items-center gap-1.5 shrink-0 text-xs text-slate-400">
             {STATUS_ICON[status]}
             {status === 'uploading'  && `${pct}%`}
             {status === 'processing' && file.message}
@@ -84,13 +111,11 @@ export default function UploadPage() {
   const completionHandledRef = useRef(false)
   const navigate = useNavigate()
 
-  // Create session on mount
   useEffect(() => {
     uploadAPI.createSession().then(({ session_id }) => setSession(session_id))
     return () => wsRef.current?.close()
   }, [])
 
-  // Open WebSocket once session exists
   useEffect(() => {
     if (!sessionId) return
     const wsBase = import.meta.env.VITE_USE_MOCK === 'true' ? null : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
@@ -98,7 +123,6 @@ export default function UploadPage() {
     const wsUrl = `${wsBase}/api/upload/ws/${sessionId}`
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
-
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data)
       if (msg.type === 'progress') {
@@ -162,13 +186,15 @@ export default function UploadPage() {
       size:    f.size,
       status:  'pending',
       uploadPct: 0,
+      fileObj: f,
+      fileUrl: URL.createObjectURL(f),
     }))
     setFiles(prev => [...prev, ...newFiles])
 
-    // Upload each file sequentially (avoids saturating bandwidth)
     for (let i = 0; i < accepted.length; i++) {
       const fileObj  = accepted[i]
       const localId  = newFiles[i].id
+      const fileUrl  = newFiles[i].fileUrl
 
       setFiles(prev => prev.map(f =>
         f.id === localId ? { ...f, status: 'uploading' } : f
@@ -186,6 +212,8 @@ export default function UploadPage() {
             : f
         ))
 
+        const thumbPromise = extractThumbnail(fileUrl)
+
         if (import.meta.env.VITE_USE_MOCK === 'true') {
           for (let pct = 15; pct <= 90; pct += 25) {
             await new Promise(r => setTimeout(r, 350))
@@ -194,9 +222,22 @@ export default function UploadPage() {
             ))
           }
           await new Promise(r => setTimeout(r, 400))
+
+          const thumbUrl = await thumbPromise
+          updateVideoMedia(result.video_id, fileUrl, thumbUrl)
+
           setFiles(prev => prev.map(f =>
             f.id === localId
-              ? { ...f, status: 'done', classStatus: result.classStatus, confidence: result.confidence, reason: result.reason, surfistName: result.surfistName, newSurfer: result.newSurfer }
+              ? {
+                  ...f,
+                  status: 'done',
+                  classStatus: result.classStatus,
+                  confidence: result.confidence,
+                  reason: result.reason,
+                  surfistName: result.surfistName,
+                  newSurfer: result.newSurfer,
+                  thumbnailUrl: thumbUrl,
+                }
               : f
           ))
         }
@@ -222,7 +263,6 @@ export default function UploadPage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto relative">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <Waves className="text-sky-400" size={28} />
         <div>
@@ -233,7 +273,6 @@ export default function UploadPage() {
         </div>
       </div>
 
-      {/* Drop zone */}
       <div
         {...getRootProps()}
         className={clsx(
@@ -246,24 +285,22 @@ export default function UploadPage() {
         <input {...getInputProps()} />
         <Upload className="mx-auto mb-4 text-slate-500" size={36} />
         <p className="text-slate-300 font-medium">
-          {isDragActive ? 'Drop videos here…' : 'Drop videos, or click to browse'}
+          {isDragActive ? 'Solte os vídeos aqui…' : 'Solte os vídeos, ou clique para selecionar'}
         </p>
         <p className="text-slate-500 text-sm mt-1.5">
-          MP4 · MOV · AVI · MKV · WebM &nbsp;·&nbsp; up to 1 GB each
+          MP4 · MOV · AVI · MKV · WebM &nbsp;·&nbsp; até 1 GB cada
         </p>
       </div>
 
-      {/* Stats bar */}
       {files.length > 0 && (
         <div className="flex gap-6 mt-6 mb-4 text-sm">
-          <span className="text-slate-400">Sessão atual: {files.length} vídeo{files.length !== 1 ? 's' : ''}</span>
-          {inProgress > 0 && <span className="text-amber-400">{inProgress} processing</span>}
-          {done > 0       && <span className="text-emerald-400">{done} complete</span>}
-          {errors > 0     && <span className="text-rose-400">{errors} error</span>}
+          <span className="text-slate-400">Sessão: {files.length} vídeo{files.length !== 1 ? 's' : ''}</span>
+          {inProgress > 0 && <span className="text-amber-400">{inProgress} processando</span>}
+          {done > 0       && <span className="text-emerald-400">{done} completo{done !== 1 ? 's' : ''}</span>}
+          {errors > 0     && <span className="text-rose-400">{errors} erro{errors !== 1 ? 's' : ''}</span>}
         </div>
       )}
 
-      {/* File list */}
       {files.length > 0 && (
         <div className="bg-slate-900 rounded-xl border border-slate-800 px-4 mt-2">
           {files.map(f => <FileRow key={f.id} file={f} />)}

@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { reviewAPI } from '../api/client'
+import { reviewAPI, getVideoFile } from '../api/client'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import JSZip from 'jszip'
 import {
   LayoutGrid, CheckCircle, AlertTriangle,
-  GitMerge, ChevronRight, Loader2, X
+  GitMerge, ChevronRight, Loader2, X, Download
 } from 'lucide-react'
 import clsx from 'clsx'
 
-// ── Confidence badge ──────────────────────────────────────────────────────────
 function ConfBadge({ value }) {
   const pct = Math.round((value ?? 0) * 100)
   return (
@@ -23,7 +23,6 @@ function ConfBadge({ value }) {
   )
 }
 
-// ── Folder Card ───────────────────────────────────────────────────────────────
 function FolderCard({ folder, onVerify, onMerge }) {
   const preview = folder.reference_image || folder.sample_thumbs?.[0]
 
@@ -81,7 +80,6 @@ function FolderCard({ folder, onVerify, onMerge }) {
   )
 }
 
-// ── Merge Modal ───────────────────────────────────────────────────────────────
 function MergeModal({ source, folders, onClose, onMerge }) {
   const [targetId, setTarget] = useState('')
   const others = folders.filter(f => f.surfist_id !== source.surfist_id)
@@ -90,13 +88,11 @@ function MergeModal({ source, folders, onClose, onMerge }) {
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">Merge Folder</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X size={18} />
-          </button>
+          <h3 className="font-semibold text-white">Mesclar pasta</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={18} /></button>
         </div>
         <p className="text-sm text-slate-400 mb-4">
-          Move all videos from <strong className="text-white">{source.name}</strong> into:
+          Mover todos os vídeos de <strong className="text-white">{source.name}</strong> para:
         </p>
         <div className="space-y-2 max-h-52 overflow-y-auto mb-5">
           {others.map(f => (
@@ -108,30 +104,26 @@ function MergeModal({ source, folders, onClose, onMerge }) {
                   : 'border-slate-800 hover:border-slate-600'
               )}
             >
-              <input
-                type="radio"
-                name="merge-target"
-                value={f.surfist_id}
-                checked={targetId === f.surfist_id}
-                onChange={() => setTarget(f.surfist_id)}
+              <input type="radio" name="merge-target" value={f.surfist_id}
+                checked={targetId === f.surfist_id} onChange={() => setTarget(f.surfist_id)}
                 className="accent-sky-500"
               />
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: f.color_hex }} />
               <span className="text-sm text-white">{f.name}</span>
-              <span className="ml-auto text-xs text-slate-400">{f.total_videos} videos</span>
+              <span className="ml-auto text-xs text-slate-400">{f.total_videos} vídeos</span>
             </label>
           ))}
         </div>
         <div className="flex gap-3">
           <button onClick={onClose}
             className="flex-1 py-2 text-sm text-slate-400 border border-slate-700 rounded-lg hover:bg-slate-800">
-            Cancel
+            Cancelar
           </button>
           <button
             disabled={!targetId}
             onClick={() => onMerge(source.surfist_id, targetId)}
             className="flex-1 py-2 text-sm font-medium bg-sky-600 hover:bg-sky-500 disabled:opacity-40 text-white rounded-lg transition-colors">
-            Merge
+            Mesclar
           </button>
         </div>
       </div>
@@ -139,7 +131,6 @@ function MergeModal({ source, folders, onClose, onMerge }) {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 function UploadToast({ summary, onClose }) {
   if (!summary) return null
   const hasWarnings = (summary.unclassified ?? 0) > 0 || (summary.pending_review ?? 0) > 0
@@ -157,16 +148,46 @@ function UploadToast({ summary, onClose }) {
         {hasWarnings ? 'Upload concluído com atenção' : 'Todos os vídeos subiram corretamente'}
       </div>
       <div className="mt-1 text-xs leading-relaxed text-white/75">
-        Sessão atual: {summary.total} vídeo{summary.total === 1 ? '' : 's'} ·
+        Sessão: {summary.total} vídeo{summary.total === 1 ? '' : 's'} ·
         {' '}{summary.auto_classified ?? 0} classificados ·
         {' '}{summary.pending_review ?? 0} revisar ·
         {' '}{summary.unclassified ?? 0} não classificados
         {summary.newSurfers > 0 && (
-          <> · <span className="text-sky-300">{summary.newSurfers} novo{summary.newSurfers > 1 ? 's' : ''} surfista{summary.newSurfers > 1 ? 's' : ''} detectado{summary.newSurfers > 1 ? 's' : ''}</span></>
+          <> · <span className="text-sky-300">{summary.newSurfers} novo{summary.newSurfers > 1 ? 's' : ''} surfista{summary.newSurfers > 1 ? 's' : ''}</span></>
         )}
       </div>
     </div>
   )
+}
+
+async function exportZip(folders, reviewAPI) {
+  const zip = new JSZip()
+
+  for (const folder of folders) {
+    const fd = await reviewAPI.folderVideos(folder.surfist_id)
+    if (!fd.videos.length) continue
+    const sub = zip.folder(folder.folder_name)
+    for (const v of fd.videos) {
+      const file = getVideoFile(v.id)
+      if (file) sub.file(v.filename, file)
+    }
+  }
+
+  const unclass = await reviewAPI.unclassifiedVideos()
+  if (unclass.videos.length > 0) {
+    const sub = zip.folder('nao_classificados')
+    for (const v of unclass.videos) {
+      const file = getVideoFile(v.id)
+      if (file) sub.file(v.filename, file)
+    }
+  }
+
+  const blob = await zip.generateAsync({ type: 'blob' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `surf-session-${new Date().toISOString().slice(0,10)}.zip`
+  a.click()
+  URL.revokeObjectURL(a.href)
 }
 
 export default function DashboardPage() {
@@ -175,6 +196,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [mergeSource, setMergeSource] = useState(null)
   const [toast, setToast] = useState(location.state?.uploadSummary ?? null)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     if (location.state?.uploadSummary) {
@@ -209,20 +231,11 @@ export default function DashboardPage() {
   const folders = data?.surfist_folders ?? []
   const reviewCount  = data?.human_review_queue ?? 0
   const unclassCount = data?.unclassified ?? 0
+  const totalVideos  = folders.reduce((s, f) => s + f.total_videos, 0) + unclassCount
 
-  // Similarity warnings: pairs > 0.75 similarity
-  const similarityWarnings = []
-  if (simData?.matrix) {
-    const { matrix, names } = simData
-    const ids = Object.keys(matrix)
-    ids.forEach((a, i) => {
-      ids.slice(i + 1).forEach(b => {
-        const sim = matrix[a]?.[b] ?? 0
-        if (sim > 0.75) {
-          similarityWarnings.push({ a, b, sim, nameA: names[a], nameB: names[b] })
-        }
-      })
-    })
+  const handleExport = async () => {
+    setExporting(true)
+    try { await exportZip(folders, reviewAPI) } finally { setExporting(false) }
   }
 
   if (isLoading) {
@@ -235,50 +248,44 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <LayoutGrid className="text-sky-400" size={24} />
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <LayoutGrid className="text-sky-400" size={24} />
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        </div>
+        {totalVideos > 0 && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+          >
+            {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            Exportar .zip
+          </button>
+        )}
       </div>
 
-      {/* Queue stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Surfer Folders" value={folders.length} color="text-sky-400" />
-        <StatCard label="Human Review" value={reviewCount}
+        <StatCard label="Pastas de Surfistas" value={folders.length} color="text-sky-400" />
+        <StatCard label="Revisão Humana" value={reviewCount}
           color="text-amber-400"
-          action={reviewCount > 0 && <Link to="/review" className="text-xs text-amber-400 hover:underline flex items-center gap-0.5">Review <ChevronRight size={12}/></Link>}
+          action={reviewCount > 0 && <Link to="/review" className="text-xs text-amber-400 hover:underline flex items-center gap-0.5">Revisar <ChevronRight size={12}/></Link>}
         />
-        <StatCard label="Unclassified" value={unclassCount} color="text-rose-400"
+        <StatCard label="Não classificados" value={unclassCount} color="text-rose-400"
           action={unclassCount > 0 && <Link to="/folder/unclassified" className="text-xs text-rose-400 hover:underline flex items-center gap-0.5">Abrir <ChevronRight size={12}/></Link>}
         />
         <StatCard
-          label="Total Verified"
+          label="Verificados"
           value={folders.reduce((s, f) => s + f.verified_count, 0)}
           color="text-emerald-400"
         />
       </div>
 
-      {/* Similarity warnings */}
-      {similarityWarnings.length > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-2 text-amber-400 font-medium text-sm mb-2">
-            <AlertTriangle size={15} /> Possible misclassification — high similarity between folders
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {similarityWarnings.map(w => (
-              <span key={`${w.a}-${w.b}`} className="text-xs bg-amber-500/15 text-amber-300 px-2.5 py-1 rounded-full">
-                {w.nameA} ↔ {w.nameB} ({Math.round(w.sim * 100)}%)
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Folder grid */}
       {folders.length === 0 ? (
         <div className="text-center py-16 text-slate-500">
-          No surfers registered yet. Go to{' '}
-          <Link to="/surfists" className="text-sky-400 hover:underline">Surfers</Link>{' '}
-          to add your team.
+          Nenhum vídeo processado ainda.{' '}
+          <Link to="/" className="text-sky-400 hover:underline">Faça upload</Link>{' '}
+          dos vídeos da sessão.
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

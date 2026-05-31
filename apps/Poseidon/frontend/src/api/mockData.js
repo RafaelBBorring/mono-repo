@@ -1,6 +1,7 @@
 const SURFISTS = []
 const FOLDERS  = []
 const VIDEOS   = []
+const VIDEO_FILES = new Map()
 
 let nextId = 100
 
@@ -43,7 +44,7 @@ function syncFolders() {
       pending_review: vids.filter(v => v.status === 'pending_review').length,
       avg_confidence: vids.length ? vids.reduce((a, v) => a + v.final_confidence, 0) / vids.length : 0,
       reference_image: null,
-      sample_thumbs: [],
+      sample_thumbs: vids.filter(v => v.thumbnail_url).slice(0, 4).map(v => v.thumbnail_url),
     })
   }
 }
@@ -59,33 +60,28 @@ function classifyVideo() {
       newSurfer: true,
     }
   }
-
   const rand = Math.random()
-  const surfistsCount = SURFISTS.length
-  const newSurferChance = surfistsCount <= 2 ? 0.30 : 0.10
+  const count = SURFISTS.length
+  const newChance = count <= 2 ? 0.30 : 0.10
 
   if (rand < 0.50) {
-    const s = SURFISTS[Math.floor(Math.random() * surfistsCount)]
+    const s = SURFISTS[Math.floor(Math.random() * count)]
     return {
       surfist_id: s.id, surfist_name: s.name,
       final_confidence: 0.85 + Math.random() * 0.13,
-      status: 'auto_classified',
-      decision_reason: null,
-      newSurfer: false,
+      status: 'auto_classified', decision_reason: null, newSurfer: false,
     }
   }
-  if (rand < 0.50 + newSurferChance) {
+  if (rand < 0.50 + newChance) {
     const s = autoCreateSurfer()
     return {
       surfist_id: s.id, surfist_name: s.name,
       final_confidence: 0.70 + Math.random() * 0.20,
-      status: 'auto_classified',
-      decision_reason: null,
-      newSurfer: true,
+      status: 'auto_classified', decision_reason: null, newSurfer: true,
     }
   }
   if (rand < 0.82) {
-    const s = SURFISTS[Math.floor(Math.random() * surfistsCount)]
+    const s = SURFISTS[Math.floor(Math.random() * count)]
     return {
       surfist_id: s.id, surfist_name: s.name,
       final_confidence: 0.40 + Math.random() * 0.44,
@@ -101,6 +97,19 @@ function classifyVideo() {
     decision_reason: 'Nenhum agente atingiu confiança suficiente para classificação.',
     newSurfer: false,
   }
+}
+
+export function updateVideoMedia(videoId, videoUrl, thumbnailUrl) {
+  const v = VIDEOS.find(v => v.id === videoId)
+  if (v) {
+    if (videoUrl) v.video_url = videoUrl
+    if (thumbnailUrl) v.thumbnail_url = thumbnailUrl
+  }
+  syncFolders()
+}
+
+export function getVideoFile(videoId) {
+  return VIDEO_FILES.get(videoId)
 }
 
 export const mockSurfistsAPI = {
@@ -254,7 +263,7 @@ export const mockReviewAPI = {
   deleteVideo: async (id) => {
     await delay()
     const idx = VIDEOS.findIndex(v => v.id === id)
-    if (idx >= 0) VIDEOS.splice(idx, 1)
+    if (idx >= 0) { VIDEO_FILES.delete(VIDEOS[idx].id); VIDEOS.splice(idx, 1) }
     syncFolders()
     return { ok: true }
   },
@@ -282,6 +291,7 @@ export const mockUploadAPI = {
     const videoId  = `v${++nextId}`
     const filename = file?.name || 'video.mp4'
     const cls = classifyVideo()
+    if (file) VIDEO_FILES.set(videoId, file)
     VIDEOS.push({
       id: videoId, filename, status: cls.status,
       final_confidence: cls.final_confidence,
