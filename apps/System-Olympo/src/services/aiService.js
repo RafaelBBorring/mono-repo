@@ -37,6 +37,8 @@ const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }
 const JSON_REPAIR_MAX_CHARS = 12000
 const PROMPT_TOKEN_CHAR_RATIO = 3
+const AI_REQUEST_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_AI_REQUEST_TIMEOUT_MS) || 45000, 10000)
+const JSON_REPAIR_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_JSON_REPAIR_TIMEOUT_MS) || 20000, 5000)
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -200,6 +202,19 @@ function createTaggedError(message, props = {}) {
   const err = new Error(message)
   Object.assign(err, props)
   return err
+}
+
+function withTimeout(promise, ms, message, props = {}) {
+  let timer = null
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(createTaggedError(message, props)), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
+function hasLikelyJSON(text) {
+  const value = String(text || '')
+  return value.includes('{') || value.includes('[')
 }
 
 function getAffordableTokenLimit(message) {
@@ -367,7 +382,7 @@ function withJsonInstruction(messages) {
   return next
 }
 
-async function callAI(messages, { maxTokens = 4096, responseFormat = null, temperature = 0.35 } = {}) {
+async function callAI(messages, { maxTokens = 4096, responseFormat = null, temperature = 0.35, timeoutMs = AI_REQUEST_TIMEOUT_MS } = {}) {
   let effectiveMessages = messages
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
   let effectiveResponseFormat = responseFormat
@@ -385,7 +400,12 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null, tempe
       }
       if (effectiveResponseFormat) body.response_format = effectiveResponseFormat
 
-      const data = await invokeOpenRouterFunction(body)
+      const data = await withTimeout(
+        invokeOpenRouterFunction(body),
+        timeoutMs,
+        `Timeout ao chamar a IA apos ${Math.round(timeoutMs / 1000)}s.`,
+        { status: 408, source: 'openrouter', timeoutMs }
+      )
       if (!data) throw new Error('Resposta vazia da Edge Function.')
       const content = data.choices?.[0]?.message?.content
       if (!content) {
@@ -443,6 +463,15 @@ async function callAIJson(messages, options = {}) {
   try {
     return extractJSON(response, { log: false })
   } catch (firstError) {
+    if (!hasLikelyJSON(response)) {
+      console.warn('[callAIJson] Resposta sem JSON; pulando reparo e usando fallback local:', firstError?.message || firstError)
+      throw createTaggedError('IA retornou raciocinio em vez de JSON. Usando fallback local.', {
+        status: 502,
+        source: 'openrouter',
+        cause: firstError,
+      })
+    }
+
     console.warn('[callAIJson] JSON invalido, tentando reparo:', firstError?.message || firstError)
     const repairMessages = [
       {
@@ -458,6 +487,7 @@ async function callAIJson(messages, options = {}) {
     const repaired = await callAI(repairMessages, {
       maxTokens: Math.min(options.maxTokens || OPENROUTER_MAX_TOKENS, OPENROUTER_MAX_TOKENS),
       temperature: 0,
+      timeoutMs: JSON_REPAIR_TIMEOUT_MS,
       responseFormat: JSON_RESPONSE_FORMAT,
     })
 
