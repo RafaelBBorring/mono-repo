@@ -230,9 +230,10 @@ export default function UploadPage() {
             : f
         ))
       }
+    } else {
+      applyClustering(new Map(), [], [])
     }
 
-    // Handle videos that couldn't be analyzed
     setFiles(prev => prev.map(f =>
       f.status === 'analyzing' || f.status === 'clustering'
         ? {

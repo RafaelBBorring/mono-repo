@@ -128,6 +128,16 @@ export function applyClustering(assignments, fingerprints, videoIds) {
     }
   }
 
+  // Fix any videos that weren't processed (null fingerprints etc)
+  for (const v of VIDEOS) {
+    if (v.status === 'analyzing') {
+      v.status = 'unclassified'
+      v.surfist_id = null
+      v.final_confidence = 0.15 + Math.random() * 0.10
+      v.decision_reason = 'Não foi possível analisar este vídeo completamente.'
+    }
+  }
+
   syncFolders()
   return results
 }
