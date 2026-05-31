@@ -111,13 +111,113 @@ function isResponseFormatUnsupported(status: number, message: string) {
   return status === 400 && /response_format|structured output|json_schema|json object/i.test(message)
 }
 
+function getTextContent(value: unknown): string {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) {
+    return value
+      .map(item => getTextContent(item))
+      .filter(Boolean)
+      .join('\n')
+      .trim()
+  }
+  if (value && typeof value === 'object') {
+    const data = value as Record<string, unknown>
+    return getTextContent(data.text ?? data.content ?? data.value)
+  }
+  return ''
+}
+
+function extractJsonSnippet(text: string) {
+  const value = text.trim()
+  const objectStart = value.indexOf('{')
+  const objectEnd = value.lastIndexOf('}')
+  if (objectStart >= 0 && objectEnd > objectStart) {
+    const candidate = value.slice(objectStart, objectEnd + 1)
+    try {
+      JSON.parse(candidate)
+      return candidate
+    } catch {
+      // Keep looking for a valid array-shaped response below.
+    }
+  }
+
+  const arrayStart = value.indexOf('[')
+  const arrayEnd = value.lastIndexOf(']')
+  if (arrayStart >= 0 && arrayEnd > arrayStart) {
+    const candidate = value.slice(arrayStart, arrayEnd + 1)
+    try {
+      JSON.parse(candidate)
+      return candidate
+    } catch {
+      return ''
+    }
+  }
+
+  return ''
+}
+
+function addFallbackInstruction(messages: unknown, wantsJson: boolean) {
+  if (!Array.isArray(messages)) return messages
+  const content = wantsJson
+    ? 'Responda somente com um objeto JSON valido no campo final content. Nao use markdown nem texto fora do JSON.'
+    : 'Retorne uma resposta final nao vazia no campo content.'
+  return [{ role: 'system', content }, ...messages]
+}
+
 function filterFallbackBody(body: Record<string, unknown>) {
   const next = { ...body, model: POLLINATIONS_MODEL }
+  const wantsJson = Boolean(next.response_format)
   delete next.provider
+  delete next.response_format
+  next.messages = addFallbackInstruction(next.messages, wantsJson)
   if (typeof next.max_tokens === 'number' && next.max_tokens < 1800) {
     next.max_tokens = 1800
   }
   return next
+}
+
+function normalizeChatCompletionData(data: Record<string, unknown>, wantsJson: boolean) {
+  const next: Record<string, unknown> = { ...data }
+  const choices = next.choices
+  const topLevelFallback = getTextContent(next.output_text ?? next.text ?? next.content ?? next.response)
+
+  if (!Array.isArray(choices) || choices.length === 0) {
+    const content = wantsJson ? extractJsonSnippet(topLevelFallback) || topLevelFallback : topLevelFallback
+    if (!content) return { data: next, content: '' }
+
+    next.choices = [{
+      index: 0,
+      message: { role: 'assistant', content },
+      finish_reason: 'stop',
+    }]
+    return { data: next, content }
+  }
+
+  const firstChoice = choices[0] && typeof choices[0] === 'object'
+    ? { ...(choices[0] as Record<string, unknown>) }
+    : { index: 0 }
+  const rawMessage = firstChoice.message
+  const message = rawMessage && typeof rawMessage === 'object'
+    ? { ...(rawMessage as Record<string, unknown>) }
+    : { role: 'assistant' }
+
+  let content = getTextContent(message.content)
+  if (!content) {
+    const fallback = getTextContent(
+      message.reasoning ??
+      message.text ??
+      firstChoice.text ??
+      topLevelFallback
+    )
+    content = wantsJson ? extractJsonSnippet(fallback) || fallback : fallback
+    if (content) {
+      message.content = content
+      firstChoice.message = message
+      next.choices = [firstChoice, ...choices.slice(1)]
+    }
+  }
+
+  return { data: next, content }
 }
 
 async function pollinationsResponse(body: Record<string, unknown>) {
@@ -170,7 +270,12 @@ async function pollinationsResponse(body: Record<string, unknown>) {
     return jsonResponse({ error: 'Pollinations returned an invalid JSON response', source: 'pollinations' }, 502)
   }
 
-  return jsonResponse({ ...(data as Record<string, unknown>), provider_fallback: 'pollinations' }, 200, {
+  const normalized = normalizeChatCompletionData(data as Record<string, unknown>, Boolean(body.response_format))
+  if (!normalized.content) {
+    return jsonResponse({ error: 'Pollinations returned an empty response', source: 'pollinations' }, 502)
+  }
+
+  return jsonResponse({ ...normalized.data, provider_fallback: 'pollinations' }, 200, {
     'X-AI-Provider': 'pollinations',
   })
 }
