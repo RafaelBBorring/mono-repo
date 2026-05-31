@@ -15,7 +15,7 @@ function ConfBadge({ value }) {
     <span className={clsx(
       'text-xs font-mono px-1.5 py-0.5 rounded',
       pct >= 70 ? 'bg-emerald-500/15 text-emerald-400'
-        : pct >= 30 ? 'bg-amber-500/15 text-amber-400'
+        : pct >= 50 ? 'bg-amber-500/15 text-amber-400'
         : 'bg-rose-500/15 text-rose-400'
     )}>
       {pct}%

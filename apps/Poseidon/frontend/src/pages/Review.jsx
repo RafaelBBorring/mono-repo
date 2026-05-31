@@ -13,7 +13,7 @@ import AgentReportPanel from '../components/AgentReportPanel'
 // ── Confidence Gauge ──────────────────────────────────────────────────────────
 function Gauge({ label, value }) {
   const pct = Math.round((value ?? 0) * 100)
-  const color = pct >= 70 ? '#10B981' : pct >= 30 ? '#F59E0B' : '#F43F5E'
+  const color = pct >= 70 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#F43F5E'
   const data  = [{ value: pct, fill: color }]
 
   return (

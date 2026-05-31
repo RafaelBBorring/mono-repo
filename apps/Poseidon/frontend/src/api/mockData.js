@@ -16,7 +16,7 @@ function delay(ms = 400) {
   return new Promise(r => setTimeout(r, ms + Math.random() * 200))
 }
 
-function createSurfer(name) {
+function createSurfer(name, thumbnailUrl) {
   const num = SURFISTS.length + 1
   const s = {
     id: `s${++nextId}`,
@@ -25,7 +25,9 @@ function createSurfer(name) {
     folder_name: (name || `surfista_${num}`).toLowerCase().replace(/\s+/g, '_'),
     color_hex: COLORS[(num - 1) % COLORS.length],
     video_count: 0,
-    embedding_counts: { face: 0, pose: 0, style: 0, board: 0 },
+    reference_thumbnail: thumbnailUrl || null,
+    embedding_counts: { face: 0, pose: 0, clothing: 0, board: 0 },
+    fingerprint: null,
   }
   SURFISTS.push(s)
   syncFolders()
@@ -45,7 +47,7 @@ function syncFolders() {
       verified_count: vids.filter(v => v.status === 'auto_classified').length,
       pending_review: vids.filter(v => v.status === 'pending_review').length,
       avg_confidence: vids.length ? vids.reduce((a, v) => a + v.final_confidence, 0) / vids.length : 0,
-      reference_image: null,
+      reference_image: s.reference_thumbnail || vids.find(v => v.thumbnail_url)?.thumbnail_url || null,
       sample_thumbs: vids.filter(v => v.thumbnail_url).slice(0, 4).map(v => v.thumbnail_url),
     })
   }
@@ -64,83 +66,120 @@ export function getVideoFile(videoId) {
   return VIDEO_FILES.get(videoId)
 }
 
-export function applyClustering(assignments, fingerprints, videoIds) {
-  const clusterIds = [...new Set(assignments.values())]
-  const surfistMap = new Map()
+function zoneOverlap(a, b) {
+  const aBins = a?.bins || a?.top ? new Set((a.top || []).map(c => {
+    const QB = 8
+    return Math.floor(c.r / (256 / QB)) * QB * QB + Math.floor(c.g / (256 / QB)) * QB + Math.floor(c.b / (256 / QB))
+  })) : new Set()
+  const bBins = b?.bins || b?.top ? new Set((b.top || []).map(c => {
+    const QB = 8
+    return Math.floor(c.r / (256 / QB)) * QB * QB + Math.floor(c.g / (256 / QB)) * QB + Math.floor(c.b / (256 / QB))
+  })) : new Set()
+  if (!aBins.size || !bBins.size) return 0
+  let ovlp = 0
+  for (const b of aBins) if (bBins.has(b)) ovlp++
+  return ovlp / Math.max(aBins.size, bBins.size, 1)
+}
 
-  for (const cid of clusterIds) {
-    const indices = [...assignments.entries()].filter(([, c]) => c === cid).map(([i]) => i)
-    const hasGoodFp = indices.some(i => fingerprints[i] && fingerprints[i].pixRatio > 0.04)
-    if (!hasGoodFp) continue
-    const s = createSurfer()
-    surfistMap.set(cid, s)
+function fpSimilarity(a, b) {
+  if (!a || !b) return 0
+  const cdA = a.colorData || { board: a.board, torso: a.torso, head: a.head }
+  const cdB = b.colorData || { board: b.board, torso: b.torso, head: b.head }
+  const torsoSim = zoneOverlap(cdA.torso, cdB.torso)
+  const boardSim = zoneOverlap(cdA.board, cdB.board)
+  const headSim  = zoneOverlap(cdA.head, cdB.head)
+  const base = torsoSim * 0.40 + boardSim * 0.35 + headSim * 0.10 + (torsoSim + boardSim) * 0.075
+  const boardBonus = (a.boardDetected && b.boardDetected) ? 0.10 : 0
+  return Math.min(1, base + boardBonus)
+}
+
+function matchExistingSurfist(fp) {
+  let bestSurfist = null
+  let bestSim = 0
+  for (const s of SURFISTS) {
+    if (!s.fingerprint) continue
+    const sim = fpSimilarity(fp, s.fingerprint)
+    if (sim > bestSim) {
+      bestSim = sim
+      bestSurfist = s
+    }
   }
+  return { surfist: bestSurfist, similarity: bestSim }
+}
 
+export function applyClustering(assignments, fingerprints, videoIds) {
   const results = []
 
   for (let i = 0; i < videoIds.length; i++) {
     const v = VIDEOS.find(v => v.id === videoIds[i])
     if (!v) continue
 
-    const cid = assignments.get(i)
     const fp = fingerprints[i]
+    const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(fp)
+    const finalConf = computeFinalConfidence(boardConf, clothConf, poseConf, faceConf)
 
-    if (cid !== undefined && surfistMap.has(cid) && fp) {
-      const s = surfistMap.get(cid)
-      v.surfist_id = s.id
+    v.board_confidence     = boardConf
+    v.clothing_confidence  = clothConf
+    v.pose_confidence      = poseConf
+    v.face_confidence      = faceConf
+    v.final_confidence     = finalConf
+    v.agent_report         = report
 
-      const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(fp)
-      const finalConf = computeFinalConfidence(boardConf, clothConf, poseConf, faceConf)
-
-      v.board_confidence     = boardConf
-      v.clothing_confidence  = clothConf
-      v.pose_confidence      = poseConf
-      v.face_confidence      = faceConf
-      v.final_confidence     = finalConf
-      v.agent_report         = report
-
-      if (finalConf >= 0.55) {
-        v.status = 'auto_classified'
-        v.decision_reason = null
-      } else {
-        v.status = 'pending_review'
-        v.decision_reason = 'Confiança intermediária — enviando para revisão humana.'
-      }
-
-      results.push({
-        video_id: v.id,
-        surfistName: s.name,
-        classStatus: v.status,
-        confidence: v.final_confidence,
-        reason: v.decision_reason,
-        newSurfer: true,
-      })
-    } else {
-      const fpData = fingerprints[i]
-      const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(fpData)
-
+    if (finalConf < 0.50) {
       v.status = 'unclassified'
       v.surfist_id = null
-      v.final_confidence     = computeFinalConfidence(boardConf, clothConf, poseConf, faceConf)
-      v.decision_reason      = 'Não foi possível identificar o surfista com confiança suficiente.'
-      v.board_confidence     = boardConf
-      v.clothing_confidence  = clothConf
-      v.pose_confidence      = poseConf
-      v.face_confidence      = faceConf
-      v.agent_report         = report
-
+      v.decision_reason = finalConf < 0.20
+        ? 'Sinal insuficiente para identificação.'
+        : `Confiança de ${Math.round(finalConf * 100)}% abaixo do mínimo de 50%.`
       results.push({
-        video_id: v.id,
-        surfistName: null,
+        video_id: v.id, surfistName: null,
         classStatus: 'unclassified',
-        confidence: v.final_confidence,
-        reason: v.decision_reason,
+        confidence: finalConf, reason: v.decision_reason,
         newSurfer: false,
       })
+      continue
     }
+
+    // ≥50% — try to match existing surfist via fingerprint similarity
+    const { surfist: match, similarity } = matchExistingSurfist(fp)
+
+    let assignedSurfist = null
+    let isNewSurfer = false
+
+    if (match && similarity >= 0.45) {
+      assignedSurfist = match
+      isNewSurfer = false
+      if (!match.fingerprint && fp) match.fingerprint = fp
+    } else {
+      assignedSurfist = createSurfer(null, v.thumbnail_url)
+      if (fp) assignedSurfist.fingerprint = fp
+      isNewSurfer = true
+    }
+
+    v.surfist_id = assignedSurfist.id
+
+    if (finalConf >= 0.70) {
+      v.status = 'auto_classified'
+      v.decision_reason = null
+    } else {
+      v.status = 'pending_review'
+      v.decision_reason = `Confiança de ${Math.round(finalConf * 100)}% — revisão humana recomendada.`
+    }
+
+    if (!assignedSurfist.reference_thumbnail && v.thumbnail_url) {
+      assignedSurfist.reference_thumbnail = v.thumbnail_url
+    }
+
+    results.push({
+      video_id: v.id,
+      surfistName: assignedSurfist.name,
+      classStatus: v.status,
+      confidence: finalConf,
+      reason: v.decision_reason,
+      newSurfer: isNewSurfer,
+    })
   }
 
-  // Fix any videos that weren't processed (null fingerprints etc)
   for (const v of VIDEOS) {
     if (v.status === 'analyzing') {
       const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(null)
@@ -165,14 +204,8 @@ export const mockSurfistsAPI = {
   get: async (id) => { await delay(); return SURFISTS.find(s => s.id === id) },
   create: async (name, colorHex = '#4A90E2') => {
     await delay()
-    const s = {
-      id: `s${++nextId}`, display_id: nextId, name,
-      folder_name: name.toLowerCase().replace(/\s+/g, '_'),
-      color_hex: colorHex, video_count: 0,
-    embedding_counts: { face: 0, pose: 0, clothing: 0, board: 0 },
-    }
-    SURFISTS.push(s)
-    syncFolders()
+    const s = createSurfer(name)
+    s.color_hex = colorHex
     return s
   },
   update: async (id, data) => {

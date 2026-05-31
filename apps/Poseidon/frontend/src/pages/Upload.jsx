@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
 import { uploadFile, uploadAPI, updateVideoMedia, applyClustering } from '../api/client'
-import { analyzeVideo, clusterVideos } from '../analysis/surfAnalyzer'
+import { analyzeVideo } from '../analysis/surfAnalyzer'
 import { Upload, CheckCircle, XCircle, Loader2, Waves, Film, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -57,8 +57,8 @@ function FileRow({ file }) {
       {file.confidence != null && status === 'done' && (
         <span className={clsx(
           'text-xs font-mono shrink-0',
-          file.confidence >= 0.85 ? 'text-emerald-400'
-            : file.confidence >= 0.4 ? 'text-amber-400'
+          file.confidence >= 0.70 ? 'text-emerald-400'
+            : file.confidence >= 0.50 ? 'text-amber-400'
             : 'text-rose-400'
         )}>
           {(file.confidence * 100).toFixed(0)}%
@@ -200,18 +200,18 @@ export default function UploadPage() {
       }
     }
 
-    // Phase 2: Cluster all fingerprints
+    // Phase 2: Classify — confidence-based assignment per video
     const validData = videoData.filter(d => d.fingerprint)
     if (validData.length > 0) {
       setFiles(prev => prev.map(f =>
         f.status === 'analyzing' ? { ...f, status: 'clustering' } : f
       ))
 
-      await new Promise(r => setTimeout(r, 600))
+      await new Promise(r => setTimeout(r, 400))
 
       const fps = validData.map(d => d.fingerprint)
-      const { assignments } = clusterVideos(fps)
-      const results = applyClustering(assignments, fps, validData.map(d => d.videoId))
+      const dummyAssignments = new Map(fps.map((_, i) => [i, 0]))
+      const results = applyClustering(dummyAssignments, fps, validData.map(d => d.videoId))
 
       for (const r of results) {
         const match = validData.find(d => d.videoId === r.video_id)
