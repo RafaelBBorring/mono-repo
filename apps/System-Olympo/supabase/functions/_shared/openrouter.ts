@@ -2,7 +2,7 @@ const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
 const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemma-4-31b-it:free'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
-const OPENROUTER_MAX_TOKENS = Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 1800
+const OPENROUTER_MAX_TOKENS = Math.max(Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 4096, 4096)
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const POLLINATIONS_API_KEY = Deno.env.get('POLLINATIONS_API_KEY') || ''
 const POLLINATIONS_URL = Deno.env.get('POLLINATIONS_URL') || 'https://text.pollinations.ai/openai'
@@ -159,7 +159,7 @@ function extractJsonSnippet(text: string) {
 function addFallbackInstruction(messages: unknown, wantsJson: boolean) {
   if (!Array.isArray(messages)) return messages
   const content = wantsJson
-    ? 'Responda somente com um objeto JSON valido no campo final content. Nao use markdown nem texto fora do JSON.'
+    ? 'Responda somente com um objeto JSON valido no campo final content. O primeiro caractere deve ser { e o ultimo deve ser }. Nao use markdown, raciocinio nem texto fora do JSON.'
     : 'Retorne uma resposta final nao vazia no campo content.'
   return [{ role: 'system', content }, ...messages]
 }

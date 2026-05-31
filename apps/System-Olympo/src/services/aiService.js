@@ -31,7 +31,7 @@ const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
-const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
+const OPENROUTER_MAX_TOKENS = Math.max(Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 4096, 4096)
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }
@@ -48,17 +48,17 @@ function isResponseFormatUnsupported(error) {
   return status === 400 && /response_format|structured output|json_schema|json object/i.test(message)
 }
 
-function extractJSON(response) {
+function extractJSON(response, { log = true } = {}) {
   let text = response.trim()
   text = text.replace(/```json\s*\n?/gi, '').replace(/```\s*\n?/g, '').trim()
 
   try { return JSON.parse(text) } catch {}
 
+  const objectCandidate = extractBalancedJSON(text, '{', '}')
+  if (objectCandidate) return objectCandidate
+
   const firstBrace = text.indexOf('{')
   const lastBrace = text.lastIndexOf('}')
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)) } catch {}
-  }
 
   if (firstBrace !== -1 && lastBrace <= firstBrace) {
     for (let i = text.length; i >= firstBrace; i--) {
@@ -71,15 +71,53 @@ function extractJSON(response) {
     }
   }
 
-  const firstBracket = text.indexOf('[')
-  const lastBracket = text.lastIndexOf(']')
-  if (firstBracket !== -1 && lastBracket > firstBracket) {
-    try { return JSON.parse(text.slice(firstBracket, lastBracket + 1)) } catch {}
+  const arrayCandidate = extractBalancedJSON(text, '[', ']')
+  if (arrayCandidate) return arrayCandidate
+
+  if (log) {
+    console.error('[extractJSON] Falha ao parsear resposta da IA. Primeiros 500 chars:', text.slice(0, 500))
+    console.error('[extractJSON] Ultimos 500 chars:', text.slice(-500))
+  }
+  throw new Error('A IA retornou um formato inválido. Tente novamente.')
+}
+
+function extractBalancedJSON(text, openChar, closeChar) {
+  for (let start = 0; start < text.length; start++) {
+    if (text[start] !== openChar) continue
+
+    let depth = 0
+    let inString = false
+    let escaped = false
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i]
+
+      if (inString) {
+        if (escaped) {
+          escaped = false
+        } else if (ch === '\\') {
+          escaped = true
+        } else if (ch === '"') {
+          inString = false
+        }
+        continue
+      }
+
+      if (ch === '"') {
+        inString = true
+        continue
+      }
+
+      if (ch === openChar) depth++
+      if (ch === closeChar) depth--
+
+      if (depth === 0) {
+        try { return JSON.parse(text.slice(start, i + 1)) } catch { break }
+      }
+    }
   }
 
-  console.error('[extractJSON] Falha ao parsear resposta da IA. Primeiros 500 chars:', text.slice(0, 500))
-  console.error('[extractJSON] Ultimos 500 chars:', text.slice(-500))
-  throw new Error('A IA retornou um formato inválido. Tente novamente.')
+  return null
 }
 
 function countOpen(str) {
@@ -307,7 +345,13 @@ async function invokeOpenRouterFunction(body) {
 }
 
 function withJsonInstruction(messages) {
-  const instruction = 'Responda somente com um objeto JSON valido e compacto. Nao use markdown, comentarios, texto antes/depois, nem trailing commas. Strings devem ser concisas.'
+  const instruction = [
+    'Contrato de saida JSON estrito:',
+    'retorne exatamente um objeto JSON valido e compacto.',
+    'O primeiro caractere deve ser { e o ultimo deve ser }.',
+    'Nao escreva raciocinio, analise, markdown, comentarios, texto antes/depois nem trailing commas.',
+    'Faca qualquer verificacao internamente e coloque apenas o resumo necessario nos campos JSON.'
+  ].join(' ')
   const next = [...messages]
   const firstSystemIndex = next.findIndex(m => m.role === 'system')
 
@@ -323,10 +367,11 @@ function withJsonInstruction(messages) {
   return next
 }
 
-async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
+async function callAI(messages, { maxTokens = 4096, responseFormat = null, temperature = 0.35 } = {}) {
   let effectiveMessages = messages
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
   let effectiveResponseFormat = responseFormat
+  const effectiveTemperature = Number.isFinite(Number(temperature)) ? Number(temperature) : 0.35
   const maxProviderAttempts = MAX_RETRIES
 
   for (let attempt = 0; attempt <= maxProviderAttempts; attempt++) {
@@ -335,7 +380,7 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
       const body = {
         model: activeModel,
         messages: effectiveMessages,
-        temperature: 0.35,
+        temperature: effectiveTemperature,
         max_tokens: effectiveMaxTokens,
       }
       if (effectiveResponseFormat) body.response_format = effectiveResponseFormat
@@ -391,31 +436,33 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
 async function callAIJson(messages, options = {}) {
   const response = await callAI(withJsonInstruction(messages), {
     ...options,
+    temperature: options.temperature ?? 0.1,
     responseFormat: JSON_RESPONSE_FORMAT,
   })
 
   try {
-    return extractJSON(response)
+    return extractJSON(response, { log: false })
   } catch (firstError) {
     console.warn('[callAIJson] JSON invalido, tentando reparo:', firstError?.message || firstError)
     const repairMessages = [
       {
         role: 'system',
-        content: 'Voce e um corretor de JSON. Retorne somente um objeto JSON valido, sem markdown e sem explicacoes.',
+        content: 'Voce e um extrator de JSON. Retorne exatamente um objeto JSON valido. O primeiro caractere deve ser { e o ultimo deve ser }. Nao inclua explicacoes, markdown, comentarios ou raciocinio.',
       },
       {
         role: 'user',
-        content: `Corrija a resposta abaixo para JSON valido. Preserve os campos e valores existentes. Se um campo foi cortado, complete com string vazia ou array vazio conforme apropriado.\n\nRESPOSTA:\n${String(response).slice(0, JSON_REPAIR_MAX_CHARS)}`,
+        content: `Extraia e corrija somente o objeto JSON da resposta abaixo. Preserve os campos e valores existentes. Se um campo foi cortado, complete com string vazia ou array vazio conforme apropriado. Nao crie texto fora do objeto.\n\nRESPOSTA:\n${String(response).slice(0, JSON_REPAIR_MAX_CHARS)}`,
       },
     ]
 
     const repaired = await callAI(repairMessages, {
       maxTokens: Math.min(options.maxTokens || OPENROUTER_MAX_TOKENS, OPENROUTER_MAX_TOKENS),
+      temperature: 0,
       responseFormat: JSON_RESPONSE_FORMAT,
     })
 
     try {
-      return extractJSON(repaired)
+      return extractJSON(repaired, { log: false })
     } catch (repairError) {
       console.error('[callAIJson] Reparo de JSON falhou:', repairError?.message || repairError)
       throw new Error('A IA retornou JSON invalido mesmo apos reparo. Tente novamente com uma solicitacao menor.')
@@ -1033,11 +1080,11 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — O mestre julga qu
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
-ANTES de responder, VOCÊ DEVE:
-1. Listar TODOS os bônus de ataque de todas as habilidades. Somar: ${stats.ataqueBaseNum} (base) + TOTAL_BONUS_HABILIDADES. Se > limite da faixa, REDUZA.
-2. Listar TODOS os bônus de esquiva/defesa. Mesma verificação.
-3. Listar TODOS os bônus de CA. Verificar contra limite.
-4. Listar TODOS os ataques extras. Verificar contra limite.
+Faca esta verificacao internamente, sem listar passos fora do JSON:
+1. Identifique TODOS os bonus de ataque de todas as habilidades. Some: ${stats.ataqueBaseNum} (base) + TOTAL_BONUS_HABILIDADES. Se > limite da faixa, REDUZA.
+2. Identifique TODOS os bonus de esquiva/defesa. Mesma verificacao.
+3. Identifique TODOS os bonus de CA. Verifique contra limite.
+4. Identifique TODOS os ataques extras. Verifique contra limite.
 5. Para CADA habilidade, verificar: dano vs HP Cross-Class (40% do Guerreiro HP = limite de atenção).
 6. Verificar COMBOS: habilidade A amplifica habilidade B. Qual o pior cenário? Está dentro de 150% TDH?
 7. Se uma habilidade for INERENTEMENTE QUEBRADA (multiplicador sem limite, amplificador global sem contrapeso viável), marque status "irbalanceavel" e explique no feedback o que o jogador deve alterar no CONCEITO.
@@ -1121,11 +1168,11 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — Aumente danos ~30
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
-ANTES de responder, VOCÊ DEVE:
-1. Listar TODOS os bônus de ataque das habilidades DESTE LOTE. Somar: ${stats.ataqueBaseNum} (base) + TOTAL_BONUS_HABILIDADES. Se > limite da faixa, REDUZA.
-2. Listar TODOS os bônus de esquiva/defesa. Mesma verificação.
-3. Listar TODOS os bônus de CA. Verificar contra limite.
-4. Listar TODOS os ataques extras. Verificar contra limite.
+Faca esta verificacao internamente, sem listar passos fora do JSON:
+1. Identifique TODOS os bonus de ataque das habilidades DESTE LOTE. Some: ${stats.ataqueBaseNum} (base) + TOTAL_BONUS_HABILIDADES. Se > limite da faixa, REDUZA.
+2. Identifique TODOS os bonus de esquiva/defesa. Mesma verificacao.
+3. Identifique TODOS os bonus de CA. Verifique contra limite.
+4. Identifique TODOS os ataques extras. Verifique contra limite.
 5. Para CADA habilidade, verificar: dano vs HP Cross-Class (40% do Guerreiro HP = limite de atenção).
 6. Verificar COMBOS: habilidade A amplifica habilidade B. Qual o pior cenário? Está dentro de 150% TDH?
 
