@@ -444,8 +444,13 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
         await sleep(getRetryDelay(attempt, edgeError?.retryAfter))
         continue
       }
+      try {
+        return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat: effectiveResponseFormat })
+      } catch (pollinationsError) {
+        console.warn('[callAI] Pollinations fallback falhou:', pollinationsError?.message || pollinationsError)
+      }
       if (!OPENROUTER_API_KEY) {
-        console.error('[callAI] Sem OPENROUTER_API_KEY para fallback')
+        console.error('[callAI] Sem OPENROUTER_API_KEY para fallback direto')
         throw edgeError
       }
       console.warn('[callAI] Usando fallback direto OpenRouter')
@@ -469,34 +474,6 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
               effectiveResponseFormat = null
               await sleep(250)
               continue
-            }
-            if (response.status === 402 && fbAttempt < MAX_RETRIES) {
-              if (isOpenRouterCreditBlocked(responseError)) {
-                try {
-                  return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat: effectiveResponseFormat })
-                } catch (pollinationsError) {
-                  console.warn('[callAI] Pollinations indisponivel:', pollinationsError?.message || pollinationsError)
-                  throw pollinationsError
-                }
-              }
-
-              const promptLimit = responseError?.promptTokenLimit?.limit
-              if (promptLimit) {
-                const compactedMessages = compactMessagesForPromptLimit(effectiveMessages, promptLimit)
-                if (estimatePromptTokens(compactedMessages) < estimatePromptTokens(effectiveMessages)) {
-                  effectiveMessages = compactedMessages
-                  effectiveMaxTokens = Math.min(effectiveMaxTokens, 900)
-                  await sleep(getRetryDelay(fbAttempt))
-                  continue
-                }
-              }
-
-              const reducedMaxTokens = getReducedMaxTokens(effectiveMaxTokens, responseError?.affordableMaxTokens)
-              if (reducedMaxTokens < effectiveMaxTokens) {
-                effectiveMaxTokens = reducedMaxTokens
-                await sleep(getRetryDelay(fbAttempt))
-                continue
-              }
             }
             if (isRetryable(response.status) && fbAttempt < MAX_RETRIES) {
               await sleep(getRetryDelay(fbAttempt, responseError.retryAfter))
