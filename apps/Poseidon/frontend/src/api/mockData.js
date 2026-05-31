@@ -1,3 +1,5 @@
+import { generateAgentReports, computeFinalConfidence } from '../analysis/surfAgentReports'
+
 const SURFISTS = []
 const FOLDERS  = []
 const VIDEOS   = []
@@ -87,17 +89,15 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       const s = surfistMap.get(cid)
       v.surfist_id = s.id
 
-      const boardConf  = 0.50 + fp.pixRatio * 0.40 + Math.random() * 0.10
-      const clothConf  = 0.45 + Math.random() * 0.30
-      const poseConf   = 0.40 + Math.random() * 0.30
-      const faceConf   = 0.25 + Math.random() * 0.40
-      const finalConf  = Math.min(0.97, boardConf * 0.50 + clothConf * 0.20 + poseConf * 0.20 + faceConf * 0.10)
+      const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(fp)
+      const finalConf = computeFinalConfidence(boardConf, clothConf, poseConf, faceConf)
 
       v.board_confidence     = boardConf
       v.clothing_confidence  = clothConf
       v.pose_confidence      = poseConf
       v.face_confidence      = faceConf
       v.final_confidence     = finalConf
+      v.agent_report         = report
 
       if (finalConf >= 0.55) {
         v.status = 'auto_classified'
@@ -105,13 +105,6 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       } else {
         v.status = 'pending_review'
         v.decision_reason = 'Confiança intermediária — enviando para revisão humana.'
-      }
-
-      v.agent_report = {
-        BoardAgent:    { status: 'ok', confidence: boardConf,  method: 'SIFT+ORB fingerprint', detail: `Prancha detectada com ${Math.round(fp.pixRatio*100)}% de área visível. ${boardConf > 0.6 ? 'Padrões de arranhão e adesivo correspondem ao perfil.' : 'Correspondência parcial de textura.'}` },
-        ClothingAgent: { status: 'ok', confidence: clothConf,  method: 'RGB+HSV hist + LBP',   detail: clothConf > 0.5 ? 'Roupa do tronco corresponde ao perfil registrado.' : 'Cores do tronco detectadas, correspondência parcial.' },
-        PoseAgent:     { status: 'ok', confidence: poseConf,   method: 'MediaPipe 33-keypoint', detail: poseConf > 0.5 ? 'Biomecânica corporal compatível com o surfista.' : 'Pose detectada, dados insuficientes para alta confiança.' },
-        FaceAgent:     { status: faceConf > 0.3 ? 'ok' : 'no_signal', confidence: faceConf, method: 'InsightFace ArcFace 512d', detail: faceConf > 0.3 ? 'Rosto detectado e comparado com perfil.' : 'Nenhum rosto claro detectado no vídeo.' },
       }
 
       results.push({
@@ -123,20 +116,19 @@ export function applyClustering(assignments, fingerprints, videoIds) {
         newSurfer: true,
       })
     } else {
+      const fpData = fingerprints[i]
+      const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(fpData)
+
       v.status = 'unclassified'
       v.surfist_id = null
-      v.final_confidence = 0.15 + Math.random() * 0.15
-      v.decision_reason = 'Não foi possível identificar o surfista com confiança suficiente.'
-      v.board_confidence     = Math.random() * 0.30
-      v.clothing_confidence  = Math.random() * 0.25
-      v.pose_confidence      = Math.random() * 0.25
-      v.face_confidence      = Math.random() * 0.20
-      v.agent_report = {
-        BoardAgent:    { status: 'no_signal', confidence: v.board_confidence,    method: 'SIFT+ORB fingerprint', detail: 'Nenhuma prancha detectada no vídeo.' },
-        ClothingAgent: { status: 'weak',      confidence: v.clothing_confidence, method: 'RGB+HSV hist + LBP',   detail: 'Sinal de roupa muito fraco ou obstruído.' },
-        PoseAgent:     { status: 'weak',      confidence: v.pose_confidence,     method: 'MediaPipe 33-keypoint', detail: 'Pose parcialmente detectada.' },
-        FaceAgent:     { status: 'no_signal', confidence: v.face_confidence,     method: 'InsightFace ArcFace 512d', detail: 'Nenhum rosto detectado.' },
-      }
+      v.final_confidence     = computeFinalConfidence(boardConf, clothConf, poseConf, faceConf)
+      v.decision_reason      = 'Não foi possível identificar o surfista com confiança suficiente.'
+      v.board_confidence     = boardConf
+      v.clothing_confidence  = clothConf
+      v.pose_confidence      = poseConf
+      v.face_confidence      = faceConf
+      v.agent_report         = report
+
       results.push({
         video_id: v.id,
         surfistName: null,
@@ -151,20 +143,16 @@ export function applyClustering(assignments, fingerprints, videoIds) {
   // Fix any videos that weren't processed (null fingerprints etc)
   for (const v of VIDEOS) {
     if (v.status === 'analyzing') {
+      const { boardConf, clothConf, poseConf, faceConf, report } = generateAgentReports(null)
       v.status = 'unclassified'
       v.surfist_id = null
-      v.final_confidence = 0.15 + Math.random() * 0.10
-      v.decision_reason = 'Não foi possível analisar este vídeo completamente.'
-      v.board_confidence    = Math.random() * 0.20
-      v.clothing_confidence = Math.random() * 0.15
-      v.pose_confidence     = Math.random() * 0.15
-      v.face_confidence     = Math.random() * 0.10
-      v.agent_report = {
-        BoardAgent:    { status: 'no_signal', confidence: v.board_confidence,    method: 'SIFT+ORB fingerprint',       detail: 'Prancha não detectada — vídeo muito curto ou sem frames válidos.' },
-        ClothingAgent: { status: 'no_signal', confidence: v.clothing_confidence, method: 'RGB+HSV hist + LBP',         detail: 'Sem sinal de roupa detectado.' },
-        PoseAgent:     { status: 'no_signal', confidence: v.pose_confidence,     method: 'MediaPipe 33-keypoint',      detail: 'Postura não detectada.' },
-        FaceAgent:     { status: 'no_signal', confidence: v.face_confidence,     method: 'InsightFace ArcFace 512d',   detail: 'Rosto não detectado.' },
-      }
+      v.final_confidence     = computeFinalConfidence(boardConf, clothConf, poseConf, faceConf)
+      v.decision_reason      = 'Não foi possível analisar este vídeo completamente.'
+      v.board_confidence     = boardConf
+      v.clothing_confidence  = clothConf
+      v.pose_confidence      = poseConf
+      v.face_confidence      = faceConf
+      v.agent_report         = report
     }
   }
 
