@@ -32,6 +32,8 @@ const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'openrouter/fr
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
 const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
+const POLLINATIONS_URL = import.meta.env.VITE_POLLINATIONS_URL || 'https://text.pollinations.ai/openai'
+const POLLINATIONS_MODEL = import.meta.env.VITE_POLLINATIONS_MODEL || 'openai'
 
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
@@ -142,6 +144,12 @@ function openRouterErrorMessage(status, message) {
   if (status === 429) return `OpenRouter 429: limite de requisicoes atingido. Aguarde e tente novamente. (${clean})`
   if (status === 502 || status === 503 || status === 504) return `OpenRouter ${status}: modelo/provider indisponivel no momento. (${clean})`
   return `OpenRouter ${status || ''}: ${clean}`.trim()
+}
+
+function isOpenRouterCreditBlocked(errorOrMessage) {
+  const message = typeof errorOrMessage === 'string' ? errorOrMessage : errorOrMessage?.message || ''
+  const status = typeof errorOrMessage === 'string' ? 402 : getStatus(errorOrMessage)
+  return status === 402 && /insufficient credits|never purchased credits|requires more credits|purchase more/i.test(message)
 }
 
 function createTaggedError(message, props = {}) {
@@ -314,6 +322,35 @@ function withJsonInstruction(messages) {
   return next
 }
 
+async function callPollinations(messages, { maxTokens = 900, responseFormat = null } = {}) {
+  const body = {
+    model: POLLINATIONS_MODEL,
+    messages: compactMessagesForPromptLimit(messages, 3000),
+    temperature: 0.35,
+    max_tokens: clampMaxTokens(maxTokens),
+  }
+  if (responseFormat) body.response_format = responseFormat
+
+  const response = await fetch(POLLINATIONS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw createTaggedError(`Fallback Pollinations falhou (${response.status}): ${text.slice(0, 300) || 'sem detalhes'}`, {
+      status: response.status,
+      source: 'pollinations',
+    })
+  }
+
+  const data = await response.json().catch(() => null)
+  const content = data?.choices?.[0]?.message?.content
+  if (!content) throw new Error('Fallback Pollinations retornou conteudo vazio.')
+  return content
+}
+
 async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
   let effectiveMessages = messages
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
@@ -337,6 +374,10 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
       if (status === 402 && attempt < MAX_RETRIES) {
+        if (isOpenRouterCreditBlocked(edgeError)) {
+          return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+        }
+
         const promptLimit = edgeError?.promptTokenLimit?.limit
         if (promptLimit) {
           const compactedMessages = compactMessagesForPromptLimit(effectiveMessages, promptLimit)
@@ -380,6 +421,10 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
           if (!response.ok) {
             const responseError = await createOpenRouterResponseError(response)
             if (response.status === 402 && fbAttempt < MAX_RETRIES) {
+              if (isOpenRouterCreditBlocked(responseError)) {
+                return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+              }
+
               const promptLimit = responseError?.promptTokenLimit?.limit
               if (promptLimit) {
                 const compactedMessages = compactMessagesForPromptLimit(effectiveMessages, promptLimit)
