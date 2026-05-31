@@ -364,7 +364,12 @@ async function callPollinations(messages, { maxTokens = 4096, responseFormat = n
   }
 
   const data = await response.json().catch(() => null)
-  const content = data?.choices?.[0]?.message?.content
+  const msg = data?.choices?.[0]?.message
+  let content = msg?.content
+  if (!content && msg?.reasoning) {
+    console.warn('[callPollinations] content vazio, extraindo de reasoning')
+    content = msg.reasoning
+  }
   if (!content) {
     const rawJson = JSON.stringify(data)?.slice(0, 300) || 'null'
     console.error('[callPollinations] Resposta sem conteudo util. Data:', rawJson)
@@ -395,7 +400,12 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
 
       const data = await invokeOpenRouterFunction(body)
       if (!data) throw new Error('Resposta vazia da Edge Function.')
-      const content = data.choices?.[0]?.message?.content
+      const msg = data.choices?.[0]?.message
+      let content = msg?.content
+      if (!content && msg?.reasoning) {
+        console.warn('[callAI] content vazio na Edge Function, extraindo de reasoning')
+        content = msg.reasoning
+      }
       if (!content) {
         throw createTaggedError(`IA retornou conteudo vazio no modelo ${activeModel}.`, {
           status: 502,
@@ -482,7 +492,12 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
             throw responseError
           }
           const data = await response.json()
-          const content = data.choices?.[0]?.message?.content
+          const msg = data.choices?.[0]?.message
+          let content = msg?.content
+          if (!content && msg?.reasoning) {
+            console.warn('[callAI] content vazio no fallback direto, extraindo de reasoning')
+            content = msg.reasoning
+          }
           if (!content) {
             const emptyError = createTaggedError(`A IA retornou uma resposta vazia no modelo ${directModel}.`, {
               status: 502,
@@ -545,7 +560,8 @@ async function callAIStream(messages, onChunk) {
     const data = await invokeOpenRouterFunction(body)
 
     if (data && typeof data === 'object' && data.choices) {
-      const content = data.choices?.[0]?.message?.content || ''
+      const streamMsg = data.choices?.[0]?.message
+      const content = streamMsg?.content || streamMsg?.reasoning || ''
       if (onChunk) onChunk(content)
       return content
     }
