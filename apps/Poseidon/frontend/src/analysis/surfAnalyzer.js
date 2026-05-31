@@ -1,22 +1,23 @@
-const W = 240
-const H = 135
+import '@tensorflow/tfjs'
+import * as cocoSsd from '@tensorflow-models/coco-ssd'
+
+const W = 480
+const H = 270
 const QB = 8
-const QB_SIZE = QB * QB * QB
 const ZONE_HEAD_END = 0.28
 const ZONE_TORSO_END = 0.62
+const NUM_FRAMES = 10
 
-function rgbToHsl(r, g, b) {
-  r /= 255; g /= 255; b /= 255
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b)
-  let h = 0, s = 0, l = (mx + mn) / 2
-  if (mx !== mn) {
-    const d = mx - mn
-    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)
-    if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
-    else if (mx === g) h = ((b - r) / d + 2) / 6
-    else h = ((r - g) / d + 4) / 6
-  }
-  return [h * 360, s, l]
+let _model = null
+let _modelLoading = null
+
+async function loadModel() {
+  if (_model) return _model
+  if (_modelLoading) return _modelLoading
+  _modelLoading = cocoSsd.load({ base: 'lite_mobilenet_v2' })
+  _model = await _modelLoading
+  _modelLoading = null
+  return _model
 }
 
 function qBin(r, g, b) {
@@ -33,65 +34,87 @@ function binToRgb(bin) {
   ]
 }
 
-function findBgBins(img) {
-  const { data, width, height } = img
-  const counts = new Map()
-  const rows = [0, 1, 2, height - 3, height - 2, height - 1]
-  for (const y of rows) {
-    for (let x = 0; x < width; x += 3) {
-      const i = (y * width + x) * 4
-      const bin = qBin(data[i], data[i + 1], data[i + 2])
-      counts.set(bin, (counts.get(bin) || 0) + 1)
-    }
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b)
+  let h = 0, s = 0, l = (mx + mn) / 2
+  if (mx !== mn) {
+    const d = mx - mn
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn)
+    if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6
+    else if (mx === g) h = ((b - r) / d + 2) / 6
+    else h = ((r - g) / d + 4) / 6
   }
-  for (let y = 0; y < height; y += 3) {
-    for (const x of [0, 1, 2, width - 3, width - 2, width - 1]) {
-      const i = (y * width + x) * 4
-      const bin = qBin(data[i], data[i + 1], data[i + 2])
-      counts.set(bin, (counts.get(bin) || 0) + 1)
-    }
-  }
-  return new Set([...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([b]) => b))
+  return [h * 360, s, l]
 }
 
-function isBg(r, g, b, bgBins) {
-  if (bgBins.has(qBin(r, g, b))) return true
-  const [, s, l] = rgbToHsl(r, g, b)
-  if (s < 0.06 && l > 0.40) return true
-  if (l < 0.06) return true
-  if (l > 0.92 && s < 0.08) return true
-  return false
+function rgbToName(r, g, b) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b)
+  const l = (mx + mn) / 2 / 255
+  const d = mx - mn
+  const s = d === 0 ? 0 : d / (l > 0.5 ? 510 - mx - mn : mx + mn)
+  if (l < 0.08) return 'preto'
+  if (l > 0.92 && s < 0.08) return 'branco'
+  if (s < 0.10) return l < 0.35 ? 'cinza escuro' : l < 0.65 ? 'cinza' : 'cinza claro'
+  let h = 0
+  if (d !== 0) {
+    if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60
+    else if (mx === g) h = ((b - r) / d + 2) * 60
+    else h = ((r - g) / d + 4) * 60
+  }
+  if (h < 15 || h >= 345) return l < 0.35 ? 'vermelho escuro' : 'vermelho'
+  if (h < 45) return l < 0.35 ? 'laranja escuro' : 'laranja'
+  if (h < 70) return s < 0.4 ? 'bege' : 'amarelo'
+  if (h < 150) return l < 0.30 ? 'verde escuro' : 'verde'
+  if (h < 195) return l < 0.30 ? 'ciano escuro' : 'ciano'
+  if (h < 260) return l < 0.30 ? 'azul escuro' : 'azul'
+  if (h < 290) return l < 0.30 ? 'roxo escuro' : 'roxo'
+  if (h < 345) return l < 0.30 ? 'rosa escuro' : 'rosa'
+  return 'indefinido'
 }
 
-function extractZone(img, yStartFrac, yEndFrac, bgBins) {
-  const { data, width, height } = img
-  const x0 = Math.floor(width * 0.15)
-  const x1 = Math.floor(width * 0.85)
-  const y0 = Math.floor(height * yStartFrac)
-  const y1 = Math.floor(height * yEndFrac)
+function formatPalette(top) {
+  if (!top || !top.length) return 'sem cores detectadas'
+  const named = top.map(c => `${rgbToName(c.r, c.g, c.b)} (${Math.round(c.w * 100)}%)`)
+  return [...new Set(named)].slice(0, 3).join(', ')
+}
+
+function extractColorsFromRegion(img, x0, y0, x1, y1) {
+  const { data, width } = img
   const counts = new Map()
   let total = 0
-
   for (let y = y0; y < y1; y += 2) {
     for (let x = x0; x < x1; x += 2) {
       const i = (y * width + x) * 4
       const r = data[i], g = data[i + 1], b = data[i + 2]
-      if (isBg(r, g, b, bgBins)) continue
+      const [, s, l] = rgbToHsl(r, g, b)
+      if (l < 0.06 || (l > 0.92 && s < 0.08)) continue
       const bin = qBin(r, g, b)
       counts.set(bin, (counts.get(bin) || 0) + 1)
       total++
     }
   }
-
-  if (total === 0) return { bins: new Set(), top: [], pixRatio: 0 }
-
+  if (total === 0) return { top: [], pixRatio: 0 }
   const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
   const topBins = sorted.slice(0, 6)
+  const area = Math.max(1, ((x1 - x0) / 2) * ((y1 - y0) / 2))
   return {
-    bins: new Set(sorted.slice(0, 10).map(([b]) => b)),
-    top: topBins.map(([bin, cnt]) => { const [r, g, b] = binToRgb(bin); return { r, g, b, w: cnt / total } }),
-    pixRatio: total / Math.max(1, ((x1 - x0) / 2) * ((y1 - y0) / 2)),
+    top: topBins.map(([bin, cnt]) => {
+      const [r, g, b] = binToRgb(bin)
+      return { r, g, b, w: cnt / total }
+    }),
+    pixRatio: total / area,
   }
+}
+
+function extractZoneFixed(img, yStartFrac, yEndFrac) {
+  const { width, height } = img
+  const x0 = Math.floor(width * 0.10)
+  const x1 = Math.floor(width * 0.90)
+  const y0 = Math.floor(height * yStartFrac)
+  const y1 = Math.floor(height * yEndFrac)
+  const result = extractColorsFromRegion(img, x0, y0, x1, y1)
+  return { ...result, bins: new Set(result.top.map(c => qBin(c.r, c.g, c.b))) }
 }
 
 export async function extractFramesAndThumb(videoUrl) {
@@ -101,7 +124,7 @@ export async function extractFramesAndThumb(videoUrl) {
     video.muted = true
     video.preload = 'auto'
     video.crossOrigin = 'anonymous'
-    const timer = setTimeout(() => resolve({ frames: [], thumbnail: null }), 15000)
+    const timer = setTimeout(() => resolve({ frames: [], thumbnail: null }), 20000)
     video.onloadedmetadata = () => {
       const dur = video.duration
       if (!dur || !video.videoWidth) { clearTimeout(timer); resolve({ frames: [], thumbnail: null }); return }
@@ -112,13 +135,13 @@ export async function extractFramesAndThumb(videoUrl) {
       let thumb = null
       let idx = 0
       const next = () => {
-        if (idx >= 5) { clearTimeout(timer); resolve({ frames, thumbnail: thumb }); return }
-        video.currentTime = (dur * (idx + 0.5)) / 5
+        if (idx >= NUM_FRAMES) { clearTimeout(timer); resolve({ frames, thumbnail: thumb }); return }
+        video.currentTime = (dur * (idx + 0.5)) / NUM_FRAMES
       }
       video.onseeked = () => {
         ctx.drawImage(video, 0, 0, W, H)
         frames.push(ctx.getImageData(0, 0, W, H))
-        if (idx === 1) { try { thumb = canvas.toDataURL('image/jpeg', 0.7) } catch {} }
+        if (idx === 2) { try { thumb = canvas.toDataURL('image/jpeg', 0.75) } catch {} }
         idx++
         next()
       }
@@ -128,48 +151,174 @@ export async function extractFramesAndThumb(videoUrl) {
   })
 }
 
-export function createFingerprint(frames) {
-  const headZones = []
-  const torsoZones = []
-  const boardZones = []
-  const allBins = new Set()
+async function detectWithModel(model, frames) {
+  const boardDetections = []
+  const personDetections = []
 
-  for (const f of frames) {
-    const bgBins = findBgBins(f)
-    const head = extractZone(f, 0, ZONE_HEAD_END, bgBins)
-    const torso = extractZone(f, ZONE_HEAD_END, ZONE_TORSO_END, bgBins)
-    const board = extractZone(f, ZONE_TORSO_END, 1, bgBins)
-    headZones.push(head)
-    torsoZones.push(torso)
-    boardZones.push(board)
-    for (const z of [head, torso, board]) {
-      for (const b of z.bins) allBins.add(b)
-    }
-  }
+  for (const frame of frames) {
+    const canvas = document.createElement('canvas')
+    canvas.width = frame.width
+    canvas.height = frame.height
+    canvas.getContext('2d').putImageData(frame, 0, 0)
 
-  const mergeZones = (zones) => {
-    const merged = new Map()
-    let totalPix = 0
-    for (const z of zones) {
-      totalPix += z.pixRatio
-      for (const b of z.bins) {
-        merged.set(b, (merged.get(b) || 0) + 1)
+    try {
+      const preds = await model.detect(canvas, 20, 0.25)
+      for (const p of preds) {
+        if (p.class === 'surfboard') boardDetections.push({ ...p.bbox, score: p.score })
+        if (p.class === 'person') personDetections.push({ ...p.bbox, score: p.score })
       }
-    }
-    return { bins: new Set(merged.keys()), pixRatio: totalPix / zones.length }
+    } catch {}
   }
 
-  const head = mergeZones(headZones)
-  const torso = mergeZones(torsoZones)
-  const board = mergeZones(boardZones)
+  return { boardDetections, personDetections }
+}
 
-  if (torso.pixRatio < 0.005 && board.pixRatio < 0.005 && head.pixRatio < 0.005) return null
+function analyzeBoardFromDetections(frames, detections) {
+  if (!detections.length) return { detected: false, confidence: 0, detail: '', palette: '', areaPct: 0 }
 
-  return { head, torso, board, allBins }
+  const best = detections.reduce((a, b) => a.score > b.score ? a : b)
+  const bestIdx = detections.indexOf(best)
+  const frame = frames[Math.min(bestIdx, frames.length - 1)]
+
+  const [bx, by, bw, bh] = [Math.floor(best[0] * frame.width / W),
+    Math.floor(best[1] * frame.height / H),
+    Math.floor(best[2] * frame.width / W),
+    Math.floor(best[3] * frame.height / H)]
+
+  const pad = 0.15
+  const x0 = Math.max(0, Math.floor(bx - bw * pad))
+  const y0 = Math.max(0, Math.floor(by - bh * pad))
+  const x1 = Math.min(frame.width, Math.floor(bx + bw * (1 + pad)))
+  const y1 = Math.min(frame.height, Math.floor(by + bh * (1 + pad)))
+
+  const colors = extractColorsFromRegion(frame, x0, y0, x1, y1)
+  const palette = formatPalette(colors.top)
+  const areaPct = Math.round((bw * bh) / (frame.width * frame.height) * 100)
+  const avgScore = detections.reduce((s, d) => s + d.score, 0) / detections.length
+  const detectedFrames = detections.filter(d => d.score > 0.3).length
+
+  const hasWhite = colors.top.some(c => { const l = (c.r + c.g + c.b) / 3 / 255; return l > 0.75 && c.w > 0.08 })
+  const hasYellow = colors.top.some(c => c.r > 180 && c.g > 150 && c.b < 100 && c.w > 0.06)
+
+  let shape = 'colorida'
+  if (hasWhite && !hasYellow) shape = 'clara (resin/white)'
+  else if (hasYellow) shape = 'amarela'
+
+  const confidence = Math.min(0.95, 0.45 + avgScore * 0.35 + (detectedFrames / frames.length) * 0.15)
+
+  let detail = `Prancha detectada pelo modelo COCO-SSD em ${detectedFrames}/${frames.length} frames `
+  detail += `(score médio: ${(avgScore * 100).toFixed(0)}%). `
+  detail += `Área: ${areaPct}% do frame. Paleta: ${palette}. `
+  if (hasWhite) detail += 'Superfície clara típica de prancha resin/white. '
+  if (hasYellow) detail += 'Possível prancha amarela ou adesivo. '
+
+  return { detected: true, confidence, detail, palette, areaPct, shape, colors, hasWhite, hasYellow }
+}
+
+function analyzePersonFromDetections(frames, detections) {
+  if (!detections.length) return { detected: false, torso: null, head: null, confidence: 0 }
+
+  const best = detections.reduce((a, b) => a.score > b.score ? a : b)
+  const bestIdx = detections.indexOf(best)
+  const frame = frames[Math.min(bestIdx, frames.length - 1)]
+
+  const [px, py, pw, ph] = [Math.floor(best[0] * frame.width / W),
+    Math.floor(best[1] * frame.height / H),
+    Math.floor(best[2] * frame.width / W),
+    Math.floor(best[3] * frame.height / H)]
+
+  const headY0 = py
+  const headY1 = py + Math.floor(ph * 0.25)
+  const torsoY0 = py + Math.floor(ph * 0.20)
+  const torsoY1 = py + Math.floor(ph * 0.65)
+
+  const headColors = extractColorsFromRegion(frame, px, headY0, px + pw, headY1)
+  const torsoColors = extractColorsFromRegion(frame, px, torsoY0, px + pw, torsoY1)
+
+  const avgScore = detections.reduce((s, d) => s + d.score, 0) / detections.length
+
+  return {
+    detected: true,
+    head: headColors,
+    torso: torsoColors,
+    confidence: Math.min(0.90, 0.40 + avgScore * 0.30 + (detections.length / frames.length) * 0.20),
+    personBox: { px, py, pw, ph },
+    detectedFrames: detections.filter(d => d.score > 0.3).length,
+    totalFrames: frames.length,
+  }
+}
+
+function analyzeFallback(frames) {
+  const boards = [], torsos = [], heads = []
+  for (const f of frames) {
+    boards.push(extractZoneFixed(f, ZONE_TORSO_END, 1))
+    torsos.push(extractZoneFixed(f, ZONE_HEAD_END, ZONE_TORSO_END))
+    heads.push(extractZoneFixed(f, 0, ZONE_HEAD_END))
+  }
+  const merge = (zones) => {
+    const pr = zones.reduce((s, z) => s + z.pixRatio, 0) / zones.length
+    const allTop = zones.flatMap(z => z.top)
+    const counts = new Map()
+    for (const c of allTop) counts.set(qBin(c.r, c.g, c.b), (counts.get(qBin(c.r, c.g, c.b)) || 0) + c.w)
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1])
+    const total = sorted.reduce((s, [, w]) => s + w, 0) || 1
+    return {
+      pixRatio: pr,
+      top: sorted.slice(0, 6).map(([bin, w]) => { const [r, g, b] = binToRgb(bin); return { r, g, b, w: w / total } }),
+      bins: new Set(sorted.slice(0, 10).map(([bin]) => bin)),
+    }
+  }
+  return { board: merge(boards), torso: merge(torsos), head: merge(heads) }
+}
+
+export async function createFingerprint(frames) {
+  if (!frames.length) return null
+
+  let useAI = false
+  let boardAnalysis = null
+  let personAnalysis = null
+  let colorData = null
+
+  try {
+    const model = await loadModel()
+    const { boardDetections, personDetections } = await detectWithModel(model, frames)
+
+    if (boardDetections.length > 0) {
+      boardAnalysis = analyzeBoardFromDetections(frames, boardDetections)
+    }
+    if (personDetections.length > 0) {
+      personAnalysis = analyzePersonFromDetections(frames, personDetections)
+    }
+    useAI = true
+  } catch (e) {
+    console.warn('[surfAnalyzer] TF.js COCO-SSD failed, using color fallback:', e)
+  }
+
+  if (!useAI || (!boardAnalysis?.detected && !personAnalysis?.detected)) {
+    colorData = analyzeFallback(frames)
+  }
+
+  const board = boardAnalysis?.detected ? boardAnalysis : null
+  const torso = personAnalysis?.detected ? personAnalysis.torso : (colorData?.torso ?? null)
+  const head = personAnalysis?.detected ? personAnalysis.head : (colorData?.head ?? null)
+
+  const boardPixRatio = board ? board.areaPct / 100 : (colorData?.board?.pixRatio ?? 0)
+  const torsoPixRatio = torso?.pixRatio ?? 0
+  const headPixRatio = head?.pixRatio ?? 0
+
+  if (torsoPixRatio < 0.003 && boardPixRatio < 0.003 && headPixRatio < 0.003) return null
+
+  return {
+    head, torso, board, colorData,
+    pixRatio: boardPixRatio,
+    boardDetected: board?.detected ?? false,
+    personDetected: personAnalysis?.detected ?? false,
+    usedAI: useAI,
+  }
 }
 
 function zoneOverlap(a, b) {
-  if (!a.bins.size || !b.bins.size) return 0.5
+  if (!a?.bins?.size || !b?.bins?.size) return 0.5
   let overlap = 0
   for (const bin of a.bins) if (b.bins.has(bin)) overlap++
   return overlap / Math.max(a.bins.size, b.bins.size, 1)
@@ -177,13 +326,14 @@ function zoneOverlap(a, b) {
 
 function similarity(a, b) {
   if (!a || !b) return 0
-  const torsoSim = zoneOverlap(a.torso, b.torso)
-  const boardSim = zoneOverlap(a.board, b.board)
-  const headSim = zoneOverlap(a.head, b.head)
-  let allOvlp = 0
-  for (const bin of a.allBins) if (b.allBins.has(bin)) allOvlp++
-  const allSim = allOvlp / Math.max(a.allBins.size, b.allBins.size, 1)
-  return torsoSim * 0.40 + boardSim * 0.35 + headSim * 0.10 + allSim * 0.15
+  const torsoA = a.torso, torsoB = b.torso
+  const boardA = a.colorData?.board ?? a.board, boardB = b.colorData?.board ?? b.board
+  const headA = a.head, headB = b.head
+  const torsoSim = zoneOverlap(torsoA, torsoB)
+  const boardSim = zoneOverlap(boardA, boardB)
+  const headSim = zoneOverlap(headA, headB)
+  return torsoSim * 0.40 + boardSim * 0.35 + headSim * 0.10 +
+    (torsoSim * 0.5 + boardSim * 0.5) * 0.15
 }
 
 export function clusterVideos(fingerprints) {
@@ -206,7 +356,7 @@ export function clusterVideos(fingerprints) {
         if (avg > best) { best = avg; bA = i; bB = j }
       }
     }
-    if (best < 0.55) break
+    if (best < 0.50) break
     clusters[bA].push(...clusters[bB])
     clusters.splice(bB, 1)
   }
@@ -217,21 +367,24 @@ export function clusterVideos(fingerprints) {
 }
 
 const MSGS = [
+  'Carregando modelo de detecção...',
   'Extraindo frames do vídeo...',
-  'Analisando cores da roupa...',
-  'Identificando prancha e acessórios...',
-  'Analisando proporções e estilo...',
-  'Criando assinatura visual...',
+  'Detectando prancha e surfista com IA...',
+  'Analisando cores da roupa e prancha...',
+  'Extraindo assinatura visual...',
+  'Agrupando vídeos por similaridade...',
 ]
 
 export async function analyzeVideo(videoUrl, onProgress) {
   onProgress?.(MSGS[0])
+  try { await loadModel() } catch {}
+  onProgress?.(MSGS[1])
   const { frames, thumbnail } = await extractFramesAndThumb(videoUrl)
   if (!frames.length) return { fingerprint: null, thumbnail }
   for (let i = 0; i < frames.length; i++) {
-    onProgress?.(MSGS[Math.min(1 + i, MSGS.length - 1)])
-    await new Promise(r => setTimeout(r, 60))
+    onProgress?.(MSGS[Math.min(2 + Math.floor(i / 3), MSGS.length - 1)])
+    await new Promise(r => setTimeout(r, 80))
   }
-  const fingerprint = createFingerprint(frames)
+  const fingerprint = await createFingerprint(frames)
   return { fingerprint, thumbnail }
 }
