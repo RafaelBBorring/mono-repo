@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     MAX_FRAMES_FOR_ANALYSIS: int = 120    # Cap frames per video
 
     # ── Classification Thresholds ─────────────────────────────────────────────
-    AUTO_CLASSIFY_THRESHOLD: float = 0.85   # ≥85% → auto-classify
-    HUMAN_REVIEW_THRESHOLD: float = 0.40    # 40-84% → human review
-    # <40% → Unclassified
+    AUTO_CLASSIFY_THRESHOLD: float = 0.70   # ≥70% → auto-classify
+    HUMAN_REVIEW_THRESHOLD: float = 0.30    # 30-69% → human review
+    # <30% → Unclassified
 
     # ── Agent Weights (must sum to 1.0) ───────────────────────────────────────
     # BOARD-FIRST: board scratches/wear are most reliable surfer identifier

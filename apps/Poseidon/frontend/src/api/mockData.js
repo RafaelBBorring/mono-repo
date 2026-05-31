@@ -87,22 +87,32 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       const s = surfistMap.get(cid)
       v.surfist_id = s.id
 
-      const conf = Math.min(0.97, 0.60 + fp.pixRatio * 0.35)
+      const boardConf  = 0.45 + fp.pixRatio * 0.45 + Math.random() * 0.10
+      const clothConf  = 0.40 + Math.random() * 0.30
+      const poseConf   = 0.35 + Math.random() * 0.30
+      const faceConf   = 0.20 + Math.random() * 0.40
+      const finalConf  = Math.min(0.97, boardConf * 0.50 + clothConf * 0.20 + poseConf * 0.20 + faceConf * 0.10)
 
-      if (conf >= 0.85) {
+      v.board_confidence     = boardConf
+      v.clothing_confidence  = clothConf
+      v.pose_confidence      = poseConf
+      v.face_confidence      = faceConf
+      v.final_confidence     = finalConf
+
+      if (finalConf >= 0.70) {
         v.status = 'auto_classified'
-        v.final_confidence = conf
         v.decision_reason = null
       } else {
         v.status = 'pending_review'
-        v.final_confidence = conf
         v.decision_reason = 'Confiança intermediária — enviando para revisão humana.'
       }
 
-      v.face_confidence = 0.25 + fp.pixRatio * 0.4 + Math.random() * 0.15
-      v.pose_confidence = 0.30 + Math.random() * 0.35
-      v.board_confidence = fp.pixRatio * 0.5 + Math.random() * 0.25
-      v.clothing_confidence = 0.25 + Math.random() * 0.35
+      v.agent_report = {
+        BoardAgent:    { status: 'ok', confidence: boardConf,  method: 'SIFT+ORB fingerprint', detail: `Prancha detectada com ${Math.round(fp.pixRatio*100)}% de área visível. ${boardConf > 0.6 ? 'Padrões de arranhão e adesivo correspondem ao perfil.' : 'Correspondência parcial de textura.'}` },
+        ClothingAgent: { status: 'ok', confidence: clothConf,  method: 'RGB+HSV hist + LBP',   detail: clothConf > 0.5 ? 'Roupa do tronco corresponde ao perfil registrado.' : 'Cores do tronco detectadas, correspondência parcial.' },
+        PoseAgent:     { status: 'ok', confidence: poseConf,   method: 'MediaPipe 33-keypoint', detail: poseConf > 0.5 ? 'Biomecânica corporal compatível com o surfista.' : 'Pose detectada, dados insuficientes para alta confiança.' },
+        FaceAgent:     { status: faceConf > 0.3 ? 'ok' : 'no_signal', confidence: faceConf, method: 'InsightFace ArcFace 512d', detail: faceConf > 0.3 ? 'Rosto detectado e comparado com perfil.' : 'Nenhum rosto claro detectado no vídeo.' },
+      }
 
       results.push({
         video_id: v.id,
@@ -117,6 +127,16 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       v.surfist_id = null
       v.final_confidence = 0.15 + Math.random() * 0.15
       v.decision_reason = 'Não foi possível identificar o surfista com confiança suficiente.'
+      v.board_confidence     = Math.random() * 0.30
+      v.clothing_confidence  = Math.random() * 0.25
+      v.pose_confidence      = Math.random() * 0.25
+      v.face_confidence      = Math.random() * 0.20
+      v.agent_report = {
+        BoardAgent:    { status: 'no_signal', confidence: v.board_confidence,    method: 'SIFT+ORB fingerprint', detail: 'Nenhuma prancha detectada no vídeo.' },
+        ClothingAgent: { status: 'weak',      confidence: v.clothing_confidence, method: 'RGB+HSV hist + LBP',   detail: 'Sinal de roupa muito fraco ou obstruído.' },
+        PoseAgent:     { status: 'weak',      confidence: v.pose_confidence,     method: 'MediaPipe 33-keypoint', detail: 'Pose parcialmente detectada.' },
+        FaceAgent:     { status: 'no_signal', confidence: v.face_confidence,     method: 'InsightFace ArcFace 512d', detail: 'Nenhum rosto detectado.' },
+      }
       results.push({
         video_id: v.id,
         surfistName: null,
@@ -151,7 +171,7 @@ export const mockSurfistsAPI = {
       id: `s${++nextId}`, display_id: nextId, name,
       folder_name: name.toLowerCase().replace(/\s+/g, '_'),
       color_hex: colorHex, video_count: 0,
-      embedding_counts: { face: 0, pose: 0, style: 0, board: 0 },
+    embedding_counts: { face: 0, pose: 0, clothing: 0, board: 0 },
     }
     SURFISTS.push(s)
     syncFolders()
@@ -180,9 +200,9 @@ export const mockSurfistsAPI = {
     if (s) {
       s.embedding_counts.face += 1
       s.embedding_counts.pose += 1
-      s.embedding_counts.style += 1
+      s.embedding_counts.clothing += 1
     }
-    return { updated: { face: true, pose: true, style: true } }
+    return { updated: { face: true, pose: true, clothing: true } }
   },
   registerVideo: async (id) => {
     await delay(1200)
@@ -190,15 +210,15 @@ export const mockSurfistsAPI = {
     if (s) {
       s.embedding_counts.face += 1
       s.embedding_counts.pose += 1
-      s.embedding_counts.style += 1
+      s.embedding_counts.clothing += 1
       s.embedding_counts.board += 1
     }
-    return { updated: { face: true, pose: true, style: true, board: true } }
+    return { updated: { face: true, pose: true, clothing: true, board: true } }
   },
   clearEmbeddings: async (id) => {
     await delay()
     const s = SURFISTS.find(s => s.id === id)
-    if (s) s.embedding_counts = { face: 0, pose: 0, style: 0, board: 0 }
+    if (s) s.embedding_counts = { face: 0, pose: 0, clothing: 0, board: 0 }
     return { ok: true }
   },
 }
@@ -253,6 +273,7 @@ export const mockReviewAPI = {
       ...v,
       surfist: SURFISTS.find(s => s.id === v.surfist_id) || null,
       all_surfists: [...SURFISTS],
+      agent_report: v.agent_report || null,
       face_crop_url: null,
       pose_sketch_url: null,
       board_crop_url: null,
