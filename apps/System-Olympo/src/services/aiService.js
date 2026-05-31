@@ -26,9 +26,19 @@ import { SYSTEM_SKILLS, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 
 // ─── Infra (Supabase Edge Function com fallback para env key direto) ────────
 
+const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
+const DEFAULT_OPENROUTER_FALLBACK_MODELS = [
+  'openai/gpt-oss-20b:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'liquid/lfm-2.5-1.2b-instruct:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'deepseek/deepseek-v4-flash:free',
+]
+
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || 'google/gemma-4-31b-it:free'
+const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
+const OPENROUTER_MODEL_CANDIDATES = parseModelCandidates(OPENROUTER_MODEL, import.meta.env.VITE_OPENROUTER_MODEL_FALLBACKS)
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
 const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
@@ -43,6 +53,33 @@ const PROMPT_TOKEN_CHAR_RATIO = 3
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function parseModelCandidates(primary, fallbackText = '') {
+  const configured = String(fallbackText || '')
+    .split(',')
+    .map(model => model.trim())
+    .filter(Boolean)
+  return [...new Set([primary, ...configured, ...DEFAULT_OPENROUTER_FALLBACK_MODELS].filter(Boolean))]
+}
+
+function getModelForAttempt(modelIndex) {
+  return OPENROUTER_MODEL_CANDIDATES[Math.min(modelIndex, OPENROUTER_MODEL_CANDIDATES.length - 1)] || OPENROUTER_MODEL
+}
+
+function canTryNextOpenRouterModel(error, modelIndex) {
+  if (modelIndex >= OPENROUTER_MODEL_CANDIDATES.length - 1) return false
+  const status = getStatus(error)
+  const message = String(error?.message || error || '')
+  if (status === 402) return isOpenRouterCreditBlocked(error)
+  if ([404, 429, 500, 502, 503, 504].includes(status)) return true
+  return /rate.?limited|provider returned|no endpoints|model.*unavailable|temporarily|upstream|conteudo vazio|resposta vazia/i.test(message)
+}
+
+function isResponseFormatUnsupported(error) {
+  const status = getStatus(error)
+  const message = String(error?.message || error || '')
+  return status === 400 && /response_format|structured output|json_schema|json object/i.test(message)
 }
 
 function extractJSON(response) {
@@ -368,29 +405,50 @@ async function callPollinations(messages, { maxTokens = 900, responseFormat = nu
 async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
   let effectiveMessages = messages
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
+  let effectiveResponseFormat = responseFormat
+  let modelIndex = 0
+  const maxProviderAttempts = MAX_RETRIES + OPENROUTER_MODEL_CANDIDATES.length + 1
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= maxProviderAttempts; attempt++) {
+    const activeModel = getModelForAttempt(modelIndex)
     try {
       const body = {
-        model: OPENROUTER_MODEL,
+        model: activeModel,
         messages: effectiveMessages,
         temperature: 0.35,
         max_tokens: effectiveMaxTokens,
       }
-      if (responseFormat) body.response_format = responseFormat
+      if (effectiveResponseFormat) body.response_format = effectiveResponseFormat
 
       const data = await invokeOpenRouterFunction(body)
       if (!data) throw new Error('Resposta vazia da Edge Function.')
       const content = data.choices?.[0]?.message?.content
-      if (!content) throw new Error('IA retornou conteúdo vazio.')
+      if (!content) {
+        throw createTaggedError(`IA retornou conteudo vazio no modelo ${activeModel}.`, {
+          status: 502,
+          source: 'openrouter',
+          model: activeModel,
+        })
+      }
       return content
     } catch (edgeError) {
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
+      if (isResponseFormatUnsupported(edgeError)) {
+        effectiveResponseFormat = null
+        await sleep(250)
+        continue
+      }
+      if (canTryNextOpenRouterModel(edgeError, modelIndex)) {
+        modelIndex += 1
+        console.warn('[callAI] Alternando modelo OpenRouter para:', getModelForAttempt(modelIndex))
+        await sleep(350)
+        continue
+      }
       if (status === 402 && attempt < MAX_RETRIES) {
         if (isOpenRouterCreditBlocked(edgeError)) {
           try {
-            return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+            return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat: effectiveResponseFormat })
           } catch (pollinationsError) {
             console.warn('[callAI] Pollinations indisponivel:', pollinationsError?.message || pollinationsError)
             if (!OPENROUTER_API_KEY) throw pollinationsError
@@ -425,24 +483,37 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
       }
       console.warn('[callAI] Usando fallback direto OpenRouter')
       try {
-        for (let fbAttempt = 0; fbAttempt <= MAX_RETRIES; fbAttempt++) {
+        let directModelIndex = 0
+        for (let fbAttempt = 0; fbAttempt <= maxProviderAttempts; fbAttempt++) {
+          const directModel = getModelForAttempt(directModelIndex)
           const response = await fetch(OPENROUTER_URL, {
             method: 'POST',
             headers: getOpenRouterHeaders(),
             body: JSON.stringify({
-              model: OPENROUTER_MODEL,
+              model: directModel,
               messages: effectiveMessages,
               temperature: 0.35,
               max_tokens: effectiveMaxTokens,
-              ...(responseFormat ? { response_format: responseFormat } : {}),
+              ...(effectiveResponseFormat ? { response_format: effectiveResponseFormat } : {}),
             }),
           })
           if (!response.ok) {
             const responseError = await createOpenRouterResponseError(response)
+            if (isResponseFormatUnsupported(responseError)) {
+              effectiveResponseFormat = null
+              await sleep(250)
+              continue
+            }
+            if (canTryNextOpenRouterModel(responseError, directModelIndex)) {
+              directModelIndex += 1
+              console.warn('[callAI] Fallback direto alternando modelo para:', getModelForAttempt(directModelIndex))
+              await sleep(350)
+              continue
+            }
             if (response.status === 402 && fbAttempt < MAX_RETRIES) {
               if (isOpenRouterCreditBlocked(responseError)) {
                 try {
-                  return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+                  return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat: effectiveResponseFormat })
                 } catch (pollinationsError) {
                   console.warn('[callAI] Pollinations indisponivel:', pollinationsError?.message || pollinationsError)
                   throw pollinationsError
@@ -475,7 +546,20 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
           }
           const data = await response.json()
           const content = data.choices?.[0]?.message?.content
-          if (!content) throw new Error('A IA retornou uma resposta vazia. Tente novamente.')
+          if (!content) {
+            const emptyError = createTaggedError(`A IA retornou uma resposta vazia no modelo ${directModel}.`, {
+              status: 502,
+              source: 'openrouter',
+              model: directModel,
+            })
+            if (canTryNextOpenRouterModel(emptyError, directModelIndex)) {
+              directModelIndex += 1
+              console.warn('[callAI] Fallback direto recebeu conteudo vazio, alternando modelo para:', getModelForAttempt(directModelIndex))
+              await sleep(350)
+              continue
+            }
+            throw emptyError
+          }
           return content
         }
       } catch (fbError) {
