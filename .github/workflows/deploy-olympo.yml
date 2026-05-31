@@ -11,6 +11,7 @@ on:
       - 'apps/Cypher-Project/**'
       - 'apps/Hades-VFX/**'
       - 'apps/codex-arcanum/**'
+      - 'apps/Poseidon/**'
       - '.github/workflows/deploy-olympo.yml'
   workflow_dispatch:
 
@@ -103,6 +104,19 @@ jobs:
           NEXT_PUBLIC_STRIPE_LINK_ELITE_ANUAL: ${{ vars.MORPHEUS_STRIPE_LINK_ELITE_ANUAL }}
           NEXT_PUBLIC_STRIPE_LINK_TRIAL: ${{ vars.MORPHEUS_STRIPE_LINK_TRIAL }}
 
+      # ── Poseidon (React + Vite) ──
+      - name: Cache Poseidon deps
+        uses: actions/cache@v4
+        with:
+          path: apps/Poseidon/frontend/node_modules
+          key: poseidon-${{ hashFiles('apps/Poseidon/frontend/package-lock.json') }}
+
+      - name: Build Poseidon
+        run: |
+          npm ci
+          npm run build
+        working-directory: apps/Poseidon/frontend
+
       # ── Assemble site ──
       - name: Assemble site
         run: |
@@ -158,6 +172,11 @@ jobs:
           # Also patch the JS files for navigation
           sed -i "s|window.location.href = '/login.html'|window.location.href = 'login.html'|g" js/db.js js/main.js js/supabase.js
           cd ../..
+
+          # Poseidon → /poseidon/
+          mkdir -p _site/poseidon
+          cp -r apps/Poseidon/frontend/dist/* _site/poseidon/
+          cp apps/Poseidon/frontend/dist/index.html _site/poseidon/404.html
 
           touch _site/.nojekyll
 
