@@ -14,13 +14,13 @@ function delay(ms = 400) {
   return new Promise(r => setTimeout(r, ms + Math.random() * 200))
 }
 
-function autoCreateSurfer() {
+function createSurfer(name) {
   const num = SURFISTS.length + 1
   const s = {
     id: `s${++nextId}`,
     display_id: nextId,
-    name: `Surfista ${num}`,
-    folder_name: `surfista_${num}`,
+    name: name || `Surfista ${num}`,
+    folder_name: (name || `surfista_${num}`).toLowerCase().replace(/\s+/g, '_'),
     color_hex: COLORS[(num - 1) % COLORS.length],
     video_count: 0,
     embedding_counts: { face: 0, pose: 0, style: 0, board: 0 },
@@ -49,56 +49,6 @@ function syncFolders() {
   }
 }
 
-function classifyVideo() {
-  if (SURFISTS.length === 0) {
-    const s = autoCreateSurfer()
-    return {
-      surfist_id: s.id, surfist_name: s.name,
-      final_confidence: 0.85 + Math.random() * 0.13,
-      status: 'auto_classified',
-      decision_reason: null,
-      newSurfer: true,
-    }
-  }
-  const rand = Math.random()
-  const count = SURFISTS.length
-  const newChance = count <= 2 ? 0.30 : 0.10
-
-  if (rand < 0.50) {
-    const s = SURFISTS[Math.floor(Math.random() * count)]
-    return {
-      surfist_id: s.id, surfist_name: s.name,
-      final_confidence: 0.85 + Math.random() * 0.13,
-      status: 'auto_classified', decision_reason: null, newSurfer: false,
-    }
-  }
-  if (rand < 0.50 + newChance) {
-    const s = autoCreateSurfer()
-    return {
-      surfist_id: s.id, surfist_name: s.name,
-      final_confidence: 0.70 + Math.random() * 0.20,
-      status: 'auto_classified', decision_reason: null, newSurfer: true,
-    }
-  }
-  if (rand < 0.82) {
-    const s = SURFISTS[Math.floor(Math.random() * count)]
-    return {
-      surfist_id: s.id, surfist_name: s.name,
-      final_confidence: 0.40 + Math.random() * 0.44,
-      status: 'pending_review',
-      decision_reason: 'Confiança intermediária — enviando para revisão humana.',
-      newSurfer: false,
-    }
-  }
-  return {
-    surfist_id: null, surfist_name: null,
-    final_confidence: 0.15 + Math.random() * 0.2,
-    status: 'unclassified',
-    decision_reason: 'Nenhum agente atingiu confiança suficiente para classificação.',
-    newSurfer: false,
-  }
-}
-
 export function updateVideoMedia(videoId, videoUrl, thumbnailUrl) {
   const v = VIDEOS.find(v => v.id === videoId)
   if (v) {
@@ -110,6 +60,76 @@ export function updateVideoMedia(videoId, videoUrl, thumbnailUrl) {
 
 export function getVideoFile(videoId) {
   return VIDEO_FILES.get(videoId)
+}
+
+export function applyClustering(assignments, fingerprints, videoIds) {
+  const clusterIds = [...new Set(assignments.values())]
+  const surfistMap = new Map()
+
+  for (const cid of clusterIds) {
+    const indices = [...assignments.entries()].filter(([, c]) => c === cid).map(([i]) => i)
+    const hasGoodFp = indices.some(i => fingerprints[i] && fingerprints[i].pixRatio > 0.04)
+    if (!hasGoodFp) continue
+    const s = createSurfer()
+    surfistMap.set(cid, s)
+  }
+
+  const results = []
+
+  for (let i = 0; i < videoIds.length; i++) {
+    const v = VIDEOS.find(v => v.id === videoIds[i])
+    if (!v) continue
+
+    const cid = assignments.get(i)
+    const fp = fingerprints[i]
+
+    if (cid !== undefined && surfistMap.has(cid) && fp) {
+      const s = surfistMap.get(cid)
+      v.surfist_id = s.id
+
+      const conf = Math.min(0.97, 0.60 + fp.pixRatio * 0.35)
+
+      if (conf >= 0.85) {
+        v.status = 'auto_classified'
+        v.final_confidence = conf
+        v.decision_reason = null
+      } else {
+        v.status = 'pending_review'
+        v.final_confidence = conf
+        v.decision_reason = 'Confiança intermediária — enviando para revisão humana.'
+      }
+
+      v.face_confidence = 0.25 + fp.pixRatio * 0.4 + Math.random() * 0.15
+      v.pose_confidence = 0.30 + Math.random() * 0.35
+      v.board_confidence = fp.pixRatio * 0.5 + Math.random() * 0.25
+      v.style_confidence = 0.25 + Math.random() * 0.35
+
+      results.push({
+        video_id: v.id,
+        surfistName: s.name,
+        classStatus: v.status,
+        confidence: v.final_confidence,
+        reason: v.decision_reason,
+        newSurfer: true,
+      })
+    } else {
+      v.status = 'unclassified'
+      v.surfist_id = null
+      v.final_confidence = 0.15 + Math.random() * 0.15
+      v.decision_reason = 'Não foi possível identificar o surfista com confiança suficiente.'
+      results.push({
+        video_id: v.id,
+        surfistName: null,
+        classStatus: 'unclassified',
+        confidence: v.final_confidence,
+        reason: v.decision_reason,
+        newSurfer: false,
+      })
+    }
+  }
+
+  syncFolders()
+  return results
 }
 
 export const mockSurfistsAPI = {
@@ -288,32 +308,22 @@ export const mockUploadAPI = {
       await new Promise(r => setTimeout(r, 180))
       onProgress?.(pct)
     }
-    const videoId  = `v${++nextId}`
+    const videoId = `v${++nextId}`
     const filename = file?.name || 'video.mp4'
-    const cls = classifyVideo()
     if (file) VIDEO_FILES.set(videoId, file)
     VIDEOS.push({
-      id: videoId, filename, status: cls.status,
-      final_confidence: cls.final_confidence,
-      surfist_id: cls.surfist_id,
+      id: videoId, filename,
+      status: 'analyzing',
+      final_confidence: 0,
+      surfist_id: null,
       duration: 5 + Math.random() * 20,
-      face_confidence: 0.3 + Math.random() * 0.7,
-      pose_confidence: 0.3 + Math.random() * 0.7,
-      board_confidence: 0.3 + Math.random() * 0.7,
-      style_confidence: 0.3 + Math.random() * 0.7,
+      face_confidence: 0, pose_confidence: 0,
+      board_confidence: 0, style_confidence: 0,
       thumbnail_url: null, video_url: null,
-      decision_reason: cls.decision_reason,
+      decision_reason: null,
     })
-    syncFolders()
     onProgress?.(100)
-    return {
-      video_id: videoId, filename,
-      classStatus: cls.status,
-      confidence: cls.final_confidence,
-      reason: cls.decision_reason,
-      surfistName: cls.surfist_name,
-      newSurfer: cls.newSurfer,
-    }
+    return { video_id: videoId, filename }
   },
   sessionStatus: async (sessionId) => { await delay(); return { status: 'active' } },
 }

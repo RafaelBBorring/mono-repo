@@ -1,9 +1,9 @@
 import axios from 'axios'
-import { mockSurfistsAPI, mockReviewAPI, mockUploadAPI, updateVideoMedia, getVideoFile } from './mockData'
+import { mockSurfistsAPI, mockReviewAPI, mockUploadAPI, updateVideoMedia, getVideoFile, applyClustering } from './mockData'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
-export { updateVideoMedia, getVideoFile }
+export { updateVideoMedia, getVideoFile, applyClustering }
 
 const BASE = '/api'
 
