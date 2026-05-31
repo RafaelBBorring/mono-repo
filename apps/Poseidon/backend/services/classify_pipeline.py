@@ -18,10 +18,10 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from agents.face_agent  import FaceAgent
-from agents.pose_agent  import PoseAgent
-from agents.board_agent import BoardAgent
-from agents.style_agent import StyleAgent
+from agents.face_agent     import FaceAgent
+from agents.pose_agent     import PoseAgent
+from agents.board_agent    import BoardAgent
+from agents.clothing_agent import ClothingAgent
 from fusion.decision_engine import decision_engine
 from models import ClassificationStatus, ProcessingJob, Surfist, Video
 from services.video_processor import video_processor
@@ -29,10 +29,10 @@ from config import settings
 
 
 # ── Singleton agents (loaded once) ────────────────────────────────────────────
-_face_agent  = FaceAgent()
-_pose_agent  = PoseAgent()
-_board_agent = BoardAgent()
-_style_agent = StyleAgent()
+_face_agent     = FaceAgent()
+_pose_agent     = PoseAgent()
+_board_agent    = BoardAgent()
+_clothing_agent = ClothingAgent()
 
 
 class ClassificationPipeline:
@@ -82,13 +82,13 @@ class ClassificationPipeline:
             # ── Step 3: Run all 4 agents concurrently ─────────────────────
             await _progress(30, "Running AI agents")
 
-            face_task  = _face_agent.analyze(video.file_path, frames, surfist_profiles)
-            pose_task  = _pose_agent.analyze(video.file_path, frames, surfist_profiles)
-            board_task = _board_agent.analyze(video.file_path, frames, surfist_profiles)
-            style_task = _style_agent.analyze(video.file_path, frames, surfist_profiles)
+            face_task     = _face_agent.analyze(video.file_path, frames, surfist_profiles)
+            pose_task     = _pose_agent.analyze(video.file_path, frames, surfist_profiles)
+            board_task    = _board_agent.analyze(video.file_path, frames, surfist_profiles)
+            clothing_task = _clothing_agent.analyze(video.file_path, frames, surfist_profiles)
 
             results = await asyncio.gather(
-                face_task, pose_task, board_task, style_task,
+                face_task, pose_task, board_task, clothing_task,
                 return_exceptions=True,
             )
 
@@ -104,7 +104,7 @@ class ClassificationPipeline:
                 else:
                     agent_results.append(r)
 
-            face_r, pose_r, board_r, style_r = agent_results
+            face_r, pose_r, board_r, clothing_r = agent_results
             await _progress(75, "Agents complete – fusing results")
 
             # ── Step 4: Fusion ─────────────────────────────────────────────
@@ -120,16 +120,16 @@ class ClassificationPipeline:
             await _progress(85, f"Decision: {fusion.status.value} ({fusion.final_confidence:.1%})")
 
             # ── Step 5: Write results to DB ────────────────────────────────
-            video.face_confidence  = face_r.confidence
-            video.pose_confidence  = pose_r.confidence
-            video.board_confidence = board_r.confidence
-            video.style_confidence = style_r.confidence
-            video.final_confidence = fusion.final_confidence
+            video.face_confidence     = face_r.confidence
+            video.pose_confidence     = pose_r.confidence
+            video.board_confidence    = board_r.confidence
+            video.clothing_confidence = clothing_r.confidence
+            video.final_confidence    = fusion.final_confidence
 
-            video.face_surfist_id  = face_r.surfist_id
-            video.pose_surfist_id  = pose_r.surfist_id
-            video.board_surfist_id = board_r.surfist_id
-            video.style_surfist_id = style_r.surfist_id
+            video.face_surfist_id     = face_r.surfist_id
+            video.pose_surfist_id     = pose_r.surfist_id
+            video.board_surfist_id    = board_r.surfist_id
+            video.clothing_surfist_id = clothing_r.surfist_id
 
             video.surfist_id  = fusion.surfist_id
             video.status      = fusion.status
@@ -243,7 +243,7 @@ class ClassificationPipeline:
     def _signal_summary(agent_results: List[Any]) -> Dict[str, Any]:
         person_agents = [
             r.agent_name for r in agent_results
-            if r.agent_name in {"FaceAgent", "PoseAgent", "StyleAgent"}
+            if r.agent_name in {"FaceAgent", "PoseAgent", "ClothingAgent"}
             and r.embedding is not None
         ]
         board_signal = any(
@@ -308,10 +308,10 @@ class ClassificationPipeline:
     @staticmethod
     def _append_embeddings(surfist: Surfist, agent_results: List[Any]) -> None:
         mapping = {
-            "FaceAgent": "face_embeddings",
-            "PoseAgent": "pose_embeddings",
-            "StyleAgent": "style_embeddings",
-            "BoardAgent": "board_features",
+            "FaceAgent":     "face_embeddings",
+            "PoseAgent":     "pose_embeddings",
+            "ClothingAgent": "clothing_embeddings",
+            "BoardAgent":    "board_features",
         }
         for result in agent_results:
             attr = mapping.get(result.agent_name)
@@ -349,12 +349,12 @@ class ClassificationPipeline:
         surfists = result.scalars().all()
         return {
             s.id: {
-                "face_embeddings":  s.face_embeddings  or [],
-                "pose_embeddings":  s.pose_embeddings  or [],
-                "style_embeddings": s.style_embeddings or [],
-                "board_features":   s.board_features   or [],
-                "name":             s.name,
-                "display_id":       s.display_id,
+                "face_embeddings":     s.face_embeddings     or [],
+                "pose_embeddings":     s.pose_embeddings     or [],
+                "clothing_embeddings": s.clothing_embeddings or [],
+                "board_features":      s.board_features      or [],
+                "name":                s.name,
+                "display_id":          s.display_id,
             }
             for s in surfists
         }

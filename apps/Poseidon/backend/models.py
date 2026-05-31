@@ -56,7 +56,7 @@ class Surfist(Base):
     # Each entry is one observation; we average at inference time.
     face_embeddings  = Column(JSON, default=list)  # List[List[float]] 512-dim
     pose_embeddings  = Column(JSON, default=list)  # List[List[float]] pose features
-    style_embeddings = Column(JSON, default=list)  # List[List[float]] style vectors
+    clothing_embeddings = Column(JSON, default=list)  # List[List[float]] clothing color+texture vectors
     board_features   = Column(JSON, default=list)  # List[dict]  ORB descriptor data
 
     # Reference thumbnails (paths relative to STORAGE_PATH)
@@ -100,13 +100,13 @@ class Video(Base):
     face_confidence   = Column(Float, default=0.0)
     pose_confidence   = Column(Float, default=0.0)
     board_confidence  = Column(Float, default=0.0)
-    style_confidence  = Column(Float, default=0.0)
+    clothing_confidence  = Column(Float, default=0.0)
     final_confidence  = Column(Float, default=0.0)
 
     face_surfist_id   = Column(String, nullable=True)
     pose_surfist_id   = Column(String, nullable=True)
     board_surfist_id  = Column(String, nullable=True)
-    style_surfist_id  = Column(String, nullable=True)
+    clothing_surfist_id  = Column(String, nullable=True)
 
     # Full agent detail payloads (JSON) for review UI
     agent_details = Column(JSON, default=dict)

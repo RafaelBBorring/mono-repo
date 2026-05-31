@@ -24,20 +24,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models import Surfist, Video
-from agents.face_agent  import FaceAgent
-from agents.pose_agent  import PoseAgent
-from agents.style_agent import StyleAgent
-from agents.board_agent import BoardAgent
+from agents.face_agent     import FaceAgent
+from agents.pose_agent     import PoseAgent
+from agents.clothing_agent import ClothingAgent
+from agents.board_agent    import BoardAgent
 from services.video_processor import video_processor
 from config import settings
 
 router = APIRouter()
 
 # Reuse the module-level agent singletons
-_face_agent  = FaceAgent()
-_pose_agent  = PoseAgent()
-_style_agent = StyleAgent()
-_board_agent = BoardAgent()
+_face_agent     = FaceAgent()
+_pose_agent     = PoseAgent()
+_clothing_agent = ClothingAgent()
+_board_agent    = BoardAgent()
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ async def list_surfists(db: AsyncSession = Depends(get_db)):
             "video_count":  video_count,
             "has_face_emb": len(s.face_embeddings or []) > 0,
             "has_pose_emb": len(s.pose_embeddings or []) > 0,
-            "has_style_emb":len(s.style_embeddings or []) > 0,
+            "has_clothing_emb":len(s.clothing_embeddings or []) > 0,
             "has_board_emb":len(s.board_features or []) > 0,
             "reference_images": s.reference_images or [],
         })
@@ -134,7 +134,7 @@ async def get_surfist(surfist_id: str, db: AsyncSession = Depends(get_db)):
         "embedding_counts": {
             "face":  len(s.face_embeddings  or []),
             "pose":  len(s.pose_embeddings  or []),
-            "style": len(s.style_embeddings or []),
+            "clothing": len(s.clothing_embeddings or []),
             "board": len(s.board_features   or []),
         },
         "reference_images": s.reference_images or [],
@@ -231,7 +231,7 @@ async def register_video(
 ):
     """
     Upload a reference video of a surfist.
-    Extracts face, pose, style AND board embeddings.
+    Extracts face, pose, clothing AND board embeddings.
     """
     s = await _fetch_surfist(surfist_id, db)
 
@@ -254,11 +254,11 @@ async def register_video(
         results = await asyncio.gather(
             _face_agent.extract_features(str(tmp_path), frames),
             _pose_agent.extract_features(str(tmp_path), frames),
-            _style_agent.extract_features(str(tmp_path), frames),
+            _clothing_agent.extract_features(str(tmp_path), frames),
             _board_agent.extract_features(str(tmp_path), frames),
             return_exceptions=True,
         )
-        face_emb, pose_emb, style_emb, board_emb = results
+        face_emb, pose_emb, clothing_emb, board_emb = results
 
         updated = {}
 
@@ -278,13 +278,13 @@ async def register_video(
             s.pose_embeddings = embs
             updated["pose"] = True
 
-        if isinstance(style_emb, Exception) or style_emb is None:
-            updated["style"] = False
+        if isinstance(clothing_emb, Exception) or clothing_emb is None:
+            updated["clothing"] = False
         else:
-            embs = list(s.style_embeddings or [])
-            embs.append(style_emb.tolist())
-            s.style_embeddings = embs
-            updated["style"] = True
+            embs = list(s.clothing_embeddings or [])
+            embs.append(clothing_emb.tolist())
+            s.clothing_embeddings = embs
+            updated["clothing"] = True
 
         if isinstance(board_emb, Exception) or board_emb is None:
             updated["board"] = False
@@ -306,10 +306,10 @@ async def register_video(
 @router.delete("/{surfist_id}/embeddings")
 async def clear_embeddings(surfist_id: str, db: AsyncSession = Depends(get_db)):
     s = await _fetch_surfist(surfist_id, db)
-    s.face_embeddings  = []
-    s.pose_embeddings  = []
-    s.style_embeddings = []
-    s.board_features   = []
+    s.face_embeddings     = []
+    s.pose_embeddings     = []
+    s.clothing_embeddings = []
+    s.board_features      = []
     s.reference_images = []
     await db.commit()
     return {"ok": True, "cleared": surfist_id}

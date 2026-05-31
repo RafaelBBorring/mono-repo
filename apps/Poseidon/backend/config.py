@@ -20,8 +20,7 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: list = [".mp4", ".mov", ".avi", ".mkv", ".webm"]
 
     # ── AI Model Settings ─────────────────────────────────────────────────────
-    FACE_MODEL: str = "Facenet512"        # DeepFace model
-    FACE_DETECTOR: str = "retinaface"     # Face detector backend
+    FACE_MODEL: str = "buffalo_l"           # InsightFace model pack
     YOLO_MODEL_PATH: str = "./models/yolov8n.pt"
     YOLO_CONFIDENCE: float = 0.4
 
@@ -35,16 +34,17 @@ class Settings(BaseSettings):
     # <40% → Unclassified
 
     # ── Agent Weights (must sum to 1.0) ───────────────────────────────────────
-    FACE_WEIGHT: float = 0.35
+    # BOARD-FIRST: board scratches/wear are most reliable surfer identifier
+    BOARD_WEIGHT: float = 0.50
+    CLOTHING_WEIGHT: float = 0.20
     POSE_WEIGHT: float = 0.20
-    BOARD_WEIGHT: float = 0.25
-    STYLE_WEIGHT: float = 0.20
+    FACE_WEIGHT: float = 0.10
 
     # ── Per-Agent Similarity Thresholds ──────────────────────────────────────
-    FACE_SIM_THRESHOLD: float = 0.60
-    POSE_SIM_THRESHOLD: float = 0.70
-    BOARD_SIM_THRESHOLD: float = 0.65
-    STYLE_SIM_THRESHOLD: float = 0.65
+    BOARD_SIM_THRESHOLD: float = 0.55
+    CLOTHING_SIM_THRESHOLD: float = 0.60
+    POSE_SIM_THRESHOLD: float = 0.65
+    FACE_SIM_THRESHOLD: float = 0.55
 
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./surf_classifier.db"

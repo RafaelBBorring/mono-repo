@@ -66,10 +66,10 @@ class DecisionEngine:
     """
 
     AGENT_WEIGHTS: Dict[str, float] = {
-        "FaceAgent":  settings.FACE_WEIGHT,
-        "PoseAgent":  settings.POSE_WEIGHT,
-        "BoardAgent": settings.BOARD_WEIGHT,
-        "StyleAgent": settings.STYLE_WEIGHT,
+        "FaceAgent":     settings.FACE_WEIGHT,
+        "PoseAgent":     settings.POSE_WEIGHT,
+        "BoardAgent":    settings.BOARD_WEIGHT,
+        "ClothingAgent": settings.CLOTHING_WEIGHT,
     }
 
     CONSISTENCY_BONUS: float = 0.05   # Added when ≥3 agents agree

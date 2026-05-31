@@ -102,7 +102,7 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       v.face_confidence = 0.25 + fp.pixRatio * 0.4 + Math.random() * 0.15
       v.pose_confidence = 0.30 + Math.random() * 0.35
       v.board_confidence = fp.pixRatio * 0.5 + Math.random() * 0.25
-      v.style_confidence = 0.25 + Math.random() * 0.35
+      v.clothing_confidence = 0.25 + Math.random() * 0.35
 
       results.push({
         video_id: v.id,
@@ -328,7 +328,7 @@ export const mockUploadAPI = {
       surfist_id: null,
       duration: 5 + Math.random() * 20,
       face_confidence: 0, pose_confidence: 0,
-      board_confidence: 0, style_confidence: 0,
+      board_confidence: 0, clothing_confidence: 0,
       thumbnail_url: null, video_url: null,
       decision_reason: null,
     })

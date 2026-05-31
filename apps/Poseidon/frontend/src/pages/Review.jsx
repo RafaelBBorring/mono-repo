@@ -248,7 +248,7 @@ export default function ReviewPage() {
                 <Gauge label="Face"  value={current.face_confidence}  />
                 <Gauge label="Pose"  value={current.pose_confidence}  />
                 <Gauge label="Board" value={current.board_confidence} />
-                <Gauge label="Style" value={current.style_confidence} />
+                <Gauge label="Clothing" value={current.clothing_confidence} />
               </div>
             </div>
 

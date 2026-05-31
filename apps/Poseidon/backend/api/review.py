@@ -431,7 +431,7 @@ def _video_summary(v: Video) -> dict:
         "face_confidence":  v.face_confidence,
         "pose_confidence":  v.pose_confidence,
         "board_confidence": v.board_confidence,
-        "style_confidence": v.style_confidence,
+        "clothing_confidence": v.clothing_confidence,
         "uploaded_at":      v.uploaded_at.isoformat() if v.uploaded_at else None,
         "processed_at":     v.processed_at.isoformat() if v.processed_at else None,
         "decision_reason":  _decision_reason(v),

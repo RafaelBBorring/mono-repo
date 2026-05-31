@@ -1,11 +1,12 @@
 """
-Agent 3 – Surfboard Recognition
+Agent 3 – Surfboard Recognition (BOARD-FIRST: 50% weight)
 
 Strategy:
   • Uses YOLOv8 (pretrained COCO) to locate the surfboard in each frame.
     COCO class 36 = "surfboard". Falls back to HSV-based white region detection
     if YOLO isn't available.
-  • Extracts ORB keypoints + descriptors from the board region.
+  • Extracts SIFT + ORB keypoints + descriptors from the board region.
+    SIFT captures: fine scratch patterns, texture gradients, logo details.
     ORB captures: edge patterns, wear marks, grip tape texture, sticker shapes.
   • Aggregates descriptors across frames into a "board fingerprint".
   • Matches fingerprints using BFMatcher + ratio test → final match confidence.
@@ -32,6 +33,7 @@ class BoardAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="BoardAgent", weight=settings.BOARD_WEIGHT)
         self._yolo = None
+        self._sift = None
         self._orb = None
         self._use_yolo = True
 
@@ -39,17 +41,18 @@ class BoardAgent(BaseAgent):
 
     async def initialize(self) -> None:
         def _init_models():
+            sift = cv2.SIFT_create(nfeatures=500)
             orb = cv2.ORB_create(nfeatures=500)
             try:
                 from ultralytics import YOLO
                 yolo = YOLO(settings.YOLO_MODEL_PATH)
-                return yolo, orb, True
+                return yolo, sift, orb, True
             except Exception as e:
                 logger.warning("[BoardAgent] YOLO load failed (%s) – using HSV fallback", e)
-                return None, orb, False
+                return None, sift, orb, False
 
-        self._yolo, self._orb, self._use_yolo = await asyncio.to_thread(_init_models)
-        logger.info("[BoardAgent] Initialized (YOLO=%s)", self._use_yolo)
+        self._yolo, self._sift, self._orb, self._use_yolo = await asyncio.to_thread(_init_models)
+        logger.info("[BoardAgent] Initialized (YOLO=%s, SIFT+ORB)", self._use_yolo)
 
     # ── Feature Extraction ────────────────────────────────────────────────────
 
@@ -59,37 +62,49 @@ class BoardAgent(BaseAgent):
         frames: List[np.ndarray],
     ) -> Optional[np.ndarray]:
         """
-        Returns a compact 256-dim vector aggregated from ORB descriptors,
+        Returns a combined SIFT+ORB fingerprint vector aggregated across frames,
         or None if no board was found.
         """
-        all_descriptors: List[np.ndarray] = []
+        all_sift_descriptors: List[np.ndarray] = []
+        all_orb_descriptors: List[np.ndarray] = []
         best_board_img: Optional[np.ndarray] = None
         best_board_area: int = 0
 
         for frame in frames:
             result = await asyncio.to_thread(self._process_frame, frame)
             if result is not None:
-                descs, board_img, area = result
-                all_descriptors.append(descs)
+                sift_descs, orb_descs, board_img, area = result
+                if sift_descs is not None:
+                    all_sift_descriptors.append(sift_descs)
+                if orb_descs is not None:
+                    all_orb_descriptors.append(orb_descs)
                 if area > best_board_area:
                     best_board_area = area
                     best_board_img = board_img
 
-        if not all_descriptors:
+        if not all_sift_descriptors and not all_orb_descriptors:
             logger.debug("[BoardAgent] No boards detected in %d frames", len(frames))
             return None
 
-        # Save best crop for review UI
         if best_board_img is not None:
             self._save_crop(best_board_img, video_path)
 
-        # Aggregate: pool all descriptors and compute a 256-dim histogram signature
-        pooled = np.vstack(all_descriptors)  # (N, 32) uint8
-        signature = self._descriptors_to_vector(pooled)
-        return signature.astype(np.float32)
+        sift_vec = self._descriptors_to_vector(
+            np.vstack(all_sift_descriptors), dim=128
+        ) if all_sift_descriptors else np.zeros(128, dtype=np.float32)
+
+        orb_vec = self._descriptors_to_vector(
+            np.vstack(all_orb_descriptors), dim=32
+        ) if all_orb_descriptors else np.zeros(32, dtype=np.float32)
+
+        sift_norm = sift_vec / (np.linalg.norm(sift_vec) + 1e-7)
+        orb_norm = orb_vec / (np.linalg.norm(orb_vec) + 1e-7)
+
+        combined = np.concatenate([sift_norm * 0.6, orb_norm * 0.4])
+        return combined.astype(np.float32)
 
     def _process_frame(self, frame: np.ndarray):
-        """Detect board, extract ORB descriptors. Returns (descs, crop, area) or None."""
+        """Detect board, extract SIFT+ORB descriptors. Returns (sift_d, orb_d, crop, area) or None."""
         board_region = self._detect_board(frame)
         if board_region is None:
             return None
@@ -100,12 +115,17 @@ class BoardAgent(BaseAgent):
             return None
 
         gray = cv2.cvtColor(board_crop, cv2.COLOR_BGR2GRAY)
-        kps, descs = self._orb.detectAndCompute(gray, None)
 
-        if descs is None or len(descs) < 10:
+        sift_kps, sift_descs = self._sift.detectAndCompute(gray, None)
+        orb_kps, orb_descs = self._orb.detectAndCompute(gray, None)
+
+        sift_d = sift_descs if sift_descs is not None and len(sift_descs) >= 5 else None
+        orb_d = orb_descs if orb_descs is not None and len(orb_descs) >= 5 else None
+
+        if sift_d is None and orb_d is None:
             return None
 
-        return descs, board_crop, w * h
+        return sift_d, orb_d, board_crop, w * h
 
     def _detect_board(self, frame: np.ndarray):
         """Returns (x, y, w, h) bounding box of the largest surfboard, or None."""
@@ -170,14 +190,17 @@ class BoardAgent(BaseAgent):
     # ── Descriptor Aggregation ────────────────────────────────────────────────
 
     @staticmethod
-    def _descriptors_to_vector(descriptors: np.ndarray) -> np.ndarray:
+    def _descriptors_to_vector(descriptors: np.ndarray, dim: int = 32) -> np.ndarray:
         """
-        Aggregate variable-length ORB descriptor matrix → fixed 256-dim vector.
+        Aggregate variable-length descriptor matrix → fixed dim*8-dim vector.
+        For ORB (dim=32): 256-dim. For SIFT (dim=128): 1024-dim.
         Method: compute bitwise column statistics (mean bit activation).
         """
-        # descriptors: (N, 32) uint8 — unpack bits for each byte
-        bits = np.unpackbits(descriptors, axis=1)  # (N, 256)
-        return bits.mean(axis=0)                   # (256,) float64
+        if descriptors.dtype == np.uint8:
+            bits = np.unpackbits(descriptors, axis=1)
+            return bits.mean(axis=0)
+        else:
+            return descriptors.mean(axis=0) / (np.linalg.norm(descriptors.mean(axis=0)) + 1e-7)
 
     # ── Database Matching ─────────────────────────────────────────────────────
 
@@ -212,7 +235,7 @@ class BoardAgent(BaseAgent):
             embedding=embedding,
             features={
                 "descriptor_dim": len(embedding),
-                "method": "YOLOv8+ORB" if self._use_yolo else "HSV+ORB",
+                "method": "YOLOv8+SIFT+ORB" if self._use_yolo else "HSV+SIFT+ORB",
             },
         )
 

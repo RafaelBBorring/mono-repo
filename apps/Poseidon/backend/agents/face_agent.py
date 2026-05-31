@@ -2,15 +2,15 @@
 Agent 1 – Face Recognition
 
 Strategy:
-  • Samples every Nth frame from the video
-  • Detects and embeds all faces in each frame using DeepFace (FaceNet512)
+  • Uses InsightFace (buffalo_l) to detect and embed faces in video frames
+  • InsightFace uses RetinaFace detector + ArcFace embeddings (512-dim)
+  • Runs on CPU via ONNX Runtime (no TensorFlow needed)
   • Averages valid embeddings into a single 512-dim vector
   • Compares against stored face embeddings via cosine similarity
   • Exports the best-quality face crop for the review UI
 """
 
 import asyncio
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -26,28 +26,27 @@ class FaceAgent(BaseAgent):
 
     def __init__(self):
         super().__init__(name="FaceAgent", weight=settings.FACE_WEIGHT)
-        self._deepface = None  # Lazy import after initialize()
-
-    # ── Initialization ────────────────────────────────────────────────────────
+        self._app = None
 
     async def initialize(self) -> None:
-        """Import DeepFace (heavy – runs once)."""
-        def _import():
-            import deepface  # noqa: F401 – warm-up the import
-            from deepface import DeepFace
-            return DeepFace
+        def _init():
+            import insightface
+            from insightface.app import FaceAnalysis
+            app = FaceAnalysis(
+                name="buffalo_l",
+                providers=["CPUExecutionProvider"],
+            )
+            app.prepare(ctx_id=0, det_size=(640, 640))
+            return app
 
-        self._deepface = await asyncio.to_thread(_import)
-        logger.info("[FaceAgent] DeepFace initialized with model: %s", settings.FACE_MODEL)
-
-    # ── Feature Extraction ────────────────────────────────────────────────────
+        self._app = await asyncio.to_thread(_init)
+        logger.info("[FaceAgent] InsightFace initialized (buffalo_l + ArcFace)")
 
     async def extract_features(
         self,
         video_path: str,
         frames: List[np.ndarray],
     ) -> Optional[np.ndarray]:
-        """Return averaged 512-dim FaceNet embedding, or None if no face found."""
         embeddings: List[np.ndarray] = []
         best_frame: Optional[np.ndarray] = None
         best_face_size: int = 0
@@ -55,10 +54,8 @@ class FaceAgent(BaseAgent):
         for frame in frames:
             result = await asyncio.to_thread(self._embed_frame, frame)
             if result is not None:
-                emb, face_region, face_img = result
+                emb, face_img, size = result
                 embeddings.append(emb)
-                # Keep the largest (best quality) face crop for the review UI
-                size = face_region.get("w", 0) * face_region.get("h", 0)
                 if size > best_face_size:
                     best_face_size = size
                     best_frame = face_img
@@ -67,50 +64,41 @@ class FaceAgent(BaseAgent):
             logger.debug("[FaceAgent] No faces detected in %d frames", len(frames))
             return None
 
-        # Save best face crop
         if best_frame is not None:
             self._save_crop(best_frame, video_path)
 
-        # Average all valid embeddings
         avg_embedding = np.mean(embeddings, axis=0)
         return avg_embedding.astype(np.float32)
 
     def _embed_frame(self, frame: np.ndarray):
-        """
-        Run DeepFace on a single frame. Returns (embedding, face_region, face_img)
-        or None if no face found.  Runs in a thread (CPU-bound).
-        """
         try:
-            results = self._deepface.represent(
-                img_path=frame,
-                model_name=settings.FACE_MODEL,
-                detector_backend=settings.FACE_DETECTOR,
-                enforce_detection=True,
-                align=True,
-            )
-            if results:
-                r = results[0]  # Take the most prominent face
-                emb = np.array(r["embedding"], dtype=np.float32)
-                region = r.get("facial_area", {})
-                # Crop face from frame
-                x, y = region.get("x", 0), region.get("y", 0)
-                w, h = region.get("w", 80), region.get("h", 80)
-                face_img = frame[y:y+h, x:x+w]
-                return emb, region, face_img
-        except Exception:
-            # No face detected – silently skip this frame
-            pass
-        return None
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            faces = self._app.get(rgb)
+            if not faces:
+                return None
 
-    # ── Database Matching ─────────────────────────────────────────────────────
+            best = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
+
+            if best.embedding is None:
+                return None
+
+            emb = best.embedding.astype(np.float32)
+            bbox = best.bbox.astype(int)
+            x1, y1, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+            h, w = frame.shape[:2]
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(w, x2), min(h, y2)
+            face_img = frame[y1:y2, x1:x2]
+            size = (x2 - x1) * (y2 - y1)
+            return emb, face_img, size
+        except Exception:
+            return None
 
     async def match_database(
         self,
         embedding: np.ndarray,
         surfist_profiles: Dict[str, Any],
     ) -> AgentResult:
-        """Compare embedding against all surfist face embeddings."""
-        # Build profile dict {surfist_id: [list_of_embeddings]}
         face_profiles: Dict[str, List[List[float]]] = {
             sid: profile.get("face_embeddings", [])
             for sid, profile in surfist_profiles.items()
@@ -131,7 +119,6 @@ class FaceAgent(BaseAgent):
             embedding, face_profiles, threshold=settings.FACE_SIM_THRESHOLD
         )
 
-        # Compute per-surfist similarities for rich UI display
         similarities = {}
         for sid, embs in face_profiles.items():
             if embs:
@@ -144,16 +131,13 @@ class FaceAgent(BaseAgent):
             confidence=confidence,
             embedding=embedding,
             features={
-                "model": settings.FACE_MODEL,
+                "model": "InsightFace-ArcFace",
                 "embedding_dim": len(embedding),
                 "per_surfist_similarity": similarities,
             },
         )
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
-
     def _save_crop(self, face_img: np.ndarray, video_path: str) -> Optional[str]:
-        """Save face crop image next to the video in the features folder."""
         try:
             vid_stem = Path(video_path).stem
             out_path = Path(settings.FEATURES_PATH) / f"{vid_stem}_face.jpg"
@@ -163,13 +147,7 @@ class FaceAgent(BaseAgent):
             logger.warning("[FaceAgent] Could not save face crop: %s", e)
             return None
 
-    # ── Embedding extraction for registration ─────────────────────────────────
-
     async def embed_reference_image(self, image_path: str) -> Optional[np.ndarray]:
-        """
-        Extract a face embedding from a reference photo during surfist registration.
-        Returns None if no face found.
-        """
         if not self._initialized:
             await self.initialize()
             self._initialized = True
