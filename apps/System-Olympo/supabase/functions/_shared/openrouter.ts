@@ -4,14 +4,6 @@ const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
 const OPENROUTER_MAX_TOKENS = Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 1800
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const OPENROUTER_MODEL_FALLBACKS = Deno.env.get('OPENROUTER_MODEL_FALLBACKS') || ''
-const DEFAULT_OPENROUTER_FALLBACK_MODELS = [
-  'openai/gpt-oss-20b:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'liquid/lfm-2.5-1.2b-instruct:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'deepseek/deepseek-v4-flash:free',
-]
 const POLLINATIONS_API_KEY = Deno.env.get('POLLINATIONS_API_KEY') || ''
 const POLLINATIONS_URL = Deno.env.get('POLLINATIONS_URL') || 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODEL = Deno.env.get('POLLINATIONS_MODEL') || 'openai'
@@ -59,11 +51,7 @@ function getModel(payload: ChatRequest) {
 }
 
 function getModelCandidates(primaryModel: string) {
-  const configured = OPENROUTER_MODEL_FALLBACKS
-    .split(',')
-    .map(model => model.trim())
-    .filter(Boolean)
-  return [...new Set([primaryModel, ...configured, ...DEFAULT_OPENROUTER_FALLBACK_MODELS].filter(Boolean))]
+  return [primaryModel]
 }
 
 function getErrorMessage(body: unknown, fallback: string) {
@@ -109,10 +97,8 @@ function isCreditBlocked(status: number, message: string) {
   return status === 402 && /insufficient credits|never purchased credits|requires more credits|purchase more/i.test(message)
 }
 
-function shouldTryNextModel(status: number, message: string) {
-  if (status === 402) return isCreditBlocked(status, message)
-  if ([404, 429, 500, 502, 503, 504].includes(status)) return true
-  return /rate.?limited|provider returned|no endpoints|model.*unavailable|temporarily|upstream/i.test(message)
+function shouldTryNextModel() {
+  return false
 }
 
 function isResponseFormatUnsupported(status: number, message: string) {
