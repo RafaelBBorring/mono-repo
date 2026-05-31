@@ -339,12 +339,13 @@ function withJsonInstruction(messages) {
   return next
 }
 
-async function callPollinations(messages, { maxTokens = 900, responseFormat = null } = {}) {
+async function callPollinations(messages, { maxTokens = 4096, responseFormat = null } = {}) {
+  const effectiveMaxTokens = clampMaxTokens(maxTokens)
   const body = {
     model: POLLINATIONS_MODEL,
-    messages: compactMessagesForPromptLimit(messages, 3000),
+    messages: compactMessagesForPromptLimit(messages, 8000),
     temperature: 0.35,
-    max_tokens: clampMaxTokens(maxTokens),
+    max_tokens: effectiveMaxTokens,
   }
   if (responseFormat) body.response_format = responseFormat
 
@@ -355,8 +356,8 @@ async function callPollinations(messages, { maxTokens = 900, responseFormat = nu
   })
 
   if (!response.ok) {
-    await response.text().catch(() => '')
-    throw createTaggedError(`Fallback Pollinations indisponivel (${response.status}).`, {
+    const errorText = await response.text().catch(() => '')
+    throw createTaggedError(`Fallback Pollinations indisponivel (${response.status}): ${errorText.slice(0, 200)}`, {
       status: response.status,
       source: 'pollinations',
     })
@@ -365,7 +366,9 @@ async function callPollinations(messages, { maxTokens = 900, responseFormat = nu
   const data = await response.json().catch(() => null)
   const content = data?.choices?.[0]?.message?.content
   if (!content) {
-    throw createTaggedError('Fallback Pollinations retornou conteudo vazio.', {
+    const rawJson = JSON.stringify(data)?.slice(0, 300) || 'null'
+    console.error('[callPollinations] Resposta sem conteudo util. Data:', rawJson)
+    throw createTaggedError(`Fallback Pollinations retornou conteudo vazio. Raw: ${rawJson}`, {
       status: 502,
       source: 'pollinations',
     })

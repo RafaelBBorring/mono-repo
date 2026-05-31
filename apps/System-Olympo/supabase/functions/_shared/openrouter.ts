@@ -108,6 +108,9 @@ function isResponseFormatUnsupported(status: number, message: string) {
 function filterFallbackBody(body: Record<string, unknown>) {
   const next = { ...body, model: POLLINATIONS_MODEL }
   delete next.provider
+  if (typeof next.max_tokens === 'number' && next.max_tokens < 1800) {
+    next.max_tokens = 1800
+  }
   return next
 }
 
