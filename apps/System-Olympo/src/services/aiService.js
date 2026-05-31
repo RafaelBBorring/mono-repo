@@ -36,6 +36,7 @@ const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat'
 const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
 const POLLINATIONS_URL = import.meta.env.VITE_POLLINATIONS_URL || 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODEL = import.meta.env.VITE_POLLINATIONS_MODEL || 'openai'
+const POLLINATIONS_FALLBACK_MODELS = ['mistral', 'llama']
 
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
@@ -341,44 +342,53 @@ function withJsonInstruction(messages) {
 
 async function callPollinations(messages, { maxTokens = 4096, responseFormat = null } = {}) {
   const effectiveMaxTokens = clampMaxTokens(maxTokens)
-  const body = {
-    model: POLLINATIONS_MODEL,
-    messages: compactMessagesForPromptLimit(messages, 8000),
-    temperature: 0.35,
-    max_tokens: effectiveMaxTokens,
-  }
-  if (responseFormat) body.response_format = responseFormat
+  const compacted = compactMessagesForPromptLimit(messages, 8000)
+  const modelsToTry = [POLLINATIONS_MODEL, ...POLLINATIONS_FALLBACK_MODELS]
+  let lastError = null
 
-  const response = await fetch(POLLINATIONS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+  for (const model of modelsToTry) {
+    try {
+      const body = {
+        model,
+        messages: compacted,
+        temperature: 0.35,
+        max_tokens: effectiveMaxTokens,
+      }
+      if (responseFormat) body.response_format = responseFormat
+
+      const response = await fetch(POLLINATIONS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '')
+        lastError = createTaggedError(`Pollinations modelo ${model} indisponivel (${response.status}): ${errorText.slice(0, 200)}`, {
+          status: response.status,
+          source: 'pollinations',
+        })
+        continue
+      }
+
+      const data = await response.json().catch(() => null)
+      const content = data?.choices?.[0]?.message?.content
+      if (content) return content
+
+      console.warn(`[callPollinations] modelo ${model} retornou content vazio, tentando proximo`)
+      lastError = createTaggedError(`Pollinations modelo ${model} retornou conteudo vazio.`, {
+        status: 502,
+        source: 'pollinations',
+      })
+    } catch (e) {
+      lastError = e
+    }
+  }
+
+  throw lastError || createTaggedError('Fallback Pollinations falhou com todos os modelos.', {
+    status: 502,
+    source: 'pollinations',
   })
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '')
-    throw createTaggedError(`Fallback Pollinations indisponivel (${response.status}): ${errorText.slice(0, 200)}`, {
-      status: response.status,
-      source: 'pollinations',
-    })
-  }
-
-  const data = await response.json().catch(() => null)
-  const msg = data?.choices?.[0]?.message
-  let content = msg?.content
-  if (!content && msg?.reasoning) {
-    console.warn('[callPollinations] content vazio, extraindo de reasoning')
-    content = msg.reasoning
-  }
-  if (!content) {
-    const rawJson = JSON.stringify(data)?.slice(0, 300) || 'null'
-    console.error('[callPollinations] Resposta sem conteudo util. Data:', rawJson)
-    throw createTaggedError(`Fallback Pollinations retornou conteudo vazio. Raw: ${rawJson}`, {
-      status: 502,
-      source: 'pollinations',
-    })
-  }
-  return content
 }
 
 async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
@@ -400,12 +410,7 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
 
       const data = await invokeOpenRouterFunction(body)
       if (!data) throw new Error('Resposta vazia da Edge Function.')
-      const msg = data.choices?.[0]?.message
-      let content = msg?.content
-      if (!content && msg?.reasoning) {
-        console.warn('[callAI] content vazio na Edge Function, extraindo de reasoning')
-        content = msg.reasoning
-      }
+      const content = data.choices?.[0]?.message?.content
       if (!content) {
         throw createTaggedError(`IA retornou conteudo vazio no modelo ${activeModel}.`, {
           status: 502,
@@ -492,12 +497,7 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
             throw responseError
           }
           const data = await response.json()
-          const msg = data.choices?.[0]?.message
-          let content = msg?.content
-          if (!content && msg?.reasoning) {
-            console.warn('[callAI] content vazio no fallback direto, extraindo de reasoning')
-            content = msg.reasoning
-          }
+          const content = data.choices?.[0]?.message?.content
           if (!content) {
             const emptyError = createTaggedError(`A IA retornou uma resposta vazia no modelo ${directModel}.`, {
               status: 502,
@@ -560,8 +560,7 @@ async function callAIStream(messages, onChunk) {
     const data = await invokeOpenRouterFunction(body)
 
     if (data && typeof data === 'object' && data.choices) {
-      const streamMsg = data.choices?.[0]?.message
-      const content = streamMsg?.content || streamMsg?.reasoning || ''
+      const content = data.choices?.[0]?.message?.content || ''
       if (onChunk) onChunk(content)
       return content
     }
