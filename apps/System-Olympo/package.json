@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "deploy:ai:functions": "npx supabase functions deploy openrouter-chat --project-ref wmkswavqtqyfcjuiwtbw --no-verify-jwt && npx supabase functions deploy openrouter-proxy --project-ref wmkswavqtqyfcjuiwtbw --no-verify-jwt"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.0",

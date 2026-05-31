@@ -10,8 +10,9 @@ const POLLINATIONS_MODEL = Deno.env.get('POLLINATIONS_MODEL') || 'openai'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept, origin, x-requested-with',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 }
 
 type ChatRequest = {
@@ -171,7 +172,7 @@ async function pollinationsResponse(body: Record<string, unknown>) {
 
 export async function handleOpenRouterRequest(req: Request) {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
 
   if (req.method !== 'POST') {

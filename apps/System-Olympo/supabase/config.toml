@@ -1,0 +1,7 @@
+project_id = "wmkswavqtqyfcjuiwtbw"
+
+[functions.openrouter-chat]
+verify_jwt = false
+
+[functions.openrouter-proxy]
+verify_jwt = false

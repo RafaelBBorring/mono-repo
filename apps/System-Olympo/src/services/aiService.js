@@ -24,12 +24,10 @@ import { calcEquipStats, getEquipmentRarity, EQUIPMENT_TYPES, ARMOR_TYPES } from
 import { CLASSES } from '../data/classes'
 import { SYSTEM_SKILLS, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 
-// ─── Infra (Supabase Edge Function com fallback para env key direto) ────────
+// Infra: chamadas de IA passam pela Supabase Edge Function para manter a chave fora do navegador.
 
 const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
 
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
@@ -176,6 +174,22 @@ function getPromptTokenLimit(message) {
   return match ? { requested: Number(match[1]), limit: Number(match[2]) } : null
 }
 
+function isEdgeTransportError(error) {
+  const status = getStatus(error)
+  const source = String(error?.source || error?.context?.source || '')
+  const message = String(error?.message || error?.cause?.message || error || '')
+  if (source === 'openrouter' || source === 'pollinations') return false
+  return status === 0 || /Failed to send a request|Failed to fetch|NetworkError|CORS|ERR_FAILED|Load failed/i.test(message)
+}
+
+function isRecoverableEdgeFunctionError(error) {
+  const status = getStatus(error)
+  const source = String(error?.source || error?.context?.source || '')
+  const message = String(error?.message || error || '')
+  if (source === 'openrouter' || source === 'pollinations') return false
+  return isEdgeTransportError(error) || status === 404 || (status === 401 && /User not found|JWT|authorization/i.test(message))
+}
+
 function estimatePromptTokens(messages = []) {
   const chars = messages.reduce((sum, msg) => sum + String(msg?.content || '').length, 0)
   return Math.ceil(chars / PROMPT_TOKEN_CHAR_RATIO)
@@ -279,7 +293,7 @@ async function invokeOpenRouterFunction(body) {
     const canTryNextAlias =
       normalized.source !== 'openrouter' &&
       i < OPENROUTER_FUNCTIONS.length - 1 &&
-      (normalized.status === 404 || (normalized.status === 401 && /User not found/i.test(normalized.message)))
+      isRecoverableEdgeFunctionError(normalized)
 
     if (canTryNextAlias) {
       console.warn(`[callAI] Edge Function "${functionName}" indisponivel (${normalized.status}), tentando proximo alias.`)
@@ -290,27 +304,6 @@ async function invokeOpenRouterFunction(body) {
   }
 
   throw lastError || new Error('Nenhuma Edge Function OpenRouter disponivel.')
-}
-
-async function createOpenRouterResponseError(response) {
-  const { body, text } = await readResponseBody(response)
-  const rawMessage = getMessageFromBody(body, text.trim() || `OpenRouter error: ${response.status}`)
-  return createTaggedError(openRouterErrorMessage(response.status, rawMessage), {
-    status: response.status,
-    retryAfter: Number(response.headers.get('Retry-After')) || 0,
-    affordableMaxTokens: getAffordableTokenLimit(rawMessage),
-    promptTokenLimit: getPromptTokenLimit(rawMessage),
-    source: 'openrouter',
-  })
-}
-
-function getOpenRouterHeaders() {
-  return {
-    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-    'Content-Type': 'application/json',
-    'HTTP-Referer': window.location.origin,
-    'X-Title': 'System Olympo 2.0',
-  }
 }
 
 function withJsonInstruction(messages) {
@@ -465,48 +458,7 @@ async function callAIStream(messages, onChunk) {
 
     return typeof data === 'string' ? data : ''
   } catch (edgeErr) {
-    if (!OPENROUTER_API_KEY) throw edgeErr
-    const response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: getOpenRouterHeaders(),
-      body: JSON.stringify({
-        model: OPENROUTER_MODEL,
-        messages,
-        temperature: 0.35,
-        max_tokens: streamMaxTokens,
-        stream: true,
-      }),
-    })
-
-    if (!response.ok) {
-      throw await createOpenRouterResponseError(response)
-    }
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let full = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split('\n')
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const raw = line.slice(6).trim()
-          if (raw === '[DONE]') break
-          try {
-            const parsed = JSON.parse(raw)
-            const delta = parsed.choices?.[0]?.delta?.content || ''
-            if (delta) {
-              full += delta
-              if (onChunk) onChunk(delta, full)
-            }
-          } catch {}
-        }
-      }
-    }
-    return full
+    throw edgeErr
   }
 }
 
