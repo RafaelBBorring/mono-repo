@@ -98,6 +98,11 @@ function isCreditBlocked(status: number, message: string) {
   return status === 402 && /insufficient credits|never purchased credits|requires more credits|purchase more/i.test(message)
 }
 
+function shouldUseProviderFallback(status: number, message: string) {
+  if (isCreditBlocked(status, message)) return true
+  return status === 429 && /free-models-per-day|rate limit exceeded|ratelimit|too many requests/i.test(message)
+}
+
 function shouldTryNextModel() {
   return false
 }
@@ -256,7 +261,7 @@ export async function handleOpenRouterRequest(req: Request) {
           continue
         }
 
-        if (isCreditBlocked(response.status, errorMessage)) {
+        if (shouldUseProviderFallback(response.status, errorMessage)) {
           return await pollinationsResponse(body)
         }
 
