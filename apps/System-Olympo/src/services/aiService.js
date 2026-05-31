@@ -34,10 +34,6 @@ const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENRO
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
 const OPENROUTER_MAX_TOKENS = Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 1800
-const POLLINATIONS_URL = import.meta.env.VITE_POLLINATIONS_URL || 'https://text.pollinations.ai/openai'
-const POLLINATIONS_MODEL = import.meta.env.VITE_POLLINATIONS_MODEL || 'openai'
-const POLLINATIONS_FALLBACK_MODELS = ['mistral', 'llama']
-
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }
@@ -162,12 +158,6 @@ function openRouterErrorMessage(status, message) {
   if (status === 429) return `OpenRouter 429: limite de requisicoes atingido. Aguarde e tente novamente. (${clean})`
   if (status === 502 || status === 503 || status === 504) return `OpenRouter ${status}: modelo/provider indisponivel no momento. (${clean})`
   return `OpenRouter ${status || ''}: ${clean}`.trim()
-}
-
-function isOpenRouterCreditBlocked(errorOrMessage) {
-  const message = typeof errorOrMessage === 'string' ? errorOrMessage : errorOrMessage?.message || ''
-  const status = typeof errorOrMessage === 'string' ? 402 : getStatus(errorOrMessage)
-  return status === 402 && /insufficient credits|never purchased credits|requires more credits|purchase more/i.test(message)
 }
 
 function createTaggedError(message, props = {}) {
@@ -340,57 +330,6 @@ function withJsonInstruction(messages) {
   return next
 }
 
-async function callPollinations(messages, { maxTokens = 4096, responseFormat = null } = {}) {
-  const effectiveMaxTokens = clampMaxTokens(maxTokens)
-  const compacted = compactMessagesForPromptLimit(messages, 8000)
-  const modelsToTry = [POLLINATIONS_MODEL, ...POLLINATIONS_FALLBACK_MODELS]
-  let lastError = null
-
-  for (const model of modelsToTry) {
-    try {
-      const body = {
-        model,
-        messages: compacted,
-        temperature: 0.35,
-        max_tokens: effectiveMaxTokens,
-      }
-      if (responseFormat) body.response_format = responseFormat
-
-      const response = await fetch(POLLINATIONS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '')
-        lastError = createTaggedError(`Pollinations modelo ${model} indisponivel (${response.status}): ${errorText.slice(0, 200)}`, {
-          status: response.status,
-          source: 'pollinations',
-        })
-        continue
-      }
-
-      const data = await response.json().catch(() => null)
-      const content = data?.choices?.[0]?.message?.content
-      if (content) return content
-
-      console.warn(`[callPollinations] modelo ${model} retornou content vazio, tentando proximo`)
-      lastError = createTaggedError(`Pollinations modelo ${model} retornou conteudo vazio.`, {
-        status: 502,
-        source: 'pollinations',
-      })
-    } catch (e) {
-      lastError = e
-    }
-  }
-
-  throw lastError || createTaggedError('Fallback Pollinations falhou com todos os modelos.', {
-    status: 502,
-    source: 'pollinations',
-  })
-}
-
 async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}) {
   let effectiveMessages = messages
   let effectiveMaxTokens = clampMaxTokens(maxTokens)
@@ -427,16 +366,7 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
         await sleep(250)
         continue
       }
-      if (status === 402 && attempt < MAX_RETRIES) {
-        if (isOpenRouterCreditBlocked(edgeError)) {
-          try {
-            return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat: effectiveResponseFormat })
-          } catch (pollinationsError) {
-            console.warn('[callAI] Pollinations indisponivel:', pollinationsError?.message || pollinationsError)
-            if (!OPENROUTER_API_KEY) throw pollinationsError
-          }
-        }
-
+      if (status === 413 || (status === 402 && attempt < MAX_RETRIES)) {
         const promptLimit = edgeError?.promptTokenLimit?.limit
         if (promptLimit) {
           const compactedMessages = compactMessagesForPromptLimit(effectiveMessages, promptLimit)
@@ -459,62 +389,10 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
         await sleep(getRetryDelay(attempt, edgeError?.retryAfter))
         continue
       }
-      try {
-        return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat: effectiveResponseFormat })
-      } catch (pollinationsError) {
-        console.warn('[callAI] Pollinations fallback falhou:', pollinationsError?.message || pollinationsError)
-      }
-      if (!OPENROUTER_API_KEY) {
-        console.error('[callAI] Sem OPENROUTER_API_KEY para fallback direto')
-        throw edgeError
-      }
-      console.warn('[callAI] Usando fallback direto OpenRouter')
-      try {
-        for (let fbAttempt = 0; fbAttempt <= maxProviderAttempts; fbAttempt++) {
-          const directModel = OPENROUTER_MODEL
-          const response = await fetch(OPENROUTER_URL, {
-            method: 'POST',
-            headers: getOpenRouterHeaders(),
-            body: JSON.stringify({
-              model: directModel,
-              messages: effectiveMessages,
-              temperature: 0.35,
-              max_tokens: effectiveMaxTokens,
-              ...(effectiveResponseFormat ? { response_format: effectiveResponseFormat } : {}),
-            }),
-          })
-          if (!response.ok) {
-            const responseError = await createOpenRouterResponseError(response)
-            if (isResponseFormatUnsupported(responseError)) {
-              effectiveResponseFormat = null
-              await sleep(250)
-              continue
-            }
-            if (isRetryable(response.status) && fbAttempt < MAX_RETRIES) {
-              await sleep(getRetryDelay(fbAttempt, responseError.retryAfter))
-              continue
-            }
-            throw responseError
-          }
-          const data = await response.json()
-          const content = data.choices?.[0]?.message?.content
-          if (!content) {
-            const emptyError = createTaggedError(`A IA retornou uma resposta vazia no modelo ${directModel}.`, {
-              status: 502,
-              source: 'openrouter',
-              model: directModel,
-            })
-            throw emptyError
-          }
-          return content
-        }
-      } catch (fbError) {
-        throw fbError
-      }
       throw edgeError
     }
   }
-  throw new Error('Falha após múltiplas tentativas. Tente novamente em alguns segundos.')
+  throw new Error('Falha apos multiplas tentativas. Aguarde alguns segundos e tente novamente.')
 }
 
 async function callAIJson(messages, options = {}) {
