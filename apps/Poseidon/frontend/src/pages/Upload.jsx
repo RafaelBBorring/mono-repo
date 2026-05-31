@@ -175,12 +175,26 @@ export default function UploadPage() {
             f.id === localId ? { ...f, uploadPct: pct } : f
           ))
         })
-        // Link to WS progress via videoId
         setFiles(prev => prev.map(f =>
           f.id === localId
             ? { ...f, status: 'processing', videoId: result.video_id, processPct: 0 }
             : f
         ))
+
+        if (import.meta.env.VITE_USE_MOCK === 'true') {
+          for (let pct = 15; pct <= 90; pct += 25) {
+            await new Promise(r => setTimeout(r, 350))
+            setFiles(prev => prev.map(f =>
+              f.id === localId ? { ...f, processPct: pct } : f
+            ))
+          }
+          await new Promise(r => setTimeout(r, 400))
+          setFiles(prev => prev.map(f =>
+            f.id === localId
+              ? { ...f, status: 'done', classStatus: result.classStatus, confidence: result.confidence, reason: result.reason }
+              : f
+          ))
+        }
       } catch (err) {
         setFiles(prev => prev.map(f =>
           f.id === localId
