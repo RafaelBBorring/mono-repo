@@ -159,8 +159,11 @@ function UploadToast({ summary, onClose }) {
       <div className="mt-1 text-xs leading-relaxed text-white/75">
         Sessão atual: {summary.total} vídeo{summary.total === 1 ? '' : 's'} ·
         {' '}{summary.auto_classified ?? 0} classificados ·
-        {' '}{summary.pending_review ?? 0} review ·
+        {' '}{summary.pending_review ?? 0} revisar ·
         {' '}{summary.unclassified ?? 0} não classificados
+        {summary.newSurfers > 0 && (
+          <> · <span className="text-sky-300">{summary.newSurfers} novo{summary.newSurfers > 1 ? 's' : ''} surfista{summary.newSurfers > 1 ? 's' : ''} detectado{summary.newSurfers > 1 ? 's' : ''}</span></>
+        )}
       </div>
     </div>
   )

@@ -14,9 +14,9 @@ const STATUS_ICON = {
 }
 
 const STATUS_LABEL = {
-  auto_classified: { label: 'Auto-classified', color: 'text-emerald-400' },
-  pending_review:  { label: 'Needs review',    color: 'text-amber-400'   },
-  unclassified:    { label: 'Unclassified',    color: 'text-rose-400'    },
+  auto_classified: { label: 'Classificado', color: 'text-emerald-400' },
+  pending_review:  { label: 'Revisar',       color: 'text-amber-400'   },
+  unclassified:    { label: 'Não classificado', color: 'text-rose-400' },
 }
 
 function FileRow({ file }) {
@@ -36,7 +36,11 @@ function FileRow({ file }) {
             {status === 'uploading'  && `${pct}%`}
             {status === 'processing' && file.message}
             {status === 'done'       && label &&
-              <span className={clsx('font-medium', label.color)}>{label.label}</span>
+              <span className="flex items-center gap-1.5">
+                {file.newSurfer && <span className="font-medium text-sky-400">Novo surfista</span>}
+                <span className={clsx('font-medium', label.color)}>{!file.newSurfer && label.label}</span>
+                {file.surfistName && <span className="text-slate-400">→ {file.surfistName}</span>}
+              </span>
             }
             {status === 'error'      && <span className="text-rose-400">{file.error}</span>}
           </span>
@@ -53,7 +57,7 @@ function FileRow({ file }) {
             />
           </div>
         )}
-        {status === 'done' && file.reason && file.classStatus !== 'auto_classified' && (
+        {status === 'done' && file.reason && (
           <div className="mt-1 text-xs text-slate-500 truncate">{file.reason}</div>
         )}
       </div>
@@ -140,6 +144,7 @@ export default function UploadPage() {
     const summary = files.reduce((acc, file) => {
       acc.total += 1
       acc[file.classStatus] = (acc[file.classStatus] ?? 0) + 1
+      if (file.newSurfer) acc.newSurfers = (acc.newSurfers ?? 0) + 1
       return acc
     }, { total: 0 })
 
@@ -191,7 +196,7 @@ export default function UploadPage() {
           await new Promise(r => setTimeout(r, 400))
           setFiles(prev => prev.map(f =>
             f.id === localId
-              ? { ...f, status: 'done', classStatus: result.classStatus, confidence: result.confidence, reason: result.reason }
+              ? { ...f, status: 'done', classStatus: result.classStatus, confidence: result.confidence, reason: result.reason, surfistName: result.surfistName, newSurfer: result.newSurfer }
               : f
           ))
         }
@@ -223,7 +228,7 @@ export default function UploadPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Upload Videos</h1>
           <p className="text-slate-400 text-sm mt-0.5">
-            Drag surf footage here — AI classifies each surfer automatically
+            Solte os vídeos da sessão — a IA identifica e classifica cada surfista automaticamente
           </p>
         </div>
       </div>

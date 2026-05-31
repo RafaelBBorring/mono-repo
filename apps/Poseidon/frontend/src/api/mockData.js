@@ -4,8 +4,29 @@ const VIDEOS   = []
 
 let nextId = 100
 
+const COLORS = [
+  '#0EA5E9','#10B981','#F59E0B','#F43F5E','#8B5CF6',
+  '#EC4899','#14B8A6','#F97316','#6366F1','#84CC16',
+]
+
 function delay(ms = 400) {
   return new Promise(r => setTimeout(r, ms + Math.random() * 200))
+}
+
+function autoCreateSurfer() {
+  const num = SURFISTS.length + 1
+  const s = {
+    id: `s${++nextId}`,
+    display_id: nextId,
+    name: `Surfista ${num}`,
+    folder_name: `surfista_${num}`,
+    color_hex: COLORS[(num - 1) % COLORS.length],
+    video_count: 0,
+    embedding_counts: { face: 0, pose: 0, style: 0, board: 0 },
+  }
+  SURFISTS.push(s)
+  syncFolders()
+  return s
 }
 
 function syncFolders() {
@@ -29,36 +50,56 @@ function syncFolders() {
 
 function classifyVideo() {
   if (SURFISTS.length === 0) {
+    const s = autoCreateSurfer()
     return {
-      surfist_id: null,
-      final_confidence: 0.15 + Math.random() * 0.2,
-      status: 'unclassified',
-      decision_reason: 'Nenhum surfista registrado. Registre surfistas e suba referências antes de classificar vídeos.',
-    }
-  }
-  const surfist = SURFISTS[Math.floor(Math.random() * SURFISTS.length)]
-  const rand = Math.random()
-  if (rand < 0.50) {
-    return {
-      surfist_id: surfist.id,
+      surfist_id: s.id, surfist_name: s.name,
       final_confidence: 0.85 + Math.random() * 0.13,
       status: 'auto_classified',
       decision_reason: null,
+      newSurfer: true,
     }
   }
-  if (rand < 0.85) {
+
+  const rand = Math.random()
+  const surfistsCount = SURFISTS.length
+  const newSurferChance = surfistsCount <= 2 ? 0.30 : 0.10
+
+  if (rand < 0.50) {
+    const s = SURFISTS[Math.floor(Math.random() * surfistsCount)]
     return {
-      surfist_id: surfist.id,
+      surfist_id: s.id, surfist_name: s.name,
+      final_confidence: 0.85 + Math.random() * 0.13,
+      status: 'auto_classified',
+      decision_reason: null,
+      newSurfer: false,
+    }
+  }
+  if (rand < 0.50 + newSurferChance) {
+    const s = autoCreateSurfer()
+    return {
+      surfist_id: s.id, surfist_name: s.name,
+      final_confidence: 0.70 + Math.random() * 0.20,
+      status: 'auto_classified',
+      decision_reason: null,
+      newSurfer: true,
+    }
+  }
+  if (rand < 0.82) {
+    const s = SURFISTS[Math.floor(Math.random() * surfistsCount)]
+    return {
+      surfist_id: s.id, surfist_name: s.name,
       final_confidence: 0.40 + Math.random() * 0.44,
       status: 'pending_review',
       decision_reason: 'Confiança intermediária — enviando para revisão humana.',
+      newSurfer: false,
     }
   }
   return {
-    surfist_id: null,
+    surfist_id: null, surfist_name: null,
     final_confidence: 0.15 + Math.random() * 0.2,
     status: 'unclassified',
     decision_reason: 'Nenhum agente atingiu confiança suficiente para classificação.',
+    newSurfer: false,
   }
 }
 
@@ -77,7 +118,16 @@ export const mockSurfistsAPI = {
     syncFolders()
     return s
   },
-  update: async (id, data) => { await delay(); return { ok: true } },
+  update: async (id, data) => {
+    await delay()
+    const s = SURFISTS.find(s => s.id === id)
+    if (s && data.name) {
+      s.name = data.name
+      s.folder_name = data.name.toLowerCase().replace(/\s+/g, '_')
+      syncFolders()
+    }
+    return { ok: true }
+  },
   delete: async (id) => {
     await delay()
     const idx = SURFISTS.findIndex(s => s.id === id)
@@ -251,6 +301,8 @@ export const mockUploadAPI = {
       classStatus: cls.status,
       confidence: cls.final_confidence,
       reason: cls.decision_reason,
+      surfistName: cls.surfist_name,
+      newSurfer: cls.newSurfer,
     }
   },
   sessionStatus: async (sessionId) => { await delay(); return { status: 'active' } },
