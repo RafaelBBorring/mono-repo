@@ -1,0 +1,74 @@
+from pydantic_settings import BaseSettings
+from pathlib import Path
+import os
+
+
+class Settings(BaseSettings):
+    # ── Storage Paths ────────────────────────────────────────────────────────
+    STORAGE_PATH: str = "./data"
+    TEMP_PATH: str = "./data/temp"
+    VIDEOS_PATH: str = "./data/videos"
+    THUMBNAILS_PATH: str = "./data/thumbnails"
+    EMBEDDINGS_PATH: str = "./data/embeddings"
+    FEATURES_PATH: str = "./data/features"
+    MODELS_PATH: str = "./models"
+
+    # ── Upload Limits ─────────────────────────────────────────────────────────
+    MAX_FILE_SIZE_MB: int = 1024          # 1 GB per file
+    CHUNK_SIZE_MB: int = 10               # 10 MB per upload chunk
+    CLEANUP_HOURS: int = 24               # Auto-delete temp files after 24h
+    ALLOWED_EXTENSIONS: list = [".mp4", ".mov", ".avi", ".mkv", ".webm"]
+
+    # ── AI Model Settings ─────────────────────────────────────────────────────
+    FACE_MODEL: str = "Facenet512"        # DeepFace model
+    FACE_DETECTOR: str = "retinaface"     # Face detector backend
+    YOLO_MODEL_PATH: str = "./models/yolov8n.pt"
+    YOLO_CONFIDENCE: float = 0.4
+
+    # ── Frame Extraction ──────────────────────────────────────────────────────
+    FRAME_SAMPLE_RATE: int = 5            # Analyze every Nth frame
+    MAX_FRAMES_FOR_ANALYSIS: int = 120    # Cap frames per video
+
+    # ── Classification Thresholds ─────────────────────────────────────────────
+    AUTO_CLASSIFY_THRESHOLD: float = 0.85   # ≥85% → auto-classify
+    HUMAN_REVIEW_THRESHOLD: float = 0.40    # 40-84% → human review
+    # <40% → Unclassified
+
+    # ── Agent Weights (must sum to 1.0) ───────────────────────────────────────
+    FACE_WEIGHT: float = 0.35
+    POSE_WEIGHT: float = 0.20
+    BOARD_WEIGHT: float = 0.25
+    STYLE_WEIGHT: float = 0.20
+
+    # ── Per-Agent Similarity Thresholds ──────────────────────────────────────
+    FACE_SIM_THRESHOLD: float = 0.60
+    POSE_SIM_THRESHOLD: float = 0.70
+    BOARD_SIM_THRESHOLD: float = 0.65
+    STYLE_SIM_THRESHOLD: float = 0.65
+
+    # ── Database ──────────────────────────────────────────────────────────────
+    DATABASE_URL: str = "sqlite+aiosqlite:///./surf_classifier.db"
+
+    # ── API Server ────────────────────────────────────────────────────────────
+    API_HOST: str = "0.0.0.0"
+    API_PORT: int = 8000
+    DEBUG: bool = True
+    CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000"]
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()
+
+# Create all required directories on startup
+for _path in [
+    settings.STORAGE_PATH,
+    settings.TEMP_PATH,
+    settings.VIDEOS_PATH,
+    settings.THUMBNAILS_PATH,
+    settings.EMBEDDINGS_PATH,
+    settings.FEATURES_PATH,
+    settings.MODELS_PATH,
+]:
+    Path(_path).mkdir(parents=True, exist_ok=True)

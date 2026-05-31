@@ -21,7 +21,7 @@ except Exception:
 API_URL        = "https://openrouter.ai/api/v1/chat/completions"
 API_KEY        = os.getenv("OPENROUTE_API_KEY")
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "http://localhost:5000")
-AI_MODEL       = "meta-llama/Llama-3.3-70B-Instruct"
+AI_MODEL       = "google/gemma-4-31b-it:free"
 
 # ── Local DB ──────────────────────────────────────────────────
 _SCRIPT_DIR   = Path(__file__).resolve().parent

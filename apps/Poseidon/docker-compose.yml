@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  # ── Python FastAPI Backend ─────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: surf-classifier-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data              # Persistent video/thumbnail storage
+      - ./models:/app/models          # Pre-downloaded AI model weights
+      - ./surf_classifier.db:/app/surf_classifier.db
+    environment:
+      - STORAGE_PATH=/app/data
+      - TEMP_PATH=/app/data/temp
+      - VIDEOS_PATH=/app/data/videos
+      - THUMBNAILS_PATH=/app/data/thumbnails
+      - EMBEDDINGS_PATH=/app/data/embeddings
+      - FEATURES_PATH=/app/data/features
+      - MODELS_PATH=/app/models
+      - DATABASE_URL=sqlite+aiosqlite:////app/surf_classifier.db
+      - DEBUG=false
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:80"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── React Frontend (Nginx) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: surf-classifier-ui
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  surf_data:

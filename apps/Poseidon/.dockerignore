@@ -1,0 +1,7 @@
+data
+models
+surf_classifier.db
+frontend/node_modules
+frontend/dist
+**/__pycache__
+**/*.pyc
