@@ -7,6 +7,7 @@ import {
   MoveRight, Play, Trash2, X
 } from 'lucide-react'
 import clsx from 'clsx'
+import AgentReportPanel from '../components/AgentReportPanel'
 
 function VideoTile({ video, onOpen }) {
   return (
@@ -88,6 +89,8 @@ function VideoModal({ video, surfists, onClose, onMove, onDelete, busy }) {
                 <p className="text-xs leading-relaxed text-amber-100/85">{video.decision_reason}</p>
               </div>
             )}
+
+            <AgentReportPanel report={video.agent_report} />
 
             <div>
               <label className="block text-xs text-slate-500 mb-1.5">Mover para</label>

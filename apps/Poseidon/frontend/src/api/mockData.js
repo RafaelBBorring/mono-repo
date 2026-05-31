@@ -87,10 +87,10 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       const s = surfistMap.get(cid)
       v.surfist_id = s.id
 
-      const boardConf  = 0.45 + fp.pixRatio * 0.45 + Math.random() * 0.10
-      const clothConf  = 0.40 + Math.random() * 0.30
-      const poseConf   = 0.35 + Math.random() * 0.30
-      const faceConf   = 0.20 + Math.random() * 0.40
+      const boardConf  = 0.50 + fp.pixRatio * 0.40 + Math.random() * 0.10
+      const clothConf  = 0.45 + Math.random() * 0.30
+      const poseConf   = 0.40 + Math.random() * 0.30
+      const faceConf   = 0.25 + Math.random() * 0.40
       const finalConf  = Math.min(0.97, boardConf * 0.50 + clothConf * 0.20 + poseConf * 0.20 + faceConf * 0.10)
 
       v.board_confidence     = boardConf
@@ -99,7 +99,7 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       v.face_confidence      = faceConf
       v.final_confidence     = finalConf
 
-      if (finalConf >= 0.70) {
+      if (finalConf >= 0.55) {
         v.status = 'auto_classified'
         v.decision_reason = null
       } else {
@@ -155,6 +155,16 @@ export function applyClustering(assignments, fingerprints, videoIds) {
       v.surfist_id = null
       v.final_confidence = 0.15 + Math.random() * 0.10
       v.decision_reason = 'Não foi possível analisar este vídeo completamente.'
+      v.board_confidence    = Math.random() * 0.20
+      v.clothing_confidence = Math.random() * 0.15
+      v.pose_confidence     = Math.random() * 0.15
+      v.face_confidence     = Math.random() * 0.10
+      v.agent_report = {
+        BoardAgent:    { status: 'no_signal', confidence: v.board_confidence,    method: 'SIFT+ORB fingerprint',       detail: 'Prancha não detectada — vídeo muito curto ou sem frames válidos.' },
+        ClothingAgent: { status: 'no_signal', confidence: v.clothing_confidence, method: 'RGB+HSV hist + LBP',         detail: 'Sem sinal de roupa detectado.' },
+        PoseAgent:     { status: 'no_signal', confidence: v.pose_confidence,     method: 'MediaPipe 33-keypoint',      detail: 'Postura não detectada.' },
+        FaceAgent:     { status: 'no_signal', confidence: v.face_confidence,     method: 'InsightFace ArcFace 512d',   detail: 'Rosto não detectado.' },
+      }
     }
   }
 
