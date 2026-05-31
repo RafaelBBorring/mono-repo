@@ -121,6 +121,15 @@ function getMessageFromBody(body, fallback) {
   return fallback
 }
 
+function sanitizeProviderMessage(message) {
+  const text = String(message || '').trim()
+  if (!text) return 'Erro desconhecido do provedor de IA.'
+  if (/<!doctype|<html|cloudflare|<\/body>|<\/html>/i.test(text)) {
+    return 'Provedor de IA retornou HTML/Cloudflare em vez de JSON.'
+  }
+  return text.replace(/\s+/g, ' ').slice(0, 500)
+}
+
 async function readResponseBody(response) {
   const safeResponse = typeof response?.clone === 'function' ? response.clone() : response
   const contentType = safeResponse?.headers?.get?.('Content-Type') || ''
@@ -135,7 +144,7 @@ async function readResponseBody(response) {
 }
 
 function openRouterErrorMessage(status, message) {
-  const clean = message || 'Erro desconhecido'
+  const clean = sanitizeProviderMessage(message || 'Erro desconhecido')
   if (status === 401) return `OpenRouter 401: chave API invalida ou revogada. (${clean})`
   if (status === 402) return `OpenRouter 402: creditos insuficientes na conta/chave. (${clean})`
   if (status === 403) return `OpenRouter 403: acesso negado pela chave, provider ou moderacao. (${clean})`
@@ -243,7 +252,7 @@ async function normalizeFunctionError(error, functionName) {
   } else if (/OPENROUTER_API_KEY/i.test(rawMessage)) {
     message = `Edge Function "${functionName}" sem OPENROUTER_API_KEY configurada nos secrets do Supabase.`
   } else {
-    message = `Edge Function "${functionName}" falhou${status ? ` (${status})` : ''}: ${rawMessage}`
+    message = `Edge Function "${functionName}" falhou${status ? ` (${status})` : ''}: ${sanitizeProviderMessage(rawMessage)}`
   }
 
   return createTaggedError(message, {
@@ -338,8 +347,8 @@ async function callPollinations(messages, { maxTokens = 900, responseFormat = nu
   })
 
   if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw createTaggedError(`Fallback Pollinations falhou (${response.status}): ${text.slice(0, 300) || 'sem detalhes'}`, {
+    await response.text().catch(() => '')
+    throw createTaggedError(`Fallback Pollinations indisponivel (${response.status}).`, {
       status: response.status,
       source: 'pollinations',
     })
@@ -347,7 +356,12 @@ async function callPollinations(messages, { maxTokens = 900, responseFormat = nu
 
   const data = await response.json().catch(() => null)
   const content = data?.choices?.[0]?.message?.content
-  if (!content) throw new Error('Fallback Pollinations retornou conteudo vazio.')
+  if (!content) {
+    throw createTaggedError('Fallback Pollinations retornou conteudo vazio.', {
+      status: 502,
+      source: 'pollinations',
+    })
+  }
   return content
 }
 
@@ -375,7 +389,12 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
       if (status === 402 && attempt < MAX_RETRIES) {
         if (isOpenRouterCreditBlocked(edgeError)) {
-          return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+          try {
+            return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+          } catch (pollinationsError) {
+            console.warn('[callAI] Pollinations indisponivel:', pollinationsError?.message || pollinationsError)
+            if (!OPENROUTER_API_KEY) throw pollinationsError
+          }
         }
 
         const promptLimit = edgeError?.promptTokenLimit?.limit
@@ -422,7 +441,12 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null } = {}
             const responseError = await createOpenRouterResponseError(response)
             if (response.status === 402 && fbAttempt < MAX_RETRIES) {
               if (isOpenRouterCreditBlocked(responseError)) {
-                return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+                try {
+                  return await callPollinations(effectiveMessages, { maxTokens: effectiveMaxTokens, responseFormat })
+                } catch (pollinationsError) {
+                  console.warn('[callAI] Pollinations indisponivel:', pollinationsError?.message || pollinationsError)
+                  throw pollinationsError
+                }
               }
 
               const promptLimit = responseError?.promptTokenLimit?.limit
@@ -686,6 +710,257 @@ function computeCharStats(char) {
 
 // ─── System prompt com protocolo real ─────────────────────────────────────
 
+const LOCAL_AI_FALLBACK_NOTICE = 'Fallback local: provedores de IA indisponiveis; valores preservados para nao bloquear o fluxo. Revise manualmente ou tente novamente quando a IA voltar.'
+
+function isAIProviderUnavailable(error) {
+  const message = String(error?.message || error || '')
+  const source = String(error?.source || error?.context?.source || '')
+  const status = getStatus(error)
+  if (source === 'openrouter' || source === 'pollinations') return true
+  if ([402, 408, 429, 500, 502, 503, 504].includes(status)) return true
+  return /OpenRouter|Pollinations|Edge Function|fallback|credit|credito|creditos|API|provider|indisponivel|timeout|network|Failed to fetch|IA retornou|JSON invalido/i.test(message)
+}
+
+async function withLocalAIFallback(label, operation, fallbackFactory) {
+  try {
+    return await operation()
+  } catch (error) {
+    if (!isAIProviderUnavailable(error)) throw error
+    console.warn(`[${label}] usando fallback local:`, error?.message || error)
+    return fallbackFactory(error)
+  }
+}
+
+function toNumber(value, fallback = 0) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function abilityText(ability) {
+  return ability?.descricaoBalanceada || ability?.descricao || 'Descricao mecanica nao informada.'
+}
+
+function createLocalAbilityReview(ability, index) {
+  const descricao = abilityText(ability)
+  return {
+    index,
+    nome: ability?.nome || `Habilidade ${index + 1}`,
+    tipo: ability?.tipo || 'Ativa',
+    descricao: ability?.descricao || descricao,
+    descricaoBalanceada: descricao,
+    custoEnergia: toNumber(ability?.custoEnergia, 0),
+    dano: ability?.dano || '',
+    duracao: ability?.duracao || '',
+    status: ability?.status || 'Pendente',
+    feedback: LOCAL_AI_FALLBACK_NOTICE,
+  }
+}
+
+function createLocalWeaponAbilityReview(ability, index) {
+  const descricao = abilityText(ability)
+  return {
+    index,
+    nome: ability?.nome || `Habilidade da arma ${index + 1}`,
+    descricao: ability?.descricao || descricao,
+    descricaoBalanceada: descricao,
+    tipo: ability?.tipo || 'Ativa',
+    custo: ability?.custo || '',
+    feedback: LOCAL_AI_FALLBACK_NOTICE,
+  }
+}
+
+function createLocalBalanceResult(char) {
+  return {
+    habilidades: (char?.habilidades || []).map((ability, index) => createLocalAbilityReview(ability, index)),
+    armaHabilidades: (char?.armaHabilidades || []).map((ability, index) => createLocalWeaponAbilityReview(ability, index)),
+    systemSkillSuggestions: [],
+    _fallback: 'local',
+    _fallbackReason: LOCAL_AI_FALLBACK_NOTICE,
+  }
+}
+
+function getAbilityNameFromPrompt(text) {
+  const value = String(text || '')
+  return (
+    value.match(/Habilidade:\s*"([^"]+)"/i)?.[1] ||
+    value.match(/Sobre a [^"]*"([^"]+)"/i)?.[1] ||
+    value.match(/"([^"]+)"/)?.[1] ||
+    ''
+  ).trim()
+}
+
+function findAbilityForPrompt(char, userMessage) {
+  const name = getAbilityNameFromPrompt(userMessage).toLowerCase()
+  const abilities = [...(char?.habilidades || []), ...(char?.armaHabilidades || [])]
+  return abilities.find(ability => String(ability?.nome || '').toLowerCase() === name) || abilities[0] || {}
+}
+
+function extractLocalAbilityOverrides(userMessage) {
+  const text = String(userMessage || '')
+  const energia = text.match(/(?:custo(?:Energia)?|energia)\D{0,24}(\d{1,4})/i)?.[1]
+  const dano = text.match(/(?:dano)\s*(?:para|=|:)?\s*([0-9]+d[0-9]+(?:\s*[+\-]\s*(?:MOD|FOR|DES|CON|INT|AM|\d+))?|\d+\s*(?:de\s*)?dano)/i)?.[1]
+  const duracao = text.match(/(?:duracao|duração)\s*(?:para|=|:)?\s*([^\n.;]+)/i)?.[1]
+
+  return {
+    ...(energia ? { custoEnergia: toNumber(energia, 0) } : {}),
+    ...(dano ? { dano: dano.trim() } : {}),
+    ...(duracao ? { duracao: duracao.trim() } : {}),
+  }
+}
+
+function createLocalAbilityChatResponse(char, userMessage) {
+  const ability = findAbilityForPrompt(char, userMessage)
+  const overrides = extractLocalAbilityOverrides(userMessage)
+  const hasOverrides = Object.keys(overrides).length > 0
+  const fallbackMessage = hasOverrides
+    ? 'Fallback local: IA externa indisponivel; apliquei somente os valores explicitos detectados no pedido do mestre. Revise manualmente.'
+    : LOCAL_AI_FALLBACK_NOTICE
+  const payload = {
+    nome: ability?.nome || 'Habilidade',
+    custoEnergia: overrides.custoEnergia ?? toNumber(ability?.custoEnergia, 0),
+    dano: overrides.dano ?? ability?.dano ?? '',
+    duracao: overrides.duracao ?? ability?.duracao ?? '',
+    descricaoBalanceada: abilityText(ability),
+    feedback: fallbackMessage,
+  }
+  return `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`\n${fallbackMessage}`
+}
+
+function createLocalWeaponAbilitiesResult(count, weaponName, weaponBand, userDesc) {
+  const total = Math.max(1, toNumber(count, 1))
+  return {
+    habilidades: Array.from({ length: total }, (_, index) => ({
+      nome: `${weaponName || 'Arma'} - tecnica ${index + 1}`,
+      potencia: 'Fraca',
+      tipo: index === 0 ? 'Ativa' : 'Passiva',
+      custo: index === 0 ? '5 PE' : '',
+      descricao: userDesc || `Tecnica ${weaponBand || 'N1-7'} preservada em modo local. Defina a mecanica final quando a IA voltar.`,
+      feedback: LOCAL_AI_FALLBACK_NOTICE,
+    })),
+    _fallback: 'local',
+  }
+}
+
+function createLocalEnchantmentResult(enchantment) {
+  const description = enchantment?.descricaoBalanceada || enchantment?.descricao || enchantment?.effect || ''
+  return {
+    nome: enchantment?.nome || enchantment?.name || 'Encantamento',
+    tipo: enchantment?.tipo || 'Passiva',
+    alvo: enchantment?.alvo || 'Ambos',
+    custo: enchantment?.custo || '',
+    descricaoBalanceada: description,
+    status: 'Revisao necessaria',
+    feedback: LOCAL_AI_FALLBACK_NOTICE,
+    _fallback: 'local',
+  }
+}
+
+function createLocalGeneratedAbilitiesResult(types, description) {
+  return {
+    habilidades: types.map((tipo, index) => ({
+      tipo,
+      nome: `${tipo} ${index + 1}`,
+      descricao: description || `Conceito preservado em modo local para ${tipo}. Complete os valores mecanicos quando a IA voltar.`,
+    })),
+    _fallback: 'local',
+  }
+}
+
+function createLocalMysticDraftResult(draft) {
+  return {
+    name: draft?.name || draft?.nome || 'Rascunho mistico',
+    circle: toNumber(draft?.circle ?? draft?.circulo, 1),
+    category: draft?.category || draft?.categoria || 'Utilidade',
+    pe_cost: toNumber(draft?.pe_cost ?? draft?.custo_pe, 0),
+    min_level: toNumber(draft?.min_level ?? draft?.nivel_minimo, 1),
+    action_cost: draft?.action_cost || draft?.custo_acao || 'Acao Padrao',
+    duration: draft?.duration || draft?.duracao || 'Instantaneo',
+    range: draft?.range || draft?.alcance || 'Toque',
+    short_description: draft?.short_description || draft?.descricao_curta || draft?.description || draft?.descricao || '',
+    effect: draft?.effect || draft?.efeito || draft?.description || draft?.descricao || '',
+    source_kind: draft?.source_kind || 'neutro',
+    source_name: draft?.source_name || draft?.fonte || 'Fonte indefinida',
+    law_name: draft?.law_name || draft?.lei || 'Lei indefinida',
+    price: draft?.price || draft?.preco || '',
+    rupture_risk: toNumber(draft?.rupture_risk ?? draft?.risco_ruptura, 1),
+    protocol_layer: toNumber(draft?.protocol_layer ?? draft?.camada_protocolo, 2),
+    pp_estimate: toNumber(draft?.pp_estimate ?? draft?.pp_estimado, 0),
+    tags: Array.isArray(draft?.tags) ? draft.tags : [],
+    ai_feedback: LOCAL_AI_FALLBACK_NOTICE,
+    _fallback: 'local',
+  }
+}
+
+function normalizeLegendaryAbilities(list = [], fallbackPrefix, defaultCost = 0) {
+  return (Array.isArray(list) ? list : []).map((ability, index) => ({
+    nome: ability?.nome || ability?.name || `${fallbackPrefix} ${index + 1}`,
+    descricao: ability?.descricao || ability?.description || '',
+    custoPE: toNumber(ability?.custoPE ?? ability?.pe_cost, defaultCost),
+  }))
+}
+
+function createLocalLegendaryWeaponResult(draft, powerLevel) {
+  const habilidades = draft?.habilidades || {}
+  return {
+    name: draft?.name || draft?.nome || 'Arma lendaria',
+    dano: draft?.dano || '',
+    attr: draft?.attr || draft?.atributo || 'FOR',
+    effect: draft?.effect || draft?.efeito || '',
+    power_level: powerLevel || draft?.power_level || 'notavel',
+    lore: draft?.lore || draft?.historia || '',
+    habilidades: {
+      passivas: normalizeLegendaryAbilities(habilidades.passivas, 'Passiva', 0),
+      ativas: normalizeLegendaryAbilities(habilidades.ativas, 'Ativa', 10),
+      ultimates: normalizeLegendaryAbilities(habilidades.ultimates, 'Ultimate', 30),
+    },
+    ai_feedback: LOCAL_AI_FALLBACK_NOTICE,
+    _fallback: 'local',
+  }
+}
+
+function createLocalEquipmentAbilitiesResult(totalSlots, activeSlots, passiveSlots, typeLabel, userDesc) {
+  const abilities = []
+  for (let index = 0; index < activeSlots; index++) {
+    abilities.push({
+      nome: `${typeLabel || 'Equipamento'} - ativacao ${index + 1}`,
+      descricao: userDesc || 'Habilidade ativa preservada em modo local. Defina custo, gatilho e duracao quando a IA voltar.',
+      tipo: 'Ativa',
+      efeito: LOCAL_AI_FALLBACK_NOTICE,
+    })
+  }
+  for (let index = 0; index < passiveSlots; index++) {
+    abilities.push({
+      nome: `${typeLabel || 'Equipamento'} - passiva ${index + 1}`,
+      descricao: userDesc || 'Habilidade passiva preservada em modo local. Defina o efeito mecanico quando a IA voltar.',
+      tipo: 'Passiva',
+      efeito: LOCAL_AI_FALLBACK_NOTICE,
+    })
+  }
+  while (abilities.length < totalSlots) {
+    abilities.push({
+      nome: `${typeLabel || 'Equipamento'} - efeito ${abilities.length + 1}`,
+      descricao: userDesc || 'Efeito preservado em modo local.',
+      tipo: 'Passiva',
+      efeito: LOCAL_AI_FALLBACK_NOTICE,
+    })
+  }
+  return { passivas: abilities.slice(0, totalSlots), _fallback: 'local' }
+}
+
+function estimateLocalItemWeight(nome, descricao) {
+  const text = `${nome || ''} ${descricao || ''}`.toLowerCase()
+  if (/anel|brinco|colar|amuleto|pingente/.test(text)) return 0.1
+  if (/pocao|frasco|pergaminho/.test(text)) return 0.3
+  if (/adaga|faca/.test(text)) return 0.5
+  if (/pistola/.test(text)) return 1
+  if (/espada|katana|arco|besta|chicote/.test(text)) return 1.5
+  if (/rifle|escopeta|lanca|lan[cç]a/.test(text)) return 3.5
+  if (/escudo/.test(text)) return 6
+  if (/armadura|colete/.test(text)) return 12
+  if (/bau|caixa/.test(text)) return 20
+  return null
+}
+
 function buildCrossClassContext(nivel) {
   const refAttrs = { FOR: 10, DES: 14, CON: 14, INT: 12, APA: 10, AM: 16 }
   const sk = {}
@@ -811,7 +1086,7 @@ Responda SEMPRE em JSON válido, sem markdown, sem code blocks.`
 
 // ─── analyzeBalance ───────────────────────────────────────────────────────
 
-export async function analyzeBalance(char, direction = null) {
+async function analyzeBalanceWithAI(char, direction = null) {
   const stats  = computeCharStats(char)
   const evoCtx = buildEvolucaoContext(char.habilidades, char.nivel || 1)
   const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
@@ -1051,6 +1326,14 @@ Responda EXCLUSIVAMENTE com JSON:
 
 // ─── generateWeaponAbilities ──────────────────────────────────────────────
 
+export async function analyzeBalance(char, direction = null) {
+  return withLocalAIFallback(
+    'analyzeBalance',
+    () => analyzeBalanceWithAI(char, direction),
+    () => createLocalBalanceResult(char)
+  )
+}
+
 export async function generateWeaponAbilities(char, weaponId, weaponRank, slots, userDesc, count) {
   const sk     = char.skeletonPoints || {}
   const attrs  = char.atributos || {}
@@ -1122,10 +1405,14 @@ Responda EXCLUSIVAMENTE com JSON:
   ]
 }`
 
-  const response = await callAIJson([
-    { role: 'system', content: buildSystemContext() },
-    { role: 'user',   content: prompt },
-  ])
+  const response = await withLocalAIFallback(
+    'generateWeaponAbilities',
+    () => callAIJson([
+      { role: 'system', content: buildSystemContext() },
+      { role: 'user',   content: prompt },
+    ]),
+    () => createLocalWeaponAbilitiesResult(count, weaponName, weaponBand, userDesc)
+  )
   return response
   try {
     return extractJSON(response)
@@ -1172,10 +1459,14 @@ Responda EXCLUSIVAMENTE com JSON:
   "feedback": "explicacao curta do balanceamento"
 }`
 
-  const response = await callAIJson([
-    { role: 'system', content: buildSystemContext() },
-    { role: 'user', content: prompt },
-  ], { maxTokens: 1200 })
+  const response = await withLocalAIFallback(
+    'analyzeForgeEnchantment',
+    () => callAIJson([
+      { role: 'system', content: buildSystemContext() },
+      { role: 'user', content: prompt },
+    ], { maxTokens: 1200 }),
+    () => createLocalEnchantmentResult(enchantment)
+  )
   return response
   try {
     return extractJSON(response)
@@ -1223,10 +1514,14 @@ Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habi
   ]
 }`
 
-  const response = await callAIJson([
-    { role: 'system', content: buildSystemContext() },
-    { role: 'user',   content: prompt },
-  ])
+  const response = await withLocalAIFallback(
+    'generateAbilitiesFromDescription',
+    () => callAIJson([
+      { role: 'system', content: buildSystemContext() },
+      { role: 'user',   content: prompt },
+    ]),
+    () => createLocalGeneratedAbilitiesResult(allTipos, description)
+  )
   return response
   try {
     return extractJSON(response)
@@ -1399,10 +1694,14 @@ Responda EXCLUSIVAMENTE com JSON:
 async function analyzeMysticDraft(systemType, draft, context = {}) {
   const prompt = buildMysticDraftPrompt(systemType, draft, context)
 
-  const response = await callAIJson([
-    { role: 'system', content: buildSystemContext() },
-    { role: 'user', content: prompt },
-  ], { maxTokens: 8192 })
+  const response = await withLocalAIFallback(
+    `analyzeMysticDraft:${systemType}`,
+    () => callAIJson([
+      { role: 'system', content: buildSystemContext() },
+      { role: 'user', content: prompt },
+    ], { maxTokens: 8192 }),
+    () => createLocalMysticDraftResult(draft)
+  )
   return response
 
   try {
@@ -1628,10 +1927,14 @@ RESPONDA EXCLUSIVAMENTE COM JSON VALIDO
   "ai_feedback": "Resumo: dano base escolhido (referencia da tabela). Cada habilidade: nome, mecanica preservada/criada, custoPE. Pedidos do Mestre atendidos."
 }`
 
-  const response = await callAIJson([
-    { role: 'system', content: buildSystemContext() },
-    { role: 'user', content: prompt },
-  ], { maxTokens: 8192 })
+  const response = await withLocalAIFallback(
+    'analyzeLegendaryWeaponDraft',
+    () => callAIJson([
+      { role: 'system', content: buildSystemContext() },
+      { role: 'user', content: prompt },
+    ], { maxTokens: 8192 }),
+    () => createLocalLegendaryWeaponResult(draft, powerLevel)
+  )
   return response
 
   try {
@@ -1720,7 +2023,11 @@ Seja direto e objetivo. Cite números e limites quando relevante.`
     { role: 'user', content: `${charContext}\n\nPERGUNTA DO JOGADOR: ${userMessage}` },
   ]
 
-  return await callAI(messages, { maxTokens: 900 })
+  return await withLocalAIFallback(
+    'chatAboutAbility',
+    () => callAI(messages, { maxTokens: 900 }),
+    () => createLocalAbilityChatResponse(char, userMessage)
+  )
 }
 
 export async function generateEquipmentAbilities(char, equipType, equipRank, activeSlotsOrPassiveSlots, passiveSlotsArg, userDescArg = '', armorTypeArg = '') {
@@ -1807,7 +2114,11 @@ Responda APENAS com JSON:
     { role: 'user', content: `Crie ${totalSlots} habilidade(s) para este equipamento tipo "${typeDef?.label || equipType}" rank ${equipRank}: ${activeSlots} ativa(s) e ${passiveSlots} passiva(s). Seja conciso e balanceado.` },
   ]
 
-  const parsed = await callAIJson(messages)
+  const parsed = await withLocalAIFallback(
+    'generateEquipmentAbilities',
+    () => callAIJson(messages),
+    () => createLocalEquipmentAbilitiesResult(totalSlots, activeSlots, passiveSlots, typeDef?.label || equipType, userDesc)
+  )
   return { passivas: (parsed.passivas || []).slice(0, totalSlots) }
 }
 
@@ -1822,7 +2133,11 @@ export async function suggestItemWeight(nome, descricao) {
       content: `Nome: ${nome || 'Item desconhecido'}${descricao ? `\nDescrição: ${descricao}` : ''}`
     }
   ]
-  const data = await callAI(messages, { maxTokens: 16 })
+  const data = await withLocalAIFallback(
+    'suggestItemWeight',
+    () => callAI(messages, { maxTokens: 16 }),
+    () => String(estimateLocalItemWeight(nome, descricao) ?? '')
+  )
   const raw = typeof data === 'string' ? data : data?.content || ''
   const match = raw.match(/[\d]+(?:[.,][\d])?/)
   if (!match) return null

@@ -105,21 +105,30 @@ async function pollinationsResponse(body: Record<string, unknown>) {
   }
   if (POLLINATIONS_API_KEY) headers.Authorization = `Bearer ${POLLINATIONS_API_KEY}`
 
-  const response = await fetch(POLLINATIONS_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(filterFallbackBody(body)),
-  })
+  let response: Response
+  try {
+    response = await fetch(POLLINATIONS_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(filterFallbackBody(body)),
+    })
+  } catch {
+    return jsonResponse({
+      error: 'OpenRouter sem creditos e fallback Pollinations indisponivel.',
+      source: 'pollinations',
+    }, 502)
+  }
 
   if (!response.ok) {
     const contentType = response.headers.get('Content-Type') || ''
-    const detail = contentType.includes('application/json')
+    const detail: unknown = contentType.includes('application/json')
       ? await response.json().catch(() => null)
-      : await response.text().catch(() => '')
+      : null
     return jsonResponse({
-      error: `OpenRouter sem creditos e fallback Pollinations falhou (${response.status})`,
+      error: `OpenRouter sem creditos e fallback Pollinations indisponivel (${response.status}).`,
+      status: response.status,
       source: 'pollinations',
-      details: detail,
+      ...(detail && typeof detail === 'object' ? { details: detail } : {}),
     }, 502)
   }
 
