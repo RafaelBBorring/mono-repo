@@ -247,6 +247,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const magicEnabled = magicProfile.hasAccess && (systemOptIn.magic || (char.magics || []).length > 0)
   const [sheetView, setSheetView] = useState('full')
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false)
+  const [oracleFocusRequest, setOracleFocusRequest] = useState(null)
   const [forgeMenuOpen, setForgeMenuOpen] = useState(false)
   const [editingPericias, setEditingPericias] = useState(false)
 
@@ -877,7 +878,12 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
               {/* BALANCE ANALYSIS */}
               <div className={visible('powers') ? '' : 'hidden'}>
-                <AbilityAnalysisChat char={char} onApply={handleBalanceApply} characterId={characterId} />
+                <AbilityAnalysisChat
+                  char={char}
+                  onApply={handleBalanceApply}
+                  characterId={characterId}
+                  focusRequest={oracleFocusRequest}
+                />
               </div>
 
               {/* HABILIDADES */}
@@ -919,6 +925,11 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                       active={!!activeEffects[`habilidade_${i}`]}
                       activePreview={parseActiveBonuses(h)}
                       onToggleActive={() => toggleActiveEffect(`habilidade_${i}`)}
+                      onAnalyzeWithOracle={() => setOracleFocusRequest({
+                        id: `habilidade_${i}_${Date.now()}`,
+                        index: i,
+                        ability: h,
+                      })}
                     />
                   ))}
                 </div>
@@ -2544,7 +2555,7 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
   )
 }
 
-function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining, active, activePreview, onToggleActive }) {
+function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining, active, activePreview, onToggleActive, onAnalyzeWithOracle }) {
   const [open, setOpen] = useState(false)
   const [editModal, setEditModal] = useState(false)
 
@@ -2592,6 +2603,13 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
+          {onAnalyzeWithOracle && (
+            <button type="button" onClick={e => { e.stopPropagation(); onAnalyzeWithOracle() }}
+              className="text-[10px] px-2 py-1 rounded border border-gold/20 text-gold/70 hover:text-gold hover:border-gold/40 transition-colors"
+              title="Analisar esta habilidade no Oraculo">
+              Oraculo
+            </button>
+          )}
           {canEdit && (
             <button type="button" onClick={e => { e.stopPropagation(); onToggleActive?.() }}
               title="Ativar ou desativar efeito temporario na ficha"

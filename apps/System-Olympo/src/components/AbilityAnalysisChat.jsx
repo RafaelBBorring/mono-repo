@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { analyzeBalance, chatAboutAbility } from '../services/aiService'
+import { chatAboutAbility } from '../services/aiService'
 import { useAuth } from '../contexts/AuthContext'
 
 const QUICK_ACTIONS = [
-  { id: 'analyze_all', label: 'Analisar Tudo', icon: '✦' },
-  { id: 'apply', label: 'Aplicar Valores', icon: '⚡', requiresResult: true },
+  { id: 'apply', label: 'Aplicar Resultado', icon: '⚡', requiresResult: true },
   { id: 'explain', label: 'Regras', icon: '📖' },
 ]
 
@@ -358,12 +357,13 @@ function LoadingDots() {
   )
 }
 
-export default function AbilityAnalysisChat({ char, onApply, characterId }) {
+export default function AbilityAnalysisChat({ char, onApply, characterId, focusRequest }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [lastResult, setLastResult] = useState(null)
+  const handledFocusRef = useRef(null)
   const chatEndRef = useRef(null)
   const inputRef = useRef(null)
   const scrollContainerRef = useRef(null)
@@ -396,7 +396,7 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
         {
           id: 'welcome',
           role: 'assistant',
-          content: `Sou o Oráculo, motor de balanceamento do Sistema Olympo 2.0.\n\nPosso analisar habilidades, explicar regras de balanceamento e ajustar valores. Use os botões abaixo ou digite sua solicitação.`,
+          content: `Sou o Oraculo, motor de balanceamento do Sistema Olympo 2.0.\n\nUse o botao Oraculo em uma habilidade para analisar aquele card, ou digite uma duvida/ajuste aqui.`,
         },
       ])
     }
@@ -405,6 +405,14 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
   function addMessage(msg) {
     setMessages(prev => [...prev, { ...msg, id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}` }])
   }
+
+  useEffect(() => {
+    if (!focusRequest?.id || handledFocusRef.current === focusRequest.id) return
+    setOpen(true)
+    if (loading) return
+    handledFocusRef.current = focusRequest.id
+    setTimeout(() => runSingleAbilityAnalysis(focusRequest), 0)
+  }, [focusRequest, loading])
 
   function handleRefine(ability, original) {
     const tipo = original?.tipo || ability.tipo || ''
@@ -419,12 +427,14 @@ export default function AbilityAnalysisChat({ char, onApply, characterId }) {
       try {
         const parsed = JSON.parse(jsonBlock[1].trim())
         if (parsed.habilidade) return parsed.habilidade
+        if (Array.isArray(parsed.habilidades)) return parsed.habilidades[0] || null
         return parsed
       } catch {}
     }
     try {
       const parsed = JSON.parse(resp.trim())
       if (parsed.habilidade) return parsed.habilidade
+      if (Array.isArray(parsed.habilidades)) return parsed.habilidades[0] || null
       return parsed
     } catch {}
     const looseJson = resp.match(/\{[\s\S]*"custoEnergia"[\s\S]*\}/)
@@ -509,24 +519,76 @@ Campos não alterados mantenham o valor atual.`
     }
   }
 
-  async function runAnalysis(userMessage) {
+  async function runSingleAbilityAnalysis(request) {
     if (loading) return
+    const ability = request?.ability || {}
+    const index = Number.isInteger(request?.index) ? request.index : (char.habilidades || []).indexOf(ability)
+    const tipo = ability.tipo || 'Habilidade'
+    const nome = ability.nome || `${tipo} ${index >= 0 ? index + 1 : ''}`.trim()
+
     setLoading(true)
-    addMessage({ role: 'user', content: userMessage })
-    addMessage({ role: 'system', content: 'Oráculo está analisando...' })
+    addMessage({
+      role: 'user',
+      content: `Analisar habilidade individual: ${nome}\nTipo: ${tipo}\nEnergia: ${ability.custoEnergia || 0}\nDano: ${ability.dano || '-'}\nDuracao: ${ability.duracao || '-'}\n\n${ability.descricao || 'Sem descricao.'}`,
+    })
+    addMessage({ role: 'system', content: 'Oraculo analisando esta habilidade...' })
+
+    const prompt = `[ANALISE INDIVIDUAL DE HABILIDADE]
+Analise SOMENTE a habilidade abaixo. Use as outras habilidades do personagem apenas como contexto de LCP/combos, sem revisar o lote inteiro.
+
+Index: ${index}
+Tipo: ${tipo}
+Nome: "${nome}"
+Descricao original: ${ability.descricao || 'Sem descricao.'}
+Custo Energia atual: ${ability.custoEnergia || 0}
+Dano atual: ${ability.dano || ''}
+Duracao atual: ${ability.duracao || ''}
+Status atual: ${ability.status || 'Pendente'}
+
+Retorne primeiro um bloco JSON obrigatorio com os valores finais desta habilidade:
+\`\`\`json
+{
+  "index": ${index >= 0 ? index : 0},
+  "nome": "${nome.replace(/"/g, '\\"')}",
+  "custoEnergia": 0,
+  "dano": "",
+  "duracao": "",
+  "descricaoBalanceada": "descricao completa balanceada",
+  "status": "aprovada|ajustada|irbalanceavel",
+  "feedback": "analise curta, limites aplicados e motivo"
+}
+\`\`\`
+Depois do JSON, escreva no maximo 3 linhas de explicacao.`
 
     try {
-      const data = await analyzeBalance(char, null)
-      setLastResult(data)
-      const habs = data.habilidades || []
-      const weaponHabs = data.armaHabilidades || []
-      const total = habs.length + weaponHabs.length
-      addMessage({
-        role: 'assistant',
-        content: `Análise concluída — ${total} habilidade${total !== 1 ? 's' : ''} revisada${total !== 1 ? 's' : ''}. Revise os cards abaixo e aplique individualmente ou use "Aplicar Valores".`,
-        type: 'analysis',
-        data,
-      })
+      const response = await chatAboutAbility(
+        char,
+        prompt,
+        messages.filter(m => m.role === 'user' || m.role === 'assistant').slice(-6)
+      )
+      const parsed = extractJsonFromResponse(response)
+
+      if (parsed) {
+        const adjusted = {
+          ...ability,
+          ...parsed,
+          index: parsed.index ?? index,
+          nome: parsed.nome || nome,
+          descricao: ability.descricao || parsed.descricao || '',
+          descricaoBalanceada: parsed.descricaoBalanceada || parsed.descricao || ability.descricao || '',
+          status: parsed.status || 'ajustada',
+        }
+        const data = { habilidades: [adjusted], armaHabilidades: [] }
+        setLastResult(data)
+        addMessage({
+          role: 'assistant',
+          content: parsed.feedback ? `Analise: ${parsed.feedback}` : 'Analise individual concluida. Revise o card abaixo e aplique se estiver de acordo.',
+          type: 'analysis',
+          data,
+        })
+      } else {
+        addMessage({ role: 'assistant', content: response })
+      }
     } catch (err) {
       addMessage({ role: 'assistant', content: `Erro: ${err.message}` })
     } finally {
@@ -609,20 +671,19 @@ Campos não alterados mantenham o valor atual.`
   function handleApplyAll() {
     if (!lastResult || !onApply) return
     onApply(lastResult)
-    addMessage({ role: 'system', content: 'Todos os valores balanceados foram aplicados.' })
+    addMessage({ role: 'system', content: 'Resultado balanceado aplicado.' })
   }
 
   function handleExplain() {
     addMessage({ role: 'user', content: 'Explique as regras de balanceamento' })
     addMessage({
       role: 'assistant',
-      content: `O Sistema Olympo 2.0 usa as seguintes regras:\n\n✦ SCP — Camadas de Poder (14.1)\nBase (ilimitada) + Tático (limitada por faixa) + Épico (limitada por faixa).\n\n✦ TDH — Teto de Dano por Habilidade (14.4)\nLimites de dano por faixa de nível e tipo (Fraca/Média/Forte/Ultimate).\n\n✦ IPL — Índice de Pontos de Poder (14.5)\nCada efeito tem custo em PP. Total não excede o limite do tipo na faixa.\n\n✦ LCP — Limite Cumulativo de Poder (14.6)\nBônus de TODAS as habilidades somados não excedem limites globais por faixa.\n\n✦ PEH — Pontos de Evolução\nHabilidades evoluídas recebem valores escalados ao investimento.\n\nUse "Analisar Tudo" para ver na prática.`,
+      content: `O Sistema Olympo 2.0 usa as seguintes regras:\n\n✦ SCP — Camadas de Poder (14.1)\nBase (ilimitada) + Tático (limitada por faixa) + Épico (limitada por faixa).\n\n✦ TDH — Teto de Dano por Habilidade (14.4)\nLimites de dano por faixa de nível e tipo (Fraca/Média/Forte/Ultimate).\n\n✦ IPL — Índice de Pontos de Poder (14.5)\nCada efeito tem custo em PP. Total não excede o limite do tipo na faixa.\n\n✦ LCP — Limite Cumulativo de Poder (14.6)\nBônus de TODAS as habilidades somados não excedem limites globais por faixa.\n\n✦ PEH — Pontos de Evolução\nHabilidades evoluídas recebem valores escalados ao investimento.\n\nUse o botao Oraculo no card de uma habilidade para analisar uma por vez.`,
     })
   }
 
   function handleQuickAction(action) {
     switch (action.id) {
-      case 'analyze_all': runAnalysis('Analisar todas as habilidades'); break
       case 'apply': handleApplyAll(); break
       case 'explain': handleExplain(); break
     }
@@ -632,11 +693,7 @@ Campos não alterados mantenham o valor atual.`
     const text = input.trim()
     if (!text || loading) return
     setInput('')
-    if (text.toLowerCase().includes('analisar') || text.toLowerCase().includes('balancear') || text.toLowerCase().includes('todas')) {
-      runAnalysis(text)
-    } else {
-      handleChat(text)
-    }
+    handleChat(text)
   }
 
   function handleKeyDown(e) {
