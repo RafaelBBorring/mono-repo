@@ -939,7 +939,7 @@ function AppInner() {
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">
-            <div className={`mx-auto px-4 py-6 ${currentStep === TOTAL_STEPS - 1 || currentStep === 1 ? 'max-w-7xl' : 'max-w-3xl'}`}>
+            <div className={`mx-auto py-6 ${currentStep === TOTAL_STEPS - 1 ? 'max-w-[1680px] px-2 sm:px-4 2xl:px-6' : currentStep === 1 ? 'max-w-7xl px-4' : 'max-w-3xl px-4'}`}>
               <div className="mb-6 codex-card p-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-mono text-outline uppercase tracking-widest" style={{ fontSize: '11px' }}>Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
@@ -980,7 +980,7 @@ function AppInner() {
         </div>
       ) : view === 'library' ? (
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className={`${viewingSheetId ? 'max-w-[1680px] px-2 sm:px-4 2xl:px-6' : 'max-w-7xl px-4'} mx-auto py-6`}>
             {viewingSheetId ? (
               <FullSheetViewer sheetId={viewingSheetId} onBack={() => setViewingSheetId(null)} />
             ) : (

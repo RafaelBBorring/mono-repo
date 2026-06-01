@@ -2596,7 +2596,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           </span>
           <div className="min-w-0 flex-1">
             <span className="text-txt-main text-sm font-semibold block truncate">{h.nome || '—'}</span>
-            <span className="text-txt-dim/50 text-[10px]">
+            <span className="text-txt-dim/50 text-[10px] block truncate">
               {typeStyle.label}{h.custoEnergia > 0 ? ` · ⚡${h.custoEnergia}` : ''}{h.dano ? ` · ⚔${h.dano}` : ''}
               {evoNivel > 0 && <span className="text-indigo-400 ml-1">· Evo {evoNivel}/{maxEvo} ({bracket})</span>}
             </span>
@@ -2605,9 +2605,10 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
         <div className="flex items-center gap-2 shrink-0 ml-3">
           {onAnalyzeWithOracle && (
             <button type="button" onClick={e => { e.stopPropagation(); onAnalyzeWithOracle() }}
-              className="text-[10px] px-2 py-1 rounded border border-gold/20 text-gold/70 hover:text-gold hover:border-gold/40 transition-colors"
-              title="Analisar esta habilidade no Oraculo">
-              Oraculo
+              className="w-6 h-6 rounded border border-gold/20 text-gold/70 hover:text-gold hover:border-gold/40 bg-gold/5 inline-flex items-center justify-center transition-colors"
+              title="Analisar esta habilidade no Oraculo"
+              aria-label="Analisar esta habilidade no Oraculo">
+              <span className="material-symbols-outlined text-[14px] leading-none" aria-hidden="true">auto_awesome</span>
             </button>
           )}
           {canEdit && (
