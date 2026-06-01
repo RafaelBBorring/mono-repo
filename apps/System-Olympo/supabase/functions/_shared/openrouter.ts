@@ -100,7 +100,8 @@ function isCreditBlocked(status: number, message: string) {
 
 function shouldUseProviderFallback(status: number, message: string) {
   if (isCreditBlocked(status, message)) return true
-  return status === 429 && /free-models-per-day|rate limit exceeded|ratelimit|too many requests/i.test(message)
+  if (status === 429) return true
+  return /free-models-per-day|rate limit exceeded|ratelimit|too many requests/i.test(message)
 }
 
 function shouldTryNextModel() {

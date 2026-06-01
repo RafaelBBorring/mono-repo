@@ -39,6 +39,8 @@ const JSON_REPAIR_MAX_CHARS = 12000
 const PROMPT_TOKEN_CHAR_RATIO = 3
 const AI_REQUEST_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_AI_REQUEST_TIMEOUT_MS) || 45000, 10000)
 const JSON_REPAIR_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_JSON_REPAIR_TIMEOUT_MS) || 20000, 5000)
+const POLLINATIONS_URL = import.meta.env.VITE_POLLINATIONS_URL || 'https://text.pollinations.ai/openai'
+const POLLINATIONS_MODEL = import.meta.env.VITE_POLLINATIONS_MODEL || 'openai'
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -215,6 +217,92 @@ function withTimeout(promise, ms, message, props = {}) {
 function hasLikelyJSON(text) {
   const value = String(text || '')
   return value.includes('{') || value.includes('[')
+}
+
+function getTextContent(value) {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) {
+    return value.map(item => getTextContent(item)).filter(Boolean).join('\n').trim()
+  }
+  if (value && typeof value === 'object') {
+    return getTextContent(value.text ?? value.content ?? value.value)
+  }
+  return ''
+}
+
+function addPollinationsInstruction(messages, wantsJson) {
+  if (!Array.isArray(messages)) return messages
+  const content = wantsJson
+    ? 'Responda somente com um objeto JSON valido. O primeiro caractere deve ser { e o ultimo deve ser }. Nao use markdown, raciocinio nem texto fora do JSON.'
+    : 'Retorne uma resposta final nao vazia.'
+  return [{ role: 'system', content }, ...messages]
+}
+
+function createPollinationsBody(body) {
+  const wantsJson = Boolean(body.response_format)
+  const next = {
+    ...body,
+    model: POLLINATIONS_MODEL,
+    messages: addPollinationsInstruction(body.messages, wantsJson),
+  }
+  delete next.response_format
+  delete next.provider
+  if (typeof next.max_tokens === 'number' && next.max_tokens < 1800) {
+    next.max_tokens = 1800
+  }
+  return next
+}
+
+function extractCompletionContent(data, wantsJson = false) {
+  const choices = data?.choices
+  const firstChoice = Array.isArray(choices) ? choices[0] : null
+  const message = firstChoice?.message
+  const content = getTextContent(
+    message?.content ??
+    message?.reasoning ??
+    message?.text ??
+    firstChoice?.text ??
+    data?.output_text ??
+    data?.text ??
+    data?.content ??
+    data?.response
+  )
+  if (!wantsJson || !content) return content
+  const objectStart = content.indexOf('{')
+  const objectEnd = content.lastIndexOf('}')
+  if (objectStart >= 0 && objectEnd > objectStart) return content.slice(objectStart, objectEnd + 1)
+  return content
+}
+
+async function callPollinationsDirect(body, timeoutMs = AI_REQUEST_TIMEOUT_MS) {
+  const wantsJson = Boolean(body.response_format)
+  const response = await withTimeout(
+    fetch(POLLINATIONS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createPollinationsBody(body)),
+    }),
+    timeoutMs,
+    `Timeout no fallback Pollinations apos ${Math.round(timeoutMs / 1000)}s.`,
+    { status: 408, source: 'pollinations', timeoutMs }
+  )
+
+  if (!response.ok) {
+    throw createTaggedError(`Pollinations fallback falhou (${response.status}).`, {
+      status: response.status,
+      source: 'pollinations',
+    })
+  }
+
+  const data = await response.json().catch(() => null)
+  const content = extractCompletionContent(data, wantsJson)
+  if (!content) {
+    throw createTaggedError('Pollinations fallback retornou resposta vazia.', {
+      status: 502,
+      source: 'pollinations',
+    })
+  }
+  return content
 }
 
 function getAffordableTokenLimit(message) {
@@ -419,6 +507,16 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null, tempe
     } catch (edgeError) {
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
+      if (status === 429 || status === 402) {
+        console.warn('[callAI] OpenRouter limitado; tentando fallback Pollinations direto.')
+        return await callPollinationsDirect({
+          model: activeModel,
+          messages: effectiveMessages,
+          temperature: effectiveTemperature,
+          max_tokens: effectiveMaxTokens,
+          ...(effectiveResponseFormat ? { response_format: effectiveResponseFormat } : {}),
+        }, timeoutMs)
+      }
       if (isResponseFormatUnsupported(edgeError)) {
         effectiveResponseFormat = null
         await sleep(250)
