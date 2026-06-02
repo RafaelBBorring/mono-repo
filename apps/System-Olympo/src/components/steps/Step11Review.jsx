@@ -2594,13 +2594,17 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           <span className={`text-xs font-bold w-8 h-8 rounded-lg flex items-center justify-center border ${typeStyle.badge} shrink-0`}>
             {typeStyle.icon}
           </span>
-          <div className="min-w-0 flex-1">
-            <span className="text-txt-main text-sm font-semibold block truncate">{h.nome || '—'}</span>
-            <span className="text-txt-dim/50 text-[10px] block truncate">
-              {typeStyle.label}{h.custoEnergia > 0 ? ` · ⚡${h.custoEnergia}` : ''}{h.dano ? ` · ⚔${h.dano}` : ''}
-              {evoNivel > 0 && <span className="text-indigo-400 ml-1">· Evo {evoNivel}/{maxEvo} ({bracket})</span>}
+          <span className="text-txt-main text-sm font-semibold truncate">{h.nome || '—'}</span>
+          {h.custoEnergia > 0 && (
+            <span className="shrink-0 bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 text-[11px] font-mono leading-tight">
+              ⚡{h.custoEnergia}
             </span>
-          </div>
+          )}
+          {h.tipo === 'Passiva' && (
+            <span className="shrink-0 bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-400/20 text-[10px] font-mono leading-tight">
+              Passiva
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
           {onAnalyzeWithOracle && (
@@ -2612,30 +2616,6 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
             </button>
           )}
           {canEdit && (
-            <button type="button" onClick={e => { e.stopPropagation(); onToggleActive?.() }}
-              title="Ativar ou desativar efeito temporario na ficha"
-              className={`active-toggle ${active ? 'is-active' : ''}`}>
-              {active ? 'Ativo' : 'Ligar'}
-            </button>
-          )}
-          {canEdit && h.tipo !== 'Passiva' && (
-            <div className="flex items-center gap-1 mr-1">
-              <button type="button" onClick={e => { e.stopPropagation(); handleEvoDown() }}
-                disabled={!canDown}
-                className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canDown ? 'bg-void border border-sep/50 text-txt-dim hover:border-red-400 hover:text-red-400' : 'opacity-20 cursor-not-allowed'}`}>
-                −
-              </button>
-              <span className={`text-[10px] font-mono w-4 text-center ${evoNivel > 0 ? 'text-indigo-400' : 'text-txt-dim/40'}`}>{evoNivel}</span>
-              <button type="button" onClick={e => { e.stopPropagation(); handleEvoUp() }}
-                disabled={!canUp || pehRemaining <= 0}
-                title={upReason || (pehRemaining <= 0 ? 'Sem PEH disponível' : '')}
-                className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canUp && pehRemaining > 0 ? 'bg-void border border-sep/50 text-txt-dim hover:border-indigo-400 hover:text-indigo-400' : 'opacity-20 cursor-not-allowed'}`}>
-                +
-              </button>
-            </div>
-          )}
-          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-ok/20 bg-ok/5' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-warn/20 bg-warn/5' : STATUS_COLORS[h.status] === 'text-err' ? 'border-err/20 bg-err/5' : 'border-sep/20 bg-sep/5'} ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
-          {canEdit && (
             <button type="button" onClick={e => { e.stopPropagation(); setEditModal(true) }}
               className="text-txt-dim/30 hover:text-gold/60 text-xs transition-colors" title="Editar habilidade">✎</button>
           )}
@@ -2645,6 +2625,33 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
 
       {open && (
         <div className="px-5 pb-5 space-y-4 border-t border-sep/15">
+          <div className="flex flex-wrap items-center gap-2 pt-3">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-ok/20 bg-ok/5' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-warn/20 bg-warn/5' : STATUS_COLORS[h.status] === 'text-err' ? 'border-err/20 bg-err/5' : 'border-sep/20 bg-sep/5'} ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
+            {evoNivel > 0 && <span className="text-indigo-400 text-[10px] font-mono">Evo {evoNivel}/{maxEvo} ({bracket})</span>}
+            {canEdit && h.tipo !== 'Passiva' && (
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => handleEvoDown()}
+                  disabled={!canDown}
+                  className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canDown ? 'bg-void border border-sep/50 text-txt-dim hover:border-red-400 hover:text-red-400' : 'opacity-20 cursor-not-allowed'}`}>
+                  −
+                </button>
+                <span className={`text-[10px] font-mono w-4 text-center ${evoNivel > 0 ? 'text-indigo-400' : 'text-txt-dim/40'}`}>{evoNivel}</span>
+                <button type="button" onClick={() => handleEvoUp()}
+                  disabled={!canUp || pehRemaining <= 0}
+                  title={upReason || (pehRemaining <= 0 ? 'Sem PEH disponível' : '')}
+                  className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canUp && pehRemaining > 0 ? 'bg-void border border-sep/50 text-txt-dim hover:border-indigo-400 hover:text-indigo-400' : 'opacity-20 cursor-not-allowed'}`}>
+                  +
+                </button>
+              </div>
+            )}
+            {canEdit && (
+              <button type="button" onClick={onToggleActive?.()}
+                title="Ativar ou desativar efeito temporario na ficha"
+                className={`active-toggle ${active ? 'is-active' : ''}`}>
+                {active ? 'Ativo' : 'Ligar'}
+              </button>
+            )}
+          </div>
           {evoDelta && (
             <div className="flex flex-wrap gap-1.5 pt-3">
               {evoDelta.danoTotal && <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.danoTotal} dano</span>}
