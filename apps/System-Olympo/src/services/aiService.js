@@ -38,8 +38,8 @@ const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }
 const JSON_REPAIR_MAX_CHARS = 12000
 const PROMPT_TOKEN_CHAR_RATIO = 3
-const AI_REQUEST_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_AI_REQUEST_TIMEOUT_MS) || 45000, 10000)
-const JSON_REPAIR_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_JSON_REPAIR_TIMEOUT_MS) || 20000, 5000)
+const AI_REQUEST_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_AI_REQUEST_TIMEOUT_MS) || 120000, 10000)
+const JSON_REPAIR_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_JSON_REPAIR_TIMEOUT_MS) || 30000, 5000)
 const POLLINATIONS_URL = import.meta.env.VITE_POLLINATIONS_URL || 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODEL = import.meta.env.VITE_POLLINATIONS_MODEL || 'openai'
 

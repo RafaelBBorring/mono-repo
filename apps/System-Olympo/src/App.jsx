@@ -635,17 +635,70 @@ export default function App() {
   )
 }
 
+function parseHash() {
+  const hash = window.location.hash.replace(/^#\/?/, '')
+  if (!hash) return { view: 'home', sheetId: null, adminTab: null }
+  const parts = hash.split('/')
+  const view = parts[0] || 'home'
+  const sheetId = parts[1] || null
+  const adminTab = parts[1] || null
+  return { view, sheetId, adminTab }
+}
+
+function buildHash(view, sheetId = null, adminTab = null) {
+  if (view === 'home' || !view) return '#/'
+  if (view === 'library' && sheetId) return `#/library/${sheetId}`
+  if (view === 'admin') return adminTab ? `#/admin/${adminTab}` : `#/admin`
+  return `#/${view}`
+}
+
 function AppInner() {
   const { user, profile, loading, logout, isAdmin } = useAuth()
   const { char, update, updateNested, updateHabilidade, reset, clearDraft, hasDraft, drafts, startNewDraft, loadDraftById, deleteDraft } = useCharacter()
+
+  const initialHash = useRef(parseHash())
   const [currentStep, setCurrentStep] = useState(0)
-  const [view, setView] = useState('home')
+  const [view, setViewRaw] = useState(() => initialHash.current.view)
   const [validationError, setValidationError] = useState(null)
   const [sheets, setSheets] = useState([])
-  const [viewingSheetId, setViewingSheetId] = useState(null)
-  const [adminTab, setAdminTab] = useState('sheets')
+  const [viewingSheetId, setViewingSheetIdRaw] = useState(() => initialHash.current.sheetId)
+  const [adminTab, setAdminTab] = useState(() => initialHash.current.adminTab || 'sheets')
   const prevStepRef = useRef(0)
   const lastUserRef = useRef(null)
+  const skipHashSync = useRef(false)
+
+  const setView = useCallback((v) => {
+    setViewRaw(v)
+    setViewingSheetIdRaw(null)
+    if (!skipHashSync.current) window.location.hash = buildHash(v)
+  }, [])
+
+  const setViewingSheetId = useCallback((id) => {
+    setViewingSheetIdRaw(id)
+    if (!skipHashSync.current) {
+      window.location.hash = id ? buildHash('library', id) : buildHash(view)
+    }
+  }, [view])
+
+  const navigate = useCallback((v, sheetId = null, aTab = null) => {
+    setViewRaw(v)
+    setViewingSheetIdRaw(sheetId)
+    if (v === 'admin' && aTab) setAdminTab(aTab)
+    if (!skipHashSync.current) window.location.hash = buildHash(v, sheetId, aTab)
+  }, [])
+
+  useEffect(() => {
+    function onHashChange() {
+      const { view: hView, sheetId, adminTab: hTab } = parseHash()
+      skipHashSync.current = true
+      setViewRaw(hView)
+      setViewingSheetIdRaw(sheetId)
+      if (hTab) setAdminTab(hTab)
+      skipHashSync.current = false
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   useEffect(() => {
     if (user && profile) loadSheets()
@@ -658,8 +711,8 @@ function AppInner() {
     }
     if (profile && lastUserRef.current !== user.id) {
       lastUserRef.current = user.id
-      setView('home')
-      setViewingSheetId(null)
+      const { view: hView } = parseHash()
+      if (!hView || hView === 'home') navigate('home')
     }
   }, [user, profile])
 
@@ -803,7 +856,7 @@ function AppInner() {
     }
     reset()
     setCurrentStep(0)
-    setView('library')
+    navigate('library')
   }
 
   async function handleDeleteSheet(id) {
@@ -868,7 +921,7 @@ function AppInner() {
       <ParticleBackground />
       <header className="top-app-bar sticky top-0 z-50 w-full px-6 md:px-8 py-3 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <button type="button" onClick={() => { setView('home'); setViewingSheetId(null) }}
+          <button type="button" onClick={() => navigate('home')}
             className="flex flex-col text-left hover:opacity-80 transition-opacity" title="Voltar ao menu principal">
             <span className="font-cinzel text-primary tracking-[0.15em] uppercase" style={{ fontSize: 'clamp(1rem, 2vw, 1.35rem)', lineHeight: 1 }}>
               Olympo
@@ -888,13 +941,13 @@ function AppInner() {
           )}
         </div>
         <nav className="hidden md:flex items-center gap-6 lg:gap-8">
-          <button onClick={() => { setView('home'); setViewingSheetId(null) }}
+          <button onClick={() => navigate('home')}
             className={`font-mono uppercase tracking-[0.15em] transition-colors pb-0.5 ${view === 'home' ? 'text-primary border-b border-primary' : 'text-outline hover:text-primary'}`}
             style={{ fontSize: '11px' }}>
             Visão Geral
           </button>
           {navItems.map(v => (
-            <button key={v.key} onClick={() => { setView(v.key); setViewingSheetId(null) }}
+            <button key={v.key} onClick={() => navigate(v.key)}
               className={`font-mono uppercase tracking-[0.15em] transition-colors pb-0.5 ${view === v.key ? 'text-primary border-b border-primary' : 'text-outline hover:text-primary'}`}
               style={{ fontSize: '11px' }}>
               {v.label}
@@ -911,7 +964,7 @@ function AppInner() {
             Sair
           </button>
         </nav>
-        <button onClick={() => { setView('home'); setViewingSheetId(null) }}
+        <button onClick={() => navigate('home')}
           className="md:hidden text-primary p-2" title="Menu">
           <span className="material-symbols-outlined">menu</span>
         </button>
@@ -923,12 +976,12 @@ function AppInner() {
              userName={profile?.display_name || user.email?.split('@')[0]}
              sheetsCount={sheets.length}
              sheets={sheets}
-             onNew={() => { handleNew(); setView('wizard') }}
+             onNew={() => handleNew()}
               onContinue={handleResumeDraft}
              onLibrary={() => setView('library')}
              onReference={() => setView('reference')}
-             onOpenSheet={(id) => { setViewingSheetId(id); setView('library') }}
-             onAdminArea={(tab) => { setAdminTab(tab); setView('admin'); setViewingSheetId(null) }}
+             onOpenSheet={(id) => navigate('library', id)}
+             onAdminArea={(tab) => navigate('admin', null, tab)}
               hasDraft={hasDraft}
              drafts={drafts}
              onOpenDraft={handleResumeDraft}
@@ -997,7 +1050,7 @@ function AppInner() {
       ) : view === 'admin' && isAdmin ? (
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <AdminDashboard initialTab={adminTab} onViewSheet={(id) => { setViewingSheetId(id); setView('library') }} />
+            <AdminDashboard initialTab={adminTab} onViewSheet={(id) => navigate('library', id)} />
           </div>
         </main>
       ) : (
