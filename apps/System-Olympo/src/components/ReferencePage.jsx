@@ -59,7 +59,7 @@ const SECTION_CATEGORIES = [
     icon: '✨',
     color: 'text-purple-400 border-purple-400/30 bg-purple-400/5',
     activeColor: 'bg-purple-400 text-white',
-    sections: ['Alquimia', 'Feitiços', 'Runas', 'Grimórios'],
+    sections: ['Alquimia', 'Feitiços', 'Runas', 'Grimórios', 'Hierarquia Mística'],
   },
   {
     id: 'system',
@@ -97,6 +97,7 @@ const SECTION_VERSIONS = {
   'Feitiços': 'v2.0',
   'Runas': 'v2.0',
   'Grimórios': 'v2.0',
+  'Hierarquia Mística': 'v2.1 — Jun 2026',
   'Criação de Personagem': 'v2.0',
   'Balanceamento': 'v2.0',
   'Skills Sistemicas': 'v2.2 - Mai 2026',
@@ -107,7 +108,7 @@ const CATEGORY_DESCRIPTIONS = {
   character: 'Raças, atributos, classes, progressão e criação de personagem.',
   combat: 'Triagens e módulos que definem o estilo de combate do personagem.',
   equipment: 'Armas, armaduras, categorias de set e artes marciais.',
-  magic: 'Alquimia, feitiços, runas e grimórios — todo conhecimento místico.',
+  magic: 'Alquimia, feitiços, runas, grimórios e hierarquia mística — todo conhecimento místico.',
   system: 'Protocolo de balanceamento SCP/TDH e calibração de poder.',
 }
 
@@ -151,6 +152,7 @@ export default function ReferencePage() {
       'Feitiços': ['feitico', 'spell', 'bruxaria', 'arcana', 'magia', 'conjuracao'],
       'Runas': ['runa', 'rune', 'selo', 'menor', 'comum', 'maior'],
       'Grimórios': ['grimorio', 'grimoire', 'tom', 'livro'],
+      'Hierarquia Mística': ['hierarquia', 'comparacao', 'ritual vs feitico', 'magia vs feitico', 'conhecimento', 'circulo', 'diferenca'],
       'Criação de Personagem': ['criacao', 'criar', 'personagem', 'guia', 'passo a passo'],
       'Balanceamento': ['balanceamento', 'balance', 'scp', 'tdh', 'pp', 'ipl', 'calibracao', 'protocolo'],
       'Skills Sistemicas': ['skill', 'skills', 'sistemica', 'passiva', 'pendencia', 'mestre', 'forja', 'hefesto', 'zeus', 'esqueleto'],
@@ -330,6 +332,7 @@ export default function ReferencePage() {
                 {section === 'Feitiços' && <SpellsSection />}
                 {section === 'Runas' && <RunesSection />}
                 {section === 'Grimórios' && <GrimoriosSection />}
+                {section === 'Hierarquia Mística' && <MysticHierarchySection />}
                 {section === 'Criação de Personagem' && <CreationGuideSection />}
                 {section === 'Balanceamento' && <BalanceProtocolSection />}
                 {section === 'Skills Sistemicas' && <SystemSkillsRulesSection />}
@@ -798,6 +801,42 @@ function CombatRulesSection() {
         <p>• <strong className="text-txt-main">N1-10:</strong> CD 14–16</p>
         <p>• <strong className="text-txt-main">N11-20:</strong> CD 18–22</p>
         <p>• <strong className="text-txt-main">N21-30:</strong> CD 22–28</p>
+      </div>
+
+      <div className="bg-void rounded-xl border border-red-400/30 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-red-400 text-lg">⚔</span>
+          <h3 className="text-red-400 text-sm font-semibold">Economia de Ações — Limites Rigorosos</h3>
+        </div>
+        <div className="space-y-3">
+          <div className="bg-deep rounded-lg border border-red-400/15 p-3">
+            <div className="text-red-300 text-xs font-semibold mb-2">Regras de Acao por Turno</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• Cada personagem tem por turno: <strong className="text-amber-300">1 Acao Padrao</strong> + <strong className="text-amber-300">1 Movimento</strong> + <strong className="text-amber-300">1 Acao Bonus</strong> (se concedida) + Reacoes.</li>
+              <li>• <strong className="text-txt-main">MAXIMO de acoes de ATAQUE por turno: 2</strong> (1 padrao + 1 bonus). Independente de triagens ou modulos.</li>
+              <li>• <strong className="text-txt-main">MAXIMO total de acoes por turno: 3</strong> (padrao + bonus + reacao).</li>
+              <li>• Modulos que permitem "3 habilidades em 1 ataque" contam como <strong className="text-red-300">UMA unica acao</strong>. O dano combinado NAO pode exceder 150% do TDH da mais forte.</li>
+            </ul>
+          </div>
+          <div className="bg-deep rounded-lg border border-red-400/15 p-3">
+            <div className="text-red-300 text-xs font-semibold mb-2">Habilidades vs Conhecimentos (Rituais/Feiticos/Runas/Magias)</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• <strong className="text-red-300">Habilidade + Conhecimento NAO podem ser usados na mesma Acao Padrao.</strong> Sao acoes SEPARADAS.</li>
+              <li>• Conjurar um conhecimento SEMPRE consome a <strong className="text-amber-300">Acao Padrao</strong> daquele turno.</li>
+              <li>• Na mesma rodada, um personagem pode: usar 1 habilidade (padrao) E 1 conhecimento (bonus? NAO — conhecimento usa padrao). Ou: usar 1 conhecimento (padrao) E 1 habilidade que seja Acao Bonus.</li>
+              <li>• Nenhum efeito de conhecimento pode conceder acoes extras sem custo severo (40%+ da energia total).</li>
+            </ul>
+          </div>
+          <div className="bg-deep rounded-lg border border-amber-300/15 p-3">
+            <div className="text-amber-300 text-xs font-semibold mb-2">Papel dos Conhecimentos no Combate</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• A principal forma de eficacia em combate sao as <strong className="text-txt-main">Habilidades do personagem</strong>.</li>
+              <li>• Rituais, feiticos, runas e magias servem como <strong className="text-sky-300">APOIO</strong>: controle, utilidade, burst situacional.</li>
+              <li>• Mesmo um Mestre Magia com 9 magias depende de suas habilidades para combate sustentado.</li>
+              <li>• Um Ritual poderoso + Feitico poderoso + Habilidade poderosa na mesma rodada e <strong className="text-red-300">IMPOSSIVEL</strong> — cada um exige 1 Acao Padrao separada.</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -2435,33 +2474,74 @@ function AlchemySection() {
 function SpellsSection() {
   const [expanded, setExpanded] = useState(null)
 
+  const SPELL_CIRCLES_9 = [
+    { circle: 1, label: '1o Circulo', pe: '6-12', cd: '12-14', desc: 'Suporte basico, resposta curta', cost: 4 },
+    { circle: 2, label: '2o Circulo', pe: '12-20', cd: '14-16', desc: 'Combate regular, versatilidade', cost: 6 },
+    { circle: 3, label: '3o Circulo', pe: '20-30', cd: '17-19', desc: 'Assinatura de escola, impacto alto', cost: 10 },
+    { circle: 4, label: '4o Circulo', pe: '30-42', cd: '20-23', desc: 'Raro, epico. Efeitos poderosos', cost: 15 },
+    { circle: 5, label: '5o Circulo', pe: '42-55', cd: '22-25', desc: 'Poder elevado. Dominio de escola', cost: 20 },
+    { circle: 6, label: '6o Circulo', pe: '55-70', cd: '24-27', desc: 'Devastador. Efeitos de area massivos', cost: 26 },
+    { circle: 7, label: '7o Circulo', pe: '70-90', cd: '26-29', desc: 'Lenda viva. Altera o campo de batalha', cost: 33 },
+    { circle: 8, label: '8o Circulo', pe: '90-120', cd: '28-31', desc: 'Quase divino. Efeitos persistentes', cost: 42 },
+    { circle: 9, label: '9o Circulo', pe: '120-160', cd: '30-34', desc: 'Apice absoluto. Exclusivo de Hierofantes', cost: 52 },
+  ]
+
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Feitiços</SectionTitle>
         <p className="text-txt-dim text-sm">
-          Feitiços são repertórios opcionais de conjuração. Na prática, o sistema diferencia <span className="text-emerald-300">Bruxaria</span> e <span className="text-sky-300">Arcana</span>, mantendo a mesma economia de espaços por círculo usada na Alquimia para evitar explosão de complexidade.
+          Feitiços são repertórios de conjuração com <span className="text-gold font-semibold">9 circulos de poder</span> (inspirado em D&D).
+          O sistema diferencia <span className="text-emerald-300">Bruxaria</span> e <span className="text-sky-300">Arcana</span>.
+          <strong className="text-red-300"> Rituais vao ate 4o circulo. Feitiços ate 9o.</strong>
         </p>
       </div>
 
       <div className="bg-void rounded-xl border border-gold/25 p-4">
-        <div className="text-gold text-sm font-semibold mb-3">Fórmula de Espaços</div>
-        <p className="text-gold font-mono text-sm text-center py-2">
-          Total = Base por Nível + Treinamento + Classe + Raça
-        </p>
-        <p className="text-txt-dim text-xs mt-2 text-center">
-          A mesma economia de espaços da Alquimia se aplica. O <strong className="text-teal-300">Nível</strong> dita a base
-          (6 espaços no N1 até 26 no N30). Treinamento em Poder, classe e raça modificam o total.
-        </p>
+        <div className="text-gold text-sm font-semibold mb-3">Circulos de Feitiço (1-9)</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-sep text-txt-dim">
+                <th className="py-2 px-2 text-left">Circulo</th>
+                <th className="py-2 px-2 text-left">PE</th>
+                <th className="py-2 px-2 text-left">CD</th>
+                <th className="py-2 px-2 text-left">Espaco</th>
+                <th className="py-2 px-2 text-left">Descricao</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SPELL_CIRCLES_9.map(c => (
+                <tr key={c.circle} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-1.5 px-2 font-cinzel text-gold font-semibold">{c.label}</td>
+                  <td className="py-1.5 px-2 font-mono text-sky-300">{c.pe}</td>
+                  <td className="py-1.5 px-2 font-mono text-amber-300">{c.cd}</td>
+                  <td className="py-1.5 px-2 font-mono text-txt-dim">{c.cost}</td>
+                  <td className="py-1.5 px-2 text-txt-dim">{c.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-red-400/20 p-4">
+        <div className="text-red-400 text-sm font-semibold mb-3">Importante: Feitiços NAO substituem Habilidades</div>
+        <ul className="space-y-1.5 text-xs text-txt-dim">
+          <li>• A principal forma de eficacia em combate sao as <strong className="text-txt-main">Habilidades do personagem</strong>.</li>
+          <li>• Feitiços servem como <strong className="text-sky-300">apoio</strong>: controle, utilidade, burst situacional.</li>
+          <li>• Mesmo um personagem com 9 feitiços depende de suas habilidades para combate sustentado.</li>
+          <li>• Conjurar um feitiço consome a <strong className="text-amber-300">Acao Padrao</strong> daquele turno — nao pode usar habilidade E feitiço na mesma acao.</li>
+        </ul>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-void rounded-xl border border-sep p-4">
           <div className="text-gold text-sm font-semibold mb-3">Quem realmente acessa Feitiços</div>
           <ul className="space-y-2 text-xs text-txt-dim">
-            <li><span className="text-emerald-300 font-semibold">Bruxas</span>, <span className="text-emerald-300 font-semibold">Elfos</span>, <span className="text-sky-300 font-semibold">Magos</span> e <span className="text-gold font-semibold">Humanos Místicos</span> sustentam repertórios melhores.</li>
-            <li><span className="text-purple-300 font-semibold">Místicos</span> de outras raças também podem estudar, mas com orçamento menor.</li>
-            <li>Se a ficha não gira em torno do arcano, o ideal é deixar o sistema desligado e manter só habilidades base, arma e módulos.</li>
+            <li><span className="text-emerald-300 font-semibold">Bruxas</span>: acesso ate 6o circulo. Referencia em maldicao e vinculo.</li>
+            <li><span className="text-gold font-semibold">Humanos Misticos</span>: unicos com potencial para 9o circulo. Acesso completo.</li>
+            <li><span className="text-purple-300 font-semibold">Misticos</span> de outras racas aptas: repertorio limitado.</li>
           </ul>
         </div>
 
@@ -2475,7 +2555,7 @@ function SpellsSection() {
                   <span className="text-[10px] bg-sep/20 text-txt-dim px-1.5 py-0.5 rounded">Poder {level}</span>
                 </div>
                 <div className="mt-2 space-y-1 text-xs">
-                  <div className="text-txt-dim">Espaços: <span className="text-gold font-mono">{info.budget >= 0 ? '+' : ''}{info.budget}</span></div>
+                  <div className="text-txt-dim">Espacos: <span className="text-gold font-mono">{info.budget >= 0 ? '+' : ''}{info.budget}</span></div>
                   <div className="text-txt-dim">Teto: <span className="text-sky-300 font-mono">{info.maxCircle}o</span></div>
                   <p className="text-txt-dim leading-relaxed">{info.notes.join(' ')}</p>
                 </div>
@@ -2808,6 +2888,98 @@ function MysticExamples({ title, items, expanded, setExpanded, badgeGetter }) {
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function MysticHierarchySection() {
+  return (
+    <div className="space-y-6">
+      <SectionTitle>Hierarquia Mística</SectionTitle>
+      <p className="text-txt-dim text-sm mb-4">
+        Os 4 tipos de conhecimento mistico do Sistema Olympo seguem uma hierarquia clara de poder, complexidade e impacto no combate.
+        <strong className="text-red-300"> Nenhum conhecimento substitui as Habilidades do personagem.</strong>
+      </p>
+
+      <div className="bg-void rounded-xl border border-purple-400/25 p-4">
+        <div className="text-purple-400 text-sm font-semibold mb-3">Hierarquia de Poder dos Conhecimentos</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { tipo: 'Rituais (Alquimia)', circulos: '1o - 4o circulo', papel: 'UTILITARIO — suporte, preparo, tatico', poder: 'Mais fraco. Focado em utilidade e preparo.', cor: 'emerald', req: 'Modulo Estudos de Alquimia' },
+            { tipo: 'Feitiços', circulos: '1o - 9o circulo', papel: 'APOIO — combate versatil, controle, burst', poder: 'Versatil. De suporte a devastador (9o).', cor: 'sky', req: 'Bruxa ou Humano Mistico' },
+            { tipo: 'Runas', circulos: 'Menor / Comum / Maior', papel: 'PERSISTENTE — selos, efeitos duradouros', poder: 'Moderado. Efeitos persistentes passivos/reativos.', cor: 'amber', req: 'Modulo Vinculo Runico' },
+            { tipo: 'Magias', circulos: '1o - 4o circulo (Basica a Suprema)', papel: 'PODER PURO — densos, exigentes, devastadores', poder: 'Mais forte por circulo. +10-15% vs Feiticos.', cor: 'red', req: 'Mago, Demonio, Elfo, Humano Mistico' },
+          ].map((item, i) => (
+            <div key={i} className={`bg-deep rounded-lg border border-${item.cor}-400/25 p-3`}>
+              <div className={`text-${item.cor}-300 text-sm font-cinzel font-bold mb-2`}>{item.tipo}</div>
+              <div className="space-y-1 text-xs text-txt-dim">
+                <div>Circulos: <span className="text-gold font-semibold">{item.circulos}</span></div>
+                <div>Papel: <span className="text-txt-main font-semibold">{item.papel}</span></div>
+                <div>{item.poder}</div>
+                <div className="text-[10px] border-t border-sep/20 pt-1 mt-1">Requisito: <span className="text-sky-300">{item.req}</span></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-red-400/20 p-4">
+        <div className="text-red-400 text-sm font-semibold mb-3">Regra de Ouro: Conhecimentos NAO Substituem Habilidades</div>
+        <div className="space-y-3">
+          <div className="bg-deep rounded-lg border border-red-400/15 p-3">
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• A <strong className="text-txt-main">principal forma de eficacia em combate</strong> sao as Habilidades do personagem (Passiva, Ativa, Ultimate).</li>
+              <li>• Conhecimentos (Rituais, Feitiços, Runas, Magias) servem como <strong className="text-sky-300">APOIO</strong>.</li>
+              <li>• Mesmo um personagem com Feitiço de 9o circulo + Magia Suprema + Runa Maior + Ritual de 4o circulo, <strong className="text-red-300">precisa de suas habilidades</strong> para combate sustentado.</li>
+              <li>• Cada conhecimento usado em combate consome <strong className="text-amber-300">1 Acao Padrao</strong> — nao acumula com habilidades na mesma acao.</li>
+            </ul>
+          </div>
+          <div className="bg-deep rounded-lg border border-red-400/15 p-3">
+            <div className="text-red-300 text-xs font-semibold mb-2">Por que existe essa regra?</div>
+            <ul className="space-y-1.5 text-xs text-txt-dim">
+              <li>• <strong className="text-txt-main">Balanceamento:</strong> Se conhecimentos substituissem habilidades, personagens magicos teriam poder dobrado vs nao-magicos.</li>
+              <li>• <strong className="text-txt-main">Identidade:</strong> Cada personagem deve ter sua forca principal nas habilidades que refletem sua classe, triagem e estilo.</li>
+              <li>• <strong className="text-txt-main">Combo Prevention:</strong> Um Ritual de 4o + Feitiço de 9o + Habilidade Ultimate na mesma rodada causaria desequilibrio completo. Por isso, cada um exige 1 Acao Padrao.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-void rounded-xl border border-amber-300/20 p-4">
+        <div className="text-amber-300 text-sm font-semibold mb-3">Tabela Comparativa de Tetos de Dano</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-sep text-txt-dim">
+                <th className="py-2 px-2 text-left">Circulo</th>
+                <th className="py-2 px-2 text-left">Ritual (Alquimia)</th>
+                <th className="py-2 px-2 text-left">Feitiço</th>
+                <th className="py-2 px-2 text-left">Magia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { c: '1o', ritual: '2d8+MOD', feitico: '2d8+MOD', magia: '2d10+MOD' },
+                { c: '2o', ritual: '3d10+8', feitico: '3d10+8', magia: '4d10+10' },
+                { c: '3o', ritual: '5d10+15', feitico: '5d10+15', magia: '6d10+18' },
+                { c: '4o', ritual: '8d12+20', feitico: '7d12+18', magia: '9d12+24' },
+                { c: '5o', ritual: '—', feitico: '9d12+25', magia: '—' },
+                { c: '6o', ritual: '—', feitico: '11d12+35', magia: '—' },
+                { c: '7o', ritual: '—', feitico: '14d12+45', magia: '—' },
+                { c: '8o', ritual: '—', feitico: '18d12+60', magia: '—' },
+                { c: '9o', ritual: '—', feitico: '22d12+80', magia: '—' },
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-sep/20 hover:bg-void/40">
+                  <td className="py-1.5 px-2 font-cinzel text-gold font-semibold">{row.c}</td>
+                  <td className="py-1.5 px-2 font-mono text-emerald-300">{row.ritual}</td>
+                  <td className="py-1.5 px-2 font-mono text-sky-300">{row.feitico}</td>
+                  <td className="py-1.5 px-2 font-mono text-red-300">{row.magia}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -1,0 +1,90 @@
+/**
+ * balanceUserPrompt.js — Prompt de Usuario para Balanceamento de Habilidades
+ *
+ * Finalidade: Monta o contexto completo do personagem + habilidades para a IA balancear.
+ *
+ * Tokens estimados: ~2000-4000 tokens (dependendo da quantidade de habilidades)
+ *
+ * Parametros:
+ * - stats: objeto retornado por computeCharStats()
+ * - char: ficha completa do personagem
+ * - evoCtx: contexto de evolucao das habilidades
+ * - pehTotal, pehSpent: PEH disponivel e gasto
+ * - habilidadesData: array de habilidades serializadas
+ * - armaHabs: habilidades da arma
+ * - direction: 'buff' | 'nerf' | null
+ * - systemSkills: catalogo de skills sistemicas
+ * - effectParamDefs: definicoes de tipos de efeito
+ */
+export function buildBalanceUserPrompt({ stats, char, evoCtx, pehTotal, pehSpent, habilidadesData, armaHabs, direction, systemSkills, effectParamDefs }) {
+  const fichaCompleta = `
+FICHA CALCULADA REAL DO PERSONAGEM:
+Nome: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nivel: ${stats.nivel} | Faixa: ${stats.band} | Raca: ${char.raca || 'N/A'} (${char.racaTipo || 'N/A'})
+Atributos: FOR ${stats.atributos.FOR}(Mod${stats.atributos.modFOR}) | DES ${stats.atributos.DES}(Mod${stats.atributos.modDES}) | CON ${stats.atributos.CON}(Mod${stats.atributos.modCON}) | INT ${stats.atributos.INT}(Mod${stats.atributos.modINT}) | APA ${stats.atributos.APA} | AM ${stats.atributos.AM}(Mod${stats.atributos.modAM})
+Vida Total: ${stats.vidaTotal} | Energia: ${stats.energiaTotal} | PE: ${stats.peTotal} | CA: ${stats.caBase} | Reacoes: ${stats.reacoes}
+Dano Base: ${stats.danoBase} | Bonus Arma (${char.armaRank}): ${stats.armaDanoBonus} | Ataque Base: ${stats.ataqueBase}
+PEH Total: ${pehTotal} | PEH gasto: ${pehSpent} | PEH restante: ${pehTotal - pehSpent}
+Triagens: ${stats.triagem}
+Amplificadores Triagem: ${stats.triagemAmps}
+Amplificadores Modulo: ${stats.moduleAmps}
+Modulos: ${(char.modulosAdquiridos || []).map(m => m.id || m).join(', ') || 'Nenhum'}
+Pericias: ${Object.entries(char.pericias || {}).filter(([,v]) => v > 0).map(([k,v]) => `${k}(grau${v})`).join(', ') || 'Nenhuma'}
+Equipamentos: Armadura ${stats.equipStats.totalArmor}/${stats.equipStats.totalArmorMax} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}`
+
+  const directionNote = direction === 'buff'
+    ? 'DIRECAO DO MESTRE: BUFF — Aumente danos ~30-50%, reduza custos ~20%, aumente duracoes. Use TDH EFETIVO como MINIMO.'
+    : direction === 'nerf'
+    ? 'DIRECAO DO MESTRE: NERF — Reduza danos ~30-50%, aumente custos ~20%, reduza duracoes, adicione restricoes.'
+    : ''
+
+  return `${fichaCompleta}
+
+HABILIDADES (para revisar e balancear):
+${JSON.stringify(habilidadesData, null, 2)}
+
+HABILIDADES DA ARMA:
+${JSON.stringify(armaHabs, null, 2)}
+
+CATALOGO DE SKILLS SISTEMICAS:
+${JSON.stringify((systemSkills || []).map(s => ({ id: s.id, name: s.name, category: s.category, short: s.short, effectTypes: s.effectTypes })), null, 2)}
+
+TIPOS DE EFEITO E PARAMETROS:
+${JSON.stringify(Object.entries(effectParamDefs || {}).map(([type, def]) => ({ type, label: def.label, params: Object.entries(def.params).map(([k, p]) => ({ key: k, label: p.label, type: p.type, default: p.default })) })), null, 2)}
+
+${directionNote}
+INSTRUCOES CRITICAS:
+- Faixa: ${stats.band}. Use TDH e IPL/PP desta faixa.
+- O dano da habilidade e EXTRA ao dano base+arma+atributo.
+- Respeite tdhBracketEfetivo de cada habilidade.
+- VERIFICACAO CUMULATIVA OBRIGATORIA (LCP + ANTI-ABUSO).
+- Economia de Acoes: habilidade + conhecimento NAO na mesma acao. Max 2 ataques/turno. Max 3 acoes totais/turno.
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "habilidades": [
+    {
+      "index": 0,
+      "nome": "mantenha o nome original",
+      "descricao": "MANTEHA EXATAMENTE a descricao original do jogador.",
+      "descricaoBalanceada": "Descricao com valores numericos atualizados.",
+      "custoEnergia": 0,
+      "dano": "XdY+MOD ajustado ou vazio",
+      "duracao": "X rodadas ajustado ou vazio",
+      "status": "aprovada|ajustada|irbalanceavel",
+      "feedback": "analise completa"
+    }
+  ],
+  "armaHabilidades": [
+    {
+      "index": 0,
+      "nome": "mantenha o nome",
+      "descricao": "MANTEHA a descricao original.",
+      "descricaoBalanceada": "Descricao com valores atualizados.",
+      "tipo": "Ativa ou Passiva",
+      "custo": "custo ajustado",
+      "feedback": "explicacao"
+    }
+  ],
+  "systemSkillSuggestions": []
+}`
+}

@@ -11,6 +11,20 @@ export const MAGIC_COMPLEXITY = {
   4: 'Suprema',
 }
 
+export const MAGIC_POTENCIA = {
+  menor: { label: 'Menor', desc: 'Magia sutil e contida. Impacto localizado com custo baixo.', icon: '◆', multiplier: 1.0 },
+  moderada: { label: 'Moderada', desc: 'Magia com efeito tangivel. Altera o fluxo do combate.', icon: '◆◆', multiplier: 1.3 },
+  intensa: { label: 'Intensa', desc: 'Magia densa e exigente. Requer preparo e concentracao.', icon: '◆◆◆', multiplier: 1.7 },
+  catastrofica: { label: 'Catastrofica', desc: 'Magia devastadora. Distorce multiplas leis fisicas simultaneamente.', icon: '◈', multiplier: 2.2 },
+}
+
+export const MAGIC_COMPLEXITY_LABELS = {
+  1: '1o Circulo — Basica',
+  2: '2o Circulo — Intermediaria',
+  3: '3o Circulo — Avancada',
+  4: '4o Circulo — Suprema',
+}
+
 export const MAGIC_TRAINING_RULES = {
   0: { label: 'Sem Foco', budget: -4, maxCircle: 1, notes: ['Sem treino em Poder, o mago so estabiliza magias simples e lineares.'] },
   1: { label: 'Aprendiz', budget: 0, maxCircle: 2, notes: ['Canaliza magias basicas com regularidade.'] },

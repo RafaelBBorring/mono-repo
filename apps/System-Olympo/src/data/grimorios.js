@@ -27,4 +27,4 @@ export const GRIMORIO_DEFAULT_IMAGES = {
   magic: '',
 }
 
-export const MIN_LEVEL_FOR_CIRCLE = { 1: 1, 2: 5, 3: 11, 4: 18 }
+export const MIN_LEVEL_FOR_CIRCLE = { 1: 1, 2: 5, 3: 11, 4: 18, 5: 22, 6: 25, 7: 27, 8: 28, 9: 29 }
