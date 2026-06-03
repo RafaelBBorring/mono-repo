@@ -54,15 +54,23 @@ REGRAS CRITICAS:
 1. ATRIBUA VALORES REAIS usando a tabela TDH acima como referencia. NAO use placeholders.
    - O dano da habilidade e EXTRA ao dano base+arma+atributo.
    - Ativas "Fraca" geram ~50-70% do TDH Fraca. "Media" ~70-100% do TDH Media. "Forte" ~80-100% do TDH Forte.
-2. Cada habilidade DEVE ter pelo menos 1 efeito mecanico concreto com numeros.
-3. EFEITOS NARRATIVOS DEVEM TER TRADUCAO MECANICA:
+2. CUSTO DE ENERGIA OBRIGATORIO: TODA habilidade Ativa e Ultimate DEVE ter custoEnergia > 0.
+   - A UNICA excessao e se a descricao do jogador EXPLICITAMENTE pedir habilidade sem custo.
+   - Use a tabela de custo de energia acima. Jamais gere custoEnergia: 0 para Ativa ou Ultimate.
+3. Cada habilidade DEVE ter pelo menos 1 efeito mecanico concreto com numeros.
+4. EFEITOS NARRATIVOS DEVEM TER TRADUCAO MECANICA:
    - "Teleporte" → Vantagem em ataque/esquiva, bonus de posicao
    - "Invisibilidade" → Vantagem em Furtividade, Desvantagem para inimigos
    - "Rapidez" → +NdN em DES, acao extra condicional
-4. Mantenha coerencia narrativa: todas pertencem ao mesmo personagem.
-5. Respeite Economia de Acoes: nenhuma habilidade concede mais de 1 acao extra por uso.
-6. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, etc).
-7. Habilidades de nivel alto (N23-30) DEVEM ser poderosas — um semideus nvl 30 com 1400 HP espera habilidades que causem dano significativo.
+5. Mantenha coerencia narrativa: todas pertencem ao mesmo personagem.
+6. Respeite Economia de Acoes: nenhuma habilidade concede mais de 1 acao extra por uso.
+7. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, etc).
+8. Habilidades de nivel alto (N23-30) DEVEM ser poderosas — um semideus nvl 30 com 1400 HP espera habilidades que causem dano significativo.
+9. EVOLUCAO DE HABILIDADE: Os Pontos de Evolucao (PEH) AMPLIFICAM o conceito EXISTENTE.
+   - Se a habilidade cura, evoluir aumenta a CURA (mais dados, mais bonus), NAO adiciona dano.
+   - Se a habilidade causa dano, evoluir aumenta o DANO (mais dados, mais bonus).
+   - Se a habilidade concede buff/escudo, evoluir aumenta DURACAO ou VALOR do buff.
+   - NUNCA adicione efeito que contradiz o conceito original ao evoluir.
 
 Responda EXCLUSIVAMENTE com JSON:
 {

@@ -125,6 +125,20 @@ Ultimate:     N1-7:25-40E | N8-15:40-70E | N16-22:70-110E | N23-30:110-180E
 - Custo como % da Energia Total: Fraca=3-5% | Media=5-10% | Forte=10-18% | Ultimate=18-30%
 - Amplificadores devem custar PROPORCIONALMENTE ao poder que liberam.
 
+CUSTO DE ENERGIA OBRIGATORIO:
+- TODA habilidade Ativa e Ultimate DEVE ter custoEnergia > 0.
+- Se o jogador enviou custoEnergia: 0 para uma Ativa/Ultimate, ATRIBUA o custo minimo da tabela acima.
+- A UNICA excessao: o MESTRE (GM) explicitamente aprovar custo zero via ajuste.
+- Habilidade sem custo de energia e SEMPRE suspeita de desbalanceamento.
+
+EVOLUCAO DE HABILIDADE (PEH):
+- Pontos de Evolucao AMPLIFICAM o conceito EXISTENTE, nunca o alteram.
+- Cura evoluída: aumenta dados de cura e bonus. NAO adiciona dano.
+- Dano evoluído: aumenta dados de dano e bonus. NAO adiciona cura.
+- Buff evoluído: aumenta duracao e valor. NAO adiciona efeito de area.
+- Cada ponto de evolucao = +1 dado do tipo existente + bonus flat proporcional ao bracket.
+- Se evolucaoNivel >= 2, o bracket base PROMOVE na tabela TDH (Fraca→Media, Media→Forte, etc).
+
 REGRAS DE DESCRICAO BALANCEADA:
 a) Preserve ESTRITAMENTE o texto narrativo e a estrutura.
 b) Identifique TODOS os valores numericos e substitua pelos balanceados.

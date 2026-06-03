@@ -3224,9 +3224,9 @@ function BalanceProtocolSection() {
   ]
 
   const pehRows = [
-    ['Guerreiro',  'N6, N10, N13, N17, N20, N24, N27*', '8 PEH (+1 no N27)'],
-    ['Operativo',  'N5, N9, N13, N16, N19, N22, N25, N27, N30', '9 PEH'],
-    ['Místico',    'N4, N8, N12, N16, N19, N22, N24, N27**, N30', '10 PEH (+2 no N27)'],
+    ['Guerreiro',  'N6, N10, N13, N17, N20, N24, N27, N30', '16 PEH (+2 por nível)'],
+    ['Operativo',  'N5, N9, N13, N16, N19, N22, N25, N27, N30', '18 PEH (+2 por nível)'],
+    ['Místico',    'N4, N8, N12, N16, N19, N22, N24, N27**, N30', '20 PEH (+2 no N27)'],
   ]
 
   const evoRules = [

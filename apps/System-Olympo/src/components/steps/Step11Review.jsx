@@ -2607,6 +2607,16 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
+          {canEdit && h.tipo !== 'Passiva' && canUp && pehRemaining > 0 && (
+            <button type="button" onClick={e => { e.stopPropagation(); handleEvoUp() }}
+              title={`Evoluir habilidade (${evoNivel}/${maxEvo}) — ${pehRemaining} PEH disponível`}
+              className="w-6 h-6 rounded border border-indigo-400/30 text-indigo-400/70 hover:text-indigo-400 hover:border-indigo-400/60 bg-indigo-400/5 inline-flex items-center justify-center transition-colors text-[11px] font-bold">
+              +
+            </button>
+          )}
+          {evoNivel > 0 && (
+            <span className="text-indigo-400/60 text-[10px] font-mono">{evoNivel}/{maxEvo}</span>
+          )}
           {onAnalyzeWithOracle && (
             <button type="button" onClick={e => { e.stopPropagation(); onAnalyzeWithOracle() }}
               className="w-6 h-6 rounded border border-gold/20 text-gold/70 hover:text-gold hover:border-gold/40 bg-gold/5 inline-flex items-center justify-center transition-colors"
@@ -2645,7 +2655,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               </div>
             )}
             {canEdit && (
-              <button type="button" onClick={onToggleActive?.()}
+              <button type="button" onClick={() => onToggleActive?.()}
                 title="Ativar ou desativar efeito temporario na ficha"
                 className={`active-toggle ${active ? 'is-active' : ''}`}>
                 {active ? 'Ativo' : 'Ligar'}
