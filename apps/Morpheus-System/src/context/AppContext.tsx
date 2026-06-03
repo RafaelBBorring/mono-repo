@@ -86,7 +86,8 @@ interface AppContextType {
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
   refreshBilling: () => Promise<void>;
-  startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>;
+  validateCoupon: (code: string) => Promise<{ valid: boolean; coupon?: { id: string; code: string; label: string; discountPct: number }; error?: string }>;
+  startCheckout: (plan: PlanId, interval: "monthly" | "yearly", email?: string, isTrial?: boolean, couponCode?: string) => Promise<void>;
   startTrial: (email?: string) => Promise<void>;
   openBillingPortal: () => Promise<void>;
   selectWorkspace: (clinicId: string) => Promise<void>;
@@ -604,12 +605,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     catch { addToast("Erro ao remover.", "error"); }
   }, [addToast, ensureBillingAccess]);
 
+  const validateCoupon = useCallback(
+    async (code: string): Promise<{ valid: boolean; coupon?: { id: string; code: string; label: string; discountPct: number }; error?: string }> => {
+      if (!code.trim()) return { valid: false, error: "Informe o codigo do cupom." };
+      try {
+        const response = await fetch(apiUrl("/api/coupons/validate"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
+        const payload = (await response.json()) as { id?: string; code?: string; label?: string; discountPct?: number; error?: string };
+        if (!response.ok || payload.error) return { valid: false, error: payload.error || "Cupom invalido." };
+        return { valid: true, coupon: { id: payload.id!, code: payload.code!, label: payload.label!, discountPct: payload.discountPct! } };
+      } catch {
+        return { valid: false, error: "Erro ao validar cupom." };
+      }
+    }, []
+  );
+
   const startCheckout = useCallback(
-    async (plan: PlanId, interval: "monthly" | "yearly", email?: string, isTrial = false) => {
+    async (plan: PlanId, interval: "monthly" | "yearly", email?: string, isTrial = false, couponCode?: string) => {
       if (!checkoutEnabled) { addToast("Checkout indisponivel.", "info"); return; }
       const linkKey = `${plan}-${interval}`;
       const paymentLinkUrl = stripePaymentLinks[linkKey];
-      if (paymentLinkUrl && !isTrial) {
+      if (paymentLinkUrl && !isTrial && !couponCode) {
         let url = paymentLinkUrl;
         if (email) { url += `${url.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(email)}`; }
         window.location.href = url; return;
@@ -617,7 +636,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const response = await fetch(apiUrl("/api/stripe/checkout"), {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, userId: user?.id, trial: isTrial }),
+          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, userId: user?.id, trial: isTrial, couponCode }),
         });
         const payload = (await response.json()) as { url?: string; error?: string };
         if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
@@ -696,7 +715,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       authUser, clinic, selectedPlan, billingRequired, billingActive, checkoutEnabled,
       user, workspaces, pendingInvitations, login, signup, logout, setView, setActivePsych,
       addRoom, deleteRoom, addPsychologist, deletePsychologist, addReservation, removeReservation,
-      addToast, removeToast, toggleTheme, setTheme, refreshBilling, startCheckout, startTrial, openBillingPortal,
+      addToast, removeToast, toggleTheme, setTheme, refreshBilling, validateCoupon, startCheckout, startTrial, openBillingPortal,
       selectWorkspace, inviteDoctor, createClinic, loadWorkspaces, acceptInvitation, updateAccount, serverApiAvailable, cancelSubscription,
     }}>
       {children}
@@ -724,6 +743,7 @@ export function useApp() {
       removeReservation: (async () => {}) as (id: string) => Promise<void>,
       addToast: () => {}, removeToast: () => {}, toggleTheme: () => {},
       setTheme: (() => {}) as (theme: Theme) => void, refreshBilling: async () => {},
+      validateCoupon: (async () => ({ valid: false })) as (code: string) => Promise<{ valid: boolean; coupon?: { id: string; code: string; label: string; discountPct: number }; error?: string }>,
       startCheckout: (async () => {}) as (plan: PlanId, interval: "monthly" | "yearly", email?: string) => Promise<void>,
       startTrial: (async () => {}) as () => Promise<void>, openBillingPortal: async () => {},
       selectWorkspace: (async () => {}) as (clinicId: string) => Promise<void>,

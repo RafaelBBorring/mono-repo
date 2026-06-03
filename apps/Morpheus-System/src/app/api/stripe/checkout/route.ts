@@ -26,6 +26,33 @@ function getPriceId(plan: PlanId, interval: "monthly" | "yearly"): string | unde
   return PRICE_MAP[plan]?.[interval] || undefined;
 }
 
+async function validateCoupon(code: string) {
+  const supabase = createSupabaseAdmin();
+  const { data: coupon } = await supabase
+    .from("coupons")
+    .select("id, code, label, discount_pct, max_uses, current_uses, valid_from, valid_until, active")
+    .eq("code", code.toUpperCase())
+    .maybeSingle();
+
+  if (!coupon || !coupon.active) return null;
+
+  const now = new Date();
+  if (coupon.valid_from && new Date(coupon.valid_from) > now) return null;
+  if (coupon.valid_until && new Date(coupon.valid_until) < now) return null;
+  if (coupon.max_uses !== -1 && coupon.current_uses >= coupon.max_uses) return null;
+
+  return coupon;
+}
+
+async function redeemCoupon(couponId: string) {
+  try {
+    const supabase = createSupabaseAdmin();
+    const { data } = await supabase.from("coupons").select("current_uses").eq("id", couponId).maybeSingle();
+    const next = (data?.current_uses ?? 0) + 1;
+    await supabase.from("coupons").update({ current_uses: next }).eq("id", couponId);
+  } catch {}
+}
+
 export async function POST(request: Request) {
   try {
     const access = await validateClinicAccess(request);
@@ -37,6 +64,7 @@ export async function POST(request: Request) {
       interval?: "monthly" | "yearly";
       email?: string;
       trial?: boolean;
+      couponCode?: string;
     };
 
     const plan: PlanId = body.plan || "pro";
@@ -76,6 +104,22 @@ export async function POST(request: Request) {
     const appUrl = getAppUrl();
     const stripe = getStripe();
 
+    let stripeCouponId: string | undefined;
+
+    if (body.couponCode) {
+      const coupon = await validateCoupon(body.couponCode);
+      if (coupon) {
+        const stripeCoupon = await stripe.coupons.create({
+          percent_off: coupon.discount_pct,
+          duration: "repeating",
+          duration_in_months: 1,
+          name: `${coupon.label} (${coupon.code})`,
+        });
+        stripeCouponId = stripeCoupon.id;
+        await redeemCoupon(coupon.id);
+      }
+    }
+
     const sessionConfig: Record<string, unknown> = {
       mode: "subscription",
       customer: stripeCustomerId,
@@ -89,6 +133,7 @@ export async function POST(request: Request) {
         plan,
         interval,
         trial: isTrial ? "true" : "false",
+        coupon_code: body.couponCode || "",
       },
       subscription_data: {
         metadata: {
@@ -98,6 +143,10 @@ export async function POST(request: Request) {
         },
       },
     };
+
+    if (stripeCouponId) {
+      sessionConfig.discounts = [{ coupon: stripeCouponId }];
+    }
 
     if (isTrial) {
       (sessionConfig.subscription_data as Record<string, unknown>).trial_period_days = 7;

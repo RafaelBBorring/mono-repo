@@ -41,6 +41,18 @@ export interface BillingAccount {
   updatedAt: string;
 }
 
+export interface Coupon {
+  id: string;
+  code: string;
+  label: string;
+  discountPct: number;
+  maxUses: number;
+  currentUses: number;
+  validFrom: string;
+  validUntil?: string;
+  active: boolean;
+}
+
 export type AppView = "splash" | "admin" | "psych" | "login" | "signup" | "billing" | "workspace" | "subscription";
 
 export interface AppState {

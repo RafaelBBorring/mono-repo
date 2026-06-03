@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Tag,
   XCircle,
 } from "lucide-react";
 import { billingStatusLabel } from "@/lib/billing";
@@ -48,10 +49,15 @@ export default function SubscriptionScreen() {
     startTrial,
     setView,
     theme,
+    validateCoupon,
   } = useApp();
   const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
   const [interval, setInterval] = useState<"monthly" | "yearly">("monthly");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; label: string; discountPct: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const selected = getPlanById(selectedPlan);
   const selectedPrice = interval === "monthly" ? selected.monthlyLabel : selected.yearlyLabel;
@@ -100,8 +106,28 @@ export default function SubscriptionScreen() {
 
   async function handleCheckout() {
     setLoadingAction("checkout");
-    await startCheckout(selectedPlan, interval);
+    await startCheckout(selectedPlan, interval, undefined, false, appliedCoupon?.code);
     setLoadingAction(null);
+  }
+
+  async function handleApplyCoupon() {
+    setCouponError(null);
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    const result = await validateCoupon(couponInput);
+    setCouponLoading(false);
+    if (result.valid && result.coupon) {
+      setAppliedCoupon(result.coupon);
+      setCouponInput("");
+    } else {
+      setAppliedCoupon(null);
+      setCouponError(result.error || "Cupom invalido.");
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponError(null);
   }
 
   async function handleTrial() {
@@ -308,6 +334,45 @@ export default function SubscriptionScreen() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-5">
+                <span className="font-body text-sm font-bold text-[var(--text-soft)]">
+                  Tem um cupom?
+                </span>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleApplyCoupon(); }}
+                    placeholder="CODIGO DO CUPOM"
+                    className="min-h-[44px] flex-1 rounded-xl border border-[var(--border-light)] bg-[var(--bg-primary)] px-3 font-body text-sm font-semibold tracking-wider text-[var(--text-primary)] uppercase"
+                  />
+                  <button
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent-lavender)] bg-[var(--accent-lavender)]/10 px-3 font-body text-sm font-extrabold text-[var(--accent-lavender)] transition hover:bg-[var(--accent-lavender)]/20 disabled:opacity-50"
+                  >
+                    <Tag size={15} />
+                    {couponLoading ? "..." : "Aplicar"}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="mt-2 font-body text-sm font-bold text-red-400">{couponError}</p>
+                )}
+                {appliedCoupon && (
+                  <div className="mt-3 flex items-center justify-between rounded-xl border border-[var(--accent-mint)]/40 bg-[var(--accent-mint)]/5 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Tag size={16} className="text-[var(--accent-mint)]" />
+                      <span className="font-body text-sm font-extrabold text-[var(--accent-mint)]">
+                        {appliedCoupon.label} — {appliedCoupon.discountPct}% OFF
+                      </span>
+                    </div>
+                    <button onClick={handleRemoveCoupon} className="font-body text-xs font-bold text-red-400 hover:text-red-300">
+                      Remover
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
