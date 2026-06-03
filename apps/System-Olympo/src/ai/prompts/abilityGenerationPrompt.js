@@ -1,21 +1,18 @@
 /**
- * abilityGenerationPrompt.js — Prompt para Geracao de Habilidades Iniciais
+ * abilityGenerationPrompt.js — Prompt para Geracao de Habilidades BASE
  *
- * Finalidade: Gera o conjunto base de habilidades de um personagem a partir
- * de uma descricao narrativa (Passiva, Ativa x3, Ultimate, Extras).
+ * Paradigma: TODAS as habilidades comecam no mesmo nivel base, INDEPENDENTE
+ * do nivel do personagem. Os Pontos de Evolucao (PEH) sao o UNICO motor de escala.
+ * O jogador investe PEH → aciona o Oraculo → IA recalibra com base no PEH investido.
  *
- * Tokens estimados: ~800-1200 tokens
- *
- * O prompt inclui a tabela TDH completa para que a IA gere valores
- * ja dentro da faixa correta, sem precisar de balanceamento posterior.
+ * Tokens estimados: ~900-1300 tokens
  */
 export function buildAbilityGenerationPrompt({ char, description, allTipos, tiposList }) {
   const nivel = char.nivel || 1
-  const band = getLevelBand(nivel)
 
   return `VOCE E O ORACULO — MOTOR DE GERACAO DE HABILIDADES DO SISTEMA OLYMPO 2.0.
 
-PERSONAGEM: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nivel: ${nivel} | Faixa: ${band}
+PERSONAGEM: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nivel: ${nivel}
 FOR ${char.atributos?.FOR} | DES ${char.atributos?.DES} | CON ${char.atributos?.CON} | INT ${char.atributos?.INT} | APA ${char.atributos?.APA} | AM ${char.atributos?.AM}
 Triagem: ${char.triagemPrincipal || 'Nenhuma'} (${char.triagemPrincipalNivel || 0})
 Modulos: ${(char.modulosAdquiridos || []).map(m => m.name || m.id).join(', ') || 'Nenhum'}
@@ -24,58 +21,61 @@ Descricao do jogador: "${description}"
 Crie EXATAMENTE ${allTipos.length} habilidades na ORDEM e TIPO abaixo:
 ${tiposList}
 
-═══════════════════════════════════════════════════════════════
-TETO DE DANO POR HABILIDADE (TDH) — USE ESTA TABELA COMO REFERENCIA:
-═══════════════════════════════════════════════════════════════
-N1-7:   Fraca=3d8+12    | Media=4d10+18  | Forte=6d10+24  | Ult=8d12+30
-N8-15:  Fraca=4d10+18   | Media=6d10+25  | Forte=9d12+32  | Ult=13d12+45
-N16-22: Fraca=6d12+25   | Media=8d12+38  | Forte=12d12+50 | Ult=17d12+65
-N23-30: Fraca=8d12+32   | Media=10d12+45 | Forte=14d12+60 | Ult=20d12+80
+════════════════════════════════════════════════════════════════
+PARADIGMA DE CRIACAO — HABILIDADES BASE (PEH = 0):
+════════════════════════════════════════════════════════════════
+TODAS as habilidades comecam no NIVEL BASE, independente do nivel do personagem.
+O que torna uma habilidade poderosa sao os PONTOS DE EVOLUCAO (PEH) investidos nela.
+Voce esta gerando habilidades com PEH = 0 (sem evolucao). Use os valores BASE abaixo.
+
+VALORES BASE (PEH = 0):
+Ativa Fraca:    2d6+4 de dano    | Custo: 5-10E
+Ativa Media:    3d8+8 de dano    | Custo: 12-20E
+Ativa Forte:    4d10+12 de dano  | Custo: 22-35E
+Ultimate:       5d12+16 de dano  | Custo: 35-50E
+Passiva:        Efeito passivo sem custo de energia
+
+TETO MAXIMO (TDH) — ALCANCADO APENAS COM PEH MAXIMO:
+Ativa Fraca (max 5 PEH):    8d12+32   | Custo: 30-50E
+Ativa Media (max 5 PEH):    10d12+45  | Custo: 50-80E
+Ativa Forte (max 5 PEH):    14d12+60  | Custo: 70-120E
+Ultimate (max 3 PEH):       20d12+80  | Custo: 110-180E
 
 CALIBRACAO HP ESPERADO POR NIVEL:
 N5:140-210 | N10:250-380 | N15:380-560 | N20:520-760 | N25:700-980 | N30:950-1400
 
-OBJETIVO DE COMBATE: Combates PvP no mesmo nivel devem durar ~10 rodadas.
-- Isso significa que o dano medio por habilidade Ativa deve ser ~8-12% do HP medio da faixa.
-- Habilidades Fracas: ~5-7% do HP | Medias: ~8-12% | Fortes: ~12-18% | Ultimate: ~18-25%
+OBJETIVO DE COMBATE: PvP no mesmo nivel deve durar ~10 rodadas.
+- O dano BASE e BAIXO de proposito — o jogador investe PEH para alcancar o poder ideal.
+- Cada PEH investido aumenta: ~+1 dado, ~+bonus flat, ~+custo de energia proporcional.
+- Estrategia: distribuir PEH entre habilidades OU concentrar tudo em uma.
 
-CUSTO DE ENERGIA POR TIPO E FAIXA:
-Passiva: sem custo
-Ativa Fraca: N1-7:3-8E | N8-15:8-15E | N16-22:15-25E | N23-30:25-40E
-Ativa Media: N1-7:8-15E | N8-15:15-30E | N16-22:30-50E | N23-30:50-80E
-Ativa Forte: N1-7:15-25E | N8-15:25-45E | N16-22:45-70E | N23-30:70-120E
-Ultimate: N1-7:25-40E | N8-15:40-70E | N16-22:70-110E | N23-30:110-180E
+DT (Dificuldade de Teste) BASE:
+- Habilidades que exigem teste do alvo: DT = 10 + modificador do atributo chave do personagem.
+- Cada PEH investido aumenta a DT em +1.
 
-Voce esta gerando para faixa ${band}. Use os valores desta faixa como referencia.
-
-═══════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════
 REGRAS CRITICAS:
-═══════════════════════════════════════════════════════════════
-1. ATRIBUA VALORES REAIS usando a tabela TDH acima como referencia. NAO use placeholders.
+════════════════════════════════════════════════════════════════
+1. USE OS VALORES BASE acima. NAO escale por nivel de personagem.
    - O dano da habilidade e EXTRA ao dano base+arma+atributo.
-   - Ativas "Fraca" geram ~50-70% do TDH Fraca. "Media" ~70-100% do TDH Media. "Forte" ~80-100% do TDH Forte.
-2. CUSTO DE ENERGIA OBRIGATORIO: TODA habilidade Ativa e Ultimate DEVE ter custoEnergia > 0.
-   - A UNICA excessao e se a descricao do jogador EXPLICITAMENTE pedir habilidade sem custo.
-   - Use a tabela de custo de energia acima. Jamais gere custoEnergia: 0 para Ativa ou Ultimate.
+2. CUSTO DE ENERGIA OBRIGATORIO: TODA Ativa e Ultimate DEVE ter custoEnergia > 0.
+   - Jamais gere custoEnergia: 0 para Ativa ou Ultimate.
+   - Se a descricao do jogador pedir sem custo, atribua o MINIMO da tabela base.
 3. Cada habilidade DEVE ter pelo menos 1 efeito mecanico concreto com numeros.
 4. EFEITOS NARRATIVOS DEVEM TER TRADUCAO MECANICA:
    - "Teleporte" → Vantagem em ataque/esquiva, bonus de posicao
    - "Invisibilidade" → Vantagem em Furtividade, Desvantagem para inimigos
    - "Rapidez" → +NdN em DES, acao extra condicional
 5. Mantenha coerencia narrativa: todas pertencem ao mesmo personagem.
-6. Respeite Economia de Acoes: nenhuma habilidade concede mais de 1 acao extra por uso.
-7. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, etc).
-8. Habilidades de nivel alto (N23-30) DEVEM ser poderosas — um semideus nvl 30 com 1400 HP espera habilidades que causem dano significativo.
-9. EVOLUCAO DE HABILIDADE: Os Pontos de Evolucao (PEH) AMPLIFICAM o conceito EXISTENTE.
-   - Se a habilidade cura, evoluir aumenta a CURA (mais dados, mais bonus), NAO adiciona dano.
-   - Se a habilidade causa dano, evoluir aumenta o DANO (mais dados, mais bonus).
-   - Se a habilidade concede buff/escudo, evoluir aumenta DURACAO ou VALOR do buff.
-   - NUNCA adicione efeito que contradiz o conceito original ao evoluir.
+6. Respeite Economia de Acoes: max 2 ataques/turno, max 3 acoes totais/turno.
+7. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, DT, etc).
+8. Se a habilidade envolver teste do alvo, inclua a DT base: "DT 10+MOD".
+9. Habilidades com PEH=0 sao INTENCIONALMENTE modestas. O poder vem da evolucao.
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "habilidades": [
-    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Modulo)", "nome": "nome criativo", "descricao": "descricao com mecanicas e valores reais da tabela TDH", "custoEnergia": 0, "dano": "XdY+MOD", "duracao": "X rodadas" }
+    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Modulo)", "nome": "nome criativo", "descricao": "descricao com mecanicas e valores BASE", "custoEnergia": 0, "dano": "XdY+MOD", "duracao": "X rodadas" }
   ]
 }`
 }

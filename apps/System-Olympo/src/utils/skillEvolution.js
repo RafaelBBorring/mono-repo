@@ -1,52 +1,50 @@
 /**
- * SISTEMA DE EVOLUÇÃO DE HABILIDADES — Olympo 2.0
+ * SISTEMA DE EVOLUCAO DE HABILIDADES — Olympo 2.0
  *
- * Regras de evolução:
- *  - Passiva:   Evolui automaticamente nos níveis 10, 20 e 30 (sem custo de PEH).
- *               O valor exibido é contextual; a IA recalibra durante a análise.
- *  - Ativa:     Máximo 5 níveis de evolução. Custo: 1 PEH por nível.
- *  - Ultimate:  Máximo 3 níveis de evolução. Custo: 1 PEH por nível.
- *               Restrição: 1º ponto requer char ≥ N15 | 2º requer ≥ N25 | 3º requer N30.
+ * PARADIGMA PEH: Habilidades comecam no nivel BASE (PEH=0).
+ * Os Pontos de Evolucao (PEH) sao o UNICO motor de escala.
+ * O jogador investe PEH → aciona o Oraculo → IA recalibra com novos valores.
  *
- * Deltas padrão por tipo de Ativa (usados para PREVIEW — valores finais
- * são recalibrados pela IA durante a análise de balanceamento):
- *  - Fraca  (< 20 Energia):  +1d6 dano, +4 flat, +2 Energia por nível
- *  - Média  (20–50 Energia): +1d8 dano, +6 flat, +3 Energia por nível
- *  - Forte  (> 50 Energia):  +1d10 dano, +8 flat, +5 Energia por nível
- *  - Ultimate:               +2d10 dano, +12 flat, +8 Energia por nível
+ * Regras:
+ *  - Passiva:   Evolui automaticamente nos niveis 10, 20 e 30 (sem custo PEH).
+ *  - Ativa:     Maximo 5 niveis. Custo: 1 PEH por nivel.
+ *  - Ultimate:  Maximo 3 niveis. Custo: 1 PEH por nivel.
+ *               1o ponto: N15+ | 2o: N25+ | 3o: N30.
+ *
+ * Deltas por PEH (preview estimado — valores finais sao recalibrados pela IA):
+ *  - Fraca:  +1d6,  +4 flat,  +5E por PEH
+ *  - Media:  +1d8,  +7 flat,  +8E por PEH
+ *  - Forte:  +1d10, +10 flat, +13E por PEH
+ *  - Ultimate: +5d12, +21 flat, +30E por PEH
  */
 
-// ─── Brackets de custo ────────────────────────────────────────────────────────
 export function getSkillBracket(custoEnergia, tipo) {
   if (tipo === 'Ultimate') return 'ULTIMATE'
   if (tipo === 'Passiva')  return 'PASSIVA'
-  if (custoEnergia < 20)   return 'FRACA'
-  if (custoEnergia <= 50)  return 'MEDIA'
+  if (custoEnergia < 12)   return 'FRACA'
+  if (custoEnergia <= 25)  return 'MEDIA'
   return 'FORTE'
 }
 
-// ─── Cap de evolução por tipo ─────────────────────────────────────────────────
 export function getMaxEvolucao(tipo) {
-  if (tipo === 'Passiva')  return 3   // auto, sem custo PEH
+  if (tipo === 'Passiva')  return 3
   if (tipo === 'Ultimate') return 3
-  return 5                             // Ativas padrão e Extra
+  return 5
 }
 
-// ─── Deltas por bracket (para preview estimado) ───────────────────────────────
 const DELTAS = {
-  FRACA:    { dadoExtra: '1d6',  flat: 4,  energia: 2 },
-  MEDIA:    { dadoExtra: '1d8',  flat: 6,  energia: 3 },
-  FORTE:    { dadoExtra: '1d10', flat: 8,  energia: 5 },
-  ULTIMATE: { dadoExtra: '2d10', flat: 12, energia: 8 },
+  FRACA:    { dadoExtra: '1d6',  flat: 4,  energia: 5 },
+  MEDIA:    { dadoExtra: '1d8',  flat: 7,  energia: 8 },
+  FORTE:    { dadoExtra: '1d10', flat: 10, energia: 13 },
+  ULTIMATE: { dadoExtra: '5d12', flat: 21, energia: 30 },
   PASSIVA:  { dadoExtra: '',     flat: 0,  energia: 0 },
 }
 
-// ─── Bônus de duração (nível de evolução → rodadas extras) ───────────────────
 const DURACAO_BONUS = {
-  FRACA:    [0, 0, 1, 0, 1, 1],   // evo 2 e 4 e 5
+  FRACA:    [0, 0, 1, 0, 1, 1],
   MEDIA:    [0, 0, 1, 0, 1, 2],
   FORTE:    [0, 0, 0, 1, 1, 2],
-  ULTIMATE: [0, 0, 1, 2, 0, 0],   // max 3 níveis
+  ULTIMATE: [0, 0, 1, 2, 0, 0],
   PASSIVA:  [0, 0, 0, 0, 0, 0],
 }
 
@@ -156,10 +154,8 @@ export function buildEvolucaoContext(habilidades, charNivel) {
     const tdhEfetivo = getEffectiveBracket(bracket, evoNivel, h.tipo)
     const maxEvo = getMaxEvolucao(h.tipo)
     const instrucaoIA = evoNivel === 0
-      ? 'Calibrar para valores base do nível do personagem.'
-      : tdhEfetivo !== bracket
-        ? `EVOLUÇÃO Nível ${evoNivel}/${maxEvo}: o jogador INVESTIU ${evoNivel} PEH. O bracket base é ${bracket}, mas a evolução PROMOVE o TDH efetivo para ${tdhEfetivo}. Use a tabela TDH do bracket ${tdhEfetivo} para esta habilidade, NÃO use ${bracket}. Escale danos, duração, bônus e CDs proporcionalmente ao investimento.`
-        : `EVOLUÇÃO Nível ${evoNivel}/${maxEvo}: o jogador INVESTIU ${evoNivel} PEH no bracket ${bracket}. Escale todos os efeitos proporcionalmente ao nível de evolução dentro do bracket ${bracket}.`
+      ? `PEH investido: 0. Use valores BASE (${bracket}). NAO escale por nivel do personagem.`
+      : `PEH investido: ${evoNivel}/${maxEvo}. O jogador INVESTIU ${evoNivel} PEH nesta habilidade. Escale TODOS os efeitos proporcionalmente: +${evoNivel} dados, +flat proporcional, +custo de energia proporcional. DT +${evoNivel} se aplicavel. TDH efetivo: ${tdhEfetivo}. CUSTO DE ENERGIA DEVE AUMENTAR com o PEH investido.`
     return {
       index: i,
       nome: h.nome || `Habilidade ${i + 1}`,
@@ -167,6 +163,7 @@ export function buildEvolucaoContext(habilidades, charNivel) {
       evolucaoNivel: evoNivel,
       bracket,
       tdhBracketEfetivo: tdhEfetivo,
+      custoEnergiaAtual: h.custoEnergia || 0,
       instrucaoIA,
     }
   })
