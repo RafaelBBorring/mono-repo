@@ -434,6 +434,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("morpheus_auth", JSON.stringify(aud));
         localStorage.setItem("morpheus_workspace", c.id);
         addToast("Conta criada com sucesso!", "success");
+        if (billingRequired && !isBillingActive({
+          id: c.id, stripeStatus: c.stripeStatus, billingEnforced: c.billingEnforced,
+          currentPeriodEnd: c.currentPeriodEnd, cancelAtPeriodEnd: c.cancelAtPeriodEnd, updatedAt: new Date().toISOString(),
+        })) {
+          setView("billing");
+        } else {
+          setView("admin");
+        }
         return true;
       } catch (err) { console.error("Signup failed:", err); addToast("Erro ao criar conta.", "error"); return false; }
     }, [addToast]
@@ -626,6 +634,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const startCheckout = useCallback(
     async (plan: PlanId, interval: "monthly" | "yearly", email?: string, isTrial = false, couponCode?: string) => {
       if (!checkoutEnabled) { addToast("Checkout indisponivel.", "info"); return; }
+      const resolvedUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("morpheus_user_id") : undefined) || undefined;
       const linkKey = `${plan}-${interval}`;
       const paymentLinkUrl = stripePaymentLinks[linkKey];
       if (paymentLinkUrl && !isTrial && !couponCode) {
@@ -636,13 +645,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const response = await fetch(apiUrl("/api/stripe/checkout"), {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, userId: user?.id, trial: isTrial, couponCode }),
+          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, userId: resolvedUserId, trial: isTrial, couponCode }),
         });
         const payload = (await response.json()) as { url?: string; error?: string };
         if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
         window.location.href = payload.url;
       } catch (err) { console.error("Checkout failed:", err); addToast("Nao foi possivel abrir o checkout.", "error"); }
-    }, [addToast, authUser]
+    }, [addToast, authUser, user]
   );
 
   const startTrial = useCallback(
@@ -659,11 +668,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const openBillingPortal = useCallback(async () => {
     if (!checkoutEnabled) { addToast("Portal indisponivel.", "info"); return; }
+    const resolvedUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("morpheus_user_id") : undefined) || undefined;
     try {
       const response = await fetch(apiUrl("/api/stripe/portal"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicId: clinic?.id, userId: user?.id }),
+        body: JSON.stringify({ clinicId: clinic?.id, userId: resolvedUserId }),
       });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Portal indisponível.");
@@ -695,8 +705,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cancelSubscription = useCallback(async () => {
     if (!clinic?.stripeSubscriptionId) { addToast("Nenhuma assinatura para cancelar.", "info"); return; }
+    const resolvedUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("morpheus_user_id") : undefined) || undefined;
     try {
-      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId: clinic.id, userId: user?.id }) });
+      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId: clinic.id, userId: resolvedUserId }) });
       const payload = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Falha ao cancelar.");
       addToast("Assinatura cancelada.", "success");

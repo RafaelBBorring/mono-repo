@@ -10,9 +10,21 @@ export async function validateClinicAccess(request: Request): Promise<{
     const userId = body.userId;
 
     if (!clinicId) return { error: "clinicId e obrigatorio.", status: 400 };
-    if (!userId) return { error: "userId e obrigatorio.", status: 400 };
 
     const supabase = createSupabaseAdmin();
+
+    if (!userId) {
+      const { data: adminMember } = await supabase
+        .from("clinic_doctors")
+        .select("user_id, role")
+        .eq("clinic_id", clinicId)
+        .eq("role", "admin")
+        .limit(1)
+        .maybeSingle();
+      if (!adminMember?.user_id) return { error: "userId e obrigatorio.", status: 400 };
+      return { clinicId, userId: adminMember.user_id };
+    }
+
     const { data: membership, error } = await supabase
       .from("clinic_doctors")
       .select("role")
