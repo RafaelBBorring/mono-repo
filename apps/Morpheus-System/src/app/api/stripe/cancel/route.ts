@@ -15,12 +15,15 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdmin();
     const { data: clinic, error } = await supabase
       .from("clinics")
-      .select("stripe_subscription_id, current_period_end")
+      .select("stripe_subscription_id, cancel_at_period_end")
       .eq("id", clinicId)
       .maybeSingle();
     if (error) throw error;
     if (!clinic?.stripe_subscription_id) {
       return NextResponse.json({ error: "Assinatura nao encontrada." }, { status: 404 });
+    }
+    if (clinic.cancel_at_period_end) {
+      return NextResponse.json({ ok: true, status: "already_scheduled" });
     }
 
     const subscription = await getStripe().subscriptions.update(
@@ -35,7 +38,9 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", clinicId);
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("DB update failed after Stripe cancel — data out of sync:", updateError);
+    }
 
     return NextResponse.json({ ok: true, status: subscription.status });
   } catch (error) {

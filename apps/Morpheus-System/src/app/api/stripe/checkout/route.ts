@@ -28,12 +28,16 @@ function getPriceId(plan: PlanId, interval: "monthly" | "yearly"): string | unde
 
 async function validateCoupon(code: string) {
   const supabase = createSupabaseAdmin();
-  const { data: coupon } = await supabase
+  const { data: coupon, error } = await supabase
     .from("coupons")
     .select("id, code, label, discount_pct, max_uses, current_uses, valid_from, valid_until, active")
     .eq("code", code.toUpperCase())
     .maybeSingle();
 
+  if (error) {
+    console.error("Coupon DB query error:", error);
+    return null;
+  }
   if (!coupon || !coupon.active) return null;
 
   const now = new Date();
@@ -41,16 +45,13 @@ async function validateCoupon(code: string) {
   if (coupon.valid_until && new Date(coupon.valid_until) < now) return null;
   if (coupon.max_uses !== -1 && coupon.current_uses >= coupon.max_uses) return null;
 
-  return coupon;
-}
+  const pct = Number(coupon.discount_pct);
+  if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+    console.error("Coupon discount_pct invalid:", coupon.discount_pct);
+    return null;
+  }
 
-async function redeemCoupon(couponId: string) {
-  try {
-    const supabase = createSupabaseAdmin();
-    const { data } = await supabase.from("coupons").select("current_uses").eq("id", couponId).maybeSingle();
-    const next = (data?.current_uses ?? 0) + 1;
-    await supabase.from("coupons").update({ current_uses: next }).eq("id", couponId);
-  } catch {}
+  return { ...coupon, discount_pct: pct };
 }
 
 export async function POST(request: Request) {
@@ -107,25 +108,34 @@ export async function POST(request: Request) {
     let stripeCouponId: string | undefined;
 
     if (body.couponCode) {
-      const coupon = await validateCoupon(body.couponCode);
-      if (coupon) {
-        const stripeCoupon = await stripe.coupons.create({
-          percent_off: coupon.discount_pct,
-          duration: "repeating",
-          duration_in_months: 1,
-          name: `${coupon.label} (${coupon.code})`,
-        });
-        stripeCouponId = stripeCoupon.id;
-        await redeemCoupon(coupon.id);
+      try {
+        const coupon = await validateCoupon(body.couponCode);
+        if (coupon) {
+          const stripeCoupon = await stripe.coupons.create({
+            percent_off: coupon.discount_pct,
+            duration: "repeating",
+            duration_in_months: 1,
+            name: `${coupon.label} (${coupon.code})`,
+          });
+          stripeCouponId = stripeCoupon.id;
+        } else {
+          console.warn("Coupon not valid at checkout time:", body.couponCode);
+        }
+      } catch (couponErr) {
+        console.error("Stripe coupon creation failed:", couponErr);
+        return NextResponse.json(
+          { error: "Nao foi possivel aplicar o cupom. Tente sem o cupom ou use outro codigo." },
+          { status: 400 }
+        );
       }
     }
 
+    const customerEmail = stripeCustomerId ? undefined : (body.email?.trim() || undefined);
+
     const sessionConfig: Record<string, unknown> = {
       mode: "subscription",
-      customer: stripeCustomerId,
-      customer_email: stripeCustomerId ? undefined : body.email?.trim() || undefined,
       line_items: [{ price: priceId, quantity: 1 }],
-      allow_promotion_codes: true,
+      allow_promotion_codes: !stripeCouponId,
       success_url: `${appUrl}/app?checkout=success`,
       cancel_url: `${appUrl}/app?checkout=canceled`,
       metadata: {
@@ -144,6 +154,12 @@ export async function POST(request: Request) {
       },
     };
 
+    if (stripeCustomerId) {
+      sessionConfig.customer = stripeCustomerId;
+    } else if (customerEmail) {
+      sessionConfig.customer_email = customerEmail;
+    }
+
     if (stripeCouponId) {
       sessionConfig.discounts = [{ coupon: stripeCouponId }];
     }
@@ -158,7 +174,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error("Stripe checkout failed:", error);
-    return NextResponse.json({ error: "Nao foi possivel iniciar o pagamento." }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Stripe checkout failed:", message);
+    return NextResponse.json({ error: message || "Nao foi possivel iniciar o pagamento." }, { status: 500 });
   }
 }

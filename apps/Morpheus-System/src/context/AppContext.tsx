@@ -679,7 +679,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!response.ok || !payload.url) throw new Error(payload.error || "Portal indisponível.");
       window.location.href = payload.url;
     } catch (err) { console.error("Portal failed:", err); addToast("Não foi possível abrir o portal.", "error"); }
-  }, [addToast]);
+  }, [addToast, clinic, user]);
 
   const updateAccount = useCallback(async (data: { displayName?: string; email?: string; password?: string }) => {
     if (!user?.id) return false;

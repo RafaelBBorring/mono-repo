@@ -6,6 +6,7 @@ export const ACTIVE_BILLING_STATUSES = new Set(["active", "trialing"]);
 
 export function isBillingActive(account: BillingAccount | null) {
   if (!account?.billingEnforced) return true;
+  if (account.currentPeriodEnd && new Date(account.currentPeriodEnd) < new Date()) return false;
   return ACTIVE_BILLING_STATUSES.has(account.stripeStatus);
 }
 

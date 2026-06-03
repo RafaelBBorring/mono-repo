@@ -40,12 +40,15 @@ export async function upsertBillingFromSubscription(subscription: Stripe.Subscri
     updates.trial_used = true;
   }
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("clinics")
     .update(updates)
     .eq("id", clinicId);
 
   if (error) throw error;
+  if (count === 0) {
+    console.warn("Webhook: clinic not found for id:", clinicId);
+  }
 }
 
 export async function rememberCheckoutSession(session: Stripe.Checkout.Session) {
@@ -53,9 +56,12 @@ export async function rememberCheckoutSession(session: Stripe.Checkout.Session) 
   const clinicId = session.metadata?.clinic_id;
   if (!clinicId) return;
 
-  const customerId = typeof session.customer === "string" ? session.customer : null;
+  const customer = session.customer;
+  const customerId = typeof customer === "string"
+    ? customer
+    : (customer as Stripe.Customer | null)?.id ?? null;
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("clinics")
     .update({
       stripe_customer_id: customerId,
@@ -64,4 +70,28 @@ export async function rememberCheckoutSession(session: Stripe.Checkout.Session) 
     .eq("id", clinicId);
 
   if (error) throw error;
+  if (count === 0) {
+    console.warn("rememberCheckoutSession: clinic not found for id:", clinicId);
+  }
+}
+
+export async function redeemCheckoutCoupon(session: Stripe.Checkout.Session) {
+  const couponCode = session.metadata?.coupon_code;
+  if (!couponCode) return;
+
+  try {
+    const supabase = createSupabaseAdmin();
+    const { data: coupon } = await supabase
+      .from("coupons")
+      .select("id, current_uses")
+      .eq("code", couponCode.toUpperCase())
+      .maybeSingle();
+
+    if (coupon) {
+      const next = (coupon.current_uses ?? 0) + 1;
+      await supabase.from("coupons").update({ current_uses: next }).eq("id", coupon.id);
+    }
+  } catch (err) {
+    console.error("Coupon redemption in webhook failed (non-fatal):", err);
+  }
 }

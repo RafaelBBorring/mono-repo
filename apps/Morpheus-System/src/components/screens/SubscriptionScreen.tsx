@@ -39,6 +39,7 @@ function goBack(fallback: () => void) {
 export default function SubscriptionScreen() {
   const searchParams = useSearchParams();
   const {
+    authUser,
     clinic,
     checkoutEnabled,
     serverApiAvailable,
@@ -49,6 +50,7 @@ export default function SubscriptionScreen() {
     startTrial,
     setView,
     theme,
+    user,
     validateCoupon,
   } = useApp();
   const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro");
@@ -131,8 +133,12 @@ export default function SubscriptionScreen() {
   }
 
   async function handleTrial() {
+    if (appliedCoupon) {
+      if (!window.confirm("O cupom sera removido ao iniciar o teste gratuito. Deseja continuar?")) return;
+      handleRemoveCoupon();
+    }
     setLoadingAction("trial");
-    await startTrial();
+    await startTrial(authUser?.email || user?.email);
     setLoadingAction(null);
   }
 
@@ -260,12 +266,13 @@ export default function SubscriptionScreen() {
                     disabled={
                       loadingAction === "cancel" ||
                       !serverApiAvailable ||
-                      clinic.stripeStatus === "canceled"
+                      clinic.stripeStatus === "canceled" ||
+                      clinic.cancelAtPeriodEnd
                     }
                     className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-2xl border border-red-400/50 bg-red-500/10 px-5 py-3 font-body text-base font-extrabold text-red-500 transition hover:bg-red-500 hover:text-white disabled:opacity-55"
                   >
                     <XCircle size={20} />
-                    {loadingAction === "cancel" ? "Cancelando..." : "Cancelar assinatura"}
+                    {loadingAction === "cancel" ? "Cancelando..." : clinic.cancelAtPeriodEnd ? "Cancelamento agendado" : "Cancelar assinatura"}
                   </button>
                 )}
                 <button

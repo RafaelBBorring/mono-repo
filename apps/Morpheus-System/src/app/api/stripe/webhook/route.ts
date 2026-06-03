@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
-import { rememberCheckoutSession, upsertBillingFromSubscription } from "@/lib/stripeBilling";
+import { redeemCheckoutCoupon, rememberCheckoutSession, upsertBillingFromSubscription } from "@/lib/stripeBilling";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +43,11 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         await rememberCheckoutSession(session);
-        await syncSubscription(typeof session.subscription === "string" ? session.subscription : null);
+        const subId = typeof session.subscription === "string"
+          ? session.subscription
+          : (session.subscription as Stripe.Subscription | null)?.id ?? null;
+        await syncSubscription(subId);
+        await redeemCheckoutCoupon(session);
         break;
       }
       case "customer.subscription.created":
