@@ -8,6 +8,10 @@ const LEVEL_TIERS = [
   { min: 25, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.4)', border: 'border-rose-400/50', bg: 'bg-rose-400/10', text: 'text-rose-400', bar: 'bg-rose-400' },
 ]
 
+function getInitial(name) {
+  return (name || '?').charAt(0).toUpperCase()
+}
+
 function getLevelTier(level) {
   return LEVEL_TIERS.find(t => level >= t.min && level <= t.max) || LEVEL_TIERS[0]
 }
