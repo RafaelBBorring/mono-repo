@@ -32,10 +32,9 @@ async def init_db() -> None:
         await conn.run_sync(Base.metadata.create_all)
     async with engine.begin() as conn:
         try:
-            await conn.execute(
-                __import__("sqlalchemy").text(
-                    "ALTER TABLE surfists ADD COLUMN folder_descriptor JSON DEFAULT '{}'"
-                )
-            )
+            from sqlalchemy import text
+            await conn.execute(text(
+                "ALTER TABLE surfists ADD COLUMN folder_descriptor JSON DEFAULT '{}'"
+            ))
         except Exception:
             pass

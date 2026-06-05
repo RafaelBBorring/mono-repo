@@ -24,20 +24,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models import Surfist, Video
-from agents.face_agent     import FaceAgent
-from agents.pose_agent     import PoseAgent
-from agents.clothing_agent import ClothingAgent
-from agents.board_agent    import BoardAgent
+from services.classify_pipeline import _face_agent, _pose_agent, _clothing_agent, _board_agent
 from services.video_processor import video_processor
 from config import settings
 
 router = APIRouter()
-
-# Reuse the module-level agent singletons
-_face_agent     = FaceAgent()
-_pose_agent     = PoseAgent()
-_clothing_agent = ClothingAgent()
-_board_agent    = BoardAgent()
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -192,6 +183,14 @@ async def register_image(
     updated: dict = {"face": False, "pose": False}
 
     if frame is not None:
+        for agent in [_pose_agent, _clothing_agent, _board_agent]:
+            if not agent._initialized and not agent._init_error:
+                try:
+                    await agent.initialize()
+                    agent._initialized = True
+                except Exception:
+                    pass
+
         # Face
         face_emb = await _face_agent.embed_reference_image(str(img_path))
         if face_emb is not None:
@@ -249,7 +248,15 @@ async def register_video(
         if not frames:
             raise HTTPException(400, "Could not extract frames from video")
 
-        dummy_profiles: dict = {}  # Empty — we just want the embeddings, not a match
+        for agent in [_face_agent, _pose_agent, _clothing_agent, _board_agent]:
+            if not agent._initialized and not agent._init_error:
+                try:
+                    await agent.initialize()
+                    agent._initialized = True
+                except Exception:
+                    pass
+
+        dummy_profiles: dict = {}
 
         results = await asyncio.gather(
             _face_agent.extract_features(str(tmp_path), frames),

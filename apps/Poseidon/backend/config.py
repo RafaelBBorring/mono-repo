@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     FACE_SIM_THRESHOLD: float = 0.55
 
     OPENROUTER_API_KEY: str = ""
-    OPENROUTER_MODEL: str = "google/gemma-3-27b-it:free"
+    OPENROUTER_MODEL: str = "google/gemma-4-31b-it:free"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
     PHASE1_THRESHOLD: float = 0.40
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000"]
 
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
 
 
 settings = Settings()

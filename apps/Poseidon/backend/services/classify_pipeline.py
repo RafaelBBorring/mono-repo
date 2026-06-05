@@ -340,7 +340,8 @@ class ClassificationPipeline:
                 "final_confidence": confidence})
 
         await _progress(92, reason)
-        self._write_video_results(video, agent_results, confidence, status, surfist, reason)
+        self._write_video_results(video, agent_results, confidence, status, surfist, reason,
+            ai_fusion_info={"used_openrouter": True, "phase": phase, "ai_result": ai_result})
         job.status = "done"
         job.progress = 100
         job.completed_at = datetime.utcnow()
@@ -370,11 +371,16 @@ class ClassificationPipeline:
             surfist_profiles=surfist_profiles, fusion=fusion,
         )
 
+        surfist = None
+        if fusion.surfist_id:
+            r = await db.execute(select(Surfist).where(Surfist.id == fusion.surfist_id))
+            surfist = r.scalar_one_or_none()
+
         self._write_video_results(
             video, agent_results, fusion.final_confidence, fusion.status,
-            None, agent_details.get("reason", ""),
+            surfist, agent_details.get("reason", ""),
+            ai_fusion_info={"used_openrouter": False, "phase": "fallback"},
         )
-        video.agent_details = agent_details
         job.status = "done"
         job.progress = 100
         job.completed_at = datetime.utcnow()
@@ -384,11 +390,12 @@ class ClassificationPipeline:
             await debug_cb({"type": "pipeline_complete", "video_id": video.id, "pct": 100,
                 "detail": "Classificacao local completa", "status": video.status.value,
                 "confidence": round(video.final_confidence, 4),
-                "surfist_id": video.surfist_id, "reason": agent_details.get("reason", "")})
+                "surfist_id": video.surfist_id, "surfist_name": surfist.name if surfist else None,
+                "reason": agent_details.get("reason", "")})
 
         await _progress(100, "Classification complete (fallback)")
 
-    def _write_video_results(self, video: Video, agent_results, confidence, status, surfist, reason):
+    def _write_video_results(self, video: Video, agent_results, confidence, status, surfist, reason, ai_fusion_info=None):
         face_r, pose_r, board_r, clothing_r = agent_results
         video.face_confidence = face_r.confidence
         video.pose_confidence = pose_r.confidence
@@ -411,13 +418,12 @@ class ClassificationPipeline:
         video.pose_sketch_path = str(features_path / f"{vid_stem}_pose.jpg") if (features_path / f"{vid_stem}_pose.jpg").exists() else None
         video.board_crop_path = str(features_path / f"{vid_stem}_board.jpg") if (features_path / f"{vid_stem}_board.jpg").exists() else None
 
-        agent_details = {
+        video.agent_details = {
             "reason": reason,
             "agents": {r.agent_name: r.to_dict() for r in agent_results},
             "video_descriptor": self._build_video_descriptor(agent_results),
-            "ai_fusion": {"used_openrouter": False, "phase": "fallback"},
+            "ai_fusion": ai_fusion_info or {"used_openrouter": False, "phase": "unknown"},
         }
-        video.agent_details = agent_details
 
     def _build_video_descriptor(self, agent_results: List[AgentResult]) -> dict:
         descriptor = {}
