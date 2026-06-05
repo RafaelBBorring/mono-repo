@@ -3,10 +3,10 @@ Classification Pipeline
 
 Orchestrates:
   1. Frame extraction
-  2. All 4 agents running concurrently via asyncio.gather()
+  2. All 4 agents running concurrently with per-agent debug callbacks
   3. Fusion & decision engine
   4. DB write-back
-  5. WebSocket progress updates
+  5. WebSocket progress updates with detailed agent-level events
 """
 
 import asyncio
@@ -14,10 +14,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+import numpy as np
 from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agents.base_agent import AgentResult, BaseAgent
 from agents.face_agent     import FaceAgent
 from agents.pose_agent     import PoseAgent
 from agents.board_agent    import BoardAgent
@@ -28,33 +30,172 @@ from services.video_processor import video_processor
 from config import settings
 
 
-# ── Singleton agents (loaded once) ────────────────────────────────────────────
 _face_agent     = FaceAgent()
 _pose_agent     = PoseAgent()
 _board_agent    = BoardAgent()
 _clothing_agent = ClothingAgent()
 
+AGENT_PCT_START = 30
+AGENT_PCT_END = 70
+
+
+async def _run_agent_with_debug(
+    agent: BaseAgent,
+    video_path: str,
+    frames: List[Any],
+    surfist_profiles: Dict[str, Any],
+    agent_idx: int,
+    total_agents: int,
+    video_id: str,
+    debug_cb: Optional[Callable] = None,
+) -> AgentResult:
+    pct_per_agent = (AGENT_PCT_END - AGENT_PCT_START) / total_agents
+    base_pct = AGENT_PCT_START + agent_idx * pct_per_agent
+
+    if debug_cb:
+        await debug_cb({
+            "type": "agent_status",
+            "video_id": video_id,
+            "agent": agent.name,
+            "phase": "initializing",
+            "pct": round(base_pct, 1),
+            "detail": f"Carregando modelo do {agent.name}...",
+        })
+
+    if not agent._initialized and not agent._init_error:
+        try:
+            await agent.initialize()
+            agent._initialized = True
+        except Exception as e:
+            agent._init_error = str(e)
+
+    if debug_cb:
+        await debug_cb({
+            "type": "agent_status",
+            "video_id": video_id,
+            "agent": agent.name,
+            "phase": "extracting",
+            "pct": round(base_pct + pct_per_agent * 0.3, 1),
+            "detail": f"Extraindo features de {len(frames)} frames...",
+        })
+
+    embedding = await agent.extract_features(video_path, frames)
+
+    has_signal = embedding is not None
+    signal_info = {
+        "embedding_dim": len(embedding) if embedding is not None else 0,
+        "has_signal": has_signal,
+    }
+
+    if debug_cb:
+        await debug_cb({
+            "type": "agent_status",
+            "video_id": video_id,
+            "agent": agent.name,
+            "phase": "extracted",
+            "pct": round(base_pct + pct_per_agent * 0.6, 1),
+            "detail": (
+                f"Features extraídas: {signal_info['embedding_dim']} dimensões"
+                if has_signal
+                else "Nenhum sinal detectado neste vídeo"
+            ),
+            "signal": signal_info,
+        })
+
+    if embedding is None:
+        result = AgentResult(
+            agent_name=agent.name,
+            surfist_id=None,
+            confidence=0.0,
+            error="No usable signal extracted from video",
+        )
+        if debug_cb:
+            await debug_cb({
+                "type": "agent_result",
+                "video_id": video_id,
+                "agent": agent.name,
+                "phase": "done",
+                "pct": round(base_pct + pct_per_agent, 1),
+                "result": result.to_dict(),
+                "match_detail": "Sem sinal para comparar",
+            })
+        return result
+
+    if debug_cb:
+        await debug_cb({
+            "type": "agent_status",
+            "video_id": video_id,
+            "agent": agent.name,
+            "phase": "matching",
+            "pct": round(base_pct + pct_per_agent * 0.7, 1),
+            "detail": f"Comparando contra {len(surfist_profiles)} perfis...",
+        })
+
+    result = await agent.match_database(embedding, surfist_profiles)
+
+    match_detail = ""
+    if result.surfist_id:
+        match_detail = f"Match: surfist {result.surfist_id[:8]}... ({result.confidence:.1%})"
+    elif result.error:
+        match_detail = f"Erro: {result.error}"
+    else:
+        match_detail = "Nenhum perfil acima do limiar de similaridade"
+
+    per_surfist_sim = result.features.get("per_surfist_similarity", {})
+    all_sims = {}
+    embedding_key_map = {
+        "FaceAgent": "face_embeddings",
+        "PoseAgent": "pose_embeddings",
+        "BoardAgent": "board_features",
+        "ClothingAgent": "clothing_embeddings",
+    }
+    emb_key = embedding_key_map.get(agent.name, "")
+    for sid, profile in surfist_profiles.items():
+        embs = profile.get(emb_key, [])
+        if embs and embedding is not None:
+            sims = [BaseAgent.cosine_similarity(embedding, np.array(e)) for e in embs]
+            all_sims[sid] = {
+                "name": profile.get("name", sid[:8]),
+                "best_sim": round(max(sims), 4),
+                "avg_sim": round(sum(sims) / len(sims), 4),
+                "num_refs": len(embs),
+            }
+
+    if debug_cb:
+        await debug_cb({
+            "type": "agent_result",
+            "video_id": video_id,
+            "agent": agent.name,
+            "phase": "done",
+            "pct": round(base_pct + pct_per_agent, 1),
+            "result": result.to_dict(),
+            "match_detail": match_detail,
+            "all_similarities": all_sims,
+            "threshold": _get_agent_threshold(agent.name),
+        })
+
+    return result
+
+
+def _get_agent_threshold(agent_name: str) -> float:
+    thresholds = {
+        "FaceAgent": settings.FACE_SIM_THRESHOLD,
+        "PoseAgent": settings.POSE_SIM_THRESHOLD,
+        "BoardAgent": settings.BOARD_SIM_THRESHOLD,
+        "ClothingAgent": settings.CLOTHING_SIM_THRESHOLD,
+    }
+    return thresholds.get(agent_name, 0.60)
+
 
 class ClassificationPipeline:
-    """
-    One instance handles all video classification work.
-    Progress is broadcast via an optional async callback.
-    """
 
     async def run(
         self,
         video: Video,
         db: AsyncSession,
         progress_cb: Optional[Callable[[float, str], Any]] = None,
+        debug_cb: Optional[Callable] = None,
     ) -> None:
-        """
-        Full pipeline for one video.
-
-        Args:
-            video:       ORM Video object (already in session)
-            db:          Async DB session
-            progress_cb: async callable(percent, message) for WebSocket updates
-        """
         job = ProcessingJob(video_id=video.id, started_at=datetime.utcnow())
         db.add(job)
         await db.commit()
@@ -68,35 +209,99 @@ class ClassificationPipeline:
 
         try:
             # ── Step 1: Extract frames ─────────────────────────────────────
-            await _progress(5, "Extracting frames")
+            await _progress(5, "Extraindo frames do vídeo...")
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "frame_extraction",
+                    "pct": 5,
+                    "detail": "Extraindo frames do vídeo...",
+                })
+
             frames = await video_processor.extract_frames(video.file_path)
             if not frames:
                 raise RuntimeError("No frames could be extracted from video")
-            await _progress(15, f"Extracted {len(frames)} frames")
+
+            await _progress(15, f"{len(frames)} frames extraídos")
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "frames_extracted",
+                    "pct": 15,
+                    "detail": f"{len(frames)} frames extraídos do vídeo",
+                    "frame_count": len(frames),
+                })
 
             # ── Step 2: Load surfist profiles ─────────────────────────────
-            await _progress(20, "Loading surfist profiles")
+            await _progress(20, "Carregando perfis de surfistas...")
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "loading_profiles",
+                    "pct": 20,
+                    "detail": "Carregando perfis de surfistas...",
+                })
+
             surfist_profiles = await self._load_surfist_profiles(db)
-            await _progress(25, f"Loaded {len(surfist_profiles)} surfist profiles")
 
-            # ── Step 3: Run all 4 agents concurrently ─────────────────────
-            await _progress(30, "Running AI agents")
+            profile_info = [
+                {
+                    "id": sid[:8] + "...",
+                    "name": p.get("name", "?"),
+                    "face_refs": len(p.get("face_embeddings", [])),
+                    "pose_refs": len(p.get("pose_embeddings", [])),
+                    "board_refs": len(p.get("board_features", [])),
+                    "clothing_refs": len(p.get("clothing_embeddings", [])),
+                }
+                for sid, p in surfist_profiles.items()
+            ]
 
-            face_task     = _face_agent.analyze(video.file_path, frames, surfist_profiles)
-            pose_task     = _pose_agent.analyze(video.file_path, frames, surfist_profiles)
-            board_task    = _board_agent.analyze(video.file_path, frames, surfist_profiles)
-            clothing_task = _clothing_agent.analyze(video.file_path, frames, surfist_profiles)
+            await _progress(25, f"{len(surfist_profiles)} perfis carregados")
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "profiles_loaded",
+                    "pct": 25,
+                    "detail": f"{len(surfist_profiles)} perfis carregados",
+                    "profiles": profile_info,
+                })
 
-            results = await asyncio.gather(
-                face_task, pose_task, board_task, clothing_task,
-                return_exceptions=True,
-            )
+            # ── Step 3: Run all 4 agents with debug ─────────────────────
+            agents = [_face_agent, _pose_agent, _board_agent, _clothing_agent]
 
-            # Unwrap any exceptions that slipped through gather
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "agents_starting",
+                    "pct": AGENT_PCT_START,
+                    "detail": "Iniciando 4 agentes de IA em paralelo...",
+                    "agents": [a.name for a in agents],
+                })
+
+            tasks = [
+                _run_agent_with_debug(
+                    agent=agent,
+                    video_path=video.file_path,
+                    frames=frames,
+                    surfist_profiles=surfist_profiles,
+                    agent_idx=i,
+                    total_agents=len(agents),
+                    video_id=video.id,
+                    debug_cb=debug_cb,
+                )
+                for i, agent in enumerate(agents)
+            ]
+
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
             agent_results = []
             for r in results:
                 if isinstance(r, Exception):
-                    from agents.base_agent import AgentResult
                     agent_results.append(AgentResult(
                         agent_name="Unknown", surfist_id=None,
                         confidence=0.0, error=str(r),
@@ -105,10 +310,37 @@ class ClassificationPipeline:
                     agent_results.append(r)
 
             face_r, pose_r, board_r, clothing_r = agent_results
-            await _progress(75, "Agents complete – fusing results")
+
+            await _progress(75, "Agentes completos — fundindo resultados...")
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "fusion_start",
+                    "pct": 75,
+                    "detail": "Fundindo resultados dos 4 agentes...",
+                    "agent_summary": {
+                        r.agent_name: {
+                            "confidence": round(r.confidence, 4),
+                            "surfist_id": r.surfist_id[:8] + "..." if r.surfist_id else None,
+                            "error": r.error,
+                        }
+                        for r in agent_results
+                    },
+                })
 
             # ── Step 4: Fusion ─────────────────────────────────────────────
             fusion = decision_engine.fuse(agent_results)
+
+            if debug_cb:
+                await debug_cb({
+                    "type": "fusion_result",
+                    "video_id": video.id,
+                    "pct": 80,
+                    "detail": f"Decisão: {fusion.status.value} ({fusion.final_confidence:.1%})",
+                    "fusion": fusion.to_dict(),
+                })
+
             agent_details = await self._apply_auto_learning(
                 video=video,
                 db=db,
@@ -117,6 +349,23 @@ class ClassificationPipeline:
                 surfist_profiles=surfist_profiles,
                 fusion=fusion,
             )
+
+            if debug_cb:
+                auto_action = agent_details.get("auto_created_surfist")
+                if auto_action:
+                    detail_msg = f"Novo surfista criado: {auto_action['name']}"
+                else:
+                    detail_msg = agent_details.get("reason", "Processamento concluído")
+                await debug_cb({
+                    "type": "pipeline_status",
+                    "video_id": video.id,
+                    "phase": "auto_learning",
+                    "pct": 85,
+                    "detail": detail_msg,
+                    "final_status": fusion.status.value,
+                    "final_confidence": round(fusion.final_confidence, 4),
+                })
+
             await _progress(85, f"Decision: {fusion.status.value} ({fusion.final_confidence:.1%})")
 
             # ── Step 5: Write results to DB ────────────────────────────────
@@ -136,7 +385,6 @@ class ClassificationPipeline:
             video.agent_details = agent_details
             video.processed_at  = datetime.utcnow()
 
-            # Paths to extracted evidence
             vid_stem = Path(video.file_path).stem
             features_path = Path(settings.FEATURES_PATH)
 
@@ -153,6 +401,24 @@ class ClassificationPipeline:
             job.completed_at = datetime.utcnow()
             await db.commit()
 
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_complete",
+                    "video_id": video.id,
+                    "pct": 100,
+                    "detail": "Classificação completa",
+                    "surfist_id": fusion.surfist_id,
+                    "surfist_name": agent_details.get("auto_created_surfist", {}).get("name"),
+                    "status": fusion.status.value,
+                    "confidence": round(fusion.final_confidence, 4),
+                    "reason": agent_details.get("reason", ""),
+                    "evidence_paths": {
+                        "face_crop": video.face_crop_path,
+                        "pose_sketch": video.pose_sketch_path,
+                        "board_crop": video.board_crop_path,
+                    },
+                })
+
             await _progress(100, "Classification complete")
             logger.info(
                 "[Pipeline] Video %s → %s (confidence=%.3f)",
@@ -161,6 +427,12 @@ class ClassificationPipeline:
 
         except Exception as exc:
             logger.error("[Pipeline] Error processing video %s: %s", video.id, exc)
+            if debug_cb:
+                await debug_cb({
+                    "type": "pipeline_error",
+                    "video_id": video.id,
+                    "detail": f"Erro: {str(exc)}",
+                })
             video.status        = ClassificationStatus.UNCLASSIFIED
             video.error_message = str(exc)
             job.status          = "failed"

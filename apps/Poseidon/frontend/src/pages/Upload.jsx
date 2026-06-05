@@ -3,8 +3,14 @@ import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
 import { uploadFile, uploadAPI, updateVideoMedia, applyClustering } from '../api/client'
 import { analyzeVideo } from '../analysis/surfAnalyzer'
-import { Upload, CheckCircle, XCircle, Loader2, Waves, Film, Sparkles } from 'lucide-react'
+import { Upload, CheckCircle, XCircle, Loader2, Waves, Film, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import clsx from 'clsx'
+import AnalysisDebugPanel from '../components/AnalysisDebugPanel'
+
+const DEBUG_WS_TYPES = new Set([
+  'agent_status', 'agent_result', 'pipeline_status',
+  'fusion_result', 'pipeline_complete', 'pipeline_error',
+])
 
 const STATUS_ICON = {
   pending:    <Loader2 size={14} className="text-slate-400 animate-spin" />,
@@ -21,48 +27,68 @@ const STATUS_LABEL = {
   unclassified:    { label: 'Não classificado', color: 'text-rose-400' },
 }
 
-function FileRow({ file }) {
+function FileRow({ file, onToggleDebug }) {
   const status = file.status ?? 'pending'
   const label  = STATUS_LABEL[file.classStatus] ?? null
+  const hasDebug = (file.debugEvents?.length ?? 0) > 0
 
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-slate-800 last:border-0">
-      {file.thumbnailUrl ? (
-        <img src={file.thumbnailUrl} alt="" className="w-10 h-7 rounded object-cover shrink-0 bg-slate-800" />
-      ) : (
-        <Film size={14} className="text-slate-500 shrink-0" />
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="text-sm text-slate-300 truncate">{file.name}</span>
-          <span className="flex items-center gap-1.5 shrink-0 text-xs text-slate-400">
-            {STATUS_ICON[status]}
-            {status === 'uploading'  && `${file.uploadPct ?? 0}%`}
-            {status === 'analyzing'  && <span className="text-violet-300">{file.message || 'Analisando...'}</span>}
-            {status === 'clustering' && <span className="text-sky-300">Agrupando surfistas...</span>}
-            {status === 'done' && label &&
-              <span className="flex items-center gap-1.5">
-                {file.newSurfer && <span className="font-medium text-sky-400">Novo surfista</span>}
-                <span className={clsx('font-medium', label.color)}>{!file.newSurfer && label.label}</span>
-                {file.surfistName && <span className="text-slate-400">→ {file.surfistName}</span>}
-              </span>
-            }
-            {status === 'error' && <span className="text-rose-400">{file.error}</span>}
-          </span>
+    <div className="border-b border-slate-800 last:border-0">
+      <div className="flex items-center gap-3 py-3">
+        {file.thumbnailUrl ? (
+          <img src={file.thumbnailUrl} alt="" className="w-10 h-7 rounded object-cover shrink-0 bg-slate-800" />
+        ) : (
+          <Film size={14} className="text-slate-500 shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-sm text-slate-300 truncate">{file.name}</span>
+            <span className="flex items-center gap-1.5 shrink-0 text-xs text-slate-400">
+              {STATUS_ICON[status]}
+              {status === 'uploading'  && `${file.uploadPct ?? 0}%`}
+              {status === 'analyzing'  && <span className="text-violet-300">{file.message || 'Analisando...'}</span>}
+              {status === 'clustering' && <span className="text-sky-300">Agrupando surfistas...</span>}
+              {status === 'done' && label &&
+                <span className="flex items-center gap-1.5">
+                  {file.newSurfer && <span className="font-medium text-sky-400">Novo surfista</span>}
+                  <span className={clsx('font-medium', label.color)}>{!file.newSurfer && label.label}</span>
+                  {file.surfistName && <span className="text-slate-400">\u2192 {file.surfistName}</span>}
+                </span>
+              }
+              {status === 'error' && <span className="text-rose-400">{file.error}</span>}
+            </span>
+          </div>
+          {status === 'done' && file.reason && (
+            <div className="mt-1 text-xs text-slate-500 truncate">{file.reason}</div>
+          )}
         </div>
-        {status === 'done' && file.reason && (
-          <div className="mt-1 text-xs text-slate-500 truncate">{file.reason}</div>
+        {file.confidence != null && status === 'done' && (
+          <span className={clsx(
+            'text-xs font-mono shrink-0',
+            file.confidence >= 0.70 ? 'text-emerald-400'
+              : file.confidence >= 0.50 ? 'text-amber-400'
+              : 'text-rose-400'
+          )}>
+            {(file.confidence * 100).toFixed(0)}%
+          </span>
+        )}
+        {hasDebug && (
+          <button
+            onClick={() => onToggleDebug(file.id)}
+            className={clsx(
+              'shrink-0 p-1 rounded transition-colors',
+              file.showDebug ? 'text-violet-400 bg-violet-500/10' : 'text-slate-600 hover:text-slate-400'
+            )}
+            title="Ver debug da análise"
+          >
+            {file.showDebug ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
         )}
       </div>
-      {file.confidence != null && status === 'done' && (
-        <span className={clsx(
-          'text-xs font-mono shrink-0',
-          file.confidence >= 0.70 ? 'text-emerald-400'
-            : file.confidence >= 0.50 ? 'text-amber-400'
-            : 'text-rose-400'
-        )}>
-          {(file.confidence * 100).toFixed(0)}%
-        </span>
+      {file.showDebug && (
+        <div className="px-2 pb-3">
+          <AnalysisDebugPanel videoId={file.videoId} debugEvents={file.debugEvents || []} />
+        </div>
       )}
     </div>
   )
@@ -106,6 +132,39 @@ export default function UploadPage() {
           f.videoId === msg.video_id ? { ...f, status: 'error', error: msg.message } : f
         ))
       }
+      if (DEBUG_WS_TYPES.has(msg.type)) {
+        setFiles(prev => prev.map(f => {
+          if (f.videoId !== msg.video_id) return f
+          const newDebugEvents = [...(f.debugEvents || []), {
+            type: msg.type,
+            agent: msg.agent,
+            phase: msg.phase,
+            pct: msg.pct,
+            detail: msg.detail,
+            result: msg.result,
+            signal: msg.signal,
+            all_similarities: msg.all_similarities,
+            threshold: msg.threshold,
+            match_detail: msg.match_detail,
+            fusion: msg.fusion,
+            profiles: msg.profiles,
+            agent_summary: msg.agent_summary,
+            surfist_name: msg.surfist_name,
+            status: msg.status,
+            confidence: msg.confidence,
+            reason: msg.reason,
+            evidence_paths: msg.evidence_paths,
+          }]
+          const shouldUpdateStatus = f.status === 'analyzing'
+          return {
+            ...f,
+            status: shouldUpdateStatus ? 'analyzing' : f.status,
+            message: shouldUpdateStatus ? (msg.detail || msg.message || '') : f.message,
+            debugEvents: newDebugEvents,
+            showDebug: f.showDebug || newDebugEvents.length > 2,
+          }
+        }))
+      }
     }
   }, [sessionId])
 
@@ -148,6 +207,8 @@ export default function UploadPage() {
       uploadPct: 0,
       fileObj: f,
       fileUrl: URL.createObjectURL(f),
+      debugEvents: [],
+      showDebug: false,
     }))
     setFiles(prev => [...prev, ...newFiles])
 
@@ -171,7 +232,7 @@ export default function UploadPage() {
         })
 
         setFiles(prev => prev.map(f =>
-          f.id === localId ? { ...f, status: 'analyzing', videoId: result.video_id, message: 'Extraindo frames...' } : f
+          f.id === localId ? { ...f, status: 'analyzing', videoId: result.video_id, message: 'Extraindo frames...', showDebug: true } : f
         ))
 
         const { fingerprint, thumbnail } = await analyzeVideo(fileUrl, msg => {
@@ -249,6 +310,12 @@ export default function UploadPage() {
     ))
   }, [sessionId])
 
+  const toggleDebug = useCallback((fileId) => {
+    setFiles(prev => prev.map(f =>
+      f.id === fileId ? { ...f, showDebug: !f.showDebug } : f
+    ))
+  }, [])
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'video/*': ['.mp4', '.mov', '.avi', '.mkv', '.webm'] },
@@ -301,7 +368,7 @@ export default function UploadPage() {
 
       {files.length > 0 && (
         <div className="bg-slate-900 rounded-xl border border-slate-800 px-4 mt-2">
-          {files.map(f => <FileRow key={f.id} file={f} />)}
+          {files.map(f => <FileRow key={f.id} file={f} onToggleDebug={toggleDebug} />)}
         </div>
       )}
 

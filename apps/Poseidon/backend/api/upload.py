@@ -275,8 +275,14 @@ async def _process_video(video_id: str, session_id: str) -> None:
                     "message":  msg,
                 })
 
+            async def _debug_cb(event: dict):
+                await _broadcast(session_id, {
+                    **event,
+                    "video_id": video_id,
+                })
+
             try:
-                await classification_pipeline.run(video, db, progress_cb=_cb)
+                await classification_pipeline.run(video, db, progress_cb=_cb, debug_cb=_debug_cb)
                 await _broadcast(session_id, {
                     "type":       "done",
                     "video_id":   video_id,
