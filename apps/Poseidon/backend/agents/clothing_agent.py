@@ -22,6 +22,7 @@ from loguru import logger
 
 from agents.base_agent import AgentResult, BaseAgent
 from config import settings
+from utils.color_descriptions import extract_dominant_colors, format_color_list
 
 _L_SHOULDER = 11; _R_SHOULDER = 12
 _L_HIP      = 23; _R_HIP      = 24
@@ -34,6 +35,8 @@ class ClothingAgent(BaseAgent):
         super().__init__(name="ClothingAgent", weight=settings.CLOTHING_WEIGHT)
         self._pose = None
         self._mp_pose = None
+        self._best_torso = None
+        self._best_torso_area = 0
 
     async def initialize(self) -> None:
         def _import():
@@ -96,6 +99,11 @@ class ClothingAgent(BaseAgent):
             torso = frame[y1:y2, x1:x2]
             if torso.size == 0:
                 return None
+
+            area = (x2 - x1) * (y2 - y1)
+            if area > self._best_torso_area:
+                self._best_torso_area = area
+                self._best_torso = torso.copy()
 
             rgb_hist = self._color_histogram(torso, "RGB")
             hsv_hist = self._color_histogram(torso, "HSV")
@@ -173,11 +181,20 @@ class ClothingAgent(BaseAgent):
             embedding, clothing_profiles, threshold=settings.CLOTHING_SIM_THRESHOLD
         )
 
+        if self._best_torso is not None:
+            colors = extract_dominant_colors(self._best_torso, top_n=5, sample_step=3)
+            desc = "roupa: " + format_color_list(colors) if colors else "roupa: sem cores detectadas"
+        else:
+            desc = "roupa nao detectada"
+        self._best_torso = None
+        self._best_torso_area = 0
+
         return AgentResult(
             agent_name=self.name,
             surfist_id=surfist_id,
             confidence=confidence,
             embedding=embedding,
+            description=desc,
             features={
                 "fingerprint_dim": len(embedding),
                 "method": "RGB+HSV_hist+LBP",

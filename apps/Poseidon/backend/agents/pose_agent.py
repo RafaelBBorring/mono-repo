@@ -27,6 +27,7 @@ from loguru import logger
 
 from agents.base_agent import AgentResult, BaseAgent
 from config import settings
+from utils.color_descriptions import describe_pose_features
 
 
 # Landmark indices (MediaPipe 33-point model)
@@ -46,6 +47,7 @@ class PoseAgent(BaseAgent):
         self._mp_pose = None
         self._mp_drawing = None
         self._pose = None
+        self._last_pose_features = None
 
     # ── Initialization ────────────────────────────────────────────────────────
 
@@ -94,7 +96,9 @@ class PoseAgent(BaseAgent):
         if best_skeleton_frame is not None:
             self._save_skeleton(best_skeleton_frame, video_path)
 
-        return np.mean(feature_vecs, axis=0).astype(np.float32)
+        avg = np.mean(feature_vecs, axis=0).astype(np.float32)
+        self._last_pose_features = avg
+        return avg
 
     def _process_frame(
         self, frame: np.ndarray
@@ -224,11 +228,15 @@ class PoseAgent(BaseAgent):
             embedding, pose_profiles, threshold=settings.POSE_SIM_THRESHOLD
         )
 
+        desc = describe_pose_features(self._last_pose_features) if self._last_pose_features is not None else "postura nao detectada"
+        self._last_pose_features = None
+
         return AgentResult(
             agent_name=self.name,
             surfist_id=surfist_id,
             confidence=confidence,
             embedding=embedding,
+            description=desc,
             features={
                 "feature_dim": len(embedding),
                 "knee_angle_norm": round(float(embedding[3]), 3),

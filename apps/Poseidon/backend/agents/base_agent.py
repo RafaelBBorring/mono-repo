@@ -26,6 +26,7 @@ class AgentResult:
     embedding: Optional[np.ndarray] = None  # Feature vector for this video
     features: Dict[str, Any] = field(default_factory=dict)
     visual_path: Optional[str] = None       # Path to extracted evidence image
+    description: str = ""
     error: Optional[str] = None
 
     @property
@@ -39,6 +40,7 @@ class AgentResult:
             "confidence": round(self.confidence, 4),
             "features": self.features,
             "visual_path": self.visual_path,
+            "description": self.description,
             "error": self.error,
         }
 

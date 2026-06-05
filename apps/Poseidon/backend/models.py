@@ -61,6 +61,7 @@ class Surfist(Base):
 
     # Reference thumbnails (paths relative to STORAGE_PATH)
     reference_images = Column(JSON, default=list)
+    folder_descriptor = Column(JSON, default=dict)
 
     videos = relationship("Video", back_populates="surfist")
 

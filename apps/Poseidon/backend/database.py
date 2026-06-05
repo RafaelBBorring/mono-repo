@@ -28,6 +28,14 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db() -> None:
-    """Create all tables on startup."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    async with engine.begin() as conn:
+        try:
+            await conn.execute(
+                __import__("sqlalchemy").text(
+                    "ALTER TABLE surfists ADD COLUMN folder_descriptor JSON DEFAULT '{}'"
+                )
+            )
+        except Exception:
+            pass

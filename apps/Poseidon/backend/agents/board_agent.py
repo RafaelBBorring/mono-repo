@@ -23,6 +23,7 @@ from loguru import logger
 
 from agents.base_agent import AgentResult, BaseAgent
 from config import settings
+from utils.color_descriptions import extract_dominant_colors, format_color_list
 
 # COCO class index for surfboard
 _COCO_SURFBOARD = 36
@@ -36,6 +37,7 @@ class BoardAgent(BaseAgent):
         self._sift = None
         self._orb = None
         self._use_yolo = True
+        self._last_board_crop = None
 
     # ── Initialization ────────────────────────────────────────────────────────
 
@@ -88,6 +90,8 @@ class BoardAgent(BaseAgent):
 
         if best_board_img is not None:
             self._save_crop(best_board_img, video_path)
+
+        self._last_board_crop = best_board_img
 
         sift_vec = self._descriptors_to_vector(
             np.vstack(all_sift_descriptors), dim=128
@@ -228,11 +232,19 @@ class BoardAgent(BaseAgent):
             embedding, board_profiles, threshold=settings.BOARD_SIM_THRESHOLD
         )
 
+        if self._last_board_crop is not None:
+            colors = extract_dominant_colors(self._last_board_crop, top_n=4, sample_step=4)
+            desc = "prancha: " + format_color_list(colors) if colors else "prancha: sem cores detectadas"
+        else:
+            desc = "prancha nao detectada"
+        self._last_board_crop = None
+
         return AgentResult(
             agent_name=self.name,
             surfist_id=surfist_id,
             confidence=confidence,
             embedding=embedding,
+            description=desc,
             features={
                 "descriptor_dim": len(embedding),
                 "method": "YOLOv8+SIFT+ORB" if self._use_yolo else "HSV+SIFT+ORB",

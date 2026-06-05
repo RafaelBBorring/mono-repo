@@ -20,6 +20,7 @@ from loguru import logger
 
 from agents.base_agent import AgentResult, BaseAgent
 from config import settings
+from utils.color_descriptions import describe_face
 
 
 class FaceAgent(BaseAgent):
@@ -27,6 +28,7 @@ class FaceAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="FaceAgent", weight=settings.FACE_WEIGHT)
         self._app = None
+        self._last_face_crop = None
 
     async def initialize(self) -> None:
         def _init():
@@ -68,6 +70,7 @@ class FaceAgent(BaseAgent):
             self._save_crop(best_frame, video_path)
 
         avg_embedding = np.mean(embeddings, axis=0)
+        self._last_face_crop = best_frame if best_frame is not None else None
         return avg_embedding.astype(np.float32)
 
     def _embed_frame(self, frame: np.ndarray):
@@ -125,11 +128,13 @@ class FaceAgent(BaseAgent):
                 sims = [self.cosine_similarity(embedding, np.array(e)) for e in embs]
                 similarities[sid] = round(max(sims), 4)
 
+        description = describe_face(self._last_face_crop) if hasattr(self, '_last_face_crop') and self._last_face_crop is not None else "rosto nao detectado"
         return AgentResult(
             agent_name=self.name,
             surfist_id=surfist_id,
             confidence=confidence,
             embedding=embedding,
+            description=description,
             features={
                 "model": "InsightFace-ArcFace",
                 "embedding_dim": len(embedding),
