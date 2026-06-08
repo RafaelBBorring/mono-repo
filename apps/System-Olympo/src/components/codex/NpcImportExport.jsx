@@ -16,9 +16,13 @@ export default function NpcImportExport({ file: initialFile, onImported, onClose
       const text = await file.text()
       const data = JSON.parse(text)
       let npcs = []
+      let importedFolders = []
+      let importedAssignments = {}
 
       if (data.format === 'codex-arcanum' && Array.isArray(data.npcs)) {
         npcs = data.npcs
+        importedFolders = data.folders || []
+        importedAssignments = data.assignments || {}
       } else if (Array.isArray(data)) {
         npcs = data
       } else if (data.id && (data.nome || data.name)) {
@@ -37,6 +41,10 @@ export default function NpcImportExport({ file: initialFile, onImported, onClose
           raca: s.raca || '',
           description: s.description || '',
         }))
+        if (data.folders) {
+          importedFolders = data.folders.folders || []
+          importedAssignments = data.folders.assignments || {}
+        }
       } else {
         throw new Error('Formato não reconhecido.')
       }
@@ -58,8 +66,12 @@ export default function NpcImportExport({ file: initialFile, onImported, onClose
         updated_at: npc.updated_at || new Date().toISOString(),
       }))
 
-      const count = await importNpcs(normalized)
-      setResult(`${count} NPC(s) importado(s) com sucesso!`)
+      const count = await importNpcs(normalized, importedFolders, importedAssignments)
+      const folderCount = importedFolders.length
+      const msg = folderCount > 0
+        ? `${count} NPC(s) e ${folderCount} pasta(s) importado(s) com sucesso!`
+        : `${count} NPC(s) importado(s) com sucesso!`
+      setResult(msg)
       onImported?.()
     } catch (err) {
       setError(err.message || 'Erro ao importar arquivo.')
