@@ -64,23 +64,17 @@ export default function SessionSheetModal({ sheet, getUserName, onClose, onViewS
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" style={{ animation: 'modalBgIn 150ms ease-out' }} />
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] bg-deep border border-sep/50 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col animate-in"
+        className="relative w-full max-w-2xl max-h-[85vh] bg-deep border border-gold/20 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
-        style={{ animation: 'modalIn 0.25s ease-out' }}
+        style={{ animation: 'modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
       >
-        <style>{`
-          @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.95) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-          }
-        `}</style>
 
-        <div className="flex items-center justify-between p-5 border-b border-sep/30 bg-gradient-to-r from-void/80 to-transparent">
+        <div className="flex items-center justify-between p-5 border-b border-sep/30 bg-gradient-to-r from-void/80 to-transparent relative">
           <div className="flex items-center gap-4">
             {char.avatar ? (
-              <img src={char.avatar} alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-sep/50" />
+              <img src={char.avatar} alt="" className="w-14 h-14 rounded-xl object-cover border-2" style={{ borderColor: tier.color + '50' }} />
             ) : (
               <div
                 className="w-14 h-14 rounded-xl flex items-center justify-center text-xl font-cinzel border-2"
@@ -103,7 +97,7 @@ export default function SessionSheetModal({ sheet, getUserName, onClose, onViewS
               <p className="text-[10px] text-txt-dim/50 mt-0.5">Jogador: {getUserName(sheet.user_id)}</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-void/80 border border-sep/50 flex items-center justify-center text-txt-dim hover:text-err transition-colors">
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-void/80 border border-sep/50 flex items-center justify-center text-txt-dim hover:text-err hover:border-err/30 transition-all duration-200">
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
           </button>
         </div>
@@ -124,13 +118,16 @@ export default function SessionSheetModal({ sheet, getUserName, onClose, onViewS
           </div>
 
           <div>
-            <h4 className="text-txt-dim text-[10px] font-semibold uppercase tracking-wider mb-2">Atributos</h4>
+            <h4 className="text-txt-dim text-[10px] font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-xs">bar_chart</span>
+              Atributos
+            </h4>
             <div className="grid grid-cols-6 gap-2">
               {['FOR', 'DES', 'CON', 'INT', 'APA', 'AM'].map(a => {
                 const v = totalAttr(a)
                 const m = getModifier(v)
                 return (
-                  <div key={a} className="bg-void/80 border border-sep/30 rounded-lg px-2 py-2 text-center">
+                  <div key={a} className="bg-void/80 border border-sep/30 rounded-lg px-2 py-2 text-center hover:border-gold/20 transition-colors duration-200">
                     <span className="text-txt-dim text-[9px] block">{ATTR_ICONS[a]} {a}</span>
                     <span className="text-on-surface font-mono text-sm font-semibold block">{v}</span>
                     <span className={`text-[9px] font-mono block ${m >= 0 ? 'text-ok' : 'text-err'}`}>
@@ -173,10 +170,13 @@ export default function SessionSheetModal({ sheet, getUserName, onClose, onViewS
 
           {habilidades.length > 0 && (
             <div>
-              <h4 className="text-txt-dim text-[10px] font-semibold uppercase tracking-wider mb-2">Habilidades ({habilidades.length})</h4>
+              <h4 className="text-txt-dim text-[10px] font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                Habilidades ({habilidades.length})
+              </h4>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {habilidades.map((h, i) => (
-                  <div key={i} className="rounded-lg border border-sep/30 bg-void/40 p-2.5">
+                  <div key={i} className="rounded-lg border border-sep/30 bg-void/40 p-2.5 hover:border-gold/15 transition-colors duration-200">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className={`text-[9px] px-1.5 py-0.5 rounded ${
                         h.status === 'Aprovada' ? 'bg-ok/10 text-ok border border-ok/20' :
@@ -261,13 +261,22 @@ export default function SessionSheetModal({ sheet, getUserName, onClose, onViewS
 function MiniStat({ label, value, max, color, barColor }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0
   const isLow = pct > 0 && pct <= 25
+  const isMid = pct > 25 && pct <= 50
+
+  let barBg = barColor
+  if (isLow) barBg = 'bg-err'
+  else if (isMid) barBg = 'bg-amber-400'
+
   return (
-    <div className="rounded-lg bg-void/60 border border-sep/30 p-3 text-center">
+    <div className={`rounded-lg border p-3 text-center transition-colors duration-300 ${
+      isLow ? 'bg-err/5 border-err/20' : 'bg-void/60 border-sep/30'
+    }`}>
       <span className="text-[9px] text-txt-dim uppercase tracking-wider block mb-1">{label}</span>
-      <span className={`font-mono text-lg font-bold block ${isLow ? 'text-err' : color}`}>{value}</span>
+      <span className={`font-mono text-lg font-bold block transition-colors duration-300 ${isLow ? 'text-err' : isMid ? 'text-amber-400' : color}`}>{value}</span>
       <span className="text-[9px] text-txt-dim block">/ {max}</span>
       <div className="h-1.5 bg-void rounded-full overflow-hidden mt-1.5">
-        <div className={`h-full rounded-full transition-all duration-500 ${isLow ? 'bg-err' : barColor}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full transition-all duration-700 ease-out ${barBg}`}
+          style={{ width: `${pct}%`, boxShadow: isLow ? '0 0 8px rgba(248,113,113,0.4)' : 'none' }} />
       </div>
     </div>
   )
@@ -275,7 +284,7 @@ function MiniStat({ label, value, max, color, barColor }) {
 
 function StatBox({ label, value, small }) {
   return (
-    <div className="rounded-lg bg-void/60 border border-sep/30 p-2.5 text-center">
+    <div className="rounded-lg bg-void/60 border border-sep/30 p-2.5 text-center transition-colors duration-200 hover:border-gold/20">
       <span className="text-[9px] text-txt-dim uppercase tracking-wider block mb-0.5">{label}</span>
       <span className={`font-mono text-on-surface block ${small ? 'text-xs' : 'text-sm font-semibold'}`}>{value}</span>
     </div>

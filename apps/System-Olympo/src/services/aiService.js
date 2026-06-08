@@ -1010,13 +1010,13 @@ function buildCrossClassContext(nivel) {
   return results
 }
 
-function buildSystemContext() {
-  return buildBalanceSystemPromptFromPrompts()
+function buildSystemContext(targetContext = null) {
+  return buildBalanceSystemPromptFromPrompts({ targetContext })
 }
 
 // ─── analyzeBalance ───────────────────────────────────────────────────────
 
-async function analyzeBalanceWithAI(char, direction = null) {
+async function analyzeBalanceWithAI(char, direction = null, targetContext = null) {
   const stats  = computeCharStats(char)
   const evoCtx = buildEvolucaoContext(char.habilidades, char.nivel || 1)
   const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
@@ -1229,7 +1229,7 @@ Responda EXCLUSIVAMENTE com JSON:
 }`
 
       const chunkResult = await callAIJson([
-        { role: 'system', content: buildSystemContext() },
+        { role: 'system', content: buildSystemContext(targetContext) },
         { role: 'user', content: chunkMessage },
       ], { maxTokens: 8192 })
 
@@ -1242,7 +1242,7 @@ Responda EXCLUSIVAMENTE com JSON:
   }
 
   const response = await callAIJson([
-    { role: 'system', content: buildSystemContext() },
+    { role: 'system', content: buildSystemContext(targetContext) },
     { role: 'user',   content: userMessage },
   ], { maxTokens: 16384 })
   return response
@@ -1256,10 +1256,10 @@ Responda EXCLUSIVAMENTE com JSON:
 
 // ─── generateWeaponAbilities ──────────────────────────────────────────────
 
-export async function analyzeBalance(char, direction = null) {
+export async function analyzeBalance(char, direction = null, targetContext = null) {
   return withLocalAIFallback(
     'analyzeBalance',
-    () => analyzeBalanceWithAI(char, direction),
+    () => analyzeBalanceWithAI(char, direction, targetContext),
     () => createLocalBalanceResult(char)
   )
 }
@@ -1405,7 +1405,7 @@ Responda EXCLUSIVAMENTE com JSON:
   }
 }
 
-export async function generateAbilitiesFromDescription(char, description) {
+export async function generateAbilitiesFromDescription(char, description, targetContext = null) {
   const sk     = char.skeletonPoints || {}
   const attrs  = char.atributos || {}
   const totalAttr = (a) => getAttrValue(attrs, a, sk, char)
@@ -1447,7 +1447,7 @@ Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habi
   const response = await withLocalAIFallback(
     'generateAbilitiesFromDescription',
     () => callAIJson([
-      { role: 'system', content: buildSystemContext() },
+      { role: 'system', content: buildSystemContext(targetContext) },
       { role: 'user',   content: prompt },
     ]),
     () => createLocalGeneratedAbilitiesResult(allTipos, description)

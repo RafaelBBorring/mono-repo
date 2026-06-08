@@ -27,8 +27,8 @@ export function getSkillBracket(custoEnergia, tipo) {
 }
 
 export function getMaxEvolucao(tipo) {
-  if (tipo === 'Passiva')  return 3
-  if (tipo === 'Ultimate') return 3
+  if (tipo === 'Passiva')  return 4
+  if (tipo === 'Ultimate') return 5
   return 5
 }
 
@@ -103,8 +103,9 @@ export function canEvolveSkill(skill, currentEvolNivel, charNivel) {
   if (skill.tipo === 'Passiva') return { allowed: false, reason: 'A Passiva evolui automaticamente' }
 
   if (skill.tipo === 'Ultimate') {
-    const thresholds = [15, 25, 30]  // nível mínimo para 1º, 2º e 3º ponto
+    const thresholds = [15, 25, 30, 38, 45]
     const required = thresholds[currentEvolNivel]
+    if (!required) return { allowed: false, reason: 'Nível máximo de evolução atingido' }
     if (charNivel < required)
       return { allowed: false, reason: `Requer Nível ${required}+ para evoluir a Ultimate` }
   }
@@ -116,6 +117,7 @@ export function canEvolveSkill(skill, currentEvolNivel, charNivel) {
  * Calcula o nível de evolução automático da Passiva com base no nível do personagem.
  */
 export function calcPassivaAutoEvolucao(charNivel) {
+  if (charNivel >= 40) return 4
   if (charNivel >= 30) return 3
   if (charNivel >= 20) return 2
   if (charNivel >= 10) return 1

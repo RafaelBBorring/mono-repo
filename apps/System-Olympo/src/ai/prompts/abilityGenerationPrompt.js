@@ -7,8 +7,21 @@
  *
  * Tokens estimados: ~900-1300 tokens
  */
-export function buildAbilityGenerationPrompt({ char, description, allTipos, tiposList }) {
+export function buildAbilityGenerationPrompt({ char, description, allTipos, tiposList, targetContext = null }) {
   const nivel = char.nivel || 1
+
+  const npcBlock = targetContext?.isNPC ? `
+═════════════════════════════════════════════════════════════════
+MODO NPC — NAO E UM PERSONAGEM JOGADOR:
+═════════════════════════════════════════════════════════════════
+Este alvo e um NPC com Nivel de Ameaca (NA): ${targetContext.na || '1'} (${targetContext.naTag || '1v1'}).
+- Perfil: ${targetContext.perfil || 'Guerreiro (d10)'}
+- NPCs NAO usam PEH. Gere valores fixos equivalentes ao PEH MEDIO da faixa (aprox. 2-3 PEH por habilidade).
+- Se NA < 1 (Horda/Grupo): reduza valores em ~30-50% do base.
+- Se NA = 1: use os valores base normalmente.
+- Se NA > 1 (Boss): pode exceder o teto base em ate ${Math.round((Number(targetContext.na) || 1) * 15)}%.
+- O mestre tem controle total sobre NPCs.
+` : ''
 
   return `VOCE E O ORACULO — MOTOR DE GERACAO DE HABILIDADES DO SISTEMA OLYMPO 2.0.
 
@@ -17,6 +30,7 @@ FOR ${char.atributos?.FOR} | DES ${char.atributos?.DES} | CON ${char.atributos?.
 Triagem: ${char.triagemPrincipal || 'Nenhuma'} (${char.triagemPrincipalNivel || 0})
 Modulos: ${(char.modulosAdquiridos || []).map(m => m.name || m.id).join(', ') || 'Nenhum'}
 Descricao do jogador: "${description}"
+${npcBlock}
 
 Crie EXATAMENTE ${allTipos.length} habilidades na ORDEM e TIPO abaixo:
 ${tiposList}
@@ -42,7 +56,7 @@ Ativa Forte (max 5 PEH):    14d12+60  | Custo: 70-120E
 Ultimate (max 3 PEH):       20d12+80  | Custo: 110-180E
 
 CALIBRACAO HP ESPERADO POR NIVEL:
-N5:140-210 | N10:250-380 | N15:380-560 | N20:520-760 | N25:700-980 | N30:950-1400
+N5:140-210 | N10:250-380 | N15:380-560 | N20:520-760 | N25:700-980 | N30:950-1400 | N35:1100-1300 | N40:1350-1600 | N45:1600-1900 | N50:1900-2200
 
 OBJETIVO DE COMBATE: PvP no mesmo nivel deve durar ~10 rodadas.
 - O dano BASE e BAIXO de proposito — o jogador investe PEH para alcancar o poder ideal.
@@ -52,6 +66,10 @@ OBJETIVO DE COMBATE: PvP no mesmo nivel deve durar ~10 rodadas.
 DT (Dificuldade de Teste) BASE:
 - Habilidades que exigem teste do alvo: DT = 10 + modificador do atributo chave do personagem.
 - Cada PEH investido aumenta a DT em +1.
+- PISO MINIMO DE DT (NUNCA gere abaixo disto):
+  N1-7: DT 12 | N8-15: DT 14 | N16-22: DT 16 | N23-30: DT 18 | N31-38: DT 20 | N39-50: DT 22
+- Se 10+MOD < piso, USE o piso.
+- TODA habilidade ofensiva DEVE dar ao alvo uma chance de resistir. Dano automatico sem teste = dano reduzido (~60% do TDH) OU condicao de ativacao restrita.
 
 ════════════════════════════════════════════════════════════════
 REGRAS CRITICAS:
@@ -66,11 +84,17 @@ REGRAS CRITICAS:
    - "Teleporte" → Vantagem em ataque/esquiva, bonus de posicao
    - "Invisibilidade" → Vantagem em Furtividade, Desvantagem para inimigos
    - "Rapidez" → +NdN em DES, acao extra condicional
-5. Mantenha coerencia narrativa: todas pertencem ao mesmo personagem.
-6. Respeite Economia de Acoes: max 2 ataques/turno, max 3 acoes totais/turno.
-7. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, DT, etc).
-8. Se a habilidade envolver teste do alvo, inclua a DT base: "DT 10+MOD".
-9. Habilidades com PEH=0 sao INTENCIONALMENTE modestas. O poder vem da evolucao.
+5. EFEITOS CUMULATIVOS DEVEM TER MECANICA CONCRETA:
+   - "Apos X ataques ganha ponto" → defina O QUE o ponto faz: +NdN no proximo ataque, reduz custo em X, concede Vantagem em teste Y
+   - "Stack de furia" → +2 FOR por stack (max 3), dura 1 rodada apos ultimo ataque
+   - "Acumulo de carga" → ao atingir X stacks, libera efeito amplificado (dobra dados OU dobra duracao, NAO ambos)
+   - NUNCA gere "ganha 1 ponto" sem explicar O QUE o ponto FAZ no jogo
+   - Max 3-5 stacks (conforme faixa), com dissipacao ao usar ouapos 1 rodada sem gatilho
+6. Mantenha coerencia narrativa: todas pertencem ao mesmo personagem.
+7. Respeite Economia de Acoes: max 2 ataques/turno, max 3 acoes totais/turno.
+8. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, DT, etc).
+9. Se a habilidade envolver teste do alvo, inclua a DT base: "DT 10+MOD".
+10. Habilidades com PEH=0 sao INTENCIONALMENTE modestas. O poder vem da evolucao.
 
 Responda EXCLUSIVAMENTE com JSON:
 {
@@ -84,5 +108,7 @@ function getLevelBand(nivel) {
   if (nivel <= 7)  return 'N1-7'
   if (nivel <= 15) return 'N8-15'
   if (nivel <= 22) return 'N16-22'
-  return 'N23-30'
+  if (nivel <= 30) return 'N23-30'
+  if (nivel <= 38) return 'N31-38'
+  return 'N39-50'
 }

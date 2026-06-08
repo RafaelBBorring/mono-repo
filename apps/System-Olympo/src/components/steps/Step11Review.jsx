@@ -36,7 +36,7 @@ import { uploadGrimorioImage } from '../../services/uploadService'
 import ImageUploadField from '../ImageUploadField'
 import { getSystemSkillById, SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, EFFECT_PARAM_DEFS } from '../../data/systemSkills'
 import { summarizeSystemSkillBonuses, createDefaultEffectsForSkill, calcSystemSkillBonuses } from '../../utils/systemSkills'
-import { getRaceDevelopmentEffects, getTriageDevelopmentEffects } from '../../utils/developmentEffects'
+
 import { flattenRaceMilestones, formatRaceBonusParts, parseRaceEffectText } from '../../utils/raceMilestones'
 import { SPECIAL_MATERIALS, getAvailableForgeMaterials, getMaterialIcon } from '../../data/materials'
 
@@ -81,23 +81,23 @@ export default function Step11Review({ char, onSave, onEdit, onNew, update, upda
 
 function SectionHeader({ icon, title, color }) {
   return (
-    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-primary/20">
-      <div className={`w-1.5 h-5 rounded-full ${color}`} />
-      <span className="text-outline text-sm">{icon}</span>
+    <div className="flex items-center gap-2.5 mb-3 pb-2" style={{ borderBottom: '1px solid rgba(232,201,126,0.12)' }}>
+      <div className={`w-1 h-5 rounded-full ${color}`} />
+      <span className="text-on-surface-variant text-sm">{icon}</span>
       <h3 className="font-cinzel text-on-surface text-sm uppercase tracking-[0.1em] font-semibold">{title}</h3>
-      <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+      <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(232,201,126,0.15), transparent)' }} />
     </div>
   )
 }
 
 const SHEET_VIEWS = [
-  { key: 'overview', label: 'Visão', hint: 'O essencial para jogar agora.' },
-  { key: 'combat', label: 'Combate', hint: 'Defesa, arma e números de mesa.' },
-  { key: 'powers', label: 'Poderes', hint: 'Módulos, habilidades e análise.' },
-  { key: 'traits', label: 'Traços', hint: 'Raça, perícias e triagens.' },
-  { key: 'inventory', label: 'Bolsa', hint: 'Itens, equipamentos e notas.' },
-  { key: 'mystic', label: 'Místico', hint: 'Disciplinas opcionais.' },
-  { key: 'full', label: 'Tudo', hint: 'Ficha completa sem filtros.' },
+  { key: 'overview', label: 'Visão', hint: 'O essencial para jogar agora.', icon: 'dashboard' },
+  { key: 'combat', label: 'Combate', hint: 'Defesa, arma e números de mesa.', icon: 'shield' },
+  { key: 'powers', label: 'Poderes', hint: 'Módulos, habilidades e análise.', icon: 'auto_awesome' },
+  { key: 'traits', label: 'Traços', hint: 'Raça, perícias e triagens.', icon: 'psychology' },
+  { key: 'inventory', label: 'Bolsa', hint: 'Itens, equipamentos e notas.', icon: 'inventory_2' },
+  { key: 'mystic', label: 'Místico', hint: 'Disciplinas opcionais.', icon: 'auto_fix_high' },
+  { key: 'full', label: 'Tudo', hint: 'Ficha completa sem filtros.', icon: 'menu_book' },
 ]
 
 function getSheetTriageTitle(char, cls) {
@@ -121,6 +121,7 @@ function SheetViewTabs({ active, onChange, counts }) {
           className={`sheet-view-tab ${active === view.key ? 'is-active' : ''}`}
           title={view.hint}
         >
+          <span className="material-symbols-outlined text-[16px]">{view.icon}</span>
           <span>{view.label}</span>
           {counts?.[view.key] != null && <small>{counts[view.key]}</small>}
         </button>
@@ -183,10 +184,6 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const activeItems = [...activeAbilityItems, ...activeModuleItems]
   const activeBonuses = mergeBonuses(activeItems)
   const sysSkillBonuses = calcSystemSkillBonuses(char)
-  const developmentEffects = [
-    ...(cls ? getTriageDevelopmentEffects(char, cls) : []),
-    ...getRaceDevelopmentEffects(char),
-  ]
   const equipmentStats = calcEquipStats(char.equipamentos || [])
   const equipDurBonus = sysSkillBonuses.equipmentDurability
   if (equipDurBonus > 0) {
@@ -250,10 +247,24 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const [oracleFocusRequest, setOracleFocusRequest] = useState(null)
   const [forgeMenuOpen, setForgeMenuOpen] = useState(false)
   const [editingPericias, setEditingPericias] = useState(false)
+  const [pendingExpanded, setPendingExpanded] = useState(false)
 
   const periciasTotal = cls ? calcPericiasAvailable(cls, char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char) : 0
   const periciasUsed = Object.values(char.pericias || {}).reduce((s, g) => s + (g > 0 ? g : 0), 0)
   const periciasMaxGrau = getMaxGrauForLevel(char.nivel || 1)
+
+  const skelPending = skelTotal - skelSpent
+  const periciasRemaining = periciasTotal - periciasUsed
+  const totalModuleSlots = (char.modulosAdquiridos || []).reduce((sum, m) => sum + (m.boughtCount || 1), 0)
+  const unnamedAbilities = (char.habilidades || []).filter(h => !h.nome || h.nome.trim() === '').length
+  const pendingAbilities = (char.habilidades || []).filter(h => h.status === 'Pendente').length
+  const pendingItems = [
+    ...(skelPending > 0 ? [{ key: 'skel', label: `${skelPending} Pontos de Esqueleto`, color: 'text-amber-300 border-amber-300/25 bg-amber-300/8', icon: 'diamond' }] : []),
+    ...(periciasRemaining > 0 ? [{ key: 'per', label: `${periciasRemaining} Perícias disponíveis`, color: 'text-cyan-300 border-cyan-300/25 bg-cyan-300/8', icon: 'school' }] : []),
+    ...(pehRemaining > 0 ? [{ key: 'peh', label: `${pehRemaining} PEH não gasto`, color: 'text-indigo-300 border-indigo-300/25 bg-indigo-300/8', icon: 'upgrade' }] : []),
+    ...(unnamedAbilities > 0 ? [{ key: 'unnamed', label: `${unnamedAbilities} Habilidade(s) sem nome`, color: 'text-orange-300 border-orange-300/25 bg-orange-300/8', icon: 'edit_note' }] : []),
+    ...(pendingAbilities > 0 ? [{ key: 'pending', label: `${pendingAbilities} Pendente(s) de revisão`, color: 'text-yellow-300 border-yellow-300/25 bg-yellow-300/8', icon: 'pending' }] : []),
+  ]
 
   function cyclePericia(periciaName, currentGrau) {
     if (!update) return
@@ -430,58 +441,28 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         </button>
       </div>
 
-      <div className={`active-effects-panel ${activeItems.length > 0 ? 'is-live' : ''}`}>
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-gold font-semibold">Supervisao de efeitos ativos</div>
-          <p className="text-txt-dim text-xs mt-1">Habilidades e modulos ligados alteram a leitura da ficha ate serem desativados.</p>
-        </div>
-        <div className="active-effects-summary">
-          {activeItems.length > 0 ? activeItems.map((item) => (
-            <button key={item.effectKey} type="button" onClick={() => toggleActiveEffect(item.effectKey)} className="active-effect-chip">
-              <span>{item.sourceLabel}</span>
-              <strong>{item.nome || item.name || 'Efeito ativo'}</strong>
-            </button>
-          )) : (
-            <span className="text-txt-dim text-xs">Nenhum efeito ativo no momento.</span>
-          )}
-          {(activeBonuses.ataque || activeBonuses.ca || activeBonuses.vida || activeBonuses.energia || activeBonuses.dano) ? (
-            <span className="active-effect-total">
-              {activeBonuses.ataque ? `Ataque ${activeBonuses.ataque > 0 ? '+' : ''}${activeBonuses.ataque} ` : ''}
-              {activeBonuses.ca ? `CA ${activeBonuses.ca > 0 ? '+' : ''}${activeBonuses.ca} ` : ''}
-              {activeBonuses.vida ? `Vida ${activeBonuses.vida > 0 ? '+' : ''}${activeBonuses.vida} ` : ''}
-              {activeBonuses.energia ? `Energia ${activeBonuses.energia > 0 ? '+' : ''}${activeBonuses.energia} ` : ''}
-              {activeBonuses.dano ? `Dano ${activeBonuses.dano > 0 ? '+' : ''}${activeBonuses.dano}` : ''}
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
 
-      {developmentEffects.length > 0 && (
-        <div className="development-effects-panel">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-sky-300 font-semibold">Impactos no desenvolvimento</div>
-              <p className="text-txt-dim text-xs mt-1">Bonus permanentes de triagem, raca e marcos que ja entraram nos totais da ficha.</p>
+      {pendingItems.length > 0 && (
+        <div className="rounded-lg border transition-all duration-200" style={{ background: 'rgba(232,201,126,0.03)', borderColor: 'rgba(232,201,126,0.1)' }}>
+          <button type="button" onClick={() => setPendingExpanded(!pendingExpanded)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors rounded-lg">
+            <span className="material-symbols-outlined text-[14px] text-amber-300/60">pending_actions</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/70">{pendingItems.length} pendência{pendingItems.length > 1 ? 's' : ''}</span>
+            <span className="material-symbols-outlined text-[12px] text-txt-dim/40 ml-auto transition-transform duration-200" style={{ transform: pendingExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
+          </button>
+          {pendingExpanded && (
+            <div className="px-3 pb-2.5 flex flex-wrap gap-1.5">
+              {pendingItems.map(item => (
+                <span key={item.key} className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-full border ${item.color}`}>
+                  <span className="material-symbols-outlined text-[11px]">{item.icon}</span>
+                  {item.label}
+                </span>
+              ))}
             </div>
-            <span className="text-[10px] font-mono text-sky-200 border border-sky-300/20 rounded-full px-2 py-1">{developmentEffects.length} efeitos</span>
-          </div>
-          <div className="development-effects-grid">
-            {developmentEffects.map(effect => (
-              <div key={effect.key} className="development-effect-card">
-                <span className="development-effect-source">{effect.source}</span>
-                <div className="flex items-start justify-between gap-3 mt-1">
-                  <strong>{effect.target}</strong>
-                  <em>{effect.value}</em>
-                </div>
-                <p>{effect.formula}</p>
-                {effect.note && <small>{effect.note}</small>}
-              </div>
-            ))}
-          </div>
+          )}
         </div>
       )}
-
-      <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
 
       {cls && skelTotal > 0 && (
         <SkeletonPointAllocator char={char} update={update} sk={sk} skelTotal={skelTotal} skelSpent={skelSpent} sysSkillBonuses={sysSkillBonuses} skelBase={skelBase} isAdmin={isAdmin} />
@@ -506,49 +487,51 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
 
       <div className="codex-card overflow-hidden">
         <div className="flex flex-col xl:flex-row">
-          <section className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center border-l-4 border-l-primary bg-gradient-to-br from-primary/5 via-transparent to-transparent">
+          <section className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(232,201,126,0.08) 0%, rgba(14,14,15,0.95) 40%, rgba(189,244,255,0.04) 100%)' }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'repeating-linear-gradient(135deg, rgba(232,201,126,0.02) 0 1px, transparent 1px 20px)' }} />
             <div className="relative shrink-0">
-              <div className="absolute inset-0 border border-primary/30 -m-2 rounded hidden md:block" />
+              <div className="absolute -inset-1.5 rounded-2xl opacity-60" style={{ background: 'linear-gradient(135deg, #c9a84c, #bdf4ff)', filter: 'blur(4px)' }} />
               {char.avatar ? (
-                <img src={char.avatar} alt="" className="relative w-28 h-28 object-cover border border-primary/20 bg-surface-container" />
+                <img src={char.avatar} alt="" className="relative w-28 h-28 rounded-2xl object-cover border-2 border-primary/30" style={{ boxShadow: '0 0 24px rgba(201,168,76,0.15)' }} />
               ) : (
-                <div className="relative w-28 h-28 bg-surface-container border border-primary/20 flex items-center justify-center">
+                <div className="relative w-28 h-28 rounded-2xl bg-surface-container border-2 border-primary/20 flex items-center justify-center" style={{ boxShadow: '0 0 24px rgba(201,168,76,0.15)' }}>
                   <span className="material-symbols-outlined text-4xl text-primary/30">person</span>
                 </div>
               )}
               {canEdit && (
                 <>
                   <button type="button" onClick={() => avatarInputRef.current?.click()}
-                    className="absolute -right-2 -bottom-2 w-9 h-9 rounded-full bg-deep/95 border border-primary/30 text-primary grid place-items-center hover:bg-primary hover:text-on-primary transition-colors"
+                    className="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-deep/95 border border-gold/40 text-gold grid place-items-center hover:bg-gold hover:text-void transition-colors"
                     title="Alterar ícone do personagem">
-                    <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                    <span className="material-symbols-outlined text-[16px]">photo_camera</span>
                   </button>
                   <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} />
                 </>
               )}
             </div>
-            <div className="flex-1 text-center md:text-left space-y-3 min-w-0">
-              <h2 className="font-cinzel text-white uppercase tracking-[0.05em] truncate" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', lineHeight: 1.1 }}>
+            <div className="relative flex-1 text-center md:text-left space-y-3 min-w-0">
+              <h2 className="font-cinzel text-white uppercase tracking-[0.05em] truncate" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', lineHeight: 1.1, textShadow: '0 0 20px rgba(232,201,126,0.15)' }}>
                 {char.nome || 'Sem Nome'}
               </h2>
-              <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-1">
+              <div className="flex flex-wrap justify-center md:justify-start gap-x-5 gap-y-1">
                 <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>Classe: {cls || '—'}</span>
                 <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>Nível {char.nivel || 1}</span>
                 <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>{getRaceLabel(char) || '—'}</span>
               </div>
               <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                <span className="px-3 py-1 bg-primary/5 border border-primary/20 text-primary font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em' }}>{cls || '—'}</span>
-                <span className="px-3 py-1 bg-white/5 border border-white/10 text-on-surface-variant font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em' }}>Nível {char.nivel || 1}</span>
+                <span className="px-3 py-1 rounded-lg font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em', background: 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05))', border: '1px solid rgba(201,168,76,0.3)', color: '#e8c97e' }}>{cls || '—'}</span>
+                <span className="px-3 py-1 rounded-lg font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em', background: 'rgba(189,244,255,0.08)', border: '1px solid rgba(189,244,255,0.2)', color: '#bdf4ff' }}>Nível {char.nivel || 1}</span>
                 {primaryTriage !== 'Sem triagem' && (
-                  <span className="px-3 py-1 bg-secondary-fixed-dim/5 border border-secondary-fixed-dim/20 text-secondary-fixed-dim font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em' }}>{primaryTriage}</span>
+                  <span className="px-3 py-1 rounded-lg font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em', background: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.2)', color: '#c084fc' }}>{primaryTriage}</span>
                 )}
               </div>
             </div>
           </section>
 
           <section className="xl:w-[420px] grid grid-cols-3 border-t xl:border-t-0 xl:border-l border-white/5">
-            <div className="flex flex-col items-center justify-center py-4 bg-resource-vida/5 border-r border-white/5">
-              <span className="font-mono text-resource-vida/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Vida</span>
+            <div className="flex flex-col items-center justify-center py-5 relative" style={{ background: 'linear-gradient(180deg, rgba(52,211,153,0.06) 0%, rgba(52,211,153,0.02) 100%)' }}>
+              <span className="font-mono uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px', color: 'rgba(52,211,153,0.6)' }}>Vida</span>
               {canEdit ? (
                 <input type="number" value={vidaAtual}
                   onChange={e => update({ vidaAtual: Number(e.target.value) || 0 })}
@@ -557,10 +540,13 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               ) : (
                 <span className={`font-mono leading-none ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`} style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaAtual}</span>
               )}
-              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{vidaNow}</span>
+              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">/ {vidaNow}</span>
+              <div className="absolute bottom-0 left-2 right-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(52,211,153,0.1)' }}>
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${vidaNow > 0 ? Math.min(100, (vidaAtual / vidaNow) * 100) : 0}%`, background: 'linear-gradient(90deg, #34d399, #10b981)' }} />
+              </div>
             </div>
-            <div className="flex flex-col items-center justify-center py-4 bg-resource-energia/5 border-r border-white/5">
-              <span className="font-mono text-resource-energia/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>Energia</span>
+            <div className="flex flex-col items-center justify-center py-5 relative border-x border-white/5" style={{ background: 'linear-gradient(180deg, rgba(56,189,248,0.06) 0%, rgba(56,189,248,0.02) 100%)' }}>
+              <span className="font-mono uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px', color: 'rgba(56,189,248,0.6)' }}>Energia</span>
               {canEdit ? (
                 <input type="number" value={energiaAtual}
                   onChange={e => update({ energiaAtual: Number(e.target.value) || 0 })}
@@ -569,10 +555,13 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               ) : (
                 <span className={`font-mono leading-none ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`} style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaAtual}</span>
               )}
-              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{energiaNow}</span>
+              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">/ {energiaNow}</span>
+              <div className="absolute bottom-0 left-2 right-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(56,189,248,0.1)' }}>
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${energiaNow > 0 ? Math.min(100, (energiaAtual / energiaNow) * 100) : 0}%`, background: 'linear-gradient(90deg, #38bdf8, #0ea5e9)' }} />
+              </div>
             </div>
-            <div className="flex flex-col items-center justify-center py-4 bg-resource-pe/5">
-              <span className="font-mono text-resource-pe/70 uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px' }}>P.E.</span>
+            <div className="flex flex-col items-center justify-center py-5 relative" style={{ background: 'linear-gradient(180deg, rgba(232,201,126,0.06) 0%, rgba(232,201,126,0.02) 100%)' }}>
+              <span className="font-mono uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px', color: 'rgba(232,201,126,0.6)' }}>P.E.</span>
               {canEdit ? (
                 <input type="number" value={peAtual}
                   onChange={e => update({ peAtual: Number(e.target.value) || 0 })}
@@ -581,7 +570,10 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               ) : (
                 <span className={`font-mono leading-none ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`} style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peAtual}</span>
               )}
-              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">{peNow}</span>
+              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">/ {peNow}</span>
+              <div className="absolute bottom-0 left-2 right-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(232,201,126,0.1)' }}>
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${peNow > 0 ? Math.min(100, (peAtual / peNow) * 100) : 0}%`, background: 'linear-gradient(90deg, #e8c97e, #c9a84c)' }} />
+              </div>
             </div>
           </section>
         </div>
@@ -596,17 +588,22 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               {/* ATTRIBUTES */}
               <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
                 <SectionHeader icon="📊" title="Atributos" color="bg-amber-400" />
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   {['FOR','DES','CON','INT','APA','AM'].map(a => {
                     const v = totalAttr(a)
                     const m = getModifier(v)
+                    const cap = getAttrCap(char.nivel || 1)
+                    const pts = sk[a] || 0
+                    const pct = Math.min(100, Math.round((v / (cap + 10)) * 100))
                     return (
-                      <div key={a} className="flex flex-col items-center p-3 border border-primary/10 bg-white/5 hover:border-primary/30 transition-colors">
-                        <span className="font-mono text-outline uppercase tracking-widest mb-1" style={{ fontSize: '10px' }}>{ATTR_ICONS[a]} {a}</span>
-                        <span className="font-mono text-white leading-none" style={{ fontSize: '28px' }}>{v}</span>
-                        <span className={`font-mono font-bold ${m >= 0 ? 'text-primary' : 'text-secondary-fixed-dim'}`} style={{ fontSize: '11px' }}>
+                      <div key={a} className="flex flex-col items-center p-3 rounded-xl border border-primary/10 hover:border-primary/30 transition-all duration-200 relative overflow-hidden group" style={{ background: 'linear-gradient(180deg, rgba(232,201,126,0.04) 0%, rgba(14,14,15,0.6) 100%)' }}>
+                        <div className="absolute bottom-0 left-0 right-0 transition-all duration-500" style={{ height: `${pct}%`, background: 'linear-gradient(0deg, rgba(201,168,76,0.06) 0%, transparent 100%)' }} />
+                        <span className="font-mono uppercase tracking-widest mb-1 relative z-10" style={{ fontSize: '10px', color: 'rgba(232,201,126,0.5)' }}>{ATTR_ICONS[a]} {a}</span>
+                        <span className="font-mono text-white leading-none relative z-10" style={{ fontSize: '28px' }}>{v}</span>
+                        <span className={`font-mono font-bold relative z-10 ${m >= 0 ? 'text-primary' : 'text-secondary-fixed-dim'}`} style={{ fontSize: '11px' }}>
                           {m >= 0 ? '+' : ''}{m}
                         </span>
+                        {pts > 0 && <span className="text-[8px] text-emerald-400/50 font-mono relative z-10">+{pts} skel</span>}
                       </div>
                     )
                   })}
@@ -633,7 +630,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
               </section>
 
               {/* COMBAT */}
-              <section className={visible('overview', 'combat') ? 'sheet-panel bg-void/60 border border-red-400/15 rounded-lg p-4' : 'hidden'}>
+              <section className={visible('overview', 'combat') ? 'sheet-panel rounded-xl p-4 relative overflow-hidden' : 'hidden'} style={{ background: 'linear-gradient(135deg, rgba(251,113,133,0.04) 0%, rgba(14,14,15,0.6) 50%, rgba(14,14,15,0.8) 100%)', border: '1px solid rgba(251,113,133,0.12)' }}>
                 <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
                 <div className="grid grid-cols-4 gap-3">
                   <CombatStat label="CA" value={derived.ca} />
@@ -2302,10 +2299,10 @@ function ResBox({ label, icon, current, max, pctColor, pctBarColor, canEdit, onC
   const pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0
   const isModified = current !== max
   return (
-    <div className="bg-void/60 border border-sep/40 rounded-lg p-3 hover:border-sep/70 transition-colors">
+    <div className="rounded-xl p-3 hover:border-sep/70 transition-all duration-200" style={{ background: 'rgba(14,14,15,0.5)', border: '1px solid rgba(255,255,255,0.06)' }}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-[11px]">{icon}</span>
-        <span className="text-txt-dim text-[11px] font-semibold uppercase tracking-wider">{label}</span>
+        <span className="text-txt-dim text-[10px] font-semibold uppercase tracking-wider">{label}</span>
         {isModified && <span className="text-[9px] text-gold/70 ml-auto">✎</span>}
       </div>
       {canEdit ? (
@@ -2323,8 +2320,8 @@ function ResBox({ label, icon, current, max, pctColor, pctBarColor, canEdit, onC
           {isModified && <span className="text-txt-dim/40 text-[10px] font-mono">/ {max}</span>}
         </div>
       )}
-      <div className="h-1 bg-deep rounded-full mt-2 overflow-hidden">
-        <div className={`h-full ${pctBarColor(pct)} rounded-full transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
+      <div className="h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className={`h-full rounded-full transition-all duration-700 ease-out ${pctBarColor(pct)}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -2332,8 +2329,8 @@ function ResBox({ label, icon, current, max, pctColor, pctBarColor, canEdit, onC
 
 function CombatStat({ label, value, isGold }) {
   return (
-    <div className="text-center">
-      <div className="text-txt-dim/60 text-[10px] uppercase tracking-wider mb-1">{label}</div>
+    <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+      <div className="text-txt-dim/50 text-[10px] uppercase tracking-wider mb-1">{label}</div>
       <div className={`font-mono text-xl leading-none ${isGold ? 'text-gold' : 'text-txt-main'}`}>{value}</div>
     </div>
   )
@@ -2567,14 +2564,14 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   const canDown = evoNivel > 0 && h.tipo !== 'Passiva'
 
   const typeStyle = h.tipo === 'Ultimate'
-    ? { border: 'border-gold/30', bg: 'bg-gold/3', badge: 'bg-gold/15 text-gold border-gold/20', icon: '★', label: 'Ultimate' }
+    ? { border: 'border-amber-400/30', bg: '', badge: 'text-amber-300 border-amber-400/30', badgeBg: 'rgba(251,191,36,0.12)', icon: '★', label: 'Ultimate', accentGrad: 'linear-gradient(135deg, rgba(251,191,36,0.08), transparent)' }
     : h.tipo === 'Passiva'
-    ? { border: 'border-emerald-400/20', bg: 'bg-emerald-400/3', badge: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20', icon: 'P', label: 'Passiva' }
+    ? { border: 'border-emerald-400/20', bg: '', badge: 'text-emerald-400 border-emerald-400/30', badgeBg: 'rgba(52,211,153,0.10)', icon: 'P', label: 'Passiva', accentGrad: 'linear-gradient(135deg, rgba(52,211,153,0.06), transparent)' }
     : h.tipo === 'Extra (Triagem)'
-    ? { border: 'border-purple-400/20', bg: 'bg-purple-400/3', badge: 'bg-purple-400/10 text-purple-400 border-purple-400/20', icon: 'T', label: 'Extra (Triagem)' }
+    ? { border: 'border-purple-400/20', bg: '', badge: 'text-purple-400 border-purple-400/30', badgeBg: 'rgba(192,132,252,0.10)', icon: 'T', label: 'Extra (Triagem)', accentGrad: 'linear-gradient(135deg, rgba(192,132,252,0.06), transparent)' }
     : h.tipo === 'Extra (Módulo)'
-    ? { border: 'border-sky-400/20', bg: 'bg-sky-400/3', badge: 'bg-sky-400/10 text-sky-400 border-sky-400/20', icon: 'M', label: 'Extra (Módulo)' }
-    : { border: 'border-indigo-400/15', bg: 'bg-indigo-400/2', badge: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20', icon: `#${i + 1}`, label: 'Ativa' }
+    ? { border: 'border-sky-400/20', bg: '', badge: 'text-sky-400 border-sky-400/30', badgeBg: 'rgba(56,189,248,0.10)', icon: 'M', label: 'Extra (Módulo)', accentGrad: 'linear-gradient(135deg, rgba(56,189,248,0.06), transparent)' }
+    : { border: 'border-indigo-400/15', bg: '', badge: 'text-indigo-400 border-indigo-400/30', badgeBg: 'rgba(129,140,248,0.10)', icon: `#${i + 1}`, label: 'Ativa', accentGrad: 'linear-gradient(135deg, rgba(129,140,248,0.05), transparent)' }
 
   function handleEvoUp() {
     if (!canUp || pehRemaining <= 0) return
@@ -2587,30 +2584,35 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   }
 
   return (
-    <div className={`rounded-xl border ${typeStyle.border} ${typeStyle.bg} overflow-hidden transition-all`}>
+    <div className={`rounded-xl border ${typeStyle.border} overflow-hidden transition-all duration-200 hover:translate-y-[-1px]`} style={{ background: typeStyle.accentGrad }}>
       <button type="button" onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-gold/[0.035] transition-colors">
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <span className={`text-xs font-bold w-8 h-8 rounded-lg flex items-center justify-center border ${typeStyle.badge} shrink-0`}>
+          <span className={`text-[10px] font-bold w-7 h-7 rounded-lg flex items-center justify-center border shrink-0 ${typeStyle.badge}`} style={{ background: typeStyle.badgeBg }}>
             {typeStyle.icon}
           </span>
           <span className="text-txt-main text-sm font-semibold truncate">{h.nome || '—'}</span>
           {h.custoEnergia > 0 && (
-            <span className="shrink-0 bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 text-[11px] font-mono leading-tight">
+            <span className="shrink-0 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 text-[10px] font-mono leading-tight" style={{ background: 'rgba(56,189,248,0.08)' }}>
               ⚡{h.custoEnergia}
             </span>
           )}
           {h.tipo === 'Passiva' && (
-            <span className="shrink-0 bg-emerald-400/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-400/20 text-[10px] font-mono leading-tight">
+            <span className="shrink-0 text-emerald-400 px-2 py-0.5 rounded border border-emerald-400/20 text-[10px] font-mono leading-tight" style={{ background: 'rgba(52,211,153,0.08)' }}>
               Passiva
             </span>
           )}
+          {h.status && h.status !== 'Aprovada' && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-warn' ? 'border-yellow-400/25 text-yellow-300' : STATUS_COLORS[h.status] === 'text-err' ? 'border-red-400/25 text-red-300' : 'border-sep/20 text-txt-dim'}`} style={{ background: STATUS_COLORS[h.status] === 'text-warn' ? 'rgba(250,204,21,0.08)' : STATUS_COLORS[h.status] === 'text-err' ? 'rgba(248,113,113,0.08)' : 'rgba(255,255,255,0.02)' }}>
+              {h.status}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0 ml-3">
+        <div className="flex items-center gap-1.5 shrink-0 ml-3">
           {canEdit && h.tipo !== 'Passiva' && canUp && pehRemaining > 0 && (
             <button type="button" onClick={e => { e.stopPropagation(); handleEvoUp() }}
               title={`Evoluir habilidade (${evoNivel}/${maxEvo}) — ${pehRemaining} PEH disponível`}
-              className="w-6 h-6 rounded border border-indigo-400/30 text-indigo-400/70 hover:text-indigo-400 hover:border-indigo-400/60 bg-indigo-400/5 inline-flex items-center justify-center transition-colors text-[11px] font-bold">
+              className="w-6 h-6 rounded border border-indigo-400/30 text-indigo-400/70 hover:text-indigo-400 hover:border-indigo-400/60 inline-flex items-center justify-center transition-colors text-[11px] font-bold" style={{ background: 'rgba(129,140,248,0.06)' }}>
               +
             </button>
           )}
@@ -2619,7 +2621,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           )}
           {onAnalyzeWithOracle && (
             <button type="button" onClick={e => { e.stopPropagation(); onAnalyzeWithOracle() }}
-              className="w-6 h-6 rounded border border-gold/20 text-gold/70 hover:text-gold hover:border-gold/40 bg-gold/5 inline-flex items-center justify-center transition-colors"
+              className="w-6 h-6 rounded border border-gold/20 text-gold/70 hover:text-gold hover:border-gold/40 inline-flex items-center justify-center transition-colors" style={{ background: 'rgba(201,168,76,0.05)' }}
               title="Analisar esta habilidade no Oraculo"
               aria-label="Analisar esta habilidade no Oraculo">
               <span className="material-symbols-outlined text-[14px] leading-none" aria-hidden="true">auto_awesome</span>
@@ -2627,16 +2629,16 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           )}
           {canEdit && (
             <button type="button" onClick={e => { e.stopPropagation(); setEditModal(true) }}
-              className="text-txt-dim/30 hover:text-gold/60 text-xs transition-colors" title="Editar habilidade">✎</button>
+              className="w-6 h-6 rounded border border-transparent text-txt-dim/30 hover:text-gold/60 hover:border-gold/20 inline-flex items-center justify-center transition-colors text-xs" title="Editar habilidade">✎</button>
           )}
-          <span className="text-txt-dim/30 text-sm">{open ? '▲' : '▼'}</span>
+          <span className="text-txt-dim/30 text-xs">{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {open && (
-        <div className="px-5 pb-5 space-y-4 border-t border-sep/15">
+        <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <div className="flex flex-wrap items-center gap-2 pt-3">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-ok/20 bg-ok/5' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-warn/20 bg-warn/5' : STATUS_COLORS[h.status] === 'text-err' ? 'border-err/20 bg-err/5' : 'border-sep/20 bg-sep/5'} ${STATUS_COLORS[h.status] || 'text-txt-dim'}`}>{h.status}</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-emerald-400/20 text-emerald-300' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-yellow-400/20 text-yellow-300' : STATUS_COLORS[h.status] === 'text-err' ? 'border-red-400/20 text-red-300' : 'border-sep/20 text-txt-dim'}`} style={{ background: STATUS_COLORS[h.status] === 'text-ok' ? 'rgba(52,211,153,0.06)' : STATUS_COLORS[h.status] === 'text-warn' ? 'rgba(250,204,21,0.06)' : STATUS_COLORS[h.status] === 'text-err' ? 'rgba(248,113,113,0.06)' : 'rgba(255,255,255,0.02)' }}>{h.status}</span>
             {evoNivel > 0 && <span className="text-indigo-400 text-[10px] font-mono">Evo {evoNivel}/{maxEvo} ({bracket})</span>}
             {canEdit && h.tipo !== 'Passiva' && (
               <div className="flex items-center gap-1">
@@ -2681,23 +2683,23 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
            {!canEdit ? (
             <>
               {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
-                <div className="text-txt-dim/90 text-sm pt-4 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
+                <div className="text-txt-dim/90 text-sm pt-3 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
               ) : (
-                <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+                <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
               )}
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {h.custoEnergia > 0 && (
-                  <span className="bg-sky-500/10 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-sm font-mono">
+                  <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
                     ⚡ Energia: {h.custoEnergia}
                   </span>
                 )}
                 {h.dano && (
-                  <span className="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-sm font-mono">
+                  <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
                     ⚔ Dano: {h.dano}
                   </span>
                 )}
                 {h.duracao && (
-                  <span className="bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-sm">
+                  <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
                     ⏱ Duração: {h.duracao}
                   </span>
                 )}
@@ -2706,28 +2708,28 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           ) : (
             <>
               {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
-                <div className="text-txt-dim/90 text-sm pt-4 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
+                <div className="text-txt-dim/90 text-sm pt-3 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
               ) : (
-                <p className="text-txt-dim/90 text-sm pt-4 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+                <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
               )}
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {h.custoEnergia > 0 && (
-                  <span className="bg-sky-500/10 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-sm font-mono">
+                  <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
                     ⚡ Energia: {h.custoEnergia}
                   </span>
                 )}
                 {h.dano && (
-                  <span className="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-sm font-mono">
+                  <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
                     ⚔ Dano: {h.dano}
                   </span>
                 )}
                 {h.duracao && (
-                  <span className="bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-sm">
+                  <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
                     ⏱ Duração: {h.duracao}
                   </span>
                 )}
               </div>
-              <p className="text-txt-dim/30 text-[10px] pt-2">Clique em ✎ para editar</p>
+              <p className="text-txt-dim/25 text-[10px] pt-1">Clique em ✎ para editar</p>
             </>
           )}
         </div>

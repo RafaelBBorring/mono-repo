@@ -9,6 +9,25 @@ import {
 } from '../../utils/raceCalculator'
 import { formatRaceBonusParts, getRaceProgressionBonus } from '../../utils/raceMilestones'
 
+const CAT_COLORS = {
+  humanoide: {
+    badge: 'bg-blue-400/15 text-blue-300 border-blue-400/25',
+    accent: 'text-blue-400',
+  },
+  sobrenatural: {
+    badge: 'bg-purple-400/15 text-purple-300 border-purple-400/25',
+    accent: 'text-purple-400',
+  },
+  predatoria: {
+    badge: 'bg-red-400/15 text-red-300 border-red-400/25',
+    accent: 'text-red-400',
+  },
+  lendaria: {
+    badge: 'bg-amber-300/15 text-amber-300 border-amber-300/25',
+    accent: 'text-amber-400',
+  },
+}
+
 function bonusLine(bonus = {}) {
   const attrs = Object.entries(bonus.attrs || {})
     .filter(([, v]) => v !== 0)
@@ -159,81 +178,73 @@ export default function StepRace({ char, update }) {
         })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.88fr)_minmax(420px,1.12fr)] gap-5 items-start">
-        <div className="race-list-panel">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-            <h3 className="font-cinzel text-primary text-lg">Racas Disponiveis</h3>
-            <p className="text-on-surface-variant text-xs mt-1">Clique em uma raca para ver os detalhes completos.</p>
-            </div>
-            <span className="text-xs text-on-surface-variant border border-outline/20 rounded-full px-3 py-1">{filteredRaces.length} opcoes</span>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+        {filteredRaces.map(race => {
+          const isSelected = char.raca === race.id
+          const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
+          const catColor = CAT_COLORS[race.category] || CAT_COLORS.humanoide
+          const advantages = (race.vantagens || []).slice(0, 3)
+
+          return (
+            <button
+              key={race.id}
+              type="button"
+              onClick={() => handleSelectRace(race.id)}
+              className={`race-square-card relative aspect-square rounded-2xl border border-white/[0.06] p-3 sm:p-4 flex flex-col items-center text-center transition-all duration-200 ease-out cursor-pointer ${isSelected ? 'race-square-card--selected' : ''}`}
+            >
+              {isSelected && (
+                <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gold flex items-center justify-center z-10 shadow-lg">
+                  <span className="material-symbols-outlined text-black text-sm" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>check</span>
+                </span>
+              )}
+
+              <span className="text-3xl sm:text-4xl mt-1 drop-shadow-lg">{race.icon}</span>
+
+              <span className="font-cinzel text-sm sm:text-base font-bold text-gold leading-tight mt-2 max-w-full truncate">
+                {race.name}
+              </span>
+
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border mt-1.5 ${catColor.badge}`}>
+                {catMeta.label}
+              </span>
+
+              <div className="mt-auto pt-2.5 space-y-0.5 w-full px-0.5">
+                {advantages.map((adv, i) => (
+                  <p key={i} className="text-[10px] sm:text-[11px] text-txt-dim truncate leading-relaxed text-left">
+                    <span className={`${catColor.accent} mr-0.5`}>+</span>{adv}
+                  </p>
+                ))}
+              </div>
+
+
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="race-detail-panel">
+        {!selectedRace ? (
+          <div className="race-empty-state">
+            <div className="text-5xl text-gold/70">?</div>
+            <h3 className="font-cinzel text-2xl text-primary mt-4">Nenhuma raca selecionada</h3>
+            <p className="text-on-surface-variant text-sm mt-2 max-w-md">
+              Selecione uma origem no grid acima. O painel vai mostrar impacto numerico, caminho, passivas,
+              vantagens, fraquezas e evolucao.
+            </p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
-            {filteredRaces.map(race => {
-              const isSelected = char.raca === race.id
-              const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
-              const previewChar = {
-                ...char,
-                raca: race.id,
-                racaDeus: race.layer0?.requiresDeus ? (race.deuses?.[0]?.id || null) : null,
-                subraca: getDefaultSubraceId(race.id),
-                racaAttrChoices: {},
-              }
-              const previewBonus = calculateRaceBonus(previewChar)
-
-              return (
-                <button
-                  key={race.id}
-                  type="button"
-                  onClick={() => handleSelectRace(race.id)}
-                  className={`race-option-card ${isSelected ? 'is-selected' : ''}`}
-                >
-                  <span className="race-option-icon">{race.icon}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 flex-wrap">
-                      <span className="font-cinzel text-base text-txt-main">{race.name}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${catMeta.badge}`}>{catMeta.label}</span>
-                    </span>
-                    <span className="block text-xs text-txt-dim mt-1 line-clamp-2">{race.desc}</span>
-                    <span className="flex flex-wrap gap-1.5 mt-3">
-                      {compactBonus(previewBonus).slice(0, 5).map(part => (
-                        <span key={part} className="race-mini-bonus">{part}</span>
-                      ))}
-                      {compactBonus(previewBonus).length === 0 && <span className="race-mini-bonus">sem bonus base</span>}
-                    </span>
-                  </span>
-                  <span className="race-select-mark">{isSelected ? 'Ativa' : 'Ver'}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="race-detail-panel">
-          {!selectedRace ? (
-            <div className="race-empty-state">
-              <div className="text-5xl text-gold/70">?</div>
-              <h3 className="font-cinzel text-2xl text-primary mt-4">Nenhuma raca selecionada</h3>
-              <p className="text-on-surface-variant text-sm mt-2 max-w-md">
-                Selecione uma origem na lista. O painel vai mostrar impacto numerico, caminho, passivas,
-                vantagens, fraquezas e evolucao.
-              </p>
-            </div>
-          ) : (
-            <SelectedRaceDetails
-              char={char}
-              race={selectedRace}
-              selectedSubrace={selectedSubrace}
-              raceBonus={raceBonus}
-              totals={totals}
-              update={update}
-              onClear={handleClearRace}
-              onSubraceSelect={handleSubraceSelect}
-              onToggleAttr={toggleAttrChoice}
-            />
-          )}
-        </div>
+        ) : (
+          <SelectedRaceDetails
+            char={char}
+            race={selectedRace}
+            selectedSubrace={selectedSubrace}
+            raceBonus={raceBonus}
+            totals={totals}
+            update={update}
+            onClear={handleClearRace}
+            onSubraceSelect={handleSubraceSelect}
+            onToggleAttr={toggleAttrChoice}
+          />
+        )}
       </div>
     </div>
   )
@@ -269,7 +280,7 @@ function SelectedRaceDetails({
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className={`font-cinzel text-2xl ${catMeta.title}`}>{race.name}</h3>
               <span className={`text-xs px-2.5 py-1 rounded-full border ${catMeta.badge}`}>{catMeta.label}</span>
-              <span className="text-amber-300 text-xs font-mono">Complexidade {race.dificuldade || 1}/5</span>
+
             </div>
             {race.quote && <p className="text-txt-dim text-sm italic mt-1">{race.quote}</p>}
             <p className="text-txt-dim text-sm leading-relaxed mt-3">{race.desc}</p>

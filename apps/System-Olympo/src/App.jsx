@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth, AuthProvider } from './contexts/AuthContext'
 import { supabase, getSupabaseAdmin } from './lib/supabase'
 import { useCharacter } from './hooks/useCharacter'
@@ -22,6 +22,11 @@ import LevelUpModal from './components/LevelUpModal'
 import RaceEvolveModal from './components/RaceEvolveModal'
 import AdminDashboard from './components/AdminDashboard'
 import CharacterWorkspace from './components/CharacterWorkspace'
+import CodexDashboard from './components/codex/CodexDashboard'
+import NpcCreator from './components/codex/NpcCreator'
+import NpcSheet from './components/codex/NpcSheet'
+import NpcImportExport from './components/codex/NpcImportExport'
+import InfiniteBoard from './components/InfiniteBoard'
 import { ATTRIBUTES } from './data/attributes'
 import { PROGRESSION } from './data/progression'
 import { RACES } from './data/races'
@@ -131,59 +136,234 @@ function importFromJson(file) {
   })
 }
 
+const LIBRARY_TIERS = [
+  { min: 1, max: 8, label: 'Novato', color: '#60a5fa', glow: 'rgba(96,165,250,0.3)', text: 'text-sky-400', bg: 'bg-sky-400/10', bar: 'bg-sky-400' },
+  { min: 9, max: 16, label: 'Veterano', color: '#f7bd48', glow: 'rgba(247,189,72,0.3)', text: 'text-primary', bg: 'bg-primary/10', bar: 'bg-primary' },
+  { min: 17, max: 24, label: 'Elite', color: '#c084fc', glow: 'rgba(192,132,252,0.3)', text: 'text-purple-400', bg: 'bg-purple-400/10', bar: 'bg-purple-400' },
+  { min: 25, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.35)', text: 'text-rose-400', bg: 'bg-rose-400/10', bar: 'bg-rose-400' },
+]
+
+const CLASS_META = {
+  Guerreiro: { icon: 'shield', slug: 'is-guerreiro' },
+  Operativo: { icon: 'visibility', slug: 'is-operativo' },
+  Místico: { icon: 'auto_fix_high', slug: 'is-mistico' },
+}
+
+function getLibraryTier(level) {
+  return LIBRARY_TIERS.find(t => level >= t.min && level <= t.max) || LIBRARY_TIERS[0]
+}
+
 function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
   const importRef = useRef(null)
+  const [search, setSearch] = useState('')
+  const [filterClass, setFilterClass] = useState('all')
+
+  const filteredSheets = useMemo(() => {
+    return sheets.filter(sheet => {
+      const name = sheet.name || sheet.data?.nome || ''
+      const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) ||
+        (sheet.data?.classe || '').toLowerCase().includes(search.toLowerCase()) ||
+        (sheet.data?.raca || '').toLowerCase().includes(search.toLowerCase())
+      const matchClass = filterClass === 'all' ||
+        (sheet.data?.classe || '').toLowerCase() === filterClass
+      return matchSearch && matchClass
+    })
+  }, [sheets, search, filterClass])
+
+  const classCounts = useMemo(() => {
+    const counts = { all: sheets.length }
+    sheets.forEach(s => {
+      const c = (s.data?.classe || '').toLowerCase()
+      if (c) counts[c] = (counts[c] || 0) + 1
+    })
+    return counts
+  }, [sheets])
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-cinzel text-gold text-2xl">Biblioteca de Personagens</h2>
-        <div className="flex gap-2">
-          <button onClick={() => importRef.current?.click()} className="border border-sep text-txt-dim px-3 py-2 rounded hover:border-gold hover:text-gold transition-colors text-sm">
-            Importar JSON
-          </button>
-          <input ref={importRef} type="file" accept=".json" onChange={e => {
-            const file = e.target.files?.[0]
-            if (file) onImport(file)
-            e.target.value = ''
-          }} className="hidden" />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-cinzel text-primary text-2xl tracking-wide text-glow-gold">Biblioteca de Personagens</h2>
+          <p className="text-on-surface-variant text-sm mt-1 font-mono" style={{ fontSize: '11px', letterSpacing: '0.08em' }}>
+            {sheets.length} {sheets.length === 1 ? 'herói registrado' : 'heróis registrados'} neste arquivo
+          </p>
         </div>
+        <button onClick={() => importRef.current?.click()}
+          className="library-action-btn is-export-action px-4 py-2">
+          <span className="material-symbols-outlined text-sm">upload_file</span>
+          Importar JSON
+        </button>
+        <input ref={importRef} type="file" accept=".json" onChange={e => {
+          const file = e.target.files?.[0]
+          if (file) onImport(file)
+          e.target.value = ''
+        }} className="hidden" />
       </div>
+
+      {sheets.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative w-full sm:w-80">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-lg pointer-events-none">
+              search
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nome, classe ou raça..."
+              className="library-search-input"
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface-variant text-sm transition-colors"
+                style={{ transform: 'translateY(-50%)' }}>
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: 'all', label: 'Todos' },
+              { key: 'guerreiro', label: 'Guerreiro' },
+              { key: 'operativo', label: 'Operativo' },
+              { key: 'místico', label: 'Místico' },
+            ].map(f => (
+              <button key={f.key}
+                onClick={() => setFilterClass(f.key)}
+                className={`library-filter-chip ${filterClass === f.key ? 'is-active' : ''}`}>
+                {f.label}
+                {classCounts[f.key] !== undefined && (
+                  <span className="ml-1 opacity-60">{classCounts[f.key]}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {sheets.length === 0 ? (
-        <div className="bg-deep border border-sep rounded-lg p-8 text-center">
-          <p className="text-txt-dim mb-4">Nenhum personagem criado ainda.</p>
-          <p className="text-txt-dim/50 text-xs">Crie um personagem no wizard ou importe um arquivo JSON.</p>
+        <div className="library-empty-state p-12 text-center">
+          <span className="material-symbols-outlined text-6xl text-primary/20 block mb-4">auto_stories</span>
+          <p className="font-cinzel text-on-surface text-lg mb-2">O arquivo ainda está vazio</p>
+          <p className="text-on-surface-variant text-sm mb-6 max-w-md mx-auto">
+            Crie um personagem no wizard ou importe um arquivo JSON para começar sua jornada.
+          </p>
+          <div className="flex justify-center gap-3">
+            <button onClick={() => importRef.current?.click()}
+              className="library-action-btn is-export-action px-5 py-2.5">
+              <span className="material-symbols-outlined text-sm">upload_file</span>
+              Importar Ficha
+            </button>
+          </div>
+        </div>
+      ) : filteredSheets.length === 0 ? (
+        <div className="library-empty-state p-10 text-center">
+          <span className="material-symbols-outlined text-4xl text-primary/20 block mb-3">search_off</span>
+          <p className="font-cinzel text-on-surface text-base mb-1">Nenhum resultado encontrado</p>
+          <p className="text-on-surface-variant text-sm">
+            Tente ajustar os filtros ou o termo de busca.
+          </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {sheets.map((sheet) => (
-            <div key={sheet.id} className="bg-deep border border-sep rounded-lg p-4 hover:border-gold transition-colors">
-              <div className="flex items-start gap-4 mb-3">
-                {sheet.data?.avatar ? (
-                  <img src={sheet.data.avatar} alt="" className="w-16 h-16 rounded-full border-2 border-gold/40 object-cover shrink-0" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full border-2 border-sep bg-void flex items-center justify-center text-txt-dim text-lg shrink-0">?</div>
-                )}
-                <div className="min-w-0">
-                  <h3 className="text-txt-main font-semibold text-base truncate">{sheet.name || 'Sem Nome'}</h3>
-                  <p className="text-txt-dim text-sm">{sheet.data?.classe || '?'} — Nível {sheet.data?.nivel || 1}</p>
-                  <p className="text-txt-dim/50 text-xs mt-0.5">{sheet.data?.raca || ''}</p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredSheets.map((sheet, i) => {
+            const level = sheet.data?.nivel || 1
+            const tier = getLibraryTier(level)
+            const classe = sheet.data?.classe || ''
+            const classMeta = CLASS_META[classe]
+            const race = sheet.data?.raca || sheet.data?.racaTipo || ''
+            const name = sheet.name || sheet.data?.nome || 'Sem Nome'
+            const initial = name.charAt(0).toUpperCase()
+
+            return (
+              <div key={sheet.id}
+                className="library-card group"
+                style={{
+                  animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${i * 70}ms both`,
+                }}>
+                <div className="library-card-accent" />
+                <div className="library-card-shimmer" />
+                <div className="relative p-5">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="library-avatar-ring shrink-0">
+                      {sheet.data?.avatar ? (
+                        <img src={sheet.data.avatar} alt=""
+                          className="w-[60px] h-[60px] rounded-full object-cover"
+                          style={{ border: '2px solid rgba(14,14,15,0.8)' }} />
+                      ) : (
+                        <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center font-cinzel text-xl"
+                          style={{
+                            background: 'rgba(14,14,15,0.9)',
+                            border: '2px solid rgba(14,14,15,0.8)',
+                            color: tier.color,
+                          }}>
+                          {initial}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-cinzel text-on-surface text-base truncate group-hover:text-primary transition-colors duration-300">
+                        {name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className={`library-class-badge ${classMeta?.slug || 'is-unknown'}`}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
+                            {classMeta?.icon || 'help'}
+                          </span>
+                          {classe || 'Desconhecido'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded font-mono text-xs font-bold ${tier.bg} ${tier.text}`}
+                            style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
+                            LV {level}
+                          </span>
+                          <span className={`font-mono ${tier.text}`} style={{ fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>
+                            {tier.label}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    {race && (
+                      <div className="library-stat-chip">
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#bdf4ff' }}>pets</span>
+                        <span className="truncate">{race}</span>
+                      </div>
+                    )}
+                    {sheet.data?.atributos && (
+                      <div className="library-stat-chip">
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#f7bd48' }}>tune</span>
+                        <span>{sheet.data.arrayTipo || 'Custom'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button onClick={() => onLoad(sheet.id)}
+                      className="library-action-btn is-primary-action">
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
+                      Visualizar
+                    </button>
+                    {canExport && (
+                      <button onClick={() => exportToJson({ ...sheet.data, nome: sheet.name })}
+                        className="library-action-btn is-export-action">
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span>
+                        Exportar
+                      </button>
+                    )}
+                    <button onClick={() => onDelete(sheet.id)}
+                      className="library-action-btn is-delete-action ml-auto">
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => onLoad(sheet.id)} className="text-xs border border-gold text-gold px-3 py-1 rounded hover:bg-gold hover:text-void transition-colors">
-                  Visualizar
-                </button>
-                {canExport && (
-                  <button onClick={() => exportToJson({ ...sheet.data, nome: sheet.name })} className="text-xs border border-sep text-txt-dim px-3 py-1 rounded hover:border-gold hover:text-gold transition-colors">
-                    Exportar
-                  </button>
-                )}
-                <button onClick={() => onDelete(sheet.id)} className="text-xs border border-err/40 text-err px-3 py-1 rounded hover:bg-err hover:text-white transition-colors">
-                  Excluir
-                </button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -637,18 +817,26 @@ export default function App() {
 
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, '')
-  if (!hash) return { view: 'home', sheetId: null, adminTab: null }
+  if (!hash) return { view: 'home', sheetId: null, adminTab: null, codexNpcId: null }
   const parts = hash.split('/')
   const view = parts[0] || 'home'
   const sheetId = parts[1] || null
   const adminTab = parts[1] || null
-  return { view, sheetId, adminTab }
+  let codexNpcId = null
+  if (view === 'codex' && parts[1] === 'npc' && parts[2]) codexNpcId = parts[2]
+  if (view === 'codex-new') return { view: 'codex-new', sheetId: null, adminTab: null, codexNpcId: null }
+  if (view === 'board') return { view: 'board', sheetId: null, adminTab: null, codexNpcId: null }
+  return { view, sheetId, adminTab, codexNpcId }
 }
 
-function buildHash(view, sheetId = null, adminTab = null) {
+function buildHash(view, sheetId = null, adminTab = null, codexNpcId = null) {
   if (view === 'home' || !view) return '#/'
   if (view === 'library' && sheetId) return `#/library/${sheetId}`
   if (view === 'admin') return adminTab ? `#/admin/${adminTab}` : `#/admin`
+  if (view === 'codex' && codexNpcId) return `#/codex/npc/${codexNpcId}`
+  if (view === 'codex') return `#/codex`
+  if (view === 'codex-new') return `#/codex-new`
+  if (view === 'board') return `#/board`
   return `#/${view}`
 }
 
@@ -663,6 +851,8 @@ function AppInner() {
   const [sheets, setSheets] = useState([])
   const [viewingSheetId, setViewingSheetIdRaw] = useState(() => initialHash.current.sheetId)
   const [adminTab, setAdminTab] = useState(() => initialHash.current.adminTab || 'sheets')
+  const [codexNpcId, setCodexNpcId] = useState(() => initialHash.current.codexNpcId)
+  const [codexImportFile, setCodexImportFile] = useState(null)
   const prevStepRef = useRef(0)
   const lastUserRef = useRef(null)
   const skipHashSync = useRef(false)
@@ -670,6 +860,7 @@ function AppInner() {
   const setView = useCallback((v) => {
     setViewRaw(v)
     setViewingSheetIdRaw(null)
+    setCodexNpcId(null)
     if (!skipHashSync.current) window.location.hash = buildHash(v)
   }, [])
 
@@ -680,20 +871,23 @@ function AppInner() {
     }
   }, [view])
 
-  const navigate = useCallback((v, sheetId = null, aTab = null) => {
+  const navigate = useCallback((v, sheetId = null, aTab = null, cNpcId = null) => {
     setViewRaw(v)
     setViewingSheetIdRaw(sheetId)
+    setCodexNpcId(cNpcId)
     if (v === 'admin' && aTab) setAdminTab(aTab)
-    if (!skipHashSync.current) window.location.hash = buildHash(v, sheetId, aTab)
+    if (!skipHashSync.current) window.location.hash = buildHash(v, sheetId, aTab, cNpcId)
   }, [])
 
   useEffect(() => {
     function onHashChange() {
-      const { view: hView, sheetId, adminTab: hTab } = parseHash()
+      const { view: hView, sheetId, adminTab: hTab, codexNpcId: hNpcId } = parseHash()
       skipHashSync.current = true
       setViewRaw(hView)
       setViewingSheetIdRaw(sheetId)
       if (hTab) setAdminTab(hTab)
+      if (hNpcId) setCodexNpcId(hNpcId)
+      else if (hView !== 'codex') setCodexNpcId(null)
       skipHashSync.current = false
     }
     window.addEventListener('hashchange', onHashChange)
@@ -717,7 +911,7 @@ function AppInner() {
   }, [user, profile])
 
   useEffect(() => {
-    if (view === 'library' && user && profile) loadSheets()
+    if ((view === 'library' || view === 'board') && user && profile) loadSheets()
   }, [view])
 
   useEffect(() => {
@@ -765,7 +959,17 @@ function AppInner() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <ParticleBackground />
-        <div className="text-primary font-cinzel text-xl animate-pulse tracking-widest">Carregando...</div>
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-3 h-3 rounded-full bg-primary/60" style={{ animation: 'goldPulse 1.5s ease-in-out infinite' }} />
+            <div className="w-3 h-3 rounded-full bg-primary/60" style={{ animation: 'goldPulse 1.5s ease-in-out 0.3s infinite' }} />
+            <div className="w-3 h-3 rounded-full bg-primary/60" style={{ animation: 'goldPulse 1.5s ease-in-out 0.6s infinite' }} />
+          </div>
+          <div className="font-cinzel text-primary tracking-widest text-lg">Carregando...</div>
+          <div className="mt-4 w-48 h-1 bg-surface-container-highest rounded-full overflow-hidden mx-auto">
+            <div className="h-full bg-primary rounded-full" style={{ animation: 'shimmer 1.5s infinite', width: '40%' }} />
+          </div>
+        </div>
       </div>
     )
   }
@@ -914,7 +1118,9 @@ function AppInner() {
     { key: 'library', label: 'Personagens' },
     { key: 'reference', label: 'Livro de Regras' },
   ]
-  if (isAdmin) navItems.push({ key: 'admin', label: 'Mesa do Mestre' })
+  if (isAdmin) {
+    navItems.push({ key: 'admin', label: 'Mesa do Mestre' })
+  }
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body flex flex-col">
@@ -973,21 +1179,21 @@ function AppInner() {
       {view === 'home' ? (
         <div className="flex-1 overflow-y-auto">
            <HomeMenu
-             userName={profile?.display_name || user.email?.split('@')[0]}
-             sheetsCount={sheets.length}
-             sheets={sheets}
-             onNew={() => handleNew()}
-              onContinue={handleResumeDraft}
-             onLibrary={() => setView('library')}
-             onReference={() => setView('reference')}
-             onOpenSheet={(id) => navigate('library', id)}
-             onAdminArea={(tab) => navigate('admin', null, tab)}
-              hasDraft={hasDraft}
-             drafts={drafts}
-             onOpenDraft={handleResumeDraft}
-             onDeleteDraft={handleDeleteDraft}
-             isAdmin={isAdmin}
-            />
+              userName={profile?.display_name || user.email?.split('@')[0]}
+              sheetsCount={sheets.length}
+              sheets={sheets}
+              onNew={() => handleNew()}
+               onContinue={handleResumeDraft}
+              onLibrary={() => setView('library')}
+              onReference={() => setView('reference')}
+              onOpenSheet={(id) => navigate('library', id)}
+              onAdminArea={(tab) => navigate('admin', null, tab)}
+               hasDraft={hasDraft}
+              drafts={drafts}
+              onOpenDraft={handleResumeDraft}
+              onDeleteDraft={handleDeleteDraft}
+              isAdmin={isAdmin}
+             />
          </div>
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
@@ -998,8 +1204,9 @@ function AppInner() {
                   <span className="font-mono text-outline uppercase tracking-widest" style={{ fontSize: '11px' }}>Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
                   <span className="font-cinzel text-primary text-sm font-semibold uppercase tracking-wider">{STEPS[currentStep].label}</span>
                 </div>
-                <div className="h-1 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%` }} />
+                <div className="h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-primary to-primary-fixed rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${((currentStep + 1) / TOTAL_STEPS) * 100}%`, boxShadow: '0 0 8px rgba(247,189,72,0.4)' }} />
                 </div>
               </div>
 
@@ -1047,10 +1254,41 @@ function AppInner() {
             )}
           </div>
         </main>
+      ) : view === 'board' ? (
+        <InfiniteBoard sheets={sheets} />
       ) : view === 'admin' && isAdmin ? (
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 py-6">
             <AdminDashboard initialTab={adminTab} onViewSheet={(id) => navigate('library', id)} />
+          </div>
+        </main>
+      ) : view === 'codex' && isAdmin ? (
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            {codexNpcId ? (
+              <NpcSheet npcId={codexNpcId}
+                onBack={() => navigate('codex')}
+                onDeleted={() => navigate('codex')} />
+            ) : (
+              <CodexDashboard
+                onNewNpc={() => navigate('codex-new')}
+                onOpenNpc={(id) => navigate('codex', null, null, id)}
+                onImportExport={(file) => setCodexImportFile(file)} />
+            )}
+            {codexImportFile && (
+              <NpcImportExport
+                file={codexImportFile}
+                onImported={() => { setCodexImportFile(null) }}
+                onClose={() => setCodexImportFile(null)} />
+            )}
+          </div>
+        </main>
+      ) : view === 'codex-new' && isAdmin ? (
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <NpcCreator
+              onCreated={() => navigate('codex')}
+              onBack={() => navigate('codex')} />
           </div>
         </main>
       ) : (

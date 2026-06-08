@@ -98,16 +98,29 @@ export default function LevelUpModal({ char, onApply, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
-      <div className="bg-deep border border-gold/30 rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="px-5 py-4 border-b border-gold/20 flex items-center justify-between shrink-0">
-          <h2 className="font-cinzel text-gold text-xl">Subir para Nível {newNivel}</h2>
-          <button onClick={onClose} className="text-txt-dim hover:text-err text-lg">✕</button>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 backdrop-blur-sm" style={{ animation: 'modalBgIn 150ms ease-out' }}>
+      <div className="bg-deep border border-gold/30 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl shadow-black/60" style={{ animation: 'modalFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        <div className="relative px-5 py-4 border-b border-gold/20 flex items-center justify-between shrink-0 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: 'radial-gradient(circle at 50% 0%, rgba(247,189,72,0.15), transparent 70%)',
+          }} />
+          <div className="relative flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+            <div>
+              <h2 className="font-cinzel text-gold text-xl">Subir para Nível {newNivel}</h2>
+              <p className="text-txt-dim text-xs mt-0.5">Nível {oldNivel} → {newNivel}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="relative text-txt-dim hover:text-err text-lg transition-colors">✕</button>
         </div>
 
-        <div className="px-5 py-4 border-b border-sep/50 flex gap-2 flex-wrap shrink-0">
+        <div className="px-5 py-3 border-b border-sep/50 flex gap-2 flex-wrap shrink-0">
           {phases.map((p, i) => (
-            <span key={p} className={`text-xs px-2 py-1 rounded ${i === phaseIdx ? 'bg-gold/20 text-gold' : i < phaseIdx ? 'bg-ok/10 text-ok' : 'bg-panel text-txt-dim'}`}>
+            <span key={p} className={`text-xs px-3 py-1 rounded-lg transition-all duration-200 ${
+              i === phaseIdx ? 'bg-gold/20 text-gold border border-gold/30 shadow-sm shadow-gold/10' :
+              i < phaseIdx ? 'bg-ok/10 text-ok border border-ok/20' :
+              'bg-panel text-txt-dim border border-transparent'
+            }`}>
               {p === 'choices' ? 'Escolhas' : p === 'skeleton' ? 'Esqueleto' : p === 'modules' ? 'Módulos' : p === 'pericias' ? 'Perícias' : 'Resumo'}
             </span>
           ))}
@@ -133,16 +146,16 @@ export default function LevelUpModal({ char, onApply, onClose }) {
 
         <div className="px-5 py-4 border-t border-sep/50 flex justify-between shrink-0">
           <button onClick={handlePrev} disabled={phaseIdx === 0}
-            className={`px-4 py-2 rounded text-sm transition-colors ${phaseIdx > 0 ? 'bg-panel text-txt-main hover:bg-sep' : 'bg-panel/50 text-txt-dim/50 cursor-not-allowed'}`}>
+            className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 ${phaseIdx > 0 ? 'bg-panel text-txt-main hover:bg-sep border border-sep/50' : 'bg-panel/50 text-txt-dim/50 cursor-not-allowed'}`}>
             ← Anterior
           </button>
           {currentPhase === 'summary' ? (
-            <button onClick={handleApply} className="bg-gold text-void font-semibold px-6 py-2 rounded text-sm hover:bg-gold-light transition-colors">
+            <button onClick={handleApply} className="bg-gold text-void font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-gold-light transition-all duration-200 shadow-lg shadow-gold/20 hover:shadow-gold/30">
               Aplicar Nível {newNivel}
             </button>
           ) : (
             <button onClick={handleNext} disabled={!canAdvance()}
-              className={`px-4 py-2 rounded text-sm transition-colors ${canAdvance() ? 'bg-gold text-void hover:bg-gold-light' : 'bg-gold/30 text-void/50 cursor-not-allowed'}`}>
+              className={`px-4 py-2 rounded-lg text-sm transition-all duration-200 ${canAdvance() ? 'bg-gold text-void hover:bg-gold-light' : 'bg-gold/30 text-void/50 cursor-not-allowed'}`}>
               Próximo →
             </button>
           )}
@@ -159,21 +172,34 @@ function ChoicesPhase({ entry, choiceReward, choices, onChoice }) {
       <p className="text-txt-main text-sm">{normalizeProgressionLabel(entry?.label)}</p>
       {choiceReward && (
         <div className="space-y-2 mt-3">
-          <p className="text-warn text-sm font-semibold">Escolha obrigatória:</p>
-          {choiceReward.options.map(opt => (
-            <label key={opt.key}
-              className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded border transition-colors ${
-                choices[choiceReward.key] === opt.key
-                  ? 'bg-gold/15 border-gold/40 text-gold'
-                  : 'border-sep text-txt-dim hover:text-txt-main hover:border-gold/30'
-              }`}>
-              <input type="radio" name={choiceReward.key}
-                checked={choices[choiceReward.key] === opt.key}
-                onChange={() => onChoice(choiceReward.key, opt.key)}
-                className="accent-gold" />
-              <span className="text-sm">{opt.label}</span>
-            </label>
-          ))}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-warn text-sm">warning</span>
+            <p className="text-warn text-sm font-semibold">Escolha obrigatória:</p>
+          </div>
+          {choiceReward.options.map((opt, i) => {
+            const isSelected = choices[choiceReward.key] === opt.key
+            return (
+              <label key={opt.key}
+                className={`flex items-center gap-3 cursor-pointer px-4 py-3 rounded-lg border transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-gold/15 border-gold/40 text-gold shadow-sm shadow-gold/10'
+                    : 'border-sep text-txt-dim hover:text-txt-main hover:border-gold/30 hover:bg-gold/5'
+                }`}
+                style={{ animation: `slideUp 0.3s ${i * 60}ms ease both` }}
+              >
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                  isSelected ? 'border-gold' : 'border-sep'
+                }`}>
+                  {isSelected && <div className="w-2 h-2 rounded-full bg-gold" />}
+                </div>
+                <input type="radio" name={choiceReward.key}
+                  checked={isSelected}
+                  onChange={() => onChoice(choiceReward.key, opt.key)}
+                  className="sr-only" />
+                <span className="text-sm">{opt.label}</span>
+              </label>
+            )
+          })}
         </div>
       )}
     </div>
@@ -418,24 +444,27 @@ function SummaryPhase({ entry, working, oldNivel, deltaSk, deltaMods, deltaPer }
     <div className="space-y-4">
       <h3 className="font-cinzel text-gold text-lg">Resumo — Nível {oldNivel} → {working.nivel}</h3>
       {entry && (
-        <div className="bg-void border border-sep rounded p-3">
+        <div className="bg-void border border-gold/20 rounded-lg p-3" style={{ animation: 'slideUp 0.3s ease both' }}>
           <p className="text-txt-main text-sm">{normalizeProgressionLabel(entry.label)}</p>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        {deltaSk > 0 && <SummaryBadge label="Pontos Esqueleto" value={`+${deltaSk}`} />}
-        {deltaMods > 0 && <SummaryBadge label="Módulos" value={`+${deltaMods}`} />}
-        {deltaPer > 0 && <SummaryBadge label="Perícias" value={`+${deltaPer}`} />}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {deltaSk > 0 && <SummaryBadge icon="fitness_center" label="Pontos Esqueleto" value={`+${deltaSk}`} />}
+        {deltaMods > 0 && <SummaryBadge icon="extension" label="Módulos" value={`+${deltaMods}`} />}
+        {deltaPer > 0 && <SummaryBadge icon="psychology" label="Perícias" value={`+${deltaPer}`} />}
       </div>
-      <div className="bg-gold/10 border border-gold/30 rounded p-3">
-        <p className="text-gold text-sm">Todos os bônus fixos (vida, energia, PE, triagens) são calculados automaticamente.</p>
+      <div className="bg-gold/10 border border-gold/25 rounded-lg p-3" style={{ animation: 'slideUp 0.3s 0.1s ease both' }}>
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-gold text-sm">info</span>
+          <p className="text-gold text-sm">Todos os bônus fixos (vida, energia, PE, triagens) são calculados automaticamente.</p>
+        </div>
       </div>
       {(working.modulosAdquiridos || []).length > 0 && (
-        <div>
-          <h4 className="text-txt-dim text-xs mb-1">Módulos atuais:</h4>
-          <div className="flex flex-wrap gap-1">
+        <div style={{ animation: 'slideUp 0.3s 0.15s ease both' }}>
+          <h4 className="text-txt-dim text-xs mb-2 uppercase tracking-wider">Módulos atuais:</h4>
+          <div className="flex flex-wrap gap-1.5">
             {working.modulosAdquiridos.map((m, i) => (
-              <span key={i} className="text-xs bg-void border border-sep rounded px-2 py-0.5 text-txt-main">{m.name}{(m.boughtCount || 1) > 1 ? ` ×${m.boughtCount}` : ''}</span>
+              <span key={i} className="text-xs bg-void border border-gold/20 rounded-lg px-2.5 py-1 text-gold">{m.name}{(m.boughtCount || 1) > 1 ? ` ×${m.boughtCount}` : ''}</span>
             ))}
           </div>
         </div>
@@ -444,11 +473,16 @@ function SummaryPhase({ entry, working, oldNivel, deltaSk, deltaMods, deltaPer }
   )
 }
 
-function SummaryBadge({ label, value }) {
+function SummaryBadge({ icon, label, value }) {
   return (
-    <div className="bg-void border border-sep rounded px-3 py-2">
-      <div className="text-txt-dim text-xs">{label}</div>
-      <div className="font-mono text-gold text-lg">{value}</div>
+    <div className="bg-void border border-gold/20 rounded-lg px-3 py-3 flex items-center gap-3" style={{ animation: 'slideUp 0.3s ease both' }}>
+      <div className="w-9 h-9 rounded-lg bg-gold/10 border border-gold/20 flex items-center justify-center shrink-0">
+        <span className="material-symbols-outlined text-gold" style={{ fontSize: '18px' }}>{icon}</span>
+      </div>
+      <div>
+        <div className="text-txt-dim text-[10px] uppercase tracking-wider">{label}</div>
+        <div className="font-mono text-gold text-lg font-bold" style={{ animation: 'countUp 0.4s ease both' }}>{value}</div>
+      </div>
     </div>
   )
 }

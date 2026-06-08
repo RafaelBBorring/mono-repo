@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useRef, useMemo } from 'react'
 import { getSupabaseAdmin } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import * as THREE from 'three'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { MARTIAL_ARTS, GRAU_LABELS } from '../data/martialArts'
@@ -14,7 +15,6 @@ import RuneAdminPanel from './RuneAdminPanel'
 import MagicAdminPanel from './MagicAdminPanel'
 import MysticWeaponAdminPanel from './MysticWeaponAdminPanel'
 import GrimoireAdminPage from './GrimoireAdminPage'
-import SessionTracker from './SessionTracker'
 import { SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, getSystemSkillById, EFFECT_PARAM_DEFS } from '../data/systemSkills'
 import { createSystemSkillAssignment, createSystemSkillNotification, createDefaultEffectsForSkill, summarizeSystemSkillBonuses } from '../utils/systemSkills'
 
@@ -47,16 +47,95 @@ function findTriagem(key) {
   return null
 }
 
-export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
+function AdminBackdrop() {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return undefined
+
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 100)
+    camera.position.z = 7
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+
+    const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false })
+    const blueMaterial = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false })
+    const runeGroup = new THREE.Group()
+    scene.add(runeGroup)
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.008, 8, 160), ringMaterial)
+    const inner = new THREE.Mesh(new THREE.TorusKnotGeometry(1.45, 0.005, 160, 8, 2, 5), blueMaterial)
+    runeGroup.add(ring, inner)
+
+    const glyphMaterial = new THREE.MeshBasicMaterial({ color: 0xe8c97e, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false })
+    const glyphGeometry = new THREE.IcosahedronGeometry(0.028, 0)
+    const glyphs = []
+    for (let i = 0; i < 28; i++) {
+      const glyph = new THREE.Mesh(glyphGeometry, glyphMaterial)
+      const angle = (i / 28) * Math.PI * 2
+      glyph.position.set(Math.cos(angle) * 2.85, Math.sin(angle) * 2.85, (i % 3) * 0.08)
+      runeGroup.add(glyph)
+      glyphs.push(glyph)
+    }
+
+    const mistMaterial = new THREE.PointsMaterial({ color: 0x9ee7ff, size: 0.015, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false })
+    const mistGeometry = new THREE.BufferGeometry()
+    const mistPositions = new Float32Array(180 * 3)
+    for (let i = 0; i < 180; i++) {
+      mistPositions[i * 3] = (Math.random() - 0.5) * 14
+      mistPositions[i * 3 + 1] = (Math.random() - 0.5) * 10
+      mistPositions[i * 3 + 2] = -1 - Math.random() * 4
+    }
+    mistGeometry.setAttribute('position', new THREE.BufferAttribute(mistPositions, 3))
+    const mist = new THREE.Points(mistGeometry, mistMaterial)
+    scene.add(mist)
+
+    let frameId = 0
+    const clock = new THREE.Clock()
+
+    function resize() {
+      const parent = canvas.parentElement
+      const w = parent?.clientWidth || 900
+      const h = parent?.clientHeight || 400
+      camera.aspect = w / h
+      camera.updateProjectionMatrix()
+      renderer.setSize(w, h, false)
+    }
+
+    function animate() {
+      const t = clock.getElapsedTime()
+      runeGroup.rotation.z = t * 0.03
+      inner.rotation.x = Math.sin(t * 0.2) * 0.16
+      inner.rotation.y = t * -0.04
+      ring.scale.setScalar(1 + Math.sin(t * 0.5) * 0.02)
+      glyphs.forEach((g, i) => { g.scale.setScalar(1 + Math.sin(t * 1.2 + i) * 0.4) })
+      mist.rotation.z = t * -0.006
+      mist.rotation.y = Math.sin(t * 0.07) * 0.05
+      renderer.render(scene, camera)
+      frameId = requestAnimationFrame(animate)
+    }
+
+    resize()
+    animate()
+    window.addEventListener('resize', resize)
+    return () => { cancelAnimationFrame(frameId); window.removeEventListener('resize', resize); renderer.dispose(); glyphGeometry.dispose(); mistGeometry.dispose(); ringMaterial.dispose(); blueMaterial.dispose(); glyphMaterial.dispose(); mistMaterial.dispose() }
+  }, [])
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />
+}
+
+export default function AdminDashboard({ initialTab = 'menu', onViewSheet }) {
   const { profile } = useAuth()
-  const [tab, setTab] = useState(initialTab)
+  const [tab, setTab] = useState(initialTab === 'menu' ? 'menu' : initialTab)
   const [sheets, setSheets] = useState([])
   const [users, setUsers] = useState([])
-  const [filterUser, setFilterUser] = useState('')
   const [loading, setLoading] = useState(true)
+  const [forgeWeapons, setForgeWeapons] = useState([])
   const [expandedSheet, setExpandedSheet] = useState(null)
   const [editingSheet, setEditingSheet] = useState(null)
-  const [forgeWeapons, setForgeWeapons] = useState([])
 
   useEffect(() => { loadData() }, [])
 
@@ -68,8 +147,6 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
 
   useEffect(() => {
     setTab(initialTab)
-    setExpandedSheet(null)
-    setEditingSheet(null)
   }, [initialTab])
 
   async function loadData() {
@@ -90,16 +167,9 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
     }
   }
 
-  const filteredSheets = filterUser ? sheets.filter(s => s.user_id === filterUser) : sheets
-
   function getUserName(uid) {
     const u = users.find(p => p.id === uid)
     return u?.display_name || uid?.slice(0, 8) || '?'
-  }
-
-  function countAbilitiesByStatus(data, status) {
-    if (!data) return 0
-    return (data.habilidades || []).filter(h => h.status === status).length
   }
 
   function countOpenSkillNotifications(data) {
@@ -174,158 +244,75 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
 
   if (loading) return <p className="text-txt-dim p-8 animate-pulse">Carregando painel admin...</p>
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="section-header text-primary mb-0 flex-1">
-          <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>admin_panel_settings</span>
-          Painel Administrativo
+  if (tab === 'menu') {
+    return (
+      <div className="space-y-6">
+        <div className="relative min-h-[320px] rounded-2xl overflow-hidden border border-gold/20 shadow-2xl shadow-black/40">
+          <AdminBackdrop />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-void/90 pointer-events-none" />
+          <div className="relative z-10 flex flex-col items-center justify-center h-full min-h-[320px] text-center px-6 py-8">
+            <span className="material-symbols-outlined text-primary text-5xl mb-4" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>admin_panel_settings</span>
+            <h1 className="font-cinzel text-primary text-3xl tracking-[0.2em] mb-2">Mesa do Mestre</h1>
+            <p className="text-txt-dim/60 text-sm max-w-md">Painel de controle do mestre. Gerencie heróis, rituais, NPCs e a sessão da campanha.</p>
+          </div>
         </div>
-        <div className="flex flex-wrap justify-end gap-1">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { key: 'session', label: 'Sessão', icon: 'campaign' },
-            { key: 'sheets', label: 'Fichas' },
-            { key: 'abilities', label: 'Habilidades' },
-            { key: 'skills', label: `Skills${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0) ? ` (${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0)})` : ''}` },
-            { key: 'grimoire', label: 'Grimório' },
-            { key: 'mysticWeapons', label: 'Forja Lendária' },
-            { key: 'users', label: 'Usuários' },
-          ].map(t => (
-            <button key={t.key} onClick={() => { setTab(t.key); setExpandedSheet(null); setEditingSheet(null) }}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${tab === t.key ? 'bg-primary text-on-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}>
-              {t.label}
+            { key: 'sheets', icon: 'groups', label: 'Heróis', desc: `${sheets.length} fichas registradas`, accent: 'from-amber-400/15 to-amber-600/5', border: 'border-amber-400/20', iconColor: 'text-amber-400' },
+            { key: 'skills', icon: 'auto_awesome', label: 'Skills', desc: 'Notificações e catálogo', accent: 'from-sky-400/15 to-sky-600/5', border: 'border-sky-400/20', iconColor: 'text-sky-400' },
+            { key: 'grimoire', icon: 'auto_stories', label: 'Grimório', desc: 'Rituais e grimórios', accent: 'from-purple-400/15 to-purple-600/5', border: 'border-purple-400/20', iconColor: 'text-purple-400' },
+            { key: 'mysticWeapons', icon: 'shield', label: 'Forja Lendária', desc: `${forgeWeapons.length} armas`, accent: 'from-lime-400/15 to-lime-600/5', border: 'border-lime-400/20', iconColor: 'text-lime-400' },
+            { key: 'codex', icon: 'person_add', label: 'Codex Arcanum', desc: 'Sistema de NPCs', accent: 'from-cyan-400/15 to-cyan-600/5', border: 'border-cyan-400/20', iconColor: 'text-cyan-400', external: true },
+            { key: 'board', icon: 'dashboard', label: 'Quadro de Sessão', desc: 'Mesa virtual interativa', accent: 'from-rose-400/15 to-rose-600/5', border: 'border-rose-400/20', iconColor: 'text-rose-400', external: true },
+            { key: 'users', icon: 'manage_accounts', label: 'Usuários', desc: `${users.length} cadastrados`, accent: 'from-teal-400/15 to-teal-600/5', border: 'border-teal-400/20', iconColor: 'text-teal-400' },
+          ].map(item => (
+            <button key={item.key} onClick={() => {
+              if (item.key === 'codex') { window.location.hash = '#/codex'; return }
+              if (item.key === 'board') { window.location.hash = '#/board'; return }
+              setTab(item.key)
+            }}
+              className={`group relative bg-gradient-to-br ${item.accent} ${item.border} border rounded-xl p-5 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-black/20`}>
+              <span className={`material-symbols-outlined text-3xl ${item.iconColor} mb-3 block transition-transform duration-300 group-hover:scale-110`} style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>{item.icon}</span>
+              <h3 className="font-cinzel text-txt-main text-base tracking-wider mb-1">{item.label}</h3>
+              <p className="text-txt-dim/50 text-xs">{item.desc}</p>
+              {item.external && (
+                <span className="material-symbols-outlined absolute top-3 right-3 text-outline/30 text-sm">open_in_new</span>
+              )}
             </button>
           ))}
         </div>
       </div>
+    )
+  }
 
-      {tab === 'session' && <SessionTracker onViewSheet={onViewSheet} />}
-
-      {tab === 'sheets' && (
-        <div className="space-y-4">
-          <div className="flex gap-3 items-center">
-            <label className="text-txt-dim text-sm">Filtrar:</label>
-            <select value={filterUser} onChange={e => setFilterUser(e.target.value)}
-              className="bg-void border border-sep rounded px-3 py-1.5 text-sm text-txt-main">
-              <option value="">Todos</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.display_name}</option>)}
-            </select>
-            <span className="text-txt-dim text-xs">{filteredSheets.length} ficha(s)</span>
-          </div>
-          <div className="grid gap-3">
-            {filteredSheets.map(sheet => {
-              const isExpanded = expandedSheet === sheet.id
-              const isEditing = editingSheet === sheet.id
-              return (
-                <div key={sheet.id} className="bg-deep border border-sep rounded-lg overflow-hidden">
-                  <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-void/30 transition-colors"
-                    onClick={() => { setExpandedSheet(isExpanded ? null : sheet.id); setEditingSheet(null) }}>
-                    <div className="flex items-center gap-3">
-                      {sheet.data?.avatar ? (
-                        <img src={sheet.data.avatar} alt="" className="w-10 h-10 rounded-full border border-gold/40 object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full border border-sep bg-void flex items-center justify-center text-txt-dim text-xs">?</div>
-                      )}
-                      <div>
-                        <h4 className="text-txt-main text-sm font-semibold">{sheet.name}</h4>
-                        <p className="text-txt-dim text-xs">{sheet.data?.classe || '?'} — Nv {sheet.data?.nivel || 1} · por {getUserName(sheet.user_id)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1.5 text-[9px]">
-                        <span className="bg-warn/10 text-warn px-1.5 py-0.5 rounded">{countAbilitiesByStatus(sheet.data, 'Pendente')} pend.</span>
-                        <span className="bg-ok/10 text-ok px-1.5 py-0.5 rounded">{countAbilitiesByStatus(sheet.data, 'Aprovada')} ok</span>
-                        <span className="bg-err/10 text-err px-1.5 py-0.5 rounded">{countAbilitiesByStatus(sheet.data, 'Revisão necessária')} rev.</span>
-                      </div>
-                      <span className="text-txt-dim/50 text-xs">{isExpanded ? '▲' : '▼'}</span>
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="border-t border-sep/30 p-4 space-y-4">
-                      {isEditing ? (
-                        <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} forgeWeapons={forgeWeapons} />
-                      ) : (
-                        <>
-                          <AdminSheetView sheet={sheet} onPatch={handlePatch} />
-                          <div className="flex gap-2 pt-2 border-t border-sep/30">
-                            {onViewSheet && (
-                              <button onClick={() => onViewSheet(sheet.id)} className="text-xs border border-secondary-fixed-dim/40 text-secondary-fixed-dim px-3 py-1.5 rounded hover:bg-secondary-fixed-dim hover:text-on-primary transition-colors">
-                                Ver Ficha
-                              </button>
-                            )}
-                            <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-primary/40 text-primary px-3 py-1.5 rounded hover:bg-primary hover:text-on-primary transition-colors">
-                              Editar Ficha Completa
-                            </button>
-                            <button onClick={() => handleDeleteSheet(sheet.id)} className="text-xs border border-err/30 text-err px-3 py-1.5 rounded hover:bg-err hover:text-white transition-colors">
-                              Excluir
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+  return (
+    <div className="space-y-6">
+      <div className="relative rounded-2xl overflow-hidden border border-gold/20 shadow-xl shadow-black/30">
+        <AdminBackdrop />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-void/90 pointer-events-none" />
+        <div className="relative z-10 flex items-center justify-between p-4">
+          <button onClick={() => setTab('menu')}
+            className="text-gold text-sm hover:text-gold-light transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            Mesa do Mestre
+          </button>
+          <div className="flex flex-wrap justify-end gap-1">
+            {[
+              { key: 'sheets', label: `Heróis (${sheets.length})` },
+              { key: 'skills', label: `Skills${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0) ? ` (${sheets.reduce((sum, s) => sum + countOpenSkillNotifications(s.data), 0)})` : ''}` },
+              { key: 'grimoire', label: 'Grimório' },
+              { key: 'mysticWeapons', label: 'Forja Lendária' },
+              { key: 'users', label: 'Usuários' },
+            ].map(t => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`px-3 py-1.5 rounded text-sm transition-colors ${tab === t.key ? 'bg-primary text-on-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}>
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
-      )}
-
-      {tab === 'abilities' && (
-        <div className="space-y-4">
-          <h3 className="text-txt-main text-sm font-semibold">Habilidades Pendentes / Em Revisão</h3>
-          <div className="grid gap-3">
-            {sheets.filter(s => {
-              const p = countAbilitiesByStatus(s.data, 'Pendente')
-              const r = countAbilitiesByStatus(s.data, 'Revisão necessária')
-              return p > 0 || r > 0
-            }).map(sheet => {
-              const isExpanded = expandedSheet === sheet.id
-              const isEditing = editingSheet === sheet.id
-              return (
-                <div key={sheet.id} className="bg-deep border border-sep rounded-lg overflow-hidden">
-                  <div className="p-3 flex items-center justify-between cursor-pointer hover:bg-void/30 transition-colors"
-                    onClick={() => { setExpandedSheet(isExpanded ? null : sheet.id); setEditingSheet(null) }}>
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <h4 className="text-txt-main text-sm font-semibold">{sheet.name}</h4>
-                        <p className="text-txt-dim text-xs">{sheet.data?.classe || '?'} · por {getUserName(sheet.user_id)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1.5 text-[9px]">
-                        <span className="bg-warn/10 text-warn px-1.5 py-0.5 rounded">{countAbilitiesByStatus(sheet.data, 'Pendente')} pend.</span>
-                        <span className="bg-err/10 text-err px-1.5 py-0.5 rounded">{countAbilitiesByStatus(sheet.data, 'Revisão necessária')} rev.</span>
-                      </div>
-                      <span className="text-txt-dim/50 text-xs">{isExpanded ? '▲' : '▼'}</span>
-                    </div>
-                  </div>
-                  {isExpanded && (
-                    <div className="border-t border-sep/30 p-4 space-y-4">
-                      {isEditing ? (
-                        <FullSheetEditor sheet={sheet} onSave={handleSaveSheet} onCancel={() => setEditingSheet(null)} forgeWeapons={forgeWeapons} />
-                      ) : (
-                        <>
-                          <AdminSheetView sheet={sheet} onPatch={handlePatch} />
-                          <div className="flex gap-2 pt-2 border-t border-sep/30">
-                            <button onClick={() => setEditingSheet(sheet.id)} className="text-xs border border-gold/40 text-gold px-3 py-1.5 rounded hover:bg-gold hover:text-void transition-colors">
-                              Editar Ficha
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-            {sheets.filter(s => countAbilitiesByStatus(s.data, 'Pendente') + countAbilitiesByStatus(s.data, 'Revisão necessária') > 0).length === 0 && (
-              <p className="text-txt-dim/50 text-xs italic">Todas as habilidades foram revisadas!</p>
-            )}
-          </div>
-        </div>
-      )}
+      </div>
 
       {tab === 'skills' && (
         <AdminSkillsPanel
@@ -337,30 +324,7 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
       )}
 
       {tab === 'users' && (
-        <div className="space-y-4">
-          <h3 className="text-txt-main text-sm font-semibold">Usuários Cadastrados</h3>
-          <div className="grid gap-2">
-            {users.map(u => {
-              const userSheets = sheets.filter(s => s.user_id === u.id)
-              return (
-                <div key={u.id} className="bg-deep border border-sep rounded-lg p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${u.role === 'admin' ? 'bg-gold/20 text-gold border border-gold/30' : 'bg-sep/30 text-txt-dim'}`}>
-                      {u.display_name?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                    <div>
-                      <span className="text-txt-main text-sm">{u.display_name}</span>
-                      <span className={`text-[9px] ml-2 px-1.5 py-0.5 rounded ${u.role === 'admin' ? 'bg-gold/10 text-gold border border-gold/20' : 'bg-sep/20 text-txt-dim'}`}>
-                        {u.role}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-txt-dim text-xs">{userSheets.length} ficha(s)</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        <AdminUsersPanel users={users} sheets={sheets} />
       )}
 
       {tab === 'grimoire' && <GrimoireAdminPage />}
@@ -369,6 +333,403 @@ export default function AdminDashboard({ initialTab = 'sheets', onViewSheet }) {
       {tab === 'runes' && <RuneAdminPanel />}
       {tab === 'magic' && <MagicAdminPanel />}
       {tab === 'mysticWeapons' && <MysticWeaponAdminPanel />}
+
+      {tab === 'sheets' && (
+        editingSheet ? (
+          <FullSheetEditor
+            sheet={editingSheet}
+            onSave={handleSaveSheet}
+            onCancel={() => setEditingSheet(null)}
+            forgeWeapons={forgeWeapons}
+          />
+        ) : (
+          <AdminSheetsLibrary
+            sheets={sheets}
+            users={users}
+            getUserName={getUserName}
+            expandedSheet={expandedSheet}
+            setExpandedSheet={setExpandedSheet}
+            setEditingSheet={setEditingSheet}
+            onDelete={handleDeleteSheet}
+            onPatch={handlePatch}
+            onViewSheet={onViewSheet}
+          />
+        )
+      )}
+    </div>
+  )
+}
+
+const LIBRARY_CLASS_META = {
+  Guerreiro: { bg: 'bg-rose-400/10', text: 'text-rose-400', border: 'border-rose-400/25', accent: '#f87171', glow: 'rgba(248,113,113,0.12)' },
+  Operativo: { bg: 'bg-sky-400/10', text: 'text-sky-400', border: 'border-sky-400/25', accent: '#60a5fa', glow: 'rgba(96,165,250,0.12)' },
+  'Místico': { bg: 'bg-purple-400/10', text: 'text-purple-400', border: 'border-purple-400/25', accent: '#c084fc', glow: 'rgba(192,132,252,0.12)' },
+}
+
+const LIBRARY_TIERS = [
+  { min: 1, max: 8, label: 'Novato', color: '#60a5fa', bg: 'bg-sky-400/10', text: 'text-sky-400', border: 'border-sky-400/25' },
+  { min: 9, max: 16, label: 'Veterano', color: '#f7bd48', bg: 'bg-amber-400/10', text: 'text-amber-400', border: 'border-amber-400/25' },
+  { min: 17, max: 24, label: 'Elite', color: '#c084fc', bg: 'bg-purple-400/10', text: 'text-purple-400', border: 'border-purple-400/25' },
+  { min: 25, max: 50, label: 'Lendário', color: '#f87171', bg: 'bg-rose-400/10', text: 'text-rose-400', border: 'border-rose-400/25' },
+]
+
+function getLibraryTier(level) {
+  return LIBRARY_TIERS.find(t => level >= t.min && level <= t.max) || LIBRARY_TIERS[0]
+}
+
+function AdminSheetsLibrary({ sheets, users, getUserName, expandedSheet, setExpandedSheet, setEditingSheet, onDelete, onPatch, onViewSheet }) {
+  const [search, setSearch] = useState('')
+  const [classFilter, setClassFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('updated')
+
+  const filtered = useMemo(() => {
+    let result = [...sheets]
+    if (search.trim()) {
+      const term = search.toLowerCase()
+      result = result.filter(s =>
+        `${s.name || ''} ${s.data?.nome || ''} ${s.data?.classe || ''} ${s.data?.raca || ''} ${getUserName(s.user_id)}`
+          .toLowerCase().includes(term)
+      )
+    }
+    if (classFilter !== 'all') {
+      result = result.filter(s => s.data?.classe === classFilter)
+    }
+    if (sortBy === 'updated') {
+      result.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    } else if (sortBy === 'name') {
+      result.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    } else if (sortBy === 'level') {
+      result.sort((a, b) => (b.data?.nivel || 1) - (a.data?.nivel || 1))
+    }
+    return result
+  }, [sheets, search, classFilter, sortBy, getUserName])
+
+  const classCounts = useMemo(() => {
+    const counts = { all: sheets.length }
+    for (const s of sheets) {
+      const c = s.data?.classe
+      if (c) counts[c] = (counts[c] || 0) + 1
+    }
+    return counts
+  }, [sheets])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-txt-dim/40 text-[10px] uppercase tracking-wider">Arquivo</span>
+          <h3 className="font-cinzel text-txt-main text-xl flex items-center gap-3">
+            <span className="material-symbols-outlined text-gold text-xl" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>groups</span>
+            Heróis Registrados
+          </h3>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-txt-dim/40 text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>search</span>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar personagem..."
+              className="bg-void border border-sep/50 rounded-lg pl-9 pr-4 py-2 text-sm text-txt-main focus:border-gold/40 outline-none w-64 transition-colors" />
+          </div>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            className="bg-void border border-sep/50 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 outline-none transition-colors">
+            <option value="updated">Recentes</option>
+            <option value="name">Nome</option>
+            <option value="level">Nível</option>
+          </select>
+          <span className="text-txt-dim/40 text-[10px] font-mono">{filtered.length}/{sheets.length}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {[
+          { key: 'all', label: 'Todos', accent: '#f7bd48' },
+          { key: 'Guerreiro', label: 'Guerreiro', accent: '#f87171' },
+          { key: 'Operativo', label: 'Operativo', accent: '#60a5fa' },
+          { key: 'Místico', label: 'Místico', accent: '#c084fc' },
+        ].map(c => {
+          const isActive = classFilter === c.key
+          const classMeta = LIBRARY_CLASS_META[c.key]
+          return (
+            <button key={c.key} type="button" onClick={() => setClassFilter(c.key)}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 border ${
+                isActive
+                  ? classMeta
+                    ? `${classMeta.bg} ${classMeta.text} ${classMeta.border}`
+                    : 'bg-gold/15 text-gold border-gold/30'
+                  : 'bg-void/40 text-txt-dim border-sep/30 hover:border-sep/50 hover:text-txt-main'
+              }`}
+              style={isActive && !classMeta ? { boxShadow: `0 0 16px rgba(247,189,72,0.15)` } : undefined}>
+              {c.label}
+              <span className="ml-1.5 font-mono text-[10px] opacity-70">{classCounts[c.key] || 0}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-24 rounded-2xl border border-sep/15 bg-gradient-to-br from-deep/60 to-deep/30">
+          <span className="material-symbols-outlined text-6xl text-gold/15 mb-4 block" style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}>
+            {sheets.length === 0 ? 'explore' : 'search_off'}
+          </span>
+          <p className="font-cinzel text-lg text-txt-main/70 mb-2">
+            {sheets.length === 0 ? 'O arquivo ainda está vazio.' : 'Nenhum herói encontrado.'}
+          </p>
+          <p className="text-txt-dim/50 text-sm max-w-sm mx-auto">
+            {sheets.length === 0 ? 'Quando personagens forem criados, eles aparecerão aqui como cartas no arquivo.' : 'Tente ajustar os filtros ou termo de busca.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filtered.map((sheet, index) => {
+            const level = sheet.data?.nivel || 1
+            const tier = getLibraryTier(level)
+            const classe = sheet.data?.classe || ''
+            const classMeta = LIBRARY_CLASS_META[classe]
+            const isExpanded = expandedSheet === sheet.id
+            const charName = sheet.name || sheet.data?.nome || 'Sem nome'
+            const initial = charName.charAt(0).toUpperCase()
+
+            return (
+              <div key={sheet.id} className="relative">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setExpandedSheet(isExpanded ? null : sheet.id)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedSheet(isExpanded ? null : sheet.id) }}}
+                  className={`group relative w-full rounded-2xl overflow-hidden text-left cursor-pointer transition-all duration-300 focus-visible:outline-2 focus-visible:outline-gold/50 ${isExpanded ? 'border-gold/40 shadow-lg shadow-gold/[0.06]' : 'border-white/[0.06] hover:border-gold/25 hover:shadow-xl hover:shadow-black/30'}`}
+                  style={{
+                    animation: `cardEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${index * 60}ms both`,
+                    background: 'linear-gradient(145deg, rgba(24,24,27,0.95), rgba(14,14,15,0.92))',
+                    backdropFilter: 'blur(12px)',
+                    border: isExpanded ? undefined : '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <div className="absolute top-0 left-0 right-0 h-[2px] z-10"
+                    style={{ background: `linear-gradient(90deg, transparent, ${tier.color}80, transparent)` }} />
+
+                  {classMeta && (
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] z-10 rounded-l-2xl"
+                      style={{ background: `linear-gradient(180deg, ${classMeta.accent}, ${classMeta.accent}50)` }} />
+                  )}
+
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{ background: `linear-gradient(145deg, ${classMeta?.glow || 'rgba(247,189,72,0.04)'} 0%, transparent 60%)` }} />
+
+                  <div className="relative w-full aspect-[16/10] overflow-hidden">
+                    {sheet.data?.avatar ? (
+                      <img src={sheet.data.avatar} alt=""
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"
+                        style={{ background: `radial-gradient(circle at center, ${tier.color}12, transparent 70%), rgba(7,8,10,0.95)` }}>
+                        <span className="text-5xl font-cinzel transition-colors duration-300 group-hover:opacity-100"
+                          style={{ color: tier.color + '25' }}>
+                          {initial}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0f] via-[#0e0e0f]/30 to-transparent" />
+
+                    <div className="absolute top-3 right-3 z-10"
+                      style={{ animation: 'floatBadge 3s ease-in-out infinite' }}>
+                      <div className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold ${tier.bg} ${tier.text}`}
+                        style={{ borderColor: tier.color + '40', textShadow: `0 0 8px ${tier.color}40` }}>
+                        LV {level}
+                      </div>
+                    </div>
+
+                    <div className="absolute bottom-3 left-3 z-10 flex items-center gap-2">
+                      <span className="text-[9px] font-mono uppercase tracking-widest"
+                        style={{ color: tier.color + '90' }}>{tier.label}</span>
+                    </div>
+                  </div>
+
+                  <div className="relative p-4 space-y-2">
+                    <h3 className="font-cinzel text-[15px] text-txt-main truncate group-hover:text-gold transition-colors duration-300">
+                      {charName}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      {classMeta ? (
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-semibold ${classMeta.bg} ${classMeta.text} ${classMeta.border}`}>
+                          {classe}
+                        </span>
+                      ) : classe ? (
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full border border-sep/25 bg-sep/10 text-txt-dim font-semibold">{classe}</span>
+                      ) : null}
+                      <span className="text-txt-dim/50 text-[10px]">•</span>
+                      <span className="text-txt-dim/60 text-xs truncate">
+                        {sheet.data?.raca || sheet.data?.racaTipo || '—'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-0.5">
+                      <span className="text-txt-dim/40 text-[10px] truncate max-w-[60%]">{getUserName(sheet.user_id)}</span>
+                      <span className="text-txt-dim/25 text-[10px]">
+                        {sheet.updated_at ? new Date(sheet.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                      style={{
+                        background: 'linear-gradient(105deg, transparent 40%, rgba(247,189,72,0.04) 45%, rgba(247,189,72,0.08) 50%, rgba(247,189,72,0.04) 55%, transparent 60%)',
+                        animation: 'none',
+                      }} />
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-2 rounded-2xl border border-gold/15 overflow-hidden"
+                    style={{
+                      animation: 'cardEntrance 0.3s cubic-bezier(0.16, 1, 0.3, 1) both',
+                      background: 'linear-gradient(180deg, rgba(24,24,27,0.95), rgba(14,14,15,0.92))',
+                      backdropFilter: 'blur(12px)',
+                      boxShadow: '0 12px 40px rgba(0,0,0,0.3), 0 0 24px rgba(247,189,72,0.04)',
+                    }}>
+                    <div className="flex items-center justify-between px-4 py-2.5 border-b border-sep/15 bg-gradient-to-r from-void/40 via-void/20 to-transparent">
+                      <span className="text-gold/80 text-xs font-cinzel tracking-wider uppercase">Detalhes do Herói</span>
+                      <div className="flex items-center gap-1.5">
+                        {onViewSheet && (
+                          <button onClick={(e) => { e.stopPropagation(); onViewSheet(sheet.id) }}
+                            className="text-[10px] bg-sky-400/10 text-sky-400 px-3 py-1.5 rounded-lg border border-sky-400/20 hover:bg-sky-400/20 transition-colors font-semibold">
+                            <span className="material-symbols-outlined text-xs align-middle mr-0.5" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>visibility</span>
+                            Ver Ficha
+                          </button>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); setEditingSheet(sheet) }}
+                          className="text-[10px] bg-gold/10 text-gold px-3 py-1.5 rounded-lg border border-gold/20 hover:bg-gold/25 transition-colors font-semibold">
+                          <span className="material-symbols-outlined text-xs align-middle mr-0.5" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>edit</span>
+                          Editar
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); onDelete(sheet.id) }}
+                          className="text-[10px] bg-err/10 text-err px-3 py-1.5 rounded-lg border border-err/20 hover:bg-err/20 transition-colors font-semibold">
+                          <span className="material-symbols-outlined text-xs align-middle mr-0.5" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>delete</span>
+                          Excluir
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-4 max-h-[420px] overflow-y-auto">
+                      <AdminSheetView sheet={sheet} onPatch={(patch) => onPatch(sheet, patch)} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AdminUsersPanel({ users, sheets }) {
+  const [search, setSearch] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const filtered = users.filter(u => {
+    const term = search.trim().toLowerCase()
+    if (!term) return true
+    return `${u.display_name || ''} ${u.email || ''} ${u.role || ''}`.toLowerCase().includes(term)
+  })
+
+  async function handleRemoveUser(uid) {
+    setDeleting(true)
+    try {
+      await getSupabaseAdmin().from('profiles').delete().eq('id', uid)
+      setConfirmDeleteId(null)
+    } catch (err) {
+      alert('Erro ao remover usuário: ' + err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-txt-dim/40 text-[10px] uppercase tracking-wider">Gerenciamento</span>
+          <h3 className="font-cinzel text-txt-main text-lg">Usuários Cadastrados</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-txt-dim/40 text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>search</span>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome ou email..."
+              className="bg-void border border-sep/50 rounded-lg pl-9 pr-4 py-2 text-sm text-txt-main focus:border-gold/40 outline-none w-64 transition-colors" />
+          </div>
+          <span className="text-txt-dim/40 text-[10px] font-mono">{filtered.length}/{users.length}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-3">
+        {filtered.map(u => {
+          const userSheets = sheets.filter(s => s.user_id === u.id)
+          const lastAccess = u.updated_at ? new Date(u.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+          const isConfirming = confirmDeleteId === u.id
+          return (
+            <div key={u.id} className="bg-gradient-to-r from-deep/95 to-deep/70 backdrop-blur-sm border border-sep/30 rounded-xl p-4 flex items-center gap-4 transition-all duration-200 hover:border-sep/50 hover:shadow-lg hover:shadow-black/20">
+              <div className="relative">
+                {u.avatar_url ? (
+                  <img src={u.avatar_url} alt="" className="w-12 h-12 rounded-full border-2 border-gold/30 object-cover shadow-md shadow-black/30" />
+                ) : (
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-semibold shadow-md shadow-black/20 ${u.role === 'admin' ? 'bg-gradient-to-br from-gold/30 to-gold/10 text-gold border-2 border-gold/40' : 'bg-sep/20 text-txt-dim border-2 border-sep/30'}`}>
+                    {u.display_name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                )}
+                {u.role === 'admin' && (
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-gold rounded-full flex items-center justify-center shadow-sm">
+                    <span className="text-void text-[7px] font-bold">★</span>
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-txt-main text-sm font-semibold truncate">{u.display_name || 'Sem nome'}</span>
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full border font-semibold ${u.role === 'admin' ? 'bg-gold/10 text-gold border-gold/25' : 'bg-sep/15 text-txt-dim border-sep/25'}`}>
+                    {u.role === 'admin' ? 'Admin' : 'Usuário'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-txt-dim/50 text-xs truncate">{u.email || ''}</span>
+                  <span className="text-txt-dim/30 text-[10px]">•</span>
+                  <span className="text-txt-dim/40 text-[10px]">{lastAccess}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <span className="text-gold/70 text-sm font-mono font-semibold">{userSheets.length}</span>
+                  <span className="text-txt-dim/40 text-[10px] block">ficha(s)</span>
+                </div>
+                {u.role !== 'admin' && (
+                  isConfirming ? (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => handleRemoveUser(u.id)} disabled={deleting}
+                        className="text-[10px] bg-err text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-red-500 transition-colors disabled:opacity-50">
+                        {deleting ? '...' : 'Confirmar'}
+                      </button>
+                      <button onClick={() => setConfirmDeleteId(null)}
+                        className="text-[10px] text-txt-dim px-2 py-1.5 rounded-lg border border-sep/30 hover:text-txt-main transition-colors">
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(u.id)}
+                      className="text-txt-dim/30 hover:text-err transition-colors p-1.5 rounded-lg hover:bg-err/10" title="Remover usuário">
+                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>person_remove</span>
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          )
+        })}
+        {filtered.length === 0 && (
+          <div className="text-center py-12">
+            <span className="material-symbols-outlined text-txt-dim/20 text-4xl mb-2 block" style={{ fontVariationSettings: "'FILL' 0, 'wght' 200" }}>person_off</span>
+            <p className="text-txt-dim/40 text-sm">Nenhum usuário encontrado.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

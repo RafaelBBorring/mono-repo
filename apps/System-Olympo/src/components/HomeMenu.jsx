@@ -16,7 +16,7 @@ function getLevelTier(level) {
   return LEVEL_TIERS.find(t => level >= t.min && level <= t.max) || LEVEL_TIERS[0]
 }
 
-function CharacterCard({ sheet, onOpenSheet }) {
+function CharacterCard({ sheet, onOpenSheet, index = 0 }) {
   const level = sheet.data?.nivel || 1
   const tier = getLevelTier(level)
   const [hovering, setHovering] = useState(false)
@@ -28,7 +28,11 @@ function CharacterCard({ sheet, onOpenSheet }) {
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       className="glass-card group relative p-6 flex items-center gap-6 cursor-pointer text-left w-full overflow-hidden"
-      style={{ transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s cubic-bezier(0.16,1,0.3,1)' }}
+      style={{
+        transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease',
+        animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${index * 80}ms both`,
+        borderColor: hovering ? 'rgba(247,189,72,0.4)' : undefined,
+      }}
     >
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
@@ -74,14 +78,17 @@ function CharacterCard({ sheet, onOpenSheet }) {
   )
 }
 
-function DraftCard({ draft, onOpen, onDelete }) {
+function DraftCard({ draft, onOpen, onDelete, index = 0 }) {
   const data = draft.data || {}
   const name = draft.name || data.nome || 'Rascunho sem nome'
   const step = Number(draft.step || data.draftStep || 0) + 1
   const updated = draft.updatedAt ? new Date(draft.updatedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
 
   return (
-    <div className="glass-card group p-4 flex items-center gap-4">
+    <div
+      className="glass-card group p-4 flex items-center gap-4"
+      style={{ animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${index * 80}ms both` }}
+    >
       <button type="button" onClick={() => onOpen?.(draft.id)} className="min-w-0 flex-1 text-left">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[18px]">edit_note</span>
@@ -291,15 +298,6 @@ export default function HomeMenu({
 }) {
   const recentSheets = sheets.slice(0, 6)
 
-  const adminActions = [
-    { key: 'session', label: 'Sessão ao Vivo', detail: 'Acompanhe recursos dos personagens em tempo real.', icon: 'campaign' },
-    { key: 'grimoire', label: 'Grimório do Mestre', detail: 'Gestão de feitiços e conhecimentos proibidos.', icon: 'menu_book' },
-    { key: 'mysticWeapons', label: 'Forja Lendária', detail: 'Criação e manutenção de artefatos únicos.', icon: 'auto_fix_high' },
-    { key: 'sheets', label: 'Arquivo de Heróis', detail: `${sheetsCount} personagens registrados.`, icon: 'groups' },
-    { key: 'abilities', label: 'Tribunal de Poderes', detail: 'Moderação e balanceamento de habilidades.', icon: 'gavel' },
-    { key: 'users', label: 'Registro de Usuários', detail: 'Controle de acesso à Biblioteca Proibida.', icon: 'manage_accounts' },
-  ]
-
   return (
     <main className="min-h-screen">
       {/* ── Hero Section ── */}
@@ -330,6 +328,11 @@ export default function HomeMenu({
                 Retomar Rascunho
               </button>
             )}
+            <button type="button" onClick={() => onAdminArea?.('menu')}
+              className="sigil-button px-6 py-4 bg-surface-container-low/20 backdrop-blur-md rounded-xl font-cinzel text-sm text-primary tracking-widest flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">admin_panel_settings</span>
+              Mesa do Mestre
+            </button>
           </div>
         </div>
       </section>
@@ -348,8 +351,8 @@ export default function HomeMenu({
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {drafts.slice(0, 6).map(draft => (
-              <DraftCard key={draft.id} draft={draft} onOpen={onOpenDraft} onDelete={onDeleteDraft} />
+            {drafts.slice(0, 6).map((draft, i) => (
+              <DraftCard key={draft.id} draft={draft} onOpen={onOpenDraft} onDelete={onDeleteDraft} index={i} />
             ))}
           </div>
         </section>
@@ -367,8 +370,8 @@ export default function HomeMenu({
 
         {recentSheets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {recentSheets.map(sheet => (
-              <CharacterCard key={sheet.id} sheet={sheet} onOpenSheet={onOpenSheet} />
+            {recentSheets.map((sheet, i) => (
+              <CharacterCard key={sheet.id} sheet={sheet} onOpenSheet={onOpenSheet} index={i} />
             ))}
             <button type="button" onClick={onNew}
               className="glass-card border-dashed !border-white/10 flex flex-col items-center justify-center p-8 text-outline hover:text-secondary-fixed-dim hover:!border-secondary/50 transition-all cursor-pointer">
@@ -397,25 +400,24 @@ export default function HomeMenu({
             <h2 className="font-cinzel text-on-surface flex items-center gap-4"
                 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)' }}>
               <span className="material-symbols-outlined text-primary text-3xl">admin_panel_settings</span>
-              PAINEL ADMINISTRATIVO
+              MESA DO MESTRE
             </h2>
             <div className="w-32 h-0.5 bg-primary mt-2" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {adminActions.map(action => (
-              <button key={action.key} type="button" onClick={() => onAdminArea?.(action.key)}
-                className="glass-card group p-6 flex flex-col items-start text-left hover:bg-primary/5 transition-all">
-                <span className="material-symbols-outlined text-primary mb-4 text-3xl group-hover:scale-110 transition-transform"
-                  style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>
-                  {action.icon}
-                </span>
-                <h4 className="font-cinzel text-sm text-primary-fixed mb-2 tracking-wide">{action.label}</h4>
-                <p className="font-mono text-primary/40 leading-relaxed uppercase" style={{ fontSize: '10px' }}>
-                  {action.detail}
-                </p>
-              </button>
-            ))}
-          </div>
+          <button type="button" onClick={() => onAdminArea?.('menu')}
+            className="glass-card group w-full p-8 flex items-center gap-6 text-left hover:bg-primary/5 transition-all cursor-pointer">
+            <span className="material-symbols-outlined text-primary text-5xl group-hover:scale-110 transition-transform"
+              style={{ fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
+              admin_panel_settings
+            </span>
+            <div>
+              <h4 className="font-cinzel text-lg text-primary-fixed tracking-wide mb-1">Acessar Mesa do Mestre</h4>
+              <p className="font-mono text-primary/40 leading-relaxed uppercase" style={{ fontSize: '10px' }}>
+                Heróis · Skills · Grimório · Forja Lendária · Codex Arcanum · Quadro · Usuários
+              </p>
+            </div>
+            <span className="material-symbols-outlined text-primary/30 text-2xl ml-auto group-hover:text-primary/60 transition-colors">arrow_forward</span>
+          </button>
         </section>
       )}
 

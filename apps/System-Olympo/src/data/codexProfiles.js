@@ -1,0 +1,55 @@
+export const CODEX_PROFILES = {
+  guerreiro: {
+    name: 'Guerreiro',
+    dice: 'd10',
+    desc: 'Alta vida e armadura, dano pesado.',
+    levels: {
+      5:  { vida: [180, 220], arm: [12, 16], dano: '2d10+6',   ba: 10, reac: 2 },
+      10: { vida: [310, 370], arm: [18, 23], dano: '4d10+12',  ba: 14, reac: 3 },
+      15: { vida: [420, 510], arm: [24, 30], dano: '5d10+19',  ba: 17, reac: 4 },
+      20: { vida: [550, 670], arm: [29, 36], dano: '6d10+24',  ba: 21, reac: 5 },
+      25: { vida: [750, 910], arm: [35, 42], dano: '8d10+30',  ba: 24, reac: 6 },
+      30: { vida: [1000, 1200], arm: [40, 47], dano: '10d10+35', ba: 28, reac: 7 },
+      35: { vida: [1300, 1550], arm: [46, 53], dano: '12d10+42', ba: 32, reac: 8 },
+      40: { vida: [1650, 1950], arm: [52, 60], dano: '15d10+50', ba: 36, reac: 9 },
+      45: { vida: [2050, 2400], arm: [58, 66], dano: '18d10+58', ba: 40, reac: 10 },
+      50: { vida: [2500, 2900], arm: [64, 73], dano: '21d10+65', ba: 44, reac: 11 },
+    },
+  },
+  especialista: {
+    name: 'Especialista',
+    dice: 'd8',
+    desc: 'Versátil e sólido, equilibrado.',
+    levels: {
+      5:  { vida: [140, 175], arm: [10, 14], dano: '2d8+6',   ba: 10, reac: 3 },
+      10: { vida: [240, 300], arm: [16, 21], dano: '4d8+12',  ba: 14, reac: 4 },
+      15: { vida: [330, 410], arm: [22, 28], dano: '5d8+19',  ba: 17, reac: 5 },
+      20: { vida: [430, 540], arm: [27, 34], dano: '6d8+24',  ba: 21, reac: 6 },
+      25: { vida: [600, 740], arm: [33, 40], dano: '8d8+30',  ba: 24, reac: 7 },
+      30: { vida: [800, 980], arm: [38, 45], dano: '10d8+35', ba: 28, reac: 8 },
+      35: { vida: [1050, 1280], arm: [44, 51], dano: '12d8+42', ba: 32, reac: 9 },
+      40: { vida: [1350, 1630], arm: [50, 58], dano: '15d8+50', ba: 36, reac: 10 },
+      45: { vida: [1700, 2050], arm: [56, 64], dano: '18d8+58', ba: 40, reac: 11 },
+      50: { vida: [2100, 2500], arm: [62, 71], dano: '21d8+65', ba: 44, reac: 12 },
+    },
+  },
+  mistico: {
+    name: 'Místico',
+    dice: 'd6',
+    desc: 'Bônus de Poder, energia arcanizada.',
+    levels: {
+      5:  { vida: [110, 140], arm: [8, 12],  dano: '3d6+8',   ba: 10, reac: 2 },
+      10: { vida: [190, 240], arm: [14, 19], dano: '5d6+14',  ba: 14, reac: 3 },
+      15: { vida: [260, 330], arm: [20, 26], dano: '7d6+21',  ba: 17, reac: 4 },
+      20: { vida: [340, 430], arm: [25, 32], dano: '9d6+27',  ba: 21, reac: 4 },
+      25: { vida: [480, 600], arm: [31, 38], dano: '11d6+34', ba: 24, reac: 5 },
+      30: { vida: [640, 800], arm: [36, 43], dano: '13d6+40', ba: 28, reac: 6 },
+      35: { vida: [840, 1040], arm: [42, 49], dano: '16d6+48', ba: 32, reac: 7 },
+      40: { vida: [1080, 1320], arm: [48, 56], dano: '19d6+56', ba: 36, reac: 8 },
+      45: { vida: [1360, 1650], arm: [54, 62], dano: '22d6+64', ba: 40, reac: 9 },
+      50: { vida: [1680, 2020], arm: [60, 69], dano: '25d6+72', ba: 44, reac: 10 },
+    },
+  },
+}
+
+export const KEY_LEVELS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]

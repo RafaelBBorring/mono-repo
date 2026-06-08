@@ -43,7 +43,13 @@ export const MODIFIER_TABLE = [
   { min: 42, max: 43, mod: 16 },
   { min: 44, max: 45, mod: 17 },
   { min: 46, max: 47, mod: 18 },
-  { min: 48, max: 99, mod: 19 },
+  { min: 48, max: 49, mod: 19 },
+  { min: 50, max: 51, mod: 20 },
+  { min: 52, max: 53, mod: 21 },
+  { min: 54, max: 55, mod: 22 },
+  { min: 56, max: 57, mod: 23 },
+  { min: 58, max: 59, mod: 24 },
+  { min: 60, max: 99, mod: 25 },
 ]
 
 export function getModifier(value) {
@@ -59,7 +65,9 @@ export function getTierForLevel(level) {
   if (level <= 7) return '1-7'
   if (level <= 13) return '8-13'
   if (level <= 22) return '14-22'
-  return '23-30'
+  if (level <= 30) return '23-30'
+  if (level <= 38) return '31-38'
+  return '39-50'
 }
 
 export function getArraysForLevel() {
@@ -71,6 +79,8 @@ export const ATTR_CAPS = {
   '8-13': 26,
   '14-22': 32,
   '23-30': 38,
+  '31-38': 44,
+  '39-50': 50,
 }
 
 export function getAttrCap(level) {

@@ -92,118 +92,173 @@ function LegendaryForgeStage() {
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
     camera.position.set(0, 0.2, 5.5)
 
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
 
-    const ambient = new THREE.AmbientLight(0x0a0e1a, 0.4)
+    const ambient = new THREE.AmbientLight(0x0a0e1a, 0.5)
     scene.add(ambient)
 
-    const forgeGlow = new THREE.PointLight(0xff6b2b, 2.5, 8, 1.5)
+    const forgeGlow = new THREE.PointLight(0xff6b2b, 3.0, 10, 1.5)
     forgeGlow.position.set(0.8, -1, 0.5)
     scene.add(forgeGlow)
 
-    const crystalLight = new THREE.PointLight(0xbef264, 1.8, 6, 1.5)
+    const crystalLight = new THREE.PointLight(0xbef264, 2.2, 8, 1.5)
     crystalLight.position.set(0, 0.5, 1)
     scene.add(crystalLight)
 
-    const accentLight = new THREE.PointLight(0xe8c97e, 0.8, 5)
+    const accentLight = new THREE.PointLight(0xe8c97e, 1.0, 6)
     accentLight.position.set(-1, 0, 2)
     scene.add(accentLight)
+
+    const rimLight = new THREE.PointLight(0xff4444, 0.6, 5)
+    rimLight.position.set(0, -1.5, -1)
+    scene.add(rimLight)
 
     const root = new THREE.Group()
     scene.add(root)
 
-    const crystalGeom = new THREE.OctahedronGeometry(0.38, 0)
+    const crystalGeom = new THREE.DodecahedronGeometry(0.45, 1)
     const crystalMat = new THREE.MeshPhongMaterial({
       color: 0xbef264,
-      emissive: 0x3a5f1a,
-      emissiveIntensity: 0.8,
+      emissive: 0x4a8f2a,
+      emissiveIntensity: 0.9,
       transparent: true,
-      opacity: 0.85,
-      shininess: 120,
+      opacity: 0.88,
+      shininess: 140,
+      specular: 0xffffff,
     })
     const crystal = new THREE.Mesh(crystalGeom, crystalMat)
     crystal.position.set(0, 0.3, 0)
     root.add(crystal)
 
-    const glowGeom = new THREE.SphereGeometry(0.55, 32, 32)
-    const glowMat = new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false })
-    const glow = new THREE.Mesh(glowGeom, glowMat)
-    glow.position.copy(crystal.position)
-    root.add(glow)
+    const glowLayers = []
+    const glowConfigs = [
+      { radius: 0.6, color: 0xbef264, opacity: 0.15 },
+      { radius: 0.9, color: 0xbef264, opacity: 0.06 },
+      { radius: 1.3, color: 0xe8c97e, opacity: 0.03 },
+    ]
+    for (const cfg of glowConfigs) {
+      const geom = new THREE.SphereGeometry(cfg.radius, 32, 32)
+      const mat = new THREE.MeshBasicMaterial({ color: cfg.color, transparent: true, opacity: cfg.opacity, blending: THREE.AdditiveBlending, depthWrite: false })
+      const mesh = new THREE.Mesh(geom, mat)
+      mesh.position.copy(crystal.position)
+      root.add(mesh)
+      glowLayers.push({ mesh, geom, mat })
+    }
 
-    const outerGlowGeom = new THREE.SphereGeometry(0.85, 32, 32)
-    const outerGlowMat = new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.04, blending: THREE.AdditiveBlending, depthWrite: false })
-    const outerGlow = new THREE.Mesh(outerGlowGeom, outerGlowMat)
-    outerGlow.position.copy(crystal.position)
-    root.add(outerGlow)
+    const pulseRings = []
+    for (let i = 0; i < 3; i++) {
+      const geom = new THREE.RingGeometry(0.5 + i * 0.3, 0.52 + i * 0.3, 64)
+      const mat = new THREE.MeshBasicMaterial({
+        color: [0xbef264, 0xe8c97e, 0xff8844][i],
+        transparent: true, opacity: 0.0,
+        blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+      })
+      const mesh = new THREE.Mesh(geom, mat)
+      mesh.position.copy(crystal.position)
+      mesh.rotation.x = Math.PI / 2
+      root.add(mesh)
+      pulseRings.push({ mesh, geom, mat, phase: i * 2.1, speed: 0.8 + i * 0.15 })
+    }
 
     const ringGroup = new THREE.Group()
     ringGroup.position.copy(crystal.position)
 
-    const ring1 = new THREE.Mesh(
-      new THREE.TorusGeometry(1.2, 0.015, 16, 128),
-      new THREE.MeshBasicMaterial({ color: 0xbef264, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false })
-    )
-    ring1.rotation.x = Math.PI / 2.2
-    ringGroup.add(ring1)
-
-    const ring2 = new THREE.Mesh(
-      new THREE.TorusGeometry(1.55, 0.012, 16, 150),
-      new THREE.MeshBasicMaterial({ color: 0xe8c97e, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
-    )
-    ring2.rotation.x = Math.PI / 2.5
-    ring2.rotation.y = 0.3
-    ringGroup.add(ring2)
-
-    const ring3 = new THREE.Mesh(
-      new THREE.TorusGeometry(0.9, 0.01, 16, 100),
-      new THREE.MeshBasicMaterial({ color: 0xff8844, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false })
-    )
-    ring3.rotation.x = Math.PI / 1.8
-    ring3.rotation.z = 0.4
-    ringGroup.add(ring3)
-
+    const ringDefs = [
+      { radius: 1.2, tube: 0.018, color: 0xbef264, opacity: 0.5, rx: Math.PI / 2.2, ry: 0, rz: 0 },
+      { radius: 1.6, tube: 0.014, color: 0xe8c97e, opacity: 0.35, rx: Math.PI / 2.5, ry: 0.3, rz: 0 },
+      { radius: 0.95, tube: 0.012, color: 0xff8844, opacity: 0.28, rx: Math.PI / 1.8, ry: 0, rz: 0.4 },
+      { radius: 1.85, tube: 0.01, color: 0xbef264, opacity: 0.18, rx: Math.PI / 3.0, ry: -0.5, rz: 0 },
+    ]
+    const rings = []
+    for (const def of ringDefs) {
+      const geom = new THREE.TorusGeometry(def.radius, def.tube, 16, 150)
+      const mat = new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: def.opacity, blending: THREE.AdditiveBlending, depthWrite: false })
+      const mesh = new THREE.Mesh(geom, mat)
+      mesh.rotation.x = def.rx; mesh.rotation.y = def.ry; mesh.rotation.z = def.rz
+      ringGroup.add(mesh)
+      rings.push({ mesh, geom, mat, baseOpacity: def.opacity })
+    }
     root.add(ringGroup)
 
+    const FRAG_COUNT = 12
+    const TRAIL_LENGTH = 6
     const shardPool = []
-    for (let i = 0; i < 8; i++) {
+    const trailPool = []
+    const shardColors = [0xbef264, 0xe8c97e, 0xff8844, 0xffffff]
+    for (let i = 0; i < FRAG_COUNT; i++) {
       const shard = new THREE.Mesh(
-        new THREE.TetrahedronGeometry(0.055 + Math.random() * 0.04, 0),
-        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xbef264 : 0xe8c97e, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+        new THREE.TetrahedronGeometry(0.05 + Math.random() * 0.04, 0),
+        new THREE.MeshBasicMaterial({ color: shardColors[i % 4], transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false })
       )
-      shard.userData = { angle: (i / 8) * Math.PI * 2, radius: 1.0 + Math.random() * 0.6, yOff: (Math.random() - 0.5) * 0.5, speed: 0.2 + Math.random() * 0.3 }
+      shard.userData = { angle: (i / FRAG_COUNT) * Math.PI * 2, radius: 0.9 + Math.random() * 0.8, yOff: (Math.random() - 0.5) * 0.6, speed: 0.15 + Math.random() * 0.35, trailPositions: [] }
       root.add(shard)
       shardPool.push(shard)
+      const trailDots = []
+      for (let ti = 0; ti < TRAIL_LENGTH; ti++) {
+        const dot = new THREE.Mesh(
+          new THREE.SphereGeometry(Math.max(0.005, 0.015 * (1 - ti / TRAIL_LENGTH)), 6, 6),
+          new THREE.MeshBasicMaterial({ color: shardColors[i % 4], transparent: true, opacity: 0.3 * (1 - ti / TRAIL_LENGTH), blending: THREE.AdditiveBlending, depthWrite: false })
+        )
+        root.add(dot)
+        trailDots.push(dot)
+      }
+      trailPool.push(trailDots)
     }
 
-    const EMBER_N = 300
+    const greekSymbols = []
+    const symSizes = [0.12, 0.08, 0.1]
+    const symColors = [0xe8c97e, 0xbef264, 0xc9a84c]
+    for (let i = 0; i < 8; i++) {
+      const sz = symSizes[i % 3]
+      const geom = new THREE.PlaneGeometry(sz, sz)
+      const mat = new THREE.MeshBasicMaterial({ color: symColors[i % 3], transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+      const mesh = new THREE.Mesh(geom, mat)
+      mesh.userData = { angle: (i / 8) * Math.PI * 2, radius: 2.2 + Math.random() * 1.2, yBase: (Math.random() - 0.5) * 2, speed: 0.05 + Math.random() * 0.1, rotSpeed: 0.2 + Math.random() * 0.5 }
+      root.add(mesh)
+      greekSymbols.push(mesh)
+    }
+
+    const EMBER_N = 520
     const emberGeom = new THREE.BufferGeometry()
     const ePos = new Float32Array(EMBER_N * 3)
     for (let i = 0; i < EMBER_N; i++) {
-      ePos[i * 3] = (Math.random() - 0.5) * 3
-      ePos[i * 3 + 1] = -2 + Math.random() * -1
-      ePos[i * 3 + 2] = (Math.random() - 0.5) * 2
+      const angle = Math.random() * Math.PI * 2
+      const r = 0.5 + Math.random() * 3.0
+      ePos[i * 3] = Math.cos(angle) * r
+      ePos[i * 3 + 1] = -2.5 + Math.random() * -1.0
+      ePos[i * 3 + 2] = Math.sin(angle) * r * 0.6
     }
     emberGeom.setAttribute('position', new THREE.BufferAttribute(ePos, 3))
-    const emberMat = new THREE.PointsMaterial({ size: 0.035, color: 0xff9944, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
+    const emberMat = new THREE.PointsMaterial({ size: 0.04, color: 0xff9944, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
     const embers = new THREE.Points(emberGeom, emberMat)
     root.add(embers)
 
-    const SPARKLE_N = 120
+    const SPARKLE_N = 200
     const sparkleGeom = new THREE.BufferGeometry()
     const sPos = new Float32Array(SPARKLE_N * 3)
     for (let i = 0; i < SPARKLE_N; i++) {
-      sPos[i * 3] = (Math.random() - 0.5) * 6
-      sPos[i * 3 + 1] = (Math.random() - 0.5) * 4
-      sPos[i * 3 + 2] = (Math.random() - 0.5) * 4
+      sPos[i * 3] = (Math.random() - 0.5) * 7
+      sPos[i * 3 + 1] = (Math.random() - 0.5) * 5
+      sPos[i * 3 + 2] = (Math.random() - 0.5) * 5
     }
     sparkleGeom.setAttribute('position', new THREE.BufferAttribute(sPos, 3))
-    const sparkleMat = new THREE.PointsMaterial({ size: 0.02, color: 0xbef264, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
+    const sparkleMat = new THREE.PointsMaterial({ size: 0.025, color: 0xbef264, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
     const sparkles = new THREE.Points(sparkleGeom, sparkleMat)
     root.add(sparkles)
 
-    const clockStart = performance.now()
+    const mouse = { x: 0, y: 0, hover: false }
+    function onMouseMove(e) {
+      const rect = canvas.getBoundingClientRect()
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      mouse.hover = true
+    }
+    function onMouseLeave() { mouse.hover = false }
+    canvas.addEventListener('mousemove', onMouseMove)
+    canvas.addEventListener('mouseleave', onMouseLeave)
+
+    const clock = new THREE.Clock()
     let frameId = 0
 
     function resize() {
@@ -215,54 +270,116 @@ function LegendaryForgeStage() {
       renderer.setSize(w, h, false)
     }
 
+    const targetPos = new THREE.Vector3()
+
     function animate() {
-      const t = (performance.now() - clockStart) / 1000
+      const t = clock.getElapsedTime()
+      const mx = mouse.x * 0.15
+      const my = mouse.y * 0.1
+      const hoverBoost = mouse.hover ? 1.6 : 1.0
 
-      crystal.rotation.y = t * 0.4
+      crystal.rotation.y = t * 0.4 * hoverBoost
       crystal.rotation.x = Math.sin(t * 0.3) * 0.15
-      crystal.position.y = 0.3 + Math.sin(t * 0.8) * 0.08
+      const baseY = 0.3 + Math.sin(t * 0.8) * 0.08
+      targetPos.set(mx * 0.1, baseY, my * 0.05)
+      crystal.position.lerp(targetPos, 0.03)
 
-      glow.scale.setScalar(1 + Math.sin(t * 2.5) * 0.15)
-      glow.position.y = crystal.position.y
-      outerGlow.scale.setScalar(1 + Math.sin(t * 1.8) * 0.1)
-      outerGlow.position.y = crystal.position.y
+      for (let i = 0; i < glowLayers.length; i++) {
+        const g = glowLayers[i]
+        g.mesh.scale.setScalar(1 + Math.sin(t * (2.5 + i * 0.7) + i) * 0.18)
+        g.mesh.position.copy(crystal.position)
+      }
 
-      forgeGlow.intensity = 2.5 + Math.sin(t * 4) * 0.3 + Math.sin(t * 7.3) * 0.15
-      crystalLight.intensity = 1.8 + Math.sin(t * 2.2) * 0.2
+      for (const pr of pulseRings) {
+        const cycle = ((t + pr.phase) * pr.speed) % 3.0
+        if (cycle < 2.0) {
+          const progress = cycle / 2.0
+          pr.mesh.scale.setScalar(1.0 + progress * 3.0)
+          pr.mat.opacity = (1.0 - progress) * 0.25
+        } else {
+          pr.mat.opacity = 0.0
+        }
+        pr.mesh.position.copy(crystal.position)
+      }
 
-      ringGroup.rotation.y = t * 0.15
-      ringGroup.position.y = crystal.position.y
-      ring1.rotation.z = t * 0.1
-      ring2.rotation.z = -t * 0.08
-      ring3.rotation.z = t * 0.12
-      ring1.material.opacity = 0.4 + Math.sin(t * 1.5) * 0.12
-      ring2.material.opacity = 0.28 + Math.sin(t * 1.2 + 1) * 0.08
-      ring3.material.opacity = 0.22 + Math.sin(t * 1.8 + 2) * 0.08
+      forgeGlow.intensity = 3.0 + Math.sin(t * 4) * 0.4 + Math.sin(t * 7.3) * 0.2
+      crystalLight.intensity = 2.2 + Math.sin(t * 2.2) * 0.3
+      crystalLight.position.set(crystal.position.x, crystal.position.y + 0.3, 1)
+      accentLight.intensity = 1.0 + Math.sin(t * 3.1) * 0.2
+      rimLight.intensity = 0.6 + Math.sin(t * 5.0) * 0.15
 
-      for (const s of shardPool) {
+      ringGroup.rotation.y = t * 0.15 * hoverBoost
+      ringGroup.position.set(crystal.position.x, crystal.position.y, 0)
+      for (let i = 0; i < rings.length; i++) {
+        const r = rings[i]
+        const dir = i % 2 === 0 ? 1 : -1
+        r.mesh.rotation.z = t * (0.08 + i * 0.03) * dir * hoverBoost
+        const targetOp = r.baseOpacity + Math.sin(t * (1.2 + i * 0.4) + i) * 0.1
+        r.mat.opacity = mouse.hover ? Math.min(targetOp * 1.3, 0.8) : targetOp
+      }
+
+      for (let i = 0; i < shardPool.length; i++) {
+        const s = shardPool[i]
         const d = s.userData
-        d.angle += d.speed * 0.016
-        s.position.x = Math.cos(d.angle) * d.radius
-        s.position.z = Math.sin(d.angle) * d.radius * 0.5
-        s.position.y = crystal.position.y + d.yOff + Math.sin(t * 0.5 + d.angle) * 0.1
+        d.angle += d.speed * 0.016 * hoverBoost
+        const px = Math.cos(d.angle) * d.radius
+        const pz = Math.sin(d.angle) * d.radius * 0.5
+        const py = crystal.position.y + d.yOff + Math.sin(t * 0.5 + d.angle) * 0.12
+        s.position.set(px, py, pz)
         s.rotation.x = t * 0.5
         s.rotation.z = t * 0.3
+        d.trailPositions.unshift({ x: px, y: py, z: pz })
+        if (d.trailPositions.length > TRAIL_LENGTH) d.trailPositions.pop()
+        const trailDots = trailPool[i]
+        for (let ti = 0; ti < trailDots.length; ti++) {
+          if (ti < d.trailPositions.length) {
+            const tp = d.trailPositions[ti]
+            trailDots[ti].position.set(tp.x, tp.y, tp.z)
+          }
+        }
+      }
+
+      for (const sym of greekSymbols) {
+        const d = sym.userData
+        d.angle += d.speed * 0.016
+        sym.position.x = Math.cos(d.angle) * d.radius
+        sym.position.z = Math.sin(d.angle) * d.radius * 0.4
+        sym.position.y = d.yBase + Math.sin(t * 0.3 + d.angle * 2) * 0.3
+        sym.rotation.x = t * d.rotSpeed
+        sym.rotation.y = t * d.rotSpeed * 0.7
+        sym.material.opacity = 0.08 + Math.sin(t * 0.8 + d.angle) * 0.04
       }
 
       const ep = emberGeom.getAttribute('position')
       for (let i = 0; i < EMBER_N; i++) {
-        let y = ep.getY(i) + 0.007 + Math.random() * 0.003
-        if (y > 3) { y = -2 + Math.random() * -0.5; ep.setX(i, (Math.random() - 0.5) * 3); ep.setZ(i, (Math.random() - 0.5) * 2) }
-        ep.setY(i, y)
-        ep.setX(i, ep.getX(i) + Math.sin(t + i) * 0.0008)
+        let x = ep.getX(i)
+        let y = ep.getY(i)
+        let z = ep.getZ(i)
+        const dx = crystal.position.x - x
+        const dz = crystal.position.z - z
+        const dy = crystal.position.y - y
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+        if (dist > 0.3) {
+          x += dx * 0.0008 + Math.sin(t + i * 0.1) * 0.001
+          z += dz * 0.0005 + Math.cos(t + i * 0.13) * 0.0008
+        }
+        y += 0.006 + Math.random() * 0.003
+        if (y > crystal.position.y + 1.5 || dist < 0.4) {
+          const angle = Math.random() * Math.PI * 2
+          const r = 1.0 + Math.random() * 2.5
+          x = Math.cos(angle) * r
+          y = -2.5 + Math.random() * -1.0
+          z = Math.sin(angle) * r * 0.5
+        }
+        ep.setX(i, x); ep.setY(i, y); ep.setZ(i, z)
       }
       ep.needsUpdate = true
-      emberMat.opacity = 0.45 + Math.sin(t * 2) * 0.15
-      sparkleMat.opacity = 0.18 + Math.sin(t * 1.5) * 0.08
+      emberMat.opacity = 0.5 + Math.sin(t * 2) * 0.15
+      sparkleMat.opacity = 0.16 + Math.sin(t * 1.5) * 0.08
 
-      camera.position.x = Math.sin(t * 0.1) * 0.08
-      camera.position.y = 0.2 + Math.sin(t * 0.15) * 0.04
-      camera.lookAt(0, 0.2, 0)
+      camera.position.x += (Math.sin(t * 0.1) * 0.08 + mx * 0.2 - camera.position.x) * 0.03
+      camera.position.y += (0.2 + Math.sin(t * 0.15) * 0.04 + my * 0.15 - camera.position.y) * 0.03
+      camera.lookAt(crystal.position.x * 0.3, 0.2, 0)
 
       renderer.render(scene, camera)
       frameId = requestAnimationFrame(animate)
@@ -275,16 +392,18 @@ function LegendaryForgeStage() {
     return () => {
       cancelAnimationFrame(frameId)
       window.removeEventListener('resize', resize)
+      canvas.removeEventListener('mousemove', onMouseMove)
+      canvas.removeEventListener('mouseleave', onMouseLeave)
       renderer.dispose()
       crystalGeom.dispose(); crystalMat.dispose()
-      glowGeom.dispose(); glowMat.dispose()
-      outerGlowGeom.dispose(); outerGlowMat.dispose()
-      ring1.geometry.dispose(); ring1.material.dispose()
-      ring2.geometry.dispose(); ring2.material.dispose()
-      ring3.geometry.dispose(); ring3.material.dispose()
+      for (const g of glowLayers) { g.geom.dispose(); g.mat.dispose() }
+      for (const pr of pulseRings) { pr.geom.dispose(); pr.mat.dispose() }
+      for (const r of rings) { r.geom.dispose(); r.mat.dispose() }
+      for (const s of shardPool) { s.geometry.dispose(); s.material.dispose() }
+      for (const td of trailPool) { for (const d of td) { d.geometry.dispose(); d.material.dispose() } }
+      for (const sym of greekSymbols) { sym.geometry.dispose(); sym.material.dispose() }
       emberGeom.dispose(); emberMat.dispose()
       sparkleGeom.dispose(); sparkleMat.dispose()
-      for (const s of shardPool) { s.geometry.dispose(); s.material.dispose() }
     }
   }, [])
 

@@ -60,8 +60,9 @@ function applyReward(total, r) {
 
 function getTankBonus(triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, nivel) {
   let bonus = 0
-  if (triagemPrincipal === 'TANK' && triagemPrincipalNivel >= 0.1) bonus += nivel * 6
-  if (subTriagem === 'TANK' && subTriagemNivel >= 0.1) bonus += nivel * 6
+  const cap = Math.min(nivel, 30) + Math.max(0, nivel - 30) * 0.4
+  if (triagemPrincipal === 'TANK' && triagemPrincipalNivel >= 0.1) bonus += Math.floor(cap * 6)
+  if (subTriagem === 'TANK' && subTriagemNivel >= 0.1) bonus += Math.floor(cap * 6)
   return bonus
 }
 
@@ -123,11 +124,12 @@ export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, 
     energiaPorNivelTotal += def.energiaPorNivel(getModifier(am))
   }
   let intuitivoBonus = 0
+  const intuitivoMultiplier = Math.min(Math.floor(nivel / 5), 8)
   if (triagemPrincipal === 'INTUITIVO' && (triagemPrincipalNivel || 0) >= 0.1) {
-    intuitivoBonus += Math.floor(am * 0.5) * Math.floor(nivel / 5)
+    intuitivoBonus += Math.floor(am * 0.5) * intuitivoMultiplier
   }
   if (subTriagem === 'INTUITIVO' && (subTriagemNivel || 0) >= 0.1) {
-    intuitivoBonus += Math.floor(am * 0.5) * Math.floor(nivel / 5)
+    intuitivoBonus += Math.floor(am * 0.5) * intuitivoMultiplier
   }
   return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + (raceContext ? calculateRaceBonus(raceContext).energia : 0) + calcSystemSkillBonuses(raceContext || {}).energia
 }

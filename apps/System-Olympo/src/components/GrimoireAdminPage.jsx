@@ -65,53 +65,169 @@ function GrimoireThreeStage() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return undefined
+
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 80)
     camera.position.set(0, 0.35, 8.8)
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6))
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+
+    const ambient = new THREE.AmbientLight(0x1a0e2e, 0.6)
+    scene.add(ambient)
+
+    const bookLight = new THREE.PointLight(0xc084fc, 1.8, 8, 1.5)
+    bookLight.position.set(0, 1.0, 2)
+    scene.add(bookLight)
+
+    const goldLight = new THREE.PointLight(0xe8c97e, 1.2, 6)
+    goldLight.position.set(-1.5, 0.5, 1.5)
+    scene.add(goldLight)
+
+    const cyanLight = new THREE.PointLight(0x5cc8cc, 0.8, 6)
+    cyanLight.position.set(1.5, 0.3, 2)
+    scene.add(cyanLight)
+
     const root = new THREE.Group()
     scene.add(root)
-    const gold = new THREE.MeshBasicMaterial({ color: 0xe8c97e, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false })
-    const violet = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false })
-    const cyan = new THREE.MeshBasicMaterial({ color: 0x5cc8cc, transparent: true, opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false })
-    const cover = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.12, 1.8), gold)
+
+    const goldMat = new THREE.MeshBasicMaterial({ color: 0xe8c97e, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+    const violetMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.38, blending: THREE.AdditiveBlending, depthWrite: false })
+    const cyanMat = new THREE.MeshBasicMaterial({ color: 0x5cc8cc, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
+    const darkGoldMat = new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+
+    const cover = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.14, 1.9), goldMat)
     cover.rotation.x = -0.24
     root.add(cover)
-    const pageLeft = new THREE.Mesh(new THREE.PlaneGeometry(1.26, 1.62, 16, 16), violet)
-    const pageRightMaterial = violet.clone()
-    const pageRight = new THREE.Mesh(new THREE.PlaneGeometry(1.26, 1.62, 16, 16), pageRightMaterial)
-    pageLeft.position.set(-0.68, 0.14, 0.08)
-    pageRight.position.set(0.68, 0.14, 0.08)
+
+    const pageLeftMat = violetMat.clone()
+    const pageRightMat = violetMat.clone()
+    const pageLeft = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.65, 20, 20), pageLeftMat)
+    const pageRight = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.65, 20, 20), pageRightMat)
+    pageLeft.position.set(-0.7, 0.14, 0.08)
+    pageRight.position.set(0.7, 0.14, 0.08)
     pageLeft.rotation.set(-0.62, 0.18, -0.03)
     pageRight.rotation.set(-0.62, -0.18, 0.03)
     root.add(pageLeft, pageRight)
+
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 1.9), darkGoldMat)
+    spine.position.set(0, 0.14, 0)
+    spine.rotation.x = -0.24
+    root.add(spine)
+
     const ringGroup = new THREE.Group()
-    const ringA = new THREE.Mesh(new THREE.TorusGeometry(1.75, 0.012, 8, 160), cyan)
-    const ringB = new THREE.Mesh(new THREE.TorusGeometry(2.25, 0.01, 8, 180), gold)
-    const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.82, 0.009, 120, 8, 2, 5), violet)
+    const ringA = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.014, 8, 160), cyanMat)
+    const ringBMat = goldMat.clone()
+    const ringB = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.011, 8, 180), ringBMat)
+    const ringCMat = violetMat.clone()
+    const ringC = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.008, 8, 120), ringCMat)
     ringA.rotation.x = Math.PI / 2.35
     ringB.rotation.x = Math.PI / 2.05
+    ringC.rotation.x = Math.PI / 2.8
+    ringC.rotation.z = 0.5
+    ringGroup.position.y = 0.55
+    ringGroup.add(ringA, ringB, ringC)
+    root.add(ringGroup)
+
+    const knotMat = violetMat.clone()
+    const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.85, 0.01, 120, 8, 2, 5), knotMat)
     knot.position.y = 0.75
     knot.rotation.x = 0.9
-    ringGroup.position.y = 0.55
-    ringGroup.add(ringA, ringB, knot)
-    root.add(ringGroup)
-    const dustCount = 700
-    const dustGeometry = new THREE.BufferGeometry()
-    const positions = new Float32Array(dustCount * 3)
-    for (let i = 0; i < dustCount; i++) {
-      const r = 1 + Math.random() * 5.6
-      const a = Math.random() * Math.PI * 2
-      positions[i * 3] = Math.cos(a) * r
-      positions[i * 3 + 1] = (Math.random() - 0.48) * 4.2
-      positions[i * 3 + 2] = Math.sin(a) * r - 1
+    root.add(knot)
+
+    const runeGeoms = [
+      () => new THREE.TetrahedronGeometry(0.06, 0),
+      () => new THREE.OctahedronGeometry(0.05, 0),
+      () => new THREE.IcosahedronGeometry(0.04, 0),
+      () => new THREE.DodecahedronGeometry(0.04, 0),
+    ]
+    const runeColors = [0xc084fc, 0xe8c97e, 0x5cc8cc, 0xbef264]
+    const runes = []
+    for (let i = 0; i < 16; i++) {
+      const geom = runeGeoms[i % 4]()
+      const mat = new THREE.MeshBasicMaterial({ color: runeColors[i % 4], transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })
+      const mesh = new THREE.Mesh(geom, mat)
+      mesh.userData = { angle: (i / 16) * Math.PI * 2, radius: 1.5 + Math.random() * 1.5, yBase: (Math.random() - 0.5) * 2.5, speed: 0.08 + Math.random() * 0.18, rotSpeed: 0.3 + Math.random() * 0.8, phaseY: Math.random() * Math.PI * 2 }
+      root.add(mesh)
+      runes.push(mesh)
     }
-    dustGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    const dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ size: 0.032, color: 0xd9fff8, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false }))
-    root.add(dust)
+
+    const PARTICLE_N = 1100
+    const particleGeom = new THREE.BufferGeometry()
+    const pPos = new Float32Array(PARTICLE_N * 3)
+    const pColors = new Float32Array(PARTICLE_N * 3)
+    const pVel = new Float32Array(PARTICLE_N * 3)
+    const colorPalette = [
+      [0.75, 0.52, 0.99],
+      [0.36, 0.78, 0.80],
+      [0.91, 0.79, 0.49],
+      [0.75, 0.95, 0.39],
+    ]
+    for (let i = 0; i < PARTICLE_N; i++) {
+      const c = colorPalette[Math.floor(Math.random() * colorPalette.length)]
+      pColors[i * 3] = c[0]; pColors[i * 3 + 1] = c[1]; pColors[i * 3 + 2] = c[2]
+      const isFlame = i < 300
+      const isDust = i < 700
+      if (isFlame) {
+        pPos[i * 3] = (Math.random() - 0.5) * 2.0
+        pPos[i * 3 + 1] = 0.1 + Math.random() * 0.3
+        pPos[i * 3 + 2] = (Math.random() - 0.5) * 1.2
+        pVel[i * 3] = (Math.random() - 0.5) * 0.01
+        pVel[i * 3 + 1] = 0.008 + Math.random() * 0.015
+        pVel[i * 3 + 2] = (Math.random() - 0.5) * 0.005
+      } else if (isDust) {
+        const r = 1.5 + Math.random() * 4.0
+        const a = Math.random() * Math.PI * 2
+        pPos[i * 3] = Math.cos(a) * r
+        pPos[i * 3 + 1] = (Math.random() - 0.48) * 4.5
+        pPos[i * 3 + 2] = Math.sin(a) * r - 1
+        pVel[i * 3] = 0
+        pVel[i * 3 + 1] = (Math.random() - 0.5) * 0.002
+        pVel[i * 3 + 2] = 0
+      } else {
+        const r = 3 + Math.random() * 3
+        const a = Math.random() * Math.PI * 2
+        pPos[i * 3] = Math.cos(a) * r
+        pPos[i * 3 + 1] = (Math.random() - 0.3) * 3
+        pPos[i * 3 + 2] = Math.sin(a) * r - 1.5
+        pVel[i * 3] = 0; pVel[i * 3 + 1] = 0; pVel[i * 3 + 2] = 0
+      }
+    }
+    particleGeom.setAttribute('position', new THREE.BufferAttribute(pPos, 3))
+    particleGeom.setAttribute('color', new THREE.BufferAttribute(pColors, 3))
+    const particleMat = new THREE.PointsMaterial({ size: 0.035, vertexColors: true, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
+    const particles = new THREE.Points(particleGeom, particleMat)
+    root.add(particles)
+
+    const MIST_N = 200
+    const mistGeom = new THREE.BufferGeometry()
+    const mPos = new Float32Array(MIST_N * 3)
+    for (let i = 0; i < MIST_N; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const r = 0.5 + Math.random() * 3.5
+      mPos[i * 3] = Math.cos(angle) * r
+      mPos[i * 3 + 1] = -1.5 + Math.random() * 1.2
+      mPos[i * 3 + 2] = Math.sin(angle) * r * 0.5 - 0.5
+    }
+    mistGeom.setAttribute('position', new THREE.BufferAttribute(mPos, 3))
+    const mistMat = new THREE.PointsMaterial({ size: 0.08, color: 0x8855cc, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })
+    const mist = new THREE.Points(mistGeom, mistMat)
+    root.add(mist)
+
+    const mouse = { x: 0, y: 0, hover: false }
+    function onMouseMove(e) {
+      const rect = canvas.getBoundingClientRect()
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      mouse.hover = true
+    }
+    function onMouseLeave() { mouse.hover = false }
+    canvas.addEventListener('mousemove', onMouseMove)
+    canvas.addEventListener('mouseleave', onMouseLeave)
+
     const clock = new THREE.Clock()
     let frameId = 0
+
     function resize() {
       const parent = canvas.parentElement
       const w = parent?.clientWidth || 900
@@ -120,23 +236,110 @@ function GrimoireThreeStage() {
       camera.updateProjectionMatrix()
       renderer.setSize(w, h, false)
     }
+
     function animate() {
       const t = clock.getElapsedTime()
-      root.rotation.y = Math.sin(t * 0.24) * 0.14
+      const mx = mouse.x * 0.12
+      const my = mouse.y * 0.08
+
+      root.rotation.y = Math.sin(t * 0.24) * 0.14 + mx * 0.08
+      root.rotation.x = my * 0.04
+
+      const pageTurnPhase = Math.sin(t * 0.4)
+      pageLeft.rotation.y = 0.18 + pageTurnPhase * 0.06
+      pageRight.rotation.y = -0.18 - pageTurnPhase * 0.06
+
+      const leftAttr = pageLeft.geometry.getAttribute('position')
+      const rightAttr = pageRight.geometry.getAttribute('position')
+      for (let i = 0; i < leftAttr.count; i++) {
+        leftAttr.setZ(i, Math.sin(t * 1.2 + leftAttr.getX(i) * 3.0) * 0.02)
+        rightAttr.setZ(i, Math.sin(t * 1.2 + rightAttr.getX(i) * 3.0 + 1.0) * 0.02)
+      }
+      leftAttr.needsUpdate = true
+      rightAttr.needsUpdate = true
+
       ringGroup.rotation.y = t * 0.28
       ringGroup.rotation.z = Math.sin(t * 0.18) * 0.08
+      ringC.rotation.z = 0.5 + t * 0.2
+
       knot.rotation.y = t * 0.46
-      pageLeft.rotation.y = 0.18 + Math.sin(t * 0.9) * 0.035
-      pageRight.rotation.y = -0.18 - Math.sin(t * 0.9) * 0.035
-      dust.rotation.y = t * 0.035
+      knot.rotation.x = 0.9 + Math.sin(t * 0.3) * 0.1
+
+      for (const rune of runes) {
+        const d = rune.userData
+        d.angle += d.speed * 0.016
+        rune.position.x = Math.cos(d.angle) * d.radius
+        rune.position.z = Math.sin(d.angle) * d.radius * 0.5 - 0.5
+        rune.position.y = d.yBase + Math.sin(t * 0.4 + d.phaseY) * 0.4
+        rune.rotation.x = t * d.rotSpeed
+        rune.rotation.y = t * d.rotSpeed * 0.6
+        rune.material.opacity = 0.2 + Math.sin(t * 0.6 + d.phaseY) * 0.12
+      }
+
+      const pp = particleGeom.getAttribute('position')
+      for (let i = 0; i < PARTICLE_N; i++) {
+        let x = pp.getX(i), y = pp.getY(i), z = pp.getZ(i)
+        if (i < 300) {
+          x += pVel[i * 3] + Math.sin(t * 2 + i * 0.3) * 0.003
+          y += pVel[i * 3 + 1]
+          z += pVel[i * 3 + 2] + Math.cos(t * 2 + i * 0.3) * 0.002
+          if (y > 3.0) { x = (Math.random() - 0.5) * 2.0; y = 0.1 + Math.random() * 0.3; z = (Math.random() - 0.5) * 1.2 }
+        } else if (i < 700) {
+          x += Math.sin(t * 0.5 + i * 0.01) * 0.001
+          y += pVel[i * 3 + 1] + Math.sin(t * 0.3 + i * 0.02) * 0.0005
+          z += Math.cos(t * 0.4 + i * 0.015) * 0.001
+          if (y > 3.0) y = -2.5
+          if (y < -2.5) y = 3.0
+        } else {
+          const dx = -x, dy = 0.2 - y, dz = -0.3 - z
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+          if (dist > 0.3) { x += dx * 0.003; y += dy * 0.003; z += dz * 0.003 }
+          else {
+            const r = 3 + Math.random() * 3, a = Math.random() * Math.PI * 2
+            x = Math.cos(a) * r; y = (Math.random() - 0.3) * 3; z = Math.sin(a) * r - 1.5
+          }
+        }
+        pp.setX(i, x); pp.setY(i, y); pp.setZ(i, z)
+      }
+      pp.needsUpdate = true
+      particleMat.opacity = 0.38 + Math.sin(t * 1.5) * 0.08
+
+      mist.rotation.y = t * 0.02
+      mistMat.opacity = 0.08 + Math.sin(t * 0.5) * 0.04
+
+      bookLight.intensity = 1.8 + Math.sin(t * 2.0) * 0.3
+      goldLight.intensity = 1.2 + Math.sin(t * 1.5 + 1) * 0.2
+      cyanLight.intensity = 0.8 + Math.sin(t * 1.8 + 2) * 0.15
+
       renderer.render(scene, camera)
       frameId = requestAnimationFrame(animate)
     }
+
     resize()
     animate()
     window.addEventListener('resize', resize)
-    return () => { cancelAnimationFrame(frameId); window.removeEventListener('resize', resize); renderer.dispose() }
+
+    return () => {
+      cancelAnimationFrame(frameId)
+      window.removeEventListener('resize', resize)
+      canvas.removeEventListener('mousemove', onMouseMove)
+      canvas.removeEventListener('mouseleave', onMouseLeave)
+      renderer.dispose()
+      cover.geometry.dispose(); goldMat.dispose()
+      pageLeft.geometry.dispose(); pageLeftMat.dispose()
+      pageRight.geometry.dispose(); pageRightMat.dispose()
+      spine.geometry.dispose(); darkGoldMat.dispose()
+      ringA.geometry.dispose(); ringA.material.dispose()
+      ringB.geometry.dispose(); ringBMat.dispose()
+      ringC.geometry.dispose(); ringCMat.dispose()
+      knot.geometry.dispose(); knotMat.dispose()
+      for (const r of runes) { r.geometry.dispose(); r.material.dispose() }
+      particleGeom.dispose(); particleMat.dispose()
+      mistGeom.dispose(); mistMat.dispose()
+      cyanMat.dispose(); violetMat.dispose()
+    }
   }, [])
+
   return <canvas ref={canvasRef} className="grimoire-canvas" aria-hidden="true" />
 }
 
@@ -295,35 +498,38 @@ export default function GrimoireAdminPage() {
             {loading ? (
               <p className="text-txt-dim text-sm animate-pulse text-center py-12">Carregando grimórios...</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {knowledgeGrimorios.map(g => {
                   const tier = GRIMORIO_TIERS.find(t => t.id === g.tier)
                   const ritualCount = (g.rituals || []).length
                   return (
                     <div key={g.id} className="relative group">
                        <button type="button" onClick={() => { setActiveGrimorioId(g.id); setView('grimorio-detail') }}
-                         className="w-full rounded-2xl overflow-hidden aspect-[2/3] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:shadow-xl hover:shadow-white/[0.03] text-left border border-sep/20 hover:border-sep/40">
+                         className="w-full rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] hover:shadow-2xl hover:shadow-gold/[0.06] text-left border border-sep/20 hover:border-gold/30 bg-gradient-to-b from-deep/95 to-deep/70">
                          {g.image ? (
-                           <img src={g.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                           <div className="w-full h-[220px] overflow-hidden">
+                             <img src={g.image} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                           </div>
                          ) : (
-                           <div className="absolute inset-0 bg-void/80 flex items-center justify-center">
-                             <span className="text-7xl opacity-10">{tab.icon}</span>
+                           <div className="w-full h-[220px] bg-void/80 flex items-center justify-center">
+                             <span className="text-8xl opacity-[0.06]">{tab.icon}</span>
                            </div>
                          )}
-                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent pt-12 pb-4 px-4">
-                           <span className="text-white text-sm font-semibold leading-tight block drop-shadow-lg">{g.name}</span>
-                           <div className="flex items-center justify-between mt-1.5">
-                             <span className="text-white/40 text-[11px]">{tier?.name || 'Personalizado'}</span>
-                             <span className="text-amber-300/50 text-[11px] font-mono">{ritualCount} rituais</span>
+                         <div className="p-4">
+                           <span className="text-txt-main text-sm font-semibold leading-tight block">{g.name}</span>
+                           <div className="flex items-center gap-2 mt-2">
+                             <span className="text-[9px] border border-gold/20 text-gold/70 px-2 py-0.5 rounded-full">{tier?.name || 'Personalizado'}</span>
+                             <span className="text-amber-300/50 text-[10px] font-mono">{ritualCount} rituais</span>
                            </div>
-                           {g.sourceName && <span className="text-white/25 text-[10px] mt-1 italic truncate block">{g.sourceName}</span>}
+                           {g.sourceName && <span className="text-txt-dim/30 text-[10px] mt-1.5 italic truncate block">{g.sourceName}</span>}
+                           {g.description && <p className="text-txt-dim/40 text-[11px] mt-2 line-clamp-2 leading-relaxed">{g.description}</p>}
                          </div>
                        </button>
                        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                          <button type="button" onClick={e => { e.stopPropagation(); setEditGrimorio(g) }}
-                           className="w-7 h-7 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/50 hover:text-white text-[10px] transition-colors">✎</button>
+                           className="w-8 h-8 rounded-lg bg-black/70 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white/50 hover:text-white hover:bg-black/90 text-xs transition-colors">✎</button>
                        </div>
-                     </div>
+                    </div>
                   )
                 })}
               </div>
