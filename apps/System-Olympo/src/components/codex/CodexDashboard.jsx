@@ -17,6 +17,52 @@ const PROFILE_COLORS = {
   mistico: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-400' },
 }
 
+function FolderModal({ title, placeholder, initialValue, onConfirm, onClose }) {
+  const [value, setValue] = useState(initialValue || '')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [])
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (!value.trim()) return
+    onConfirm(value.trim())
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
+      <form onSubmit={handleSubmit} onClick={e => e.stopPropagation()}
+        className="bg-deep border border-sep rounded-xl w-full max-w-sm shadow-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-sep/30 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-sm">create_new_folder</span>
+          <span className="font-cinzel text-primary text-sm">{title}</span>
+        </div>
+        <div className="p-5">
+          <input ref={inputRef} type="text" value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder={placeholder}
+            className="w-full bg-surface-container border border-outline/30 rounded-lg px-4 py-2.5 text-sm text-on-surface placeholder:text-outline/40 focus:border-primary/50 focus:outline-none transition-colors" />
+        </div>
+        <div className="px-5 py-3 border-t border-sep/30 flex justify-end gap-2">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 border border-sep rounded-lg text-xs text-outline hover:text-primary transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" disabled={!value.trim()}
+            className="px-4 py-2 bg-primary/20 border border-primary/30 rounded-lg text-xs text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            Confirmar
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function buildFolderTree(folders, assignments, activeFolder, onSelect) {
   const childrenMap = {}
   const roots = []
@@ -76,6 +122,8 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
   const [contextFolder, setContextFolder] = useState(null)
   const [contextPos, setContextPos] = useState({ x: 0, y: 0 })
   const folderMenuRef = useRef(null)
+
+  const [folderModal, setFolderModal] = useState(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -138,25 +186,34 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
     URL.revokeObjectURL(url)
   }
 
-  async function handleCreateFolder(parentId = null) {
-    const name = prompt('Nome da pasta:')
-    if (!name?.trim()) return
-    const folder = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      parentId,
-    }
-    await saveFolder(folder)
-    setFolders(prev => [...prev, folder])
+  function openCreateFolderModal(parentId = null) {
+    setFolderModal({
+      title: 'Nova Pasta',
+      placeholder: 'Nome da pasta...',
+      initialValue: '',
+      onConfirm: async (name) => {
+        const folder = { id: crypto.randomUUID(), name, parentId }
+        await saveFolder(folder)
+        setFolders(prev => [...prev, folder])
+        setFolderModal(null)
+      }
+    })
   }
 
-  async function handleRenameFolder(folderId) {
+  function openRenameFolderModal(folderId) {
     const folder = folders.find(f => f.id === folderId)
     if (!folder) return
-    const newName = prompt('Novo nome da pasta:', folder.name)
-    if (!newName?.trim() || newName.trim() === folder.name) return
-    await saveFolder({ ...folder, name: newName.trim() })
-    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name: newName.trim() } : f))
+    setFolderModal({
+      title: 'Renomear Pasta',
+      placeholder: 'Novo nome...',
+      initialValue: folder.name,
+      onConfirm: async (name) => {
+        if (name === folder.name) { setFolderModal(null); return }
+        await saveFolder({ ...folder, name })
+        setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name } : f))
+        setFolderModal(null)
+      }
+    })
     setContextFolder(null)
   }
 
@@ -241,7 +298,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
           <h2 className="font-cinzel text-primary text-sm tracking-wider">Pastas</h2>
           <div className="flex gap-1">
             <button
-              onClick={() => handleCreateFolder(null)}
+              onClick={() => openCreateFolderModal(null)}
               className="w-7 h-7 grid place-items-center rounded text-outline hover:text-primary hover:bg-primary/10 transition-colors"
               title="Nova Pasta"
             >
@@ -297,8 +354,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
         >
           <button
             onClick={() => {
-              const childFolders = folders.filter(f => f.parentId === contextFolder)
-              handleCreateFolder(contextFolder)
+              openCreateFolderModal(contextFolder)
               setContextFolder(null)
             }}
             className="w-full text-left px-3 py-1.5 text-xs text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
@@ -307,7 +363,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
             Subpasta
           </button>
           <button
-            onClick={() => handleRenameFolder(contextFolder)}
+            onClick={() => openRenameFolderModal(contextFolder)}
             className="w-full text-left px-3 py-1.5 text-xs text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-sm">edit</span>
@@ -322,6 +378,16 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
             Excluir Pasta
           </button>
         </div>
+      )}
+
+      {folderModal && (
+        <FolderModal
+          title={folderModal.title}
+          placeholder={folderModal.placeholder}
+          initialValue={folderModal.initialValue}
+          onConfirm={folderModal.onConfirm}
+          onClose={() => setFolderModal(null)}
+        />
       )}
 
       <main className="flex-1 min-w-0 space-y-6 pl-0 lg:pl-6">
@@ -423,6 +489,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
             {filtered.map(npc => {
               const colors = PROFILE_COLORS[npc.profile] || PROFILE_COLORS.guerreiro
               const npcFolder = getNpcFolderName(npc.id)
+              const currentFolderId = assignments[npc.id]
               return (
                 <div key={npc.id}
                   onClick={() => onOpenNpc(npc.id)}
@@ -471,48 +538,64 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
                           <div
                             ref={folderMenuRef}
                             onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 top-9 z-50 glass-card border border-sep rounded-lg py-1 min-w-[180px] shadow-xl"
+                            className="absolute right-0 top-9 z-50 w-56 rounded-xl shadow-2xl border border-primary/20 overflow-hidden"
+                            style={{ background: 'linear-gradient(135deg, rgba(15,15,25,0.97), rgba(25,20,40,0.97))', backdropFilter: 'blur(20px)' }}
                           >
-                            <p className="px-3 py-1 text-[9px] font-mono text-outline uppercase tracking-widest">
-                              Mover para:
-                            </p>
-                            <button
-                              onClick={() => handleAssignNpc(npc.id, '__root__')}
-                              className={`w-full text-left px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 ${
-                                !assignments[npc.id] ? 'text-primary' : 'text-on-surface-variant'
-                              }`}
-                            >
-                              <span className="material-symbols-outlined text-sm">auto_stories</span>
-                              Sem pasta
-                            </button>
-                            {folders.map(f => (
+                            <div className="px-3 py-2 border-b border-primary/15 bg-primary/5">
+                              <p className="text-[10px] font-mono text-primary/70 uppercase tracking-widest">
+                                Mover para pasta
+                              </p>
+                            </div>
+                            <div className="py-1 max-h-48 overflow-y-auto">
                               <button
-                                key={f.id}
-                                onClick={() => handleAssignNpc(npc.id, f.id)}
-                                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 ${
-                                  assignments[npc.id] === f.id ? 'text-primary' : 'text-on-surface-variant'
+                                onClick={() => handleAssignNpc(npc.id, '__root__')}
+                                className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center gap-2.5 ${
+                                  !currentFolderId
+                                    ? 'text-primary bg-primary/10'
+                                    : 'text-on-surface-variant/80 hover:bg-white/5 hover:text-on-surface'
                                 }`}
                               >
-                                <span className="material-symbols-outlined text-sm">folder</span>
-                                {f.name}
+                                <span className="material-symbols-outlined text-sm opacity-70">auto_stories</span>
+                                <span className="flex-1">Sem pasta</span>
+                                {!currentFolderId && (
+                                  <span className="material-symbols-outlined text-xs text-primary">check</span>
+                                )}
                               </button>
-                            ))}
-                            {folders.length === 0 && (
-                              <p className="px-3 py-2 text-[10px] text-outline/50 text-center">
-                                Nenhuma pasta
-                              </p>
-                            )}
-                            <div className="my-1 border-t border-sep" />
-                            <button
-                              onClick={() => {
-                                handleCreateFolder(null)
-                                setFolderMenuNpcId(null)
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-xs text-primary hover:bg-primary/10 transition-colors flex items-center gap-2"
-                            >
-                              <span className="material-symbols-outlined text-sm">create_new_folder</span>
-                              Nova pasta...
-                            </button>
+                              {folders.map(f => (
+                                <button
+                                  key={f.id}
+                                  onClick={() => handleAssignNpc(npc.id, f.id)}
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center gap-2.5 ${
+                                    currentFolderId === f.id
+                                      ? 'text-primary bg-primary/10'
+                                      : 'text-on-surface-variant/80 hover:bg-white/5 hover:text-on-surface'
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-sm opacity-70">folder</span>
+                                  <span className="flex-1 truncate">{f.name}</span>
+                                  {currentFolderId === f.id && (
+                                    <span className="material-symbols-outlined text-xs text-primary">check</span>
+                                  )}
+                                </button>
+                              ))}
+                              {folders.length === 0 && (
+                                <p className="px-3 py-2 text-[10px] text-outline/40 text-center italic">
+                                  Nenhuma pasta criada
+                                </p>
+                              )}
+                            </div>
+                            <div className="border-t border-primary/15">
+                              <button
+                                onClick={() => {
+                                  openCreateFolderModal(null)
+                                  setFolderMenuNpcId(null)
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs text-primary hover:bg-primary/10 transition-colors flex items-center gap-2.5"
+                              >
+                                <span className="material-symbols-outlined text-sm">add</span>
+                                Criar nova pasta
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>

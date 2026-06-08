@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getNpc, saveNpc, deleteNpc } from '../../services/codexDb'
 import { CODEX_PROFILES } from '../../data/codexProfiles'
-import { CODEX_NA_MODS } from '../../data/codexNaMods'
-import { attrMod, calcCA } from '../../utils/codexCalculator'
+import { CODEX_NA_MODS, NA_OPTIONS } from '../../data/codexNaMods'
+import { attrMod, calcCA, generateNpcStats, getAttrDist } from '../../utils/codexCalculator'
+import { supabase } from '../../lib/supabase'
 
 const AB_COLORS = {
   passiva: { border: 'border-l-blue-400', bg: 'bg-blue-500/10', text: 'text-blue-400' },
@@ -17,7 +18,7 @@ const AB_PREFIX = {
 }
 
 const ATTR_NAMES = ['FOR', 'DES', 'CON', 'INT', 'APA', 'AM']
-const ATTR_LABELS = { FOR: 'Força', DES: 'Destreza', CON: 'Constituição', INT: 'Inteligência', APA: 'Aparência', AM: 'Aura Mágica' }
+const ATTR_LABELS = { FOR: 'Forca', DES: 'Destreza', CON: 'Constituicao', INT: 'Inteligencia', APA: 'Aparencia', AM: 'Aura Magica' }
 
 function scaleHTMLNumbers(html, factor) {
   if (!html || typeof html !== 'string') return html
@@ -75,12 +76,75 @@ function EditableField({ value, onChange, className = '', tag = 'span', ...props
   )
 }
 
+const POLLINATIONS_URL = 'https://text.pollinations.ai/openai'
+
+async function callOracleForNpc(npc) {
+  const profInfo = CODEX_PROFILES[npc.profile] || CODEX_PROFILES.guerreiro
+  const naInfo = CODEX_NA_MODS[npc.na]
+  const abilitiesList = (npc.abilities || []).map((ab, i) =>
+    `${i + 1}. [${(ab.type || 'ativa').toUpperCase()}] ${ab.name || 'Sem nome'}: ${ab.description || 'Sem descricao'}`
+  ).join('\n')
+
+  const prompt = `Voce e o ORACULO — motor de balanceamento do System-Olympo 2.0. Rebalanceie as habilidades deste NPC.
+
+NPC: ${npc.nome || 'Sem Nome'}
+Perfil: ${profInfo.name} (${profInfo.dice}) | Nivel: ${npc.nivel} | NA: ${npc.na} (${naInfo?.tag || '1v1'})
+Raca: ${npc.raca || 'Livre'}
+PV: ${npc.stats?.vida || '?'} | CA: ${npc.stats?.ca || '?'} | BA: +${npc.stats?.ba || '?'} | ARM: ${npc.stats?.arm || '?'}
+Dano Base: ${npc.stats?.dano || '?'} ${npc.stats?.danoExtra || ''} | Reacoes: ${npc.stats?.reac || '?'}
+Atributos: FOR ${npc.attrs?.[0] || '?'} DES ${npc.attrs?.[1] || '?'} CON ${npc.attrs?.[2] || '?'} INT ${npc.attrs?.[3] || '?'} APA ${npc.attrs?.[4] || '?'} AM ${npc.attrs?.[5] || '?'}
+
+HABILIDADES ATUAIS:
+${abilitiesList || 'Nenhuma'}
+
+REGRAS DE BALANCEAMENTO PARA NPC NIVEL ${npc.nivel} NA ${npc.na}:
+- Use TDH (Teto de Dano por Habilidade) adequado para o nivel/NA do NPC
+- Passivas: efeitos permanentes sem custo de PE
+- Ativas: custo PE proporcional ao poder (nivel x 1.5 ~ nivel x 3)
+- Ultimate: alto custo PE (nivel x 4+), impacto decisivo em combate
+- Cada habilidade DEVE ter pelo menos 1 efeito mecanico numerico mensuravel
+- CDs/DTs devem ser consistentes com o BA do NPC
+- PV curados/drenados: max 15% do PV total do NPC
+- Duracoes: 1-3 rodadas para ativas, 2-5 para ultimates
+- NA alto (10+): habilidades podem ser mais poderosas, multiplas acoes/efeitos
+
+Responda EXCLUSIVAMENTE com JSON:
+{
+  "habilidades": [
+    { "name": "nome da habilidade", "type": "passiva|ativa|ultimate", "description": "descricao completa com mecanicas numericas balanceadas", "stats": ["PE 25", "2 rodadas"] }
+  ]
+}`
+
+  const body = {
+    model: 'openai',
+    messages: [
+      { role: 'system', content: 'Voce e o Oraculo do System-Olympo. Responda SEMPRE com JSON puro, sem markdown, sem comentarios.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.15,
+  }
+
+  const res = await fetch(POLLINATIONS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`Oracle falhou: ${res.status}`)
+  const data = await res.json()
+  const content = data.choices?.[0]?.message?.content || ''
+  let cleaned = content.replace(/```json\s*\n?/gi, '').replace(/```\s*\n?/g, '').trim()
+  return JSON.parse(cleaned)
+}
+
 export default function NpcSheet({ npcId, onBack, onDeleted }) {
   const [npc, setNpc] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAvatarEditor, setShowAvatarEditor] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [showAvatarUpload, setShowAvatarUpload] = useState(false)
+  const [oracleLoading, setOracleLoading] = useState(false)
+  const [showLevelModal, setShowLevelModal] = useState(false)
+  const [levelDraft, setLevelDraft] = useState({ nivel: 5, na: '1' })
   const saveTimer = useRef(null)
   const fileRef = useRef(null)
 
@@ -152,6 +216,63 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
     })
   }
 
+  async function handleLevelChange(direction) {
+    setNpc(prev => {
+      const newLevel = Math.max(1, Math.min(50, prev.nivel + direction))
+      const result = generateNpcStats(prev.profile, newLevel, prev.na, 'balanceada')
+      if (!result) return prev
+      const next = {
+        ...prev,
+        nivel: newLevel,
+        stats: result.stats,
+        attrs: result.attrs,
+      }
+      debouncedSave(next)
+      return next
+    })
+  }
+
+  function openLevelModal() {
+    setLevelDraft({ nivel: npc.nivel, na: String(npc.na) })
+    setShowLevelModal(true)
+  }
+
+  async function applyLevelModal() {
+    const result = generateNpcStats(npc.profile, levelDraft.nivel, levelDraft.na, 'balanceada')
+    if (!result) return
+    const next = {
+      ...npc,
+      nivel: levelDraft.nivel,
+      na: levelDraft.na,
+      stats: result.stats,
+      attrs: result.attrs,
+    }
+    await saveNpc(next)
+    setNpc(next)
+    setShowLevelModal(false)
+  }
+
+  async function handleOracleRebalance() {
+    if (!confirm('O Oraculo vai reformular todas as habilidades baseado no nivel/NA atual. Continuar?')) return
+    setOracleLoading(true)
+    try {
+      const result = await callOracleForNpc(npc)
+      const newAbilities = (result.habilidades || []).map(h => ({
+        name: h.name || h.nome || '',
+        type: (h.type || h.tipo || 'ativa').toLowerCase().replace(/extra.*/i, 'ativa'),
+        description: h.description || h.descricao || '',
+        stats: h.stats || [],
+      }))
+      const next = { ...npc, abilities: newAbilities }
+      await saveNpc(next)
+      setNpc(next)
+    } catch (err) {
+      console.error('[Oracle] erro:', err)
+      alert('Erro ao consultar o Oraculo. Tente novamente.')
+    }
+    setOracleLoading(false)
+  }
+
   async function handleDelete() {
     if (!confirm('Excluir este NPC permanentemente?')) return
     await deleteNpc(npcId)
@@ -209,7 +330,7 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
   if (!npc) {
     return (
       <div className="text-center py-16">
-        <p className="text-outline">NPC não encontrado.</p>
+        <p className="text-outline">NPC nao encontrado.</p>
         <button onClick={onBack} className="text-primary text-sm mt-4 hover:text-primary-light">Voltar</button>
       </div>
     )
@@ -279,7 +400,7 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
             {avatarUrl && (
               <button onClick={(e) => { e.stopPropagation(); setShowAvatarUpload(true) }}
                 className="w-full mt-1 px-2 py-1 border border-sep/30 rounded text-[10px] text-outline hover:text-primary hover:border-primary/30 transition-colors text-center">
-                Trocar ícone
+                Trocar icone
               </button>
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden"
@@ -297,19 +418,35 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
               </span>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-mono text-outline">
-              <span>Nível</span>
-              <EditableField value={npc.nivel} onChange={v => update({ nivel: parseInt(v) || npc.nivel })}
-                className="text-primary font-bold" />
-              <span className="text-outline/30">|</span>
-              <span>Raça:</span>
+              <span>Raca:</span>
               <EditableField value={npc.raca || 'Livre'} onChange={v => update({ raca: v })}
                 className="text-primary/70" />
             </div>
           </div>
-          <div className="shrink-0 text-center bg-primary/5 border border-primary/20 rounded-xl px-5 py-3">
-            <div className="text-[10px] font-mono text-outline uppercase tracking-widest">Nível</div>
-            <div className="font-cinzel text-primary text-3xl">{npc.nivel}</div>
-            <div className="text-[10px] font-mono text-primary/60">NA {npc.na}</div>
+
+          <div className="shrink-0 flex flex-col items-center gap-2">
+            <div className="text-center bg-primary/5 border border-primary/20 rounded-xl px-5 py-3">
+              <div className="text-[10px] font-mono text-outline uppercase tracking-widest">Nivel</div>
+              <div className="font-cinzel text-primary text-3xl">{npc.nivel}</div>
+              <div className="text-[10px] font-mono text-primary/60">NA {npc.na}</div>
+            </div>
+            <div className="flex gap-1">
+              <button onClick={() => handleLevelChange(-1)} disabled={npc.nivel <= 1}
+                className="w-9 h-9 grid place-items-center rounded-lg border border-sep text-outline hover:text-primary hover:border-primary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Regredir 1 nivel">
+                <span className="material-symbols-outlined text-sm">remove</span>
+              </button>
+              <button onClick={openLevelModal}
+                className="px-2 h-9 grid place-items-center rounded-lg border border-sep text-outline hover:text-primary hover:border-primary/30 transition-colors"
+                title="Evolucao avancada">
+                <span className="material-symbols-outlined text-sm">trending_up</span>
+              </button>
+              <button onClick={() => handleLevelChange(1)} disabled={npc.nivel >= 50}
+                className="w-9 h-9 grid place-items-center rounded-lg border border-sep text-outline hover:text-primary hover:border-primary/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Evoluir 1 nivel">
+                <span className="material-symbols-outlined text-sm">add</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -325,7 +462,7 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
           <div className="grid grid-cols-3 gap-4">
             {[
               { label: 'CA', key: 'ca', color: 'text-cyan-400' },
-              { label: 'Reações', key: 'reac', color: 'text-on-surface' },
+              { label: 'Reacoes', key: 'reac', color: 'text-on-surface' },
               { label: 'Armadura', key: 'arm', color: 'text-on-surface' },
             ].map(item => (
               <div key={item.key} className="text-center bg-surface-container/50 rounded-lg p-3 border border-outline/10">
@@ -374,11 +511,24 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
           </div>
         </div>
 
-        {(npc.abilities || []).length > 0 && (
-          <div className="border-t border-sep/30 pt-5">
-            <h3 className="font-mono text-outline text-[10px] uppercase tracking-widest mb-3">
-              Habilidades · 1 Passiva · 3 Ativas · 1 Ultimate
+        <div className="border-t border-sep/30 pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-mono text-outline text-[10px] uppercase tracking-widest">
+              Habilidades · {(npc.abilities || []).length}
             </h3>
+            <button onClick={handleOracleRebalance} disabled={oracleLoading}
+              className="px-3 py-1.5 rounded-lg text-xs font-cinzel border transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                oracleLoading
+                  ? 'bg-violet-500/20 border-violet-500/30 text-violet-400 animate-pulse'
+                  : 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/40'
+              }">
+              <span className={`material-symbols-outlined text-sm ${oracleLoading ? 'animate-spin' : ''}`}>
+                {oracleLoading ? 'progress_activity' : 'auto_fix_high'}
+              </span>
+              {oracleLoading ? 'Consultando...' : 'Oraculo'}
+            </button>
+          </div>
+          {(npc.abilities || []).length > 0 ? (
             <div className="space-y-3">
               {npc.abilities.map((ab, idx) => {
                 const colors = AB_COLORS[ab.type] || AB_COLORS.ativa
@@ -393,10 +543,10 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button onClick={() => buffNerfAbility(idx, 'buff')}
                           className="w-6 h-6 grid place-items-center rounded text-[10px] font-bold text-green-400/70 border border-green-400/20 hover:bg-green-400/15 hover:text-green-400 transition-colors"
-                          title="Buff +18%">↑</button>
+                          title="Buff +18%">+</button>
                         <button onClick={() => buffNerfAbility(idx, 'nerf')}
                           className="w-6 h-6 grid place-items-center rounded text-[10px] font-bold text-red-400/70 border border-red-400/20 hover:bg-red-400/15 hover:text-red-400 transition-colors"
-                          title="Nerf -15%">↓</button>
+                          title="Nerf -15%">-</button>
                       </div>
                     </div>
                     <EditableField value={ab.description || ''} onChange={v => updateAbility(idx, { description: v })}
@@ -418,23 +568,73 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
                 )
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-6 border border-dashed border-outline/20 rounded-lg">
+              <span className="material-symbols-outlined text-outline/30 text-2xl mb-2 block">auto_fix_high</span>
+              <p className="text-outline/50 text-xs">Nenhuma habilidade. Use o Oraculo para gerar.</p>
+            </div>
+          )}
+        </div>
 
-        {npc.description && (
-          <div className="border-t border-sep/30 pt-5">
-            <h3 className="font-mono text-outline text-[10px] uppercase tracking-widest mb-2">Notas</h3>
-            <EditableField value={npc.description} onChange={v => update({ description: v })}
-              tag="textarea"
-              className="text-on-surface-variant text-xs w-full leading-relaxed" />
-          </div>
-        )}
+        <div className="border-t border-sep/30 pt-5">
+          <h3 className="font-mono text-outline text-[10px] uppercase tracking-widest mb-2">Notas</h3>
+          <EditableField value={npc.description || ''} onChange={v => update({ description: v })}
+            tag="textarea"
+            className="text-on-surface-variant text-xs w-full leading-relaxed" />
+        </div>
       </div>
+
+      {showLevelModal && (
+        <div className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowLevelModal(false)}>
+          <div className="bg-deep border border-sep rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-3 border-b border-sep/30 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-sm">trending_up</span>
+              <span className="font-cinzel text-primary text-sm">Evolucao do NPC</span>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[10px] font-mono text-outline uppercase tracking-widest block mb-1">Nivel (1-50)</label>
+                <input type="number" min={1} max={50} value={levelDraft.nivel}
+                  onChange={e => setLevelDraft(prev => ({ ...prev, nivel: Math.max(1, Math.min(50, parseInt(e.target.value) || 1)) }))}
+                  className="w-full bg-surface-container border border-outline/30 rounded-lg px-4 py-2.5 text-sm text-on-surface focus:border-primary/50 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] font-mono text-outline uppercase tracking-widest block mb-1">Nivel de Ameaca (NA)</label>
+                <div className="grid grid-cols-5 gap-1">
+                  {NA_OPTIONS.map(na => (
+                    <button key={na} onClick={() => setLevelDraft(prev => ({ ...prev, na }))}
+                      className={`py-1.5 rounded text-[11px] font-mono transition-colors ${
+                        levelDraft.na === na
+                          ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                          : 'text-on-surface-variant/70 border border-outline/15 hover:border-primary/30 hover:text-on-surface'
+                      }`}>
+                      {na}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[10px] text-outline/40 font-mono">
+                Os stats serao recalculados automaticamente para o novo nivel/NA.
+              </p>
+            </div>
+            <div className="px-5 py-3 border-t border-sep/30 flex justify-end gap-2">
+              <button onClick={() => setShowLevelModal(false)}
+                className="px-4 py-2 border border-sep rounded-lg text-xs text-outline hover:text-primary transition-colors">
+                Cancelar
+              </button>
+              <button onClick={applyLevelModal}
+                className="px-4 py-2 bg-primary/20 border border-primary/30 rounded-lg text-xs text-primary hover:bg-primary/30 transition-colors">
+                Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAvatarUpload && (
         <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowAvatarUpload(false)}>
           <div className="bg-deep border border-sep rounded-xl w-full max-w-sm shadow-2xl p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-cinzel text-primary text-sm mb-4">Trocar Ícone do NPC</h3>
+            <h3 className="font-cinzel text-primary text-sm mb-4">Trocar Icone do NPC</h3>
             <div className="border border-dashed border-outline/30 rounded-lg p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/30 transition-colors"
               onClick={() => fileRef.current?.click()}>
               <span className="material-symbols-outlined text-outline/40 text-3xl">add_photo_alternate</span>
