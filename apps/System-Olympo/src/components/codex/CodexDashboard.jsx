@@ -493,7 +493,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
               return (
                 <div key={npc.id}
                   onClick={() => onOpenNpc(npc.id)}
-                  className="glass-card group p-5 cursor-pointer hover:bg-primary/5 transition-all relative">
+                  className={`glass-card group p-5 cursor-pointer hover:bg-primary/5 transition-all relative ${folderMenuNpcId === npc.id ? 'z-[100]' : ''}`}>
                   <div className="flex items-start gap-4 mb-3">
                     <div className="w-14 h-14 rounded-xl border border-sep bg-surface-container flex items-center justify-center text-2xl font-cinzel text-primary shrink-0 overflow-hidden">
                       {npc.avatar ? (
