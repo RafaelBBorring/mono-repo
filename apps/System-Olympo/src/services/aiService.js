@@ -27,7 +27,7 @@ import { buildBalanceSystemPrompt as buildBalanceSystemPromptFromPrompts } from 
 
 // Infra: chamadas de IA passam pela Supabase Edge Function para manter a chave fora do navegador.
 
-const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-26b-a4b-it:free'
+const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
 
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
@@ -508,16 +508,6 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null, tempe
     } catch (edgeError) {
       const status = getStatus(edgeError)
       console.warn('[callAI] Edge function falhou (status:', status, '):', edgeError?.message || edgeError)
-      if (status === 429 || status === 402) {
-        console.warn('[callAI] OpenRouter limitado; tentando fallback Pollinations direto.')
-        return await callPollinationsDirect({
-          model: activeModel,
-          messages: effectiveMessages,
-          temperature: effectiveTemperature,
-          max_tokens: effectiveMaxTokens,
-          ...(effectiveResponseFormat ? { response_format: effectiveResponseFormat } : {}),
-        }, timeoutMs)
-      }
       if (isResponseFormatUnsupported(edgeError)) {
         effectiveResponseFormat = null
         await sleep(250)

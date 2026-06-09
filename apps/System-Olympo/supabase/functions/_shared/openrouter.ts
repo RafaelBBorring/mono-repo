@@ -1,5 +1,5 @@
 const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemma-4-26b-a4b-it:free'
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemma-4-31b-it:free'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
 const OPENROUTER_MAX_TOKENS = Math.max(Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 16384, 16384)
@@ -52,21 +52,11 @@ function getModel(payload: ChatRequest) {
 }
 
 const FREE_MODEL_FALLBACKS = [
-  'google/gemma-4-26b-a4b-it:free',
-  'google/gemma-3-27b-it:free',
-  'meta-llama/llama-4-scout:free',
-  'qwen/qwen3-32b:free',
-  'deepseek/deepseek-chat-v3-0324:free',
+  'google/gemma-4-31b-it:free',
 ]
 
 function getModelCandidates(primaryModel: string) {
-  const seen = new Set<string>()
-  const candidates: string[] = []
-  if (primaryModel && !seen.has(primaryModel)) { candidates.push(primaryModel); seen.add(primaryModel) }
-  for (const m of FREE_MODEL_FALLBACKS) {
-    if (!seen.has(m)) { candidates.push(m); seen.add(m) }
-  }
-  return candidates
+  return [primaryModel]
 }
 
 function getErrorMessage(body: unknown, fallback: string) {
@@ -118,11 +108,8 @@ function shouldUseProviderFallback(status: number, message: string) {
   return /free-models-per-day|rate limit exceeded|ratelimit|too many requests/i.test(message)
 }
 
-function shouldTryNextModel(status: number, message: string) {
-  if (status === 429) return true
-  if (status === 503) return true
-  if (isCreditBlocked(status, message)) return true
-  return /rate limit|overloaded|capacity|temporarily unavailable/i.test(message)
+function shouldTryNextModel(_status: number, _message: string) {
+  return false
 }
 
 function isResponseFormatUnsupported(status: number, message: string) {
@@ -385,7 +372,7 @@ export async function handleOpenRouterRequest(req: Request) {
         }
 
         if (shouldUseProviderFallback(response.status, errorMessage)) {
-          return await pollinationsResponse(body)
+          return await openRouterErrorResponse(response, model)
         }
 
         return await openRouterErrorResponse(response, model)
@@ -417,7 +404,6 @@ export async function handleOpenRouterRequest(req: Request) {
     }
 
     if (lastResponse) return await openRouterErrorResponse(lastResponse, lastModel)
-    if (lastBody) return await pollinationsResponse(lastBody)
     return jsonResponse({ error: 'No OpenRouter model candidates available', source: 'openrouter' }, 500)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
