@@ -477,6 +477,9 @@ function FullSheetViewer({ sheetId, onBack }) {
       setSheet({
         ...data,
         data: {
+          atributos: {},
+          skeletonPoints: {},
+          habilidades: [],
           pericias: {},
           sistemaOptIn: {},
           inventario: [],
