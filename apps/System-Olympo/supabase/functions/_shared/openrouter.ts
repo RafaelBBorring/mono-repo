@@ -1,5 +1,5 @@
 const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemma-4-31b-it:free'
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'z-ai/glm-4.5-air:free'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
 const OPENROUTER_MAX_TOKENS = Math.max(Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 16384, 16384)
@@ -52,7 +52,7 @@ function getModel(payload: ChatRequest) {
 }
 
 const FREE_MODEL_FALLBACKS = [
-  'google/gemma-4-31b-it:free',
+  'z-ai/glm-4.5-air:free',
 ]
 
 function getModelCandidates(primaryModel: string) {

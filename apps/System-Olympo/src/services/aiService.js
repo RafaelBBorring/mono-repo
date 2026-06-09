@@ -27,7 +27,7 @@ import { buildBalanceSystemPrompt as buildBalanceSystemPromptFromPrompts } from 
 
 // Infra: chamadas de IA passam pela Supabase Edge Function para manter a chave fora do navegador.
 
-const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
+const DEFAULT_OPENROUTER_MODEL = 'z-ai/glm-4.5-air:free'
 
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
