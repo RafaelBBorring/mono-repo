@@ -27,7 +27,7 @@ import { buildBalanceSystemPrompt as buildBalanceSystemPromptFromPrompts } from 
 
 // Infra: chamadas de IA passam pela Supabase Edge Function para manter a chave fora do navegador.
 
-const DEFAULT_OPENROUTER_MODEL = 'z-ai/glm-4.5-air:free'
+const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
 
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
@@ -38,7 +38,7 @@ const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }
 const JSON_REPAIR_MAX_CHARS = 12000
 const PROMPT_TOKEN_CHAR_RATIO = 3
-const AI_REQUEST_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_AI_REQUEST_TIMEOUT_MS) || 120000, 10000)
+const AI_REQUEST_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_AI_REQUEST_TIMEOUT_MS) || 200000, 10000)
 const JSON_REPAIR_TIMEOUT_MS = Math.max(Number(import.meta.env.VITE_JSON_REPAIR_TIMEOUT_MS) || 30000, 5000)
 const POLLINATIONS_URL = import.meta.env.VITE_POLLINATIONS_URL || 'https://text.pollinations.ai/openai'
 const POLLINATIONS_MODEL = import.meta.env.VITE_POLLINATIONS_MODEL || 'openai'
