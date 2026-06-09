@@ -51,8 +51,22 @@ function getModel(payload: ChatRequest) {
     : OPENROUTER_MODEL
 }
 
+const FREE_MODEL_FALLBACKS = [
+  'google/gemma-4-26b-a4b-it:free',
+  'google/gemma-3-27b-it:free',
+  'meta-llama/llama-4-scout:free',
+  'qwen/qwen3-32b:free',
+  'deepseek/deepseek-chat-v3-0324:free',
+]
+
 function getModelCandidates(primaryModel: string) {
-  return [primaryModel]
+  const seen = new Set<string>()
+  const candidates: string[] = []
+  if (primaryModel && !seen.has(primaryModel)) { candidates.push(primaryModel); seen.add(primaryModel) }
+  for (const m of FREE_MODEL_FALLBACKS) {
+    if (!seen.has(m)) { candidates.push(m); seen.add(m) }
+  }
+  return candidates
 }
 
 function getErrorMessage(body: unknown, fallback: string) {
@@ -104,8 +118,11 @@ function shouldUseProviderFallback(status: number, message: string) {
   return /free-models-per-day|rate limit exceeded|ratelimit|too many requests/i.test(message)
 }
 
-function shouldTryNextModel() {
-  return false
+function shouldTryNextModel(status: number, message: string) {
+  if (status === 429) return true
+  if (status === 503) return true
+  if (isCreditBlocked(status, message)) return true
+  return /rate limit|overloaded|capacity|temporarily unavailable/i.test(message)
 }
 
 function isResponseFormatUnsupported(status: number, message: string) {
