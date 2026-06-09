@@ -495,7 +495,7 @@ function FullSheetViewer({ sheetId, onBack }) {
 
   async function loadTransferTargets() {
     if (!user?.id) return
-    let query = client.from('characters').select('id,name,data,user_id').neq('id', sheetId).order('updated_at', { ascending: false })
+    let query = client.from('characters').select('id,name,user_id').neq('id', sheetId).order('updated_at', { ascending: false })
     if (!isAdmin) query = query.eq('user_id', user.id)
     const { data } = await query
     setTransferTargets(data || [])
@@ -897,8 +897,14 @@ function AppInner() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  const sheetsLoadedRef = useRef(false)
+
   useEffect(() => {
-    if (user && profile) loadSheets()
+    if (user && profile && !sheetsLoadedRef.current) {
+      sheetsLoadedRef.current = true
+      loadSheets()
+    }
+    if (!user) sheetsLoadedRef.current = false
   }, [user, profile])
 
   useEffect(() => {
@@ -951,7 +957,7 @@ function AppInner() {
 
   async function loadSheets() {
     const client = profile.role === 'admin' ? getSupabaseAdmin() : supabase
-    const query = client.from('characters').select('*').order('updated_at', { ascending: false })
+    const query = client.from('characters').select('id,user_id,name,updated_at').order('updated_at', { ascending: false })
     if (profile.role !== 'admin') query.eq('user_id', user.id)
     const { data, error } = await query
     if (error) console.error('Erro ao carregar fichas:', error.message)
