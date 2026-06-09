@@ -1,10 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://wmkswavqtqyfcjuiwtbw.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta3N3YXZxdHF5ZmNqdWl3dGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTAwOTEsImV4cCI6MjA5MjQ2NjA5MX0.y7jhy5yWI0w0ifX9dNqGzf7ja_H5xBBLVz5yReo76TA'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta3N3YXZxdHF5ZmNqdWl3dGJ3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njg5MDA5MSwiZXhwIjoyMDkyNDY2MDkxfQ.bS1XSnMOhxJ_MSeKzSmzn_Axpq5gEPxfCsSg4_enfgk'
+const SUPABASE_URL = 'https://spoiprwlawgkqlprprsb.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwb2lwcndsYXdna3FscHJwcnNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NjUwMjEsImV4cCI6MjA5NjU0MTAyMX0.bNxMhC5-uitTt3AWLIQQykeDrJumiEuuc9sF9E7iRsI'
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwb2lwcndsYXdna3FscHJwcnNiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDk2NTAyMSwiZXhwIjoyMDk2NTQxMDIxfQ.JzyXuLggMsGMeIHwxxCtv32IP_efMRb50xc7huy7-Y0'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+async function noopLock(_name, _acquireTimeout, fn) {
+  return await fn()
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    lock: noopLock,
+  },
+})
 
 let _admin = null
 export function getSupabaseAdmin() {
