@@ -14,6 +14,7 @@ import Step7Modules from './components/steps/Step7Modules'
 import Step8Triages from './components/steps/Step8Triages'
 import Step10Abilities from './components/steps/Step10Abilities'
 import Step11Review from './components/steps/Step11Review'
+import RaceSkillTree from './components/RaceSkillTree'
 import ReferencePage from './components/ReferencePage'
 import LoginPage from './components/LoginPage'
 import HomeMenu from './components/HomeMenu'
@@ -32,6 +33,7 @@ import { PROGRESSION } from './data/progression'
 import { RACES } from './data/races'
 import { WEAPONS } from './data/weapons'
 import { calcExtraAbilities, calcExtraAbilitiesTypes } from './utils/calculator'
+import { calcPARTotal, calcRaceTreePARSpent } from './utils/calculator'
 
 const BASE_LOCATIONS = [
   { id: 'carregado', label: 'Personagem', icon: 'person' },
@@ -49,8 +51,9 @@ const STEPS = [
   { id: 7, label: 'Triagens', comp: Step8Triages },
   { id: 8, label: 'Módulos', comp: Step7Modules },
   { id: 9, label: 'Perícias', comp: Step6Pericias },
-  { id: 10, label: 'Habilidades', comp: Step10Abilities },
-  { id: 11, label: 'Revisão', comp: Step11Review },
+  { id: 10, label: 'Árvore Racial', comp: RaceSkillTree },
+  { id: 11, label: 'Habilidades', comp: Step10Abilities },
+  { id: 12, label: 'Revisão', comp: Step11Review },
 ]
 
 const TOTAL_STEPS = STEPS.length
@@ -950,6 +953,7 @@ function AppInner() {
     }
     if (currentStep < 7) resetPatch.modulosAdquiridos = []
     if (currentStep < 8) resetPatch.pericias = {}
+    if (currentStep < 9) resetPatch.raceTreeUnlocked = []
     if (Object.keys(resetPatch).length > 0) {
       update(resetPatch)
     }

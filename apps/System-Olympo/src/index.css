@@ -232,6 +232,42 @@ button:active:not(:disabled) {
   }
 }
 
+@keyframes raceTreeTwinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes raceTreeGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(247, 189, 72, 0.1), 0 4px 30px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(247, 189, 72, 0.25), 0 0 32px rgba(247, 189, 72, 0.08), 0 4px 30px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes raceTreeAvailablePulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.06);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes raceTreeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-stagger {
   animation: staggerFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

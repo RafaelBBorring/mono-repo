@@ -8,6 +8,7 @@ import { estimateEquipmentWeight } from '../data/equipment'
 import { calculateRaceBonus } from './raceCalculator'
 import { scaleTrainedSkillsReward } from './progressionUtils'
 import { calcSystemSkillBonuses } from './systemSkills'
+import { aggregateEffects, getRaceTree } from '../data/raceTrees'
 
 function getClassDef(classe) {
   return CLASSES[classe]
@@ -20,8 +21,8 @@ function getAttrValue(attrs, attr, skeletonPoints, raceContext) {
 
 function getProgressionRewards(classe, nivel, choices) {
   const prog = PROGRESSION[classe]
-  if (!prog) return { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0, peh: 0 }
-  let total = { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0, peh: 0 }
+  if (!prog) return { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0, peh: 0, par: 0 }
+  let total = { vida: 0, energia: 0, pe: 0, esqueleto: 0, modulo: 0, pericias: 0, triagemPrincipal: 0, subTriagem: 0, peh: 0, par: 0 }
   for (let n = 1; n <= nivel; n++) {
     const entry = prog[n]
     if (!entry) continue
@@ -55,6 +56,7 @@ function applyReward(total, r) {
     case 'triagem_principal': total.triagemPrincipal = Math.max(total.triagemPrincipal, r.value); break
     case 'sub_triagem': total.subTriagem = Math.max(total.subTriagem, r.value); break
     case 'peh': total.peh += r.value; break
+    case 'par': total.par += r.value; break
   }
 }
 
@@ -267,6 +269,37 @@ export function calcPEHTotal(classe, nivel, choices, modulosAdquiridos, raceCont
   if (aumentoPoder) total += (aumentoPoder.boughtCount || 1)
   total += calcSystemSkillBonuses(raceContext || {}).peh
   return total
+}
+
+export function calcPARTotal(classe, nivel, choices, modulosAdquiridos, char) {
+  const rewards = getProgressionRewards(classe, nivel, choices)
+  return rewards.par || 0
+}
+
+export function calcRaceTreePARSpent(unlockedIds, raceId) {
+  if (!unlockedIds || !raceId) return 0
+  const tree = getRaceTree(raceId)
+  if (!tree) return 0
+  return unlockedIds.reduce((sum, id) => {
+    const node = tree.nodes.find(n => n.id === id)
+    return sum + (node ? node.cost : 0)
+  }, 0)
+}
+
+export function applyRaceTreeBonuses(stats, char) {
+  const raceTreeUnlocked = char.raceTreeUnlocked || []
+  const raceEffects = aggregateEffects(raceTreeUnlocked, char.raca)
+  if (raceEffects.attrs) {
+    for (const [attr, val] of Object.entries(raceEffects.attrs)) {
+      if (stats.atributos && stats.atributos[attr] !== undefined) {
+        stats.atributos[attr] += val
+      }
+    }
+  }
+  stats.vidaTotal = (stats.vidaTotal || 0) + (raceEffects.vida || 0)
+  stats.energiaTotal = (stats.energiaTotal || 0) + (raceEffects.energia || 0)
+  stats.caBase = (stats.caBase || 0) + (raceEffects.ca || 0)
+  return stats
 }
 
 export function calcCarryCapacity(atributos, skeletonPoints, char) {
