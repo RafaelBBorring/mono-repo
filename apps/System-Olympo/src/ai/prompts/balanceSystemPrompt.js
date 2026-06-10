@@ -302,13 +302,15 @@ Voce DEVE identificar e classificar cada efeito da habilidade usando as tags pad
 TAGS DISPONIVEIS:
 - dano          — Dano causado ao alvo
 - cura          — Cura de pontos de vida
+- curaEnergia   — Regeneracao ou restauracao de pontos de energia/PE. Use quando a habilidade restaura energia ao usuario ou aliados.
 - duracao       — Efeito com duracao EM RODADAS declarada na descricao. NAO use para efeitos instantaneos.
 - dt            — Teste de dificuldade contra atributo ou pericia (veja secao DT acima)
 - custoEnergia  — Custo de pontos de energia
 - bonusAtaque   — Bonus em testes de ataque
 - bonusCA       — Bonus na Classe de Armadura
 - vantagem      — Vantagem em teste especifico
-- paralisia     — Paralisia, atordoamento ou stun
+- paralisia     — Paralisia, atordoamento ou stun (perda TOTAL de acoes)
+- lentidao      — Reducao de velocidade/acoes. NAO existe "velocidade reduzida em 1" no sistema. TRADUZA para mecanicas reais (veja abaixo).
 - area          — Efeito em area
 - curaStatus    — Cura de condicao ou efeito de status
 - resistencia   — Resistencia a tipo de dano
@@ -325,6 +327,16 @@ REGRAS DE TAGS:
 - NUNCA adicione a tag "duracao" para efeitos instantaneos (dano imediato, cura imediata, efeitos sem duracao declarada). Somente use "duracao" quando a descricao explicitamente menciona rodadas, turnos ou tempo de efeito.
 - "1 turno", "1 rodada" ou "ate o inicio/fim do proximo turno" so contam como duracao se forem um efeito persistente real. Se forem apenas janela de resolucao de um teleporte, ataque, cura ou bonus imediato, retorne duracao null/vazia.
 - PEH deve escalar somente tags existentes. Nao crie dano, duracao, cura ou DT que nao existiam no conceito da habilidade.
+
+TRADUCAO DE "VELOCIDADE REDUZIDA" — TAG LENTIDAO:
+O Sistema Olympo NAO possui atributo "velocidade" ou "reducao de velocidade em X". Quando o jogador escrever algo como "velocidade reduzida", "lento", "movimento reduzido", VOCE DEVE traduzir para uma ou mais destas mecanicas reais:
+- Desvantagem em testes de DES/Reflexo
+- Perda da acao de movimento (alvo so pode usar Acao Padrao + Acao Bonus, sem movimento)
+- -1 acao por turno (alvo so tem 2 acoes em vez de 3)
+- Perda de reacoes (alvo nao pode reagir)
+- -X em testes de resultado/pericia (penalidade geral)
+Escolha a mecanica MAIS COERENTE com o conceito. Inclua "lentidao" nas tags e traduza na descricaoBalanceada.
+PEH evolui lentidao aumentando a severidade (ex: de desvantagem → perda de movimento → perda de acao).
 
 ═════════════════════════════════════════════════════
 FORMATO DE RESPOSTA — JSON OBRIGATORIO:
@@ -360,8 +372,12 @@ CAMPOS OBRIGATORIOS por tipo de habilidade:
 - TODAS: index, nome, descricao, descricaoBalanceada, status, feedback, tags
 - Ativa/Ultimate: custoEnergia (sempre > 0), valores.custoEnergia
 - Se causa dano: dano, valores.dano
+- Se cura vida: incluir tag "cura" e valores.cura
+- Se regenera energia: incluir tag "curaEnergia" e valores.curaEnergia (ex: "+5/rodada")
+- Se da bonus CA: incluir tag "bonusCA" e valores.bonusCA (ex: "+2")
 - Se tem duracao explicita (> 1 rodada): duracao, valores.duracao. Se e instantanea, NAO inclua duracao.
 - Se exige teste: dt, valores.dt — SEMPRE no formato "DT <num> <Tipo>"
+- Se causa lentidao/reducao de acoes: incluir tag "lentidao" e traduzir na descricaoBalanceada
 - Passiva: nao exige custoEnergia (pode ser null ou 0)
 
 STATUS deve ser:

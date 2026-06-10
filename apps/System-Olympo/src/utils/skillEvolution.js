@@ -44,15 +44,16 @@ const DURACAO_BONUS = {
 const DT_BONUS = [0, 2, 2, 3, 3, 4]
 
 const TAG_ORDER = [
-  'custoEnergia', 'dano', 'cura', 'duracao', 'dt', 'bonusAtaque', 'bonusCA',
+  'custoEnergia', 'dano', 'cura', 'curaEnergia', 'duracao', 'dt', 'bonusAtaque', 'bonusCA',
   'bonusResultado', 'vantagem', 'area', 'deslocamento', 'resistencia',
-  'paralisia', 'curaStatus', 'invisibilidade', 'invocacao',
+  'paralisia', 'lentidao', 'curaStatus', 'invisibilidade', 'invocacao',
 ]
 
 const TAG_LABELS = {
   custoEnergia: 'Energia',
   dano: 'Dano',
   cura: 'Cura',
+  curaEnergia: 'Cura Energia',
   duracao: 'Duracao',
   dt: 'DT',
   bonusAtaque: 'Ataque',
@@ -63,6 +64,7 @@ const TAG_LABELS = {
   deslocamento: 'Deslocamento',
   resistencia: 'Resistencia',
   paralisia: 'Controle',
+  lentidao: 'Lentidao',
   curaStatus: 'Status',
   invisibilidade: 'Invisibilidade',
   invocacao: 'Invocacao',
@@ -77,6 +79,11 @@ const TAG_ALIASES = {
   damage: 'dano',
   cura: 'cura',
   heal: 'cura',
+  curaenergia: 'curaEnergia',
+  regeneraenergia: 'curaEnergia',
+  recuperaenergia: 'curaEnergia',
+  energiaregen: 'curaEnergia',
+  regenerape: 'curaEnergia',
   duracao: 'duracao',
   duration: 'duracao',
   tempo: 'duracao',
@@ -103,6 +110,11 @@ const TAG_ALIASES = {
   paralisia: 'paralisia',
   atordoamento: 'paralisia',
   stun: 'paralisia',
+  lentidao: 'lentidao',
+  lento: 'lentidao',
+  lentos: 'lentidao',
+  velocidadereduzida: 'lentidao',
+  slow: 'lentidao',
   curastatus: 'curaStatus',
   status: 'curaStatus',
   invisibilidade: 'invisibilidade',
@@ -111,8 +123,8 @@ const TAG_ALIASES = {
 }
 
 const POWER_TAGS = new Set([
-  'dano', 'cura', 'bonusAtaque', 'bonusCA', 'bonusResultado', 'vantagem',
-  'area', 'deslocamento', 'resistencia', 'paralisia', 'curaStatus',
+  'dano', 'cura', 'curaEnergia', 'bonusAtaque', 'bonusCA', 'bonusResultado', 'vantagem',
+  'area', 'deslocamento', 'resistencia', 'paralisia', 'lentidao', 'curaStatus',
   'invisibilidade', 'invocacao',
 ])
 
@@ -227,6 +239,7 @@ function inferSkillTags(skill = {}) {
   if ((skill.tipo === 'Ativa' || skill.tipo === 'Ultimate' || Number(skill.custoEnergia) > 0 || /custo|energia/.test(text)) && skill.tipo !== 'Passiva') addTag(tags, 'custoEnergia')
   if (skill.dano || values.dano || /\b\d+d\d+\b|\bdano\b/.test(text)) addTag(tags, 'dano')
   if (values.cura || /\bcura|curar|regenera/.test(text)) addTag(tags, 'cura')
+  if (values.curaEnergia || /regenera\s*\d+\s*(ponto|pontos)?\s*energia|recupera\s*\d+\s*energia|\+\d+\s*energia\s*(por|\/)\s*rodada|\+\d+\s*pe\s*(por|\/)\s*rodada|cura.*energia|restaura.*energia/.test(text)) addTag(tags, 'curaEnergia')
   if (hasMeaningfulDuration(skill)) addTag(tags, 'duracao')
   if (getSkillDtDisplay(skill) || /\b(dt|cd)\s*\d+|\bteste de\b/.test(text)) addTag(tags, 'dt')
   if (values.bonusCA || /\+\s*\d+\s*ca\b|\bca\s*\+\s*\d+|classe de armadura/.test(text)) addTag(tags, 'bonusCA')
@@ -237,6 +250,7 @@ function inferSkillTags(skill = {}) {
   if (/\b(teleporte|teleporta|deslocamento|dash|movimento|metros|m\b)/.test(text)) addTag(tags, 'deslocamento')
   if (/\bresistencia|resiste|reduz dano|reducao de dano/.test(text)) addTag(tags, 'resistencia')
   if (/\b(paralis|atordo|stun|imobiliz|incapacit)/.test(text)) addTag(tags, 'paralisia')
+  if (/\b(paralis|atordo|stun|imobiliz|incapacit)/.test(text) === false && /\b(lentidao|lento|velocidade reduzida|reduz.*velocidade|slow|desvantagem.*acao|perde.*acao.*movimento|perde.*reacao|sem.*movimento|sem.*reacao|-1.*acao|desvantagem.*teste)/.test(text)) addTag(tags, 'lentidao')
   if (/\b(remove|cura).{0,18}(condicao|status|veneno|medo|sangramento)/.test(text)) addTag(tags, 'curaStatus')
   if (/\binvis|furtividade|ficar ocult|oculto/.test(text)) addTag(tags, 'invisibilidade')
   if (/\binvoca|invocacao|conjura criatura|servo\b/.test(text)) addTag(tags, 'invocacao')
@@ -343,9 +357,11 @@ export function calcEvolucaoDelta(skill, evolNivel) {
   const energiaExtra = tags.includes('custoEnergia') ? delta.energia * evolNivel : 0
   const dtExtra      = tags.includes('dt') ? sumProgression(DT_BONUS, evolNivel) : 0
   const curaExtra    = tags.includes('cura') ? scaleNumber(delta.flat * evolNivel, splitBudgetByTags(tags)) : 0
+  const curaEnergiaExtra = tags.includes('curaEnergia') ? scaleNumber(delta.flat * evolNivel, splitBudgetByTags(tags)) : 0
   const caExtra      = tags.includes('bonusCA') ? Math.ceil(evolNivel / 2) : 0
   const ataqueExtra  = tags.includes('bonusAtaque') ? Math.ceil(evolNivel / 2) : 0
   const resultadoExtra = tags.includes('bonusResultado') ? evolNivel : 0
+  const lentidaoExtra = tags.includes('lentidao') ? evolNivel : 0
 
   const dadoExtraStr = tags.includes('dano') ? buildDiceExtra(delta.dadoExtra, evolNivel, damageMultiplier) : ''
 
@@ -361,12 +377,14 @@ export function calcEvolucaoDelta(skill, evolNivel) {
   const tagBonuses = [
     danoTotal && { tag: 'dano', label: 'Dano', value: danoTotal },
     curaExtra > 0 && { tag: 'cura', label: 'Cura', value: `+${curaExtra}` },
+    curaEnergiaExtra > 0 && { tag: 'curaEnergia', label: 'Cura Energia', value: `+${curaEnergiaExtra}` },
     energiaExtra > 0 && { tag: 'custoEnergia', label: 'Energia', value: `+${energiaExtra}` },
     duracaoExtra > 0 && { tag: 'duracao', label: 'Duracao', value: `+${duracaoExtra} rod.` },
     dtExtra > 0 && { tag: 'dt', label: 'DT', value: `+${dtExtra}` },
     caExtra > 0 && { tag: 'bonusCA', label: 'CA', value: `+${caExtra}` },
     ataqueExtra > 0 && { tag: 'bonusAtaque', label: 'Ataque', value: `+${ataqueExtra}` },
     resultadoExtra > 0 && { tag: 'bonusResultado', label: 'Resultado', value: `+${resultadoExtra}` },
+    lentidaoExtra > 0 && { tag: 'lentidao', label: 'Lentidao', value: `+${lentidaoExtra}` },
   ].filter(Boolean)
 
   const valores = {
@@ -376,9 +394,11 @@ export function calcEvolucaoDelta(skill, evolNivel) {
     duracaoExtra,
     dtExtra,
     curaExtra,
+    curaEnergiaExtra,
     caExtra,
     ataqueExtra,
     resultadoExtra,
+    lentidaoExtra,
     danoTotal,
   }
 
@@ -391,9 +411,11 @@ export function calcEvolucaoDelta(skill, evolNivel) {
     duracaoExtra: duracaoExtra > 0 ? `+${duracaoExtra} rod.` : '',
     dtExtra,
     curaExtra:    curaExtra > 0 ? `+${curaExtra}` : '',
+    curaEnergiaExtra: curaEnergiaExtra > 0 ? `+${curaEnergiaExtra}` : '',
     caExtra,
     ataqueExtra,
     resultadoExtra,
+    lentidaoExtra,
     allTags:      tags,
     tagBonuses,
     valores,
