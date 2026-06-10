@@ -1092,6 +1092,8 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — O mestre julga qu
 - Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH EFETIVO (não o bracket base) ou criar combos quebrados.
 - Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
 - NUNCA aprove cegamente. Verifique combos e acumulações.
+- DT: SEMPRE especifique atributo (ex: "DT 18 Constituicao") ou pericia (ex: "DT 22 Fortitude"). NUNCA use "teste de resistencia" generico. DT por pericia = DT atributo equivalente + 3-5.
+- DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
 Faca esta verificacao internamente, sem listar passos fora do JSON:
@@ -1180,6 +1182,8 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — Aumente danos ~30
 - Se jogadorJaDefiniuValores=true, ANALISE se estão adequados. Ajuste se exceder o TDH EFETIVO (não o bracket base) ou criar combos quebrados.
 - Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
 - NUNCA aprove cegamente. Verifique combos e acumulações.
+- DT: SEMPRE especifique atributo (ex: "DT 18 Constituicao") ou pericia (ex: "DT 22 Fortitude"). NUNCA use "teste de resistencia" generico. DT por pericia = DT atributo equivalente + 3-5.
+- DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
 Faca esta verificacao internamente, sem listar passos fora do JSON:
