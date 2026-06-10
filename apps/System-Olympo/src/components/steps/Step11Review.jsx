@@ -2664,11 +2664,13 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               </button>
             )}
           </div>
-          {evoDelta && (
-            <div className="flex flex-wrap gap-1.5 pt-3">
-              {evoDelta.danoTotal && <span className="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.danoTotal} dano</span>}
-              {evoDelta.energiaExtra && <span className="text-[10px] bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 font-mono">{evoDelta.energiaExtra} energia</span>}
-              {evoDelta.duracaoExtra && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 font-mono">{evoDelta.duracaoExtra}</span>}
+          {evoDelta && evoNivel > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              <span className="text-[10px] text-indigo-400/70 font-mono">PEH {evoNivel} →</span>
+              {evoDelta.danoTotal && <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.danoTotal}</span>}
+              {evoDelta.energiaExtra && <span className="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/20 font-mono">{evoDelta.energiaExtra}E</span>}
+              {evoDelta.duracaoExtra && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono">{evoDelta.duracaoExtra}</span>}
+              {evoDelta.dtExtra > 0 && <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/20 font-mono">+{evoDelta.dtExtra} DT</span>}
             </div>
           )}
           {(activePreview?.ataque || activePreview?.ca || activePreview?.vida || activePreview?.energia || activePreview?.dano) ? (
@@ -2687,48 +2689,58 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               ) : (
                 <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
               )}
-              <div className="flex flex-wrap gap-2">
-                {h.custoEnergia > 0 && (
-                  <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
-                    ⚡ Energia: {h.custoEnergia}
-                  </span>
-                )}
-                {h.dano && (
-                  <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
-                    ⚔ Dano: {h.dano}
-                  </span>
-                )}
-                {h.duracao && (
-                  <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
-                    ⏱ Duração: {h.duracao}
-                  </span>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
-                <div className="text-txt-dim/90 text-sm pt-3 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
-              ) : (
-                <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {h.custoEnergia > 0 && (
-                  <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
-                    ⚡ Energia: {h.custoEnergia}
-                  </span>
-                )}
-                {h.dano && (
-                  <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
-                    ⚔ Dano: {h.dano}
-                  </span>
-                )}
-                {h.duracao && (
-                  <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
-                    ⏱ Duração: {h.duracao}
-                  </span>
-                )}
-              </div>
+               <div className="flex flex-wrap gap-2">
+                 {h.custoEnergia > 0 && (
+                   <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
+                     ⚡ Energia: {h.custoEnergia}{evoDelta?.energiaExtra ? <span className="text-sky-300/80"> → {h.custoEnergia + (evoDelta.valores?.energiaExtra || 0)}</span> : ''}
+                   </span>
+                 )}
+                 {h.dano && (
+                   <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
+                     ⚔ Dano: {h.dano}{evoDelta?.dadoExtra ? <span className="text-red-300/80"> {evoDelta.dadoExtra}</span> : ''}{evoDelta?.flatExtra ? <span className="text-red-300/80"> {evoDelta.flatExtra}</span> : ''}
+                   </span>
+                 )}
+                 {h.duracao && (
+                   <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
+                     ⏱ Duração: {h.duracao}{evoDelta?.duracaoExtra ? <span className="text-amber-300/80"> {evoDelta.duracaoExtra}</span> : ''}
+                   </span>
+                 )}
+                 {h.dt && (
+                   <span className="text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/20 text-xs font-mono" style={{ background: 'rgba(168,85,247,0.06)' }}>
+                     🎯 DT: {h.dt}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}
+                   </span>
+                 )}
+               </div>
+             </>
+           ) : (
+             <>
+               {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
+                 <div className="text-txt-dim/90 text-sm pt-3 leading-relaxed break-words" dangerouslySetInnerHTML={{ __html: h.descricao || 'Sem descrição' }} />
+               ) : (
+                 <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
+               )}
+               <div className="flex flex-wrap gap-2">
+                 {h.custoEnergia > 0 && (
+                   <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
+                     ⚡ Energia: {h.custoEnergia}{evoDelta?.energiaExtra ? <span className="text-sky-300/80"> → {h.custoEnergia + (evoDelta.valores?.energiaExtra || 0)}</span> : ''}
+                   </span>
+                 )}
+                 {h.dano && (
+                   <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
+                     ⚔ Dano: {h.dano}{evoDelta?.dadoExtra ? <span className="text-red-300/80"> {evoDelta.dadoExtra}</span> : ''}{evoDelta?.flatExtra ? <span className="text-red-300/80"> {evoDelta.flatExtra}</span> : ''}
+                   </span>
+                 )}
+                 {h.duracao && (
+                   <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
+                     ⏱ Duração: {h.duracao}{evoDelta?.duracaoExtra ? <span className="text-amber-300/80"> {evoDelta.duracaoExtra}</span> : ''}
+                   </span>
+                 )}
+                 {h.dt && (
+                   <span className="text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/20 text-xs font-mono" style={{ background: 'rgba(168,85,247,0.06)' }}>
+                     🎯 DT: {h.dt}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}
+                   </span>
+                 )}
+               </div>
               <p className="text-txt-dim/25 text-[10px] pt-1">Clique em ✎ para editar</p>
             </>
           )}
