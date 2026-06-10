@@ -496,7 +496,8 @@ async function callAI(messages, { maxTokens = 4096, responseFormat = null, tempe
         { status: 408, source: 'openrouter', timeoutMs }
       )
       if (!data) throw new Error('Resposta vazia da Edge Function.')
-      const content = data.choices?.[0]?.message?.content
+      const msg = data.choices?.[0]?.message
+      const content = msg?.content || msg?.reasoning || ''
       if (!content) {
         throw createTaggedError(`IA retornou conteudo vazio no modelo ${activeModel}.`, {
           status: 502,

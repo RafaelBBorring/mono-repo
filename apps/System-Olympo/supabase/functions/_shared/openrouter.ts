@@ -394,7 +394,11 @@ export async function handleOpenRouterRequest(req: Request) {
       const choices = data?.choices
       const firstChoice = Array.isArray(choices) ? choices[0] as Record<string, unknown> | undefined : undefined
       const message = firstChoice?.message as Record<string, unknown> | undefined
-      const content = message?.content
+      let content = getTextContent(message?.content)
+      if (!content) {
+        content = getTextContent((message as Record<string, unknown>)?.reasoning)
+        if (content && message) message.content = content
+      }
       if (!data || !content) {
         if (i < modelCandidates.length - 1) continue
         return jsonResponse({ error: 'OpenRouter returned an empty or invalid response', source: 'openrouter', model }, 502)
