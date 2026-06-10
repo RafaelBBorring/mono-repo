@@ -77,6 +77,46 @@
         "edit": "allow",
         "bash": "allow"
       }
+    },
+    "surf-ui-design": {
+      "description": "Design UI/UX — CT-Surf-Photos. Design system oceanico, animacoes, componentes UI, glassmorphism.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "surf-gallery-media": {
+      "description": "Galeria e Midia — CT-Surf-Photos. Browser de sessoes, grid surfistas, preview watermark, protecao anti-download.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "surf-cart-checkout": {
+      "description": "Carrinho e Checkout — CT-Surf-Photos. Carrinho, cupons, precificacao, fluxo de compra.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "surf-auth-admin": {
+      "description": "Auth e Admin — CT-Surf-Photos. Login cliente/admin, dashboard, upload pastas, comissoes.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "surf-threejs": {
+      "description": "Three.js — CT-Surf-Photos. Cenas 3D: oceano particulas, ondas animadas, gotas cachoeira.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
     }
   },
   "compaction": {
