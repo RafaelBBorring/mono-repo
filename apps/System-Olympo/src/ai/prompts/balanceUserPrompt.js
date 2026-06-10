@@ -62,7 +62,7 @@ INSTRUCOES CRITICAS:
 - VERIFICACAO CUMULATIVA OBRIGATORIA (LCP + ANTI-ABUSO).
 - Economia de Acoes: habilidade + conhecimento NAO na mesma acao. Max 2 ataques/turno. Max 3 acoes totais/turno.
 - EVOLUCAO RESPETA CONCEITO: cura evolui cura, dano evolui dano, buff evolui buff. NUNCA adicione efeito contraditorio.
-- TAGS OBRIGATORIAS: retorne tags e valores para cada efeito numerico. Use bonusCA para Classe de Armadura/CA. Nao use duracao para habilidades instantaneas.
+- TAGS OBRIGATORIAS: retorne tags e valores para cada efeito numerico. Use bonusCA para Classe de Armadura/CA. Use curaEnergia para regeneracao/restauracao de energia/PE por rodada; nao classifique isso como cura de vida. Use lentidao para velocidade reduzida. Nao use duracao para habilidades instantaneas.
 - PEH POR TAG: escale somente as tags existentes. Se nao ha tag dano, nao adicione dano; se nao ha tag duracao, nao adicione rodadas.
 
 Responda EXCLUSIVAMENTE com JSON:

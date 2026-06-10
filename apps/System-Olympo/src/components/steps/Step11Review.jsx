@@ -2578,6 +2578,79 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
   )
 }
 
+const DETAIL_CHIP_META = {
+  custoEnergia: { icon: '⚡', label: 'Energia', color: 'text-sky-400', border: 'border-sky-500/20', bg: 'rgba(56,189,248,0.06)', accent: 'text-sky-300/80' },
+  dano: { icon: '⚔', label: 'Dano', color: 'text-red-400', border: 'border-red-500/20', bg: 'rgba(239,68,68,0.06)', accent: 'text-red-300/80' },
+  cura: { icon: '✚', label: 'Cura', color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'rgba(16,185,129,0.06)', accent: 'text-emerald-300/80' },
+  curaEnergia: { icon: '↺', label: 'Energia/rod.', color: 'text-cyan-300', border: 'border-cyan-500/20', bg: 'rgba(34,211,238,0.06)', accent: 'text-cyan-200/80' },
+  duracao: { icon: '⏱', label: 'Duração', color: 'text-amber-400', border: 'border-amber-500/20', bg: 'rgba(245,158,11,0.06)', accent: 'text-amber-300/80' },
+  dt: { icon: '🎯', label: 'DT', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'rgba(168,85,247,0.06)', accent: 'text-purple-300/80' },
+  bonusCA: { icon: '◆', label: 'CA', color: 'text-cyan-300', border: 'border-cyan-500/20', bg: 'rgba(34,211,238,0.06)', accent: 'text-cyan-200/80' },
+  bonusAtaque: { icon: '⌁', label: 'Ataque', color: 'text-indigo-300', border: 'border-indigo-500/20', bg: 'rgba(129,140,248,0.06)', accent: 'text-indigo-200/80' },
+  bonusResultado: { icon: '+', label: 'Resultado', color: 'text-indigo-300', border: 'border-indigo-500/20', bg: 'rgba(129,140,248,0.06)', accent: 'text-indigo-200/80' },
+  area: { icon: '◎', label: 'Área', color: 'text-txt-dim', border: 'border-sep/25', bg: 'rgba(255,255,255,0.03)', accent: 'text-gold/80' },
+  deslocamento: { icon: '↗', label: 'Deslocamento', color: 'text-sky-300', border: 'border-sky-500/20', bg: 'rgba(56,189,248,0.05)', accent: 'text-sky-200/80' },
+  resistencia: { icon: '◈', label: 'Resistência', color: 'text-emerald-300', border: 'border-emerald-500/20', bg: 'rgba(16,185,129,0.05)', accent: 'text-emerald-200/80' },
+  paralisia: { icon: '✕', label: 'Controle', color: 'text-fuchsia-300', border: 'border-fuchsia-500/20', bg: 'rgba(217,70,239,0.05)', accent: 'text-fuchsia-200/80' },
+  lentidao: { icon: '≋', label: 'Lentidão', color: 'text-amber-300', border: 'border-amber-500/20', bg: 'rgba(245,158,11,0.05)', accent: 'text-amber-200/80' },
+}
+
+function getChipBaseValue(h, chip, dtDisplay) {
+  if (chip.tag === 'custoEnergia') return chip.value || (h.custoEnergia > 0 ? String(h.custoEnergia) : '')
+  if (chip.tag === 'dano') return h.dano || chip.value
+  if (chip.tag === 'duracao') return h.duracao || chip.value
+  if (chip.tag === 'dt') return dtDisplay || chip.value
+  return chip.value
+}
+
+function formatEvoForChip(chip, evoBonus) {
+  if (!evoBonus?.value) return ''
+  if (chip.tag === 'curaEnergia' && /rod|turno/i.test(chip.value || '') && !/rod|turno/i.test(evoBonus.value)) return `${evoBonus.value}/rod.`
+  if (chip.tag === 'dt') return `(${evoBonus.value})`
+  return evoBonus.value
+}
+
+function buildAbilityDetailChips(h, tagChips, evoDelta, dtDisplay, dtMissingType) {
+  return tagChips.map(chip => {
+    const evoBonus = evoDelta?.tagBonuses?.find(item => item.tag === chip.tag) || null
+    const meta = DETAIL_CHIP_META[chip.tag] || { icon: '', label: chip.label, color: 'text-txt-dim', border: 'border-sep/25', bg: 'rgba(255,255,255,0.03)', accent: 'text-gold/80' }
+    const value = getChipBaseValue(h, chip, dtDisplay)
+    let evo = formatEvoForChip(chip, evoBonus)
+    if (chip.tag === 'custoEnergia' && Number(value) > 0 && evoDelta?.valores?.energiaExtra > 0) evo = `→ ${Number(value) + evoDelta.valores.energiaExtra}`
+    return { ...meta, tag: chip.tag, value, evo, missingType: chip.tag === 'dt' && dtMissingType }
+  }).filter(chip => chip.value || chip.evo)
+}
+
+function CompactTagChip({ chip, evoBonus }) {
+  const evo = formatEvoForChip(chip, evoBonus)
+  return (
+    <span className="text-[10px] bg-void/45 border border-sep/25 text-txt-dim/80 px-2 py-0.5 rounded font-mono">
+      {chip.tag === 'dt' ? (
+        <>
+          DT: {chip.value || 'tipo?'}{evo ? <span className="text-gold/80"> {evo}</span> : null}{chip.missingType ? <span className="text-amber-300/80"> tipo?</span> : null}
+        </>
+      ) : (
+        <>
+          {chip.label}{chip.value ? ` ${chip.value}` : ''}{evo ? <span className="text-gold/80"> {evo}</span> : null}
+        </>
+      )}
+    </span>
+  )
+}
+
+function AbilityDetailChips({ chips }) {
+  if (!chips.length) return null
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chips.map(chip => (
+        <span key={chip.tag} className={`${chip.color} px-3 py-1.5 rounded-lg border ${chip.border} text-xs font-mono`} style={{ background: chip.bg }}>
+          {chip.icon ? `${chip.icon} ` : ''}{chip.label}: {chip.value}{chip.evo ? <span className={chip.accent}> {chip.evo}</span> : ''}{chip.missingType ? <span className="text-amber-300/80"> tipo?</span> : ''}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaining, active, activePreview, onToggleActive, onAnalyzeWithOracle }) {
   const [open, setOpen] = useState(false)
   const [editModal, setEditModal] = useState(false)
@@ -2588,6 +2661,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   const tagChips = getSkillTagChips(h)
   const dtDisplay = getSkillDtDisplay(h)
   const dtMissingType = !!dtDisplay && !hasSkillDtType(h)
+  const detailChips = buildAbilityDetailChips(h, tagChips, evoDelta, dtDisplay, dtMissingType)
   const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
   const { allowed: canUp, reason: upReason } = canEvolveSkill(h, evoNivel, charNivel)
   const canDown = evoNivel > 0 && h.tipo !== 'Passiva'
@@ -2693,14 +2767,16 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               </button>
             )}
           </div>
-          {evoDelta && evoNivel > 0 && (
+          {tagChips.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-2">
-              <span className="text-[10px] text-indigo-400/70 font-mono">PEH {evoNivel} →</span>
-              {evoDelta.tagBonuses?.length > 0 ? evoDelta.tagBonuses.map(item => (
-                <span key={item.tag} className="text-[10px] bg-gold/10 text-gold px-1.5 py-0.5 rounded border border-gold/20 font-mono">{item.label} {item.value}</span>
-              )) : (
-                <span className="text-[10px] bg-void/40 text-txt-dim/60 px-1.5 py-0.5 rounded border border-sep/20 font-mono">sem incremento direto</span>
-              )}
+              <span className="text-[10px] text-indigo-400/70 font-mono">Efeitos →</span>
+              {tagChips.map(chip => (
+                <CompactTagChip
+                  key={chip.tag}
+                  chip={chip}
+                  evoBonus={evoNivel > 0 ? evoDelta?.tagBonuses?.find(item => item.tag === chip.tag) : null}
+                />
+              ))}
             </div>
           )}
           {(activePreview?.ataque || activePreview?.ca || activePreview?.vida || activePreview?.energia || activePreview?.dano) ? (
@@ -2712,26 +2788,6 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               {activePreview.dano ? <span className="effect-bonus-pill">Dano {activePreview.dano > 0 ? '+' : ''}{activePreview.dano}</span> : null}
             </div>
           ) : null}
-          {tagChips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-2">
-              {tagChips.map(chip => {
-                const evoBonus = evoNivel > 0 ? evoDelta?.tagBonuses?.find(item => item.tag === chip.tag) : null
-                return (
-                  <span key={chip.tag} className="text-[10px] bg-void/45 border border-sep/25 text-txt-dim/80 px-2 py-0.5 rounded font-mono">
-                    {chip.tag === 'dt' ? (
-                      <>
-                        DT: {chip.value || 'tipo?'}{evoBonus ? <span className="text-gold/80"> ({evoBonus.value})</span> : null}{chip.missingType ? <span className="text-amber-300/80"> tipo?</span> : null}
-                      </>
-                    ) : (
-                      <>
-                        {chip.label}{chip.value ? ` ${chip.value}` : ''}{evoBonus ? <span className="text-gold/80"> {evoBonus.value}</span> : null}
-                      </>
-                    )}
-                  </span>
-                )
-              })}
-            </div>
-          )}
            {!canEdit ? (
             <>
               {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (
@@ -2739,28 +2795,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               ) : (
                 <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
               )}
-               <div className="flex flex-wrap gap-2">
-                 {h.custoEnergia > 0 && (
-                   <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
-                     ⚡ Energia: {h.custoEnergia}{evoDelta?.energiaExtra ? <span className="text-sky-300/80"> → {h.custoEnergia + (evoDelta.valores?.energiaExtra || 0)}</span> : ''}
-                   </span>
-                 )}
-                 {h.dano && (
-                   <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
-                     ⚔ Dano: {h.dano}{evoDelta?.dadoExtra ? <span className="text-red-300/80"> {evoDelta.dadoExtra}</span> : ''}{evoDelta?.flatExtra ? <span className="text-red-300/80"> {evoDelta.flatExtra}</span> : ''}
-                   </span>
-                 )}
-                 {h.duracao && (
-                   <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
-                     ⏱ Duração: {h.duracao}{evoDelta?.duracaoExtra ? <span className="text-amber-300/80"> {evoDelta.duracaoExtra}</span> : ''}
-                   </span>
-                 )}
-                 {dtDisplay && (
-                   <span className="text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/20 text-xs font-mono" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                     🎯 DT: {dtDisplay}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}{dtMissingType ? <span className="text-amber-300/80"> tipo?</span> : ''}
-                   </span>
-                 )}
-               </div>
+               <AbilityDetailChips chips={detailChips} />
              </>
            ) : (
              <>
@@ -2769,28 +2804,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
                ) : (
                  <p className="text-txt-dim/90 text-sm pt-3 leading-relaxed whitespace-pre-wrap break-words">{h.descricao || 'Sem descrição'}</p>
                )}
-               <div className="flex flex-wrap gap-2">
-                 {h.custoEnergia > 0 && (
-                   <span className="text-sky-400 px-3 py-1.5 rounded-lg border border-sky-500/20 text-xs font-mono" style={{ background: 'rgba(56,189,248,0.06)' }}>
-                     ⚡ Energia: {h.custoEnergia}{evoDelta?.energiaExtra ? <span className="text-sky-300/80"> → {h.custoEnergia + (evoDelta.valores?.energiaExtra || 0)}</span> : ''}
-                   </span>
-                 )}
-                 {h.dano && (
-                   <span className="text-red-400 px-3 py-1.5 rounded-lg border border-red-500/20 text-xs font-mono" style={{ background: 'rgba(239,68,68,0.06)' }}>
-                     ⚔ Dano: {h.dano}{evoDelta?.dadoExtra ? <span className="text-red-300/80"> {evoDelta.dadoExtra}</span> : ''}{evoDelta?.flatExtra ? <span className="text-red-300/80"> {evoDelta.flatExtra}</span> : ''}
-                   </span>
-                 )}
-                 {h.duracao && (
-                   <span className="text-amber-400 px-3 py-1.5 rounded-lg border border-amber-500/20 text-xs" style={{ background: 'rgba(245,158,11,0.06)' }}>
-                     ⏱ Duração: {h.duracao}{evoDelta?.duracaoExtra ? <span className="text-amber-300/80"> {evoDelta.duracaoExtra}</span> : ''}
-                   </span>
-                 )}
-                 {dtDisplay && (
-                   <span className="text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/20 text-xs font-mono" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                     🎯 DT: {dtDisplay}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}{dtMissingType ? <span className="text-amber-300/80"> tipo?</span> : ''}
-                   </span>
-                 )}
-               </div>
+               <AbilityDetailChips chips={detailChips} />
               <p className="text-txt-dim/25 text-[10px] pt-1">Clique em ✎ para editar</p>
             </>
           )}

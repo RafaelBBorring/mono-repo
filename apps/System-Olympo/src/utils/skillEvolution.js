@@ -238,11 +238,11 @@ function inferSkillTags(skill = {}) {
 
   if ((skill.tipo === 'Ativa' || skill.tipo === 'Ultimate' || Number(skill.custoEnergia) > 0 || /custo|energia/.test(text)) && skill.tipo !== 'Passiva') addTag(tags, 'custoEnergia')
   if (skill.dano || values.dano || /\b\d+d\d+\b|\bdano\b/.test(text)) addTag(tags, 'dano')
-  if (values.cura || /\bcura|curar|regenera/.test(text)) addTag(tags, 'cura')
-  if (values.curaEnergia || /regenera\s*\d+\s*(ponto|pontos)?\s*energia|recupera\s*\d+\s*energia|\+\d+\s*energia\s*(por|\/)\s*rodada|\+\d+\s*pe\s*(por|\/)\s*rodada|cura.*energia|restaura.*energia/.test(text)) addTag(tags, 'curaEnergia')
+  if (values.cura || hasLifeHealingText(text)) addTag(tags, 'cura')
+  if (values.curaEnergia || hasEnergyRecoveryText(text)) addTag(tags, 'curaEnergia')
   if (hasMeaningfulDuration(skill)) addTag(tags, 'duracao')
   if (getSkillDtDisplay(skill) || /\b(dt|cd)\s*\d+|\bteste de\b/.test(text)) addTag(tags, 'dt')
-  if (values.bonusCA || /\+\s*\d+\s*ca\b|\bca\s*\+\s*\d+|classe de armadura/.test(text)) addTag(tags, 'bonusCA')
+  if (values.bonusCA || /\+\s*\d+\s*(?:de\s*)?(?:bonus\s*(?:de\s*)?)?ca\b|\bca\s*\+\s*\d+|classe de armadura/.test(text)) addTag(tags, 'bonusCA')
   if (values.bonusAtaque || /\+\s*\d+\s*(ataque|acerto|lutar|pontaria)\b/.test(text)) addTag(tags, 'bonusAtaque')
   if (values.bonusResultado || /\+\s*\d+\s*(resultado|teste|pericia|pericias)\b/.test(text)) addTag(tags, 'bonusResultado')
   if (/\bvantagem\b/.test(text)) addTag(tags, 'vantagem')
@@ -280,6 +280,33 @@ function extractSignedValue(text, patterns) {
   return ''
 }
 
+function hasEnergyRecoveryText(text) {
+  return /(?:regenera\w*|recupera\w*|restaura\w*|ganha\w*|recebe\w*)\s*\d+\s*(?:ponto|pontos)?\s*(?:de\s*)?(?:energia|pe)\b|\+\s*\d+\s*(?:energia|pe)\s*(?:por|\/)\s*(?:rodada|turno)|(?:energia|pe).{0,24}(?:por|\/)\s*(?:rodada|turno)/.test(text)
+}
+
+function hasLifeHealingText(text) {
+  if (/\b(?:cura\w*|curar|regenera\w*|recupera\w*|restaura\w*)\b.{0,40}\b(?:vida|pv|hp|ferimento|ferimentos|saude)\b/.test(text)) return true
+  if (/\b\d+\s*(?:ponto|pontos)?\s*(?:de\s*)?(?:vida|pv|hp)\b/.test(text)) return true
+  return /\bcura\b/.test(text) && !hasEnergyRecoveryText(text)
+}
+
+function extractEnergyRecoveryValue(text) {
+  const normalized = stripAccents(text)
+  const patterns = [
+    /(?:regenera\w*|recupera\w*|restaura\w*|ganha\w*|recebe\w*)\s*([+-]?\d+)\s*(?:ponto|pontos)?\s*(?:de\s*)?(?:energia|pe)\b(?:.{0,18}\b(?:por|\/)\s*(rodada|turno))?/i,
+    /([+-]?\d+)\s*(?:ponto|pontos)?\s*(?:de\s*)?(?:energia|pe)\b.{0,18}\b(?:por|\/)\s*(rodada|turno)/i,
+    /\+\s*(\d+)\s*(?:energia|pe)\s*(?:por|\/)\s*(rodada|turno)/i,
+  ]
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern)
+    if (!match) continue
+    const value = String(match[1]).replace(/^\+/, '')
+    const suffix = match[2] ? '/rod.' : ''
+    return `+${value}${suffix}`
+  }
+  return ''
+}
+
 export function getSkillTagValue(skill = {}, tag) {
   const values = skill.valores || {}
   const text = [
@@ -298,13 +325,15 @@ export function getSkillTagValue(skill = {}, tag) {
   if (tag === 'custoEnergia' && Number(skill.custoEnergia) > 0) return String(skill.custoEnergia)
   if (tag === 'dano' && skill.dano) return skill.dano
   if (tag === 'cura' && values.cura) return String(values.cura)
+  if (tag === 'curaEnergia') return extractEnergyRecoveryValue(text)
   if (tag === 'duracao' && skill.duracao) return skill.duracao
-  if (tag === 'bonusCA') return extractSignedValue(text, [/[+]?(-?\d+)\s*CA\b/i, /\bCA\s*([+-]?\d+)\b/i])
+  if (tag === 'bonusCA') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:de\s*)?(?:bonus\s*(?:de\s*)?)?CA\b/i, /\bCA\s*([+-]?\d+)\b/i])
   if (tag === 'bonusAtaque') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:ataque|acerto)\b/i])
   if (tag === 'bonusResultado') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:resultado|teste|pericia|pericias)\b/i])
-  if (tag === 'area') return text.match(/\b(\d+\s*m)\b/i)?.[1] || ''
-  if (tag === 'deslocamento') return text.match(/\b(\d+\s*m)\b/i)?.[1] || ''
+  if (tag === 'area') return stripAccents(text).match(/\b(\d+\s*(?:m|metros?|pes|pés))\b/i)?.[1] || ''
+  if (tag === 'deslocamento') return stripAccents(text).match(/\b(\d+\s*(?:m|metros?|pes|pés))\b/i)?.[1] || ''
   if (tag === 'resistencia') return text.match(/\b(\d+%|-?\d+\s*dano)\b/i)?.[1] || ''
+  if (tag === 'lentidao') return stripAccents(text).match(/\b(?:velocidade\s+reduzida\s+em|reduz.{0,18}velocidade.{0,12}em)\s*(\d+)\b/i)?.[1] || ''
   return ''
 }
 

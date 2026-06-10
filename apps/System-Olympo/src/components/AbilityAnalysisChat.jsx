@@ -494,7 +494,7 @@ FORMATO CRITICO: comece pelo bloco JSON. Depois dele, escreva no maximo 3 linhas
 
 Retorne sua análise e OBRIGATORIAMENTE um bloco JSON com os valores FINAIS:
 \`\`\`json
-{ "custoEnergia": <numero>, "dano": "<string>", "duracao": "<string ou vazio/null se instantanea>", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0 }, "descricaoBalanceada": "<descrição completa ajustada>", "feedback": "<explicação>" }
+{ "custoEnergia": <numero>, "dano": "<string>", "duracao": "<string ou vazio/null se instantanea>", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia", "bonusCA", "curaEnergia"], "valores": { "custoEnergia": 0, "bonusCA": "+2", "curaEnergia": "+5/rodada" }, "descricaoBalanceada": "<descrição completa ajustada>", "feedback": "<explicação>" }
 \`\`\`
 Campos não alterados mantenham o valor atual.`
 
@@ -571,8 +571,9 @@ Tags atuais/inferidas: ${getSkillTagChips(ability).map(chip => chip.tag).join(',
 Status atual: ${ability.status || 'Pendente'}
 
 Regras de tags:
-- Retorne tags padronizadas: custoEnergia, dano, cura, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
+- Retorne tags padronizadas: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, lentidao, curaStatus, invisibilidade, invocacao.
 - CA significa Classe de Armadura. Use bonusCA para efeitos como "+2 CA"; nao confunda com armadura de equipamento.
+- Regeneracao/restauracao de energia usa curaEnergia, nao cura. Ex: "regenera 5 energia por rodada" => valores.curaEnergia "+5/rodada".
 - Nao use tag duracao e nao preencha duracao para habilidades instantaneas. "1 turno/1 rodada" so deve ser duracao se for um efeito persistente real, nao janela de resolucao.
 
 Retorne primeiro um bloco JSON obrigatorio com os valores finais desta habilidade:
@@ -584,8 +585,8 @@ Retorne primeiro um bloco JSON obrigatorio com os valores finais desta habilidad
   "dano": "",
   "duracao": "",
   "dt": "",
-  "tags": ["custoEnergia"],
-  "valores": { "custoEnergia": 0 },
+  "tags": ["custoEnergia", "bonusCA", "curaEnergia"],
+  "valores": { "custoEnergia": 0, "bonusCA": "+2", "curaEnergia": "+5/rodada" },
   "descricaoBalanceada": "descricao completa balanceada",
   "status": "aprovada|ajustada|irbalanceavel",
   "feedback": "analise curta, limites aplicados e motivo"
