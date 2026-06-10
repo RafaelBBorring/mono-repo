@@ -27,12 +27,12 @@ Todo ritual e uma CHAMADA a um Regente que DISTORCE sua respectiva lei da fisica
 4. Senhor da Biofisica e Entropia Genetica — vida, genetica, mutacao, decomposicao
 
 REGRA CRUCIAL: NADA e puramente narrativo. Todo efeito DEVE ter mecanica de jogo:
-teste de resistencia (FOR/DES/CON/INT/AM), CD, NdN+MOD, condicao, duracao, contrapeso.
+teste especifico de atributo/pericia, CD/DT, NdN+MOD, condicao, duracao, contrapeso.
 
 O DEFENSOR SEMPRE TEM CHANCE DE SE DEFENDER:
-- NENHUM efeito pode causar dano ou condicao automatica sem teste de resistencia.
+- NENHUM efeito pode causar dano ou condicao automatica sem teste especifico.
 - Se o jogador descreve "acerta dano massivo se passar de DT", isso e INCORRETO.
-- O CORRETO e: "Alvo realiza Teste de Resistencia [ATR] CD [X]. Falha: sofre [efeito]. Sucesso: [efeito reduzido ou nulo]."
+- O CORRETO e: "Alvo realiza teste de Constituicao DT [X]" ou "teste de Fortitude DT [X]". DT por pericia deve ser 3-5 pontos maior que DT por atributo equivalente.
 `
 
   const blocks = {
@@ -60,7 +60,7 @@ O DEFENSOR SEMPRE TEM CHANCE DE SE DEFENDER:
 - Cura: max 20% vida da faixa.
 - Controle total: max 1 rodada; prefira penalidade parcial.
 - TODO efeito DEVE ter mecanica de jogo concreta.
-- O DEFENSOR SEMPRE TEM CHANCE DE SE DEFENDER com Teste de Resistencia.`,
+- O DEFENSOR SEMPRE TEM CHANCE DE SE DEFENDER com teste especifico de atributo ou pericia.`,
       role: 'Feiticos sao APOIO mais versatil. NAO substituem habilidades — um personagem com 9 feiticos ainda depende de suas habilidades em combate.',
     },
     rune: {
@@ -104,7 +104,7 @@ CONTEXTO:
 ${JSON.stringify(context, null, 2)}
 
 INSTRUCAO DO ADMIN:
-${analysisNote || 'Voce tem LIBERDADE CRIATIVA TOTAL. REGRAS: (1) Mantenha o nome original. (2) Mecanica DEVE ser coerente com a lei do Regente. (3) O efeito e DEFINITIVO. (4) O DEFENSOR SEMPRE pode se defender com Teste de Resistencia.'}
+${analysisNote || 'Voce tem LIBERDADE CRIATIVA TOTAL. REGRAS: (1) Mantenha o nome original. (2) Mecanica DEVE ser coerente com a lei do Regente. (3) O efeito e DEFINITIVO. (4) O DEFENSOR SEMPRE pode se defender com teste especifico de atributo ou pericia.'}
 
 Responda EXCLUSIVAMENTE com JSON:
 {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { reviewAPI, getVideoFile } from '../api/client'
+import { reviewAPI, getVideoFile, mediaUrl } from '../api/client'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import JSZip from 'jszip'
 import {
@@ -33,7 +33,7 @@ function FolderCard({ folder, onVerify, onMerge }) {
     >
       {preview ? (
         <img
-          src={preview}
+          src={mediaUrl(preview)}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           alt=""
         />

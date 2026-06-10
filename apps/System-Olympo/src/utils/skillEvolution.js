@@ -120,8 +120,56 @@ function stripAccents(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+function normalizeSpaces(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim()
+}
+
 function cleanKey(value) {
   return stripAccents(value).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+}
+
+const DT_TEST_TYPE_KEYS = [
+  'Forca', 'Destreza', 'Constituicao', 'Inteligencia', 'Aparencia', 'Aura Magica',
+  'Fortitude', 'Reflexo', 'Reflexos', 'Vontade', 'Acrobacia', 'Atletismo',
+  'Lutar', 'Pontaria', 'Furtividade', 'Percepcao', 'Investigacao', 'Intimidacao',
+  'Persuasao', 'Enganacao', 'Medicina', 'Sobrevivencia', 'Ocultismo', 'Arcana',
+  'Tecnologia', 'Religiao', 'Historia', 'Performance',
+].map(cleanKey)
+
+function hasDtTypeText(value) {
+  const normalized = stripAccents(value)
+  if (/\b(FOR|DES|CON|INT|APA|AM)\b/i.test(normalized)) return true
+  const key = cleanKey(normalized)
+  return DT_TEST_TYPE_KEYS.some(type => key.includes(type))
+}
+
+function buildDtDisplay(value, testType = '') {
+  let raw = normalizeSpaces(value)
+  if (!raw) return ''
+  raw = raw.replace(/^(dt|cd)\s*:?/i, 'DT ')
+  if (!/^dt\b/i.test(raw)) raw = `DT ${raw}`
+  if (testType && !hasDtTypeText(raw)) raw = `${raw} ${normalizeSpaces(testType)}`
+  return normalizeSpaces(raw)
+}
+
+export function getSkillDtDisplay(skill = {}) {
+  const values = skill.valores || {}
+  const genericType = values.dtTipo || values.tipoDt || ''
+  const specificType = values.dtTeste || values.testeDt || values.dtAtributo || values.dtPericia || values.teste || ''
+  const testType = specificType || (/^(atributo|pericia)$/i.test(stripAccents(genericType)) ? '' : genericType)
+  const direct = skill.dt || values.dtCompleta || values.dtFull || values.dt_full || values.dtTexto || values.dt_texto
+  if (direct != null && direct !== '') return buildDtDisplay(direct, testType)
+  if (values.dt != null && values.dt !== '') return buildDtDisplay(values.dt, testType)
+
+  const text = [skill.descricao, skill.descricaoBalanceada].filter(Boolean).join(' ')
+  const match = text.match(/\b(?:DT|CD)\s*:?\s*(\d+)(?:\s+([A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+){0,2}))?/i)
+  if (!match) return ''
+  const inferredType = match[2] && hasDtTypeText(match[2]) ? match[2] : ''
+  return buildDtDisplay(match[1], inferredType)
+}
+
+export function hasSkillDtType(skill = {}) {
+  return hasDtTypeText(getSkillDtDisplay(skill))
 }
 
 function normalizeTagName(tag) {
@@ -180,7 +228,7 @@ function inferSkillTags(skill = {}) {
   if (skill.dano || values.dano || /\b\d+d\d+\b|\bdano\b/.test(text)) addTag(tags, 'dano')
   if (values.cura || /\bcura|curar|regenera/.test(text)) addTag(tags, 'cura')
   if (hasMeaningfulDuration(skill)) addTag(tags, 'duracao')
-  if (skill.dt || values.dt || /\b(dt|cd)\s*\d+|\bteste de\b/.test(text)) addTag(tags, 'dt')
+  if (getSkillDtDisplay(skill) || /\b(dt|cd)\s*\d+|\bteste de\b/.test(text)) addTag(tags, 'dt')
   if (values.bonusCA || /\+\s*\d+\s*ca\b|\bca\s*\+\s*\d+|classe de armadura/.test(text)) addTag(tags, 'bonusCA')
   if (values.bonusAtaque || /\+\s*\d+\s*(ataque|acerto|lutar|pontaria)\b/.test(text)) addTag(tags, 'bonusAtaque')
   if (values.bonusResultado || /\+\s*\d+\s*(resultado|teste|pericia|pericias)\b/.test(text)) addTag(tags, 'bonusResultado')
@@ -227,6 +275,7 @@ export function getSkillTagValue(skill = {}, tag) {
     skill.dt,
   ].filter(Boolean).join(' ')
 
+  if (tag === 'dt') return getSkillDtDisplay(skill)
   if (values[tag] != null && values[tag] !== '') {
     const raw = String(values[tag])
     if (/^bonus/.test(tag) && /^-?\d+$/.test(raw)) return raw.startsWith('-') ? raw : `+${raw}`
@@ -236,7 +285,6 @@ export function getSkillTagValue(skill = {}, tag) {
   if (tag === 'dano' && skill.dano) return skill.dano
   if (tag === 'cura' && values.cura) return String(values.cura)
   if (tag === 'duracao' && skill.duracao) return skill.duracao
-  if (tag === 'dt' && skill.dt) return skill.dt
   if (tag === 'bonusCA') return extractSignedValue(text, [/[+]?(-?\d+)\s*CA\b/i, /\bCA\s*([+-]?\d+)\b/i])
   if (tag === 'bonusAtaque') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:ataque|acerto)\b/i])
   if (tag === 'bonusResultado') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:resultado|teste|pericia|pericias)\b/i])
@@ -247,11 +295,15 @@ export function getSkillTagValue(skill = {}, tag) {
 }
 
 export function getSkillTagChips(skill = {}) {
-  return normalizeSkillTags(skill).map(tag => ({
-    tag,
-    label: TAG_LABELS[tag] || tag,
-    value: getSkillTagValue(skill, tag),
-  }))
+  return normalizeSkillTags(skill).map(tag => {
+    const value = getSkillTagValue(skill, tag)
+    return {
+      tag,
+      label: TAG_LABELS[tag] || tag,
+      value,
+      missingType: tag === 'dt' && !!value && !hasDtTypeText(value),
+    }
+  })
 }
 
 function sumProgression(values, evolNivel) {

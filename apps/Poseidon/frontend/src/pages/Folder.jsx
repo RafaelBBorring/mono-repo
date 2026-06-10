@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { reviewAPI } from '../api/client'
+import { reviewAPI, mediaUrl } from '../api/client'
 import {
   ArrowLeft, AlertTriangle, FolderOpen, Loader2,
   MoveRight, Play, Trash2, X
@@ -17,7 +17,7 @@ function VideoTile({ video, onOpen }) {
     >
       <div className="aspect-square bg-slate-800 relative">
         {video.thumbnail_url ? (
-          <img src={video.thumbnail_url} alt="" className="h-full w-full object-cover" />
+          <img src={mediaUrl(video.thumbnail_url)} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-slate-600">
             <Play size={28} />
@@ -74,7 +74,7 @@ function VideoModal({ video, surfists, onClose, onMove, onDelete, busy }) {
         <div className="grid lg:grid-cols-3 gap-0">
           <div className="lg:col-span-2 bg-black">
             {video.video_url ? (
-              <video src={video.video_url} controls className="w-full max-h-[70vh] bg-black" />
+              <video src={mediaUrl(video.video_url)} controls className="w-full max-h-[70vh] bg-black" />
             ) : (
               <div className="aspect-video flex items-center justify-center text-slate-500">Vídeo indisponível</div>
             )}

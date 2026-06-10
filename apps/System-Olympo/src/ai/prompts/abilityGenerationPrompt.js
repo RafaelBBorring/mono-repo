@@ -92,15 +92,15 @@ REGRAS CRITICAS:
    - Max 3-5 stacks (conforme faixa), com dissipacao ao usar ouapos 1 rodada sem gatilho
 6. Mantenha coerencia narrativa: todas pertencem ao mesmo personagem.
 7. Respeite Economia de Acoes: max 2 ataques/turno, max 3 acoes totais/turno.
-8. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, DT, etc).
-9. Se a habilidade envolver teste do alvo, inclua a DT base: "DT 10+MOD".
+8. O DEFENSOR SEMPRE tem chance de resistir com teste especifico (atributo, pericia, CA, DT, etc). Nao use "teste de resistencia" generico.
+9. Se a habilidade envolver teste do alvo, inclua a DT base cheia: "DT 14 Constituicao" ou "DT 18 Fortitude". DT por atributo deve ser mais baixa; DT por pericia deve ser 3-5 pontos mais alta por causa do treinamento.
 10. Habilidades com PEH=0 sao INTENCIONALMENTE modestas. O poder vem da evolucao.
 11. Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA". Habilidades instantaneas nao devem ter duracao nem tag "duracao".
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "habilidades": [
-    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Modulo)", "nome": "nome criativo", "descricao": "descricao com mecanicas e valores BASE", "custoEnergia": 0, "dano": "XdY+MOD", "duracao": "X rodadas ou vazio/null se instantanea", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0 } }
+    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Modulo)", "nome": "nome criativo", "descricao": "descricao com mecanicas e valores BASE", "custoEnergia": 0, "dano": "XdY+MOD", "duracao": "X rodadas ou vazio/null se instantanea", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0, "dt": "14", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" } }
   ]
 }`
 }

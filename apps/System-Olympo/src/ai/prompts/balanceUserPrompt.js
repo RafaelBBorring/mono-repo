@@ -76,9 +76,9 @@ Responda EXCLUSIVAMENTE com JSON:
       "custoEnergia": 0,
       "dano": "XdY+MOD ajustado ou vazio",
       "duracao": "X rodadas ajustado ou vazio/null se instantanea",
-      "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+      "dt": "DT <numero> <Atributo|Pericia> ou vazio. Ex: DT 18 Constituicao ou DT 22 Fortitude",
       "tags": ["custoEnergia", "bonusCA"],
-      "valores": { "custoEnergia": 0, "bonusCA": "+2" },
+      "valores": { "custoEnergia": 0, "bonusCA": "+2", "dt": "18", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" },
       "status": "aprovada|ajustada|irbalanceavel",
       "feedback": "analise completa"
     }

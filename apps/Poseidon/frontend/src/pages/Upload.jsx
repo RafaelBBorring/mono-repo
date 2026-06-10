@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
-import { uploadFile, uploadAPI, updateVideoMedia, applyClustering } from '../api/client'
+import { uploadFile, uploadAPI, updateVideoMedia, applyClustering, mediaUrl } from '../api/client'
 import { analyzeVideo } from '../analysis/surfAnalyzer'
 import { Upload, CheckCircle, XCircle, Loader2, Waves, Film, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import clsx from 'clsx'
@@ -36,7 +36,7 @@ function FileRow({ file, onToggleDebug }) {
     <div className="border-b border-slate-800 last:border-0">
       <div className="flex items-center gap-3 py-3">
         {file.thumbnailUrl ? (
-          <img src={file.thumbnailUrl} alt="" className="w-10 h-7 rounded object-cover shrink-0 bg-slate-800" />
+          <img src={mediaUrl(file.thumbnailUrl)} alt="" className="w-10 h-7 rounded object-cover shrink-0 bg-slate-800" />
         ) : (
           <Film size={14} className="text-slate-500 shrink-0" />
         )}
@@ -109,7 +109,10 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (!sessionId) return
-    const wsBase = import.meta.env.VITE_USE_MOCK === 'true' ? null : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
+    const API_URL = import.meta.env.VITE_API_URL || ''
+    const wsBase = import.meta.env.VITE_USE_MOCK === 'true' ? null
+      : API_URL ? `ws://${API_URL.replace(/^https?:\/\//, '')}`
+      : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
     if (!wsBase) return
     const ws = new WebSocket(`${wsBase}/api/upload/ws/${sessionId}`)
     wsRef.current = ws

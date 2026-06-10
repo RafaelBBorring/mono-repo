@@ -24,6 +24,8 @@ PARADIGMA PEH: Habilidades comecam BASE. PEH e o UNICO motor de escala. Nivel do
 - Evolucao respeita conceito: cura evolui cura, dano evolui dano.
 - Tags controlam evolucao: custoEnergia, dano, cura, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
 - CA e Classe de Armadura usam bonusCA. Nao confunda com armadura de equipamento.
+- DT deve vir cheia: "DT 18 Constituicao" ou "DT 22 Fortitude". Nunca retorne apenas "DT 18".
+- DT por atributo usa valor mais baixo; DT por pericia usa valor 3-5 pontos maior porque a rolagem inclui treinamento.
 - Nao crie nem aumente duracao se a habilidade for instantanea ou nao tiver tag duracao.
 - Estrategia: concentrar PEH = poder devastador porem caro. Distribuir = varias habilidades uteis.
 
@@ -42,9 +44,9 @@ Comece SEMPRE pelo bloco JSON. Depois, no maximo 3 linhas de analise.
   "custoEnergia": numero,
   "dano": "string",
   "duracao": "string ou vazio/null se instantanea",
-  "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+  "dt": "DT <numero> <Atributo|Pericia> ou vazio. Ex: DT 18 Constituicao ou DT 22 Fortitude",
   "tags": ["custoEnergia"],
-  "valores": { "custoEnergia": 0 },
+  "valores": { "custoEnergia": 0, "dt": "18", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" },
   "descricaoBalanceada": "texto ajustado completo",
   "feedback": "explicacao"
 }
@@ -58,7 +60,7 @@ REGRAS:
 3. TDH: Cada habilidade tem teto conforme tipo e faixa.
 4. ECONOMIA DE ACOES: habilidade + conhecimento NAO na mesma acao. Max 2 ataques/turno.
 5. TRADUCAO DE EFEITOS: Todo efeito narrativo DEVE ter traducao mecanica (NdN, Vantagem, bonus).
-6. O DEFENSOR SEMPRE pode se defender com Teste de Resistencia.
+6. O DEFENSOR SEMPRE pode se defender com teste especifico: atributo (FOR/DES/CON/INT/APA/AM) ou pericia (Fortitude/Reflexo/Vontade/etc). Nao use "teste de resistencia" generico.
 
 Seja direto e objetivo. Cite numeros e limites quando relevante.`
 }

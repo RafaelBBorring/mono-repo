@@ -140,7 +140,15 @@ function AbilityCard({ ability, original, onApplySingle, onRefine, onGmRequest }
             <div className="flex flex-wrap gap-1.5">
               {tagChips.map(chip => (
                 <span key={chip.tag} className="text-[10px] bg-void/45 border border-sep/25 text-txt-dim/75 px-2 py-0.5 rounded font-mono">
-                  {chip.label}{chip.value ? ` ${chip.value}` : ''}
+                  {chip.tag === 'dt' ? (
+                    <>
+                      DT: {chip.value || 'tipo?'}{chip.missingType ? <span className="text-amber-300/80"> tipo?</span> : null}
+                    </>
+                  ) : (
+                    <>
+                      {chip.label}{chip.value ? ` ${chip.value}` : ''}
+                    </>
+                  )}
                 </span>
               ))}
             </div>

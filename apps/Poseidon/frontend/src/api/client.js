@@ -2,10 +2,17 @@ import axios from 'axios'
 import { mockSurfistsAPI, mockReviewAPI, mockUploadAPI, updateVideoMedia, getVideoFile, applyClustering } from './mockData'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 export { updateVideoMedia, getVideoFile, applyClustering }
 
-const BASE = '/api'
+const BASE = API_URL ? `${API_URL}/api` : '/api'
+
+export function mediaUrl(path) {
+  if (!path) return path
+  if (API_URL && path.startsWith('/')) return `${API_URL}${path}`
+  return path
+}
 
 export const api = axios.create({
   baseURL: BASE,

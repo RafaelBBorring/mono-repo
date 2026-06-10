@@ -1,0 +1,86 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "username": "System-Olympo",
+  "instructions": ["AGENTS.md"],
+  "default_agent": "build",
+  "agent": {
+    "revisor-inicial": {
+      "description": "Revisor Inicial — Analise critica ANTES de implementacoes. Verifica consistencia, balanceamento e viabilidade.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask"
+      }
+    },
+    "revisor-final": {
+      "description": "Revisor Final — Revisao de qualidade APOS implementacoes. Verifica integridade, UI/UX, seguranca e completude.",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask"
+      }
+    },
+    "ajuste-niveis": {
+      "description": "Estende sistema para niveis 31-50: progressao, caps, pericias, passivas. Evita valores absurdos.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "reformulacao-racas": {
+      "description": "Reformula selecao de racas com grid de cards quadrados arredondados e vantagens resumidas.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "balanceamento-habilidades": {
+      "description": "Revisa e ajusta sistema de criacao e balanceamento de habilidades. Analisa protocolo e prompts de IA.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "acessibilidade-habilidades": {
+      "description": "Cria sistema de 'cola' para habilidades extras — selecao rapida durante combate.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "ui-ux-design": {
+      "description": "Repaginacao visual completa — efeitos, animacoes, hover/click, organizacao. Estilo Claude Design.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "codex-arcanum": {
+      "description": "Implementa sistema de NPCs do Codex-Arcanum no System-Olympo. Novos arquivos, sem alterar originais.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "banco-local": {
+      "description": "Implementa banco local (IndexedDB) + export/import para Codex-Arcanum. Compativel com GitHub Pages.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    }
+  },
+  "compaction": {
+    "auto": true,
+    "tail_turns": 15
+  }
+}

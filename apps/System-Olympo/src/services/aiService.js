@@ -1110,6 +1110,8 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — O mestre julga qu
 - Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 - DT: SEMPRE especifique atributo (ex: "DT 18 Constituicao") ou pericia (ex: "DT 22 Fortitude"). NUNCA use "teste de resistencia" generico. DT por pericia = DT atributo equivalente + 3-5.
+- DT por atributo usa valor mais baixo porque o alvo rola 1d20 + modificador. DT por pericia usa valor 3-5 maior porque o alvo soma treinamento.
+- Retorne "dt" com o valor cheio e "valores.dtTipo"/"valores.dtTeste" quando houver DT.
 - DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
 - TAGS: Retorne "tags" e "valores" para cada habilidade. CA e Classe de Armadura usam a tag "bonusCA". Habilidades instantaneas NAO recebem tag "duracao" e devem retornar duracao vazia/null.
 - PEH POR TAG: escale somente as tags reconhecidas no campo "instrucaoEvolucao". Se a habilidade nao tem tag "dano", nao adicione dano; se nao tem tag "duracao", nao adicione rodadas.
@@ -1137,9 +1139,9 @@ Responda EXCLUSIVAMENTE com JSON:
       "custoEnergia": numero_ajustado,
       "dano": "XdY+MOD ajustado ou vazio",
       "duracao": "X rodadas ajustado ou vazio/null se instantanea",
-      "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+      "dt": "DT <numero> <Atributo|Pericia> ou vazio. Ex: DT 18 Constituicao ou DT 22 Fortitude",
       "tags": ["custoEnergia", "bonusCA"],
-      "valores": { "custoEnergia": 0, "bonusCA": "+2" },
+      "valores": { "custoEnergia": 0, "bonusCA": "+2", "dt": "18", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" },
       "status": "aprovada|ajustada|irbalanceavel",
       "feedback": "explique: 1) análise do conceito 2) valores alterados (antes→depois) 3) referência TDH/PEH/LCP 4) combo detectado 5) se irbalanceavel, o que o jogador deve mudar"
     }
@@ -1205,6 +1207,8 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — Aumente danos ~30
 - Habilidades com condições difíceis de ativação podem ter valores maiores que o teto do bracket.
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 - DT: SEMPRE especifique atributo (ex: "DT 18 Constituicao") ou pericia (ex: "DT 22 Fortitude"). NUNCA use "teste de resistencia" generico. DT por pericia = DT atributo equivalente + 3-5.
+- DT por atributo usa valor mais baixo porque o alvo rola 1d20 + modificador. DT por pericia usa valor 3-5 maior porque o alvo soma treinamento.
+- Retorne "dt" com o valor cheio e "valores.dtTipo"/"valores.dtTeste" quando houver DT.
 - DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
 - TAGS: Retorne "tags" e "valores" para cada habilidade. CA e Classe de Armadura usam a tag "bonusCA". Habilidades instantaneas NAO recebem tag "duracao" e devem retornar duracao vazia/null.
 - PEH POR TAG: escale somente as tags reconhecidas no campo "instrucaoEvolucao". Se a habilidade nao tem tag "dano", nao adicione dano; se nao tem tag "duracao", nao adicione rodadas.
@@ -1229,9 +1233,9 @@ Responda EXCLUSIVAMENTE com JSON:
       "custoEnergia": 0,
       "dano": "XdY+MOD ajustado ou vazio",
       "duracao": "X rodadas ajustado ou vazio/null se instantanea",
-      "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+      "dt": "DT <numero> <Atributo|Pericia> ou vazio. Ex: DT 18 Constituicao ou DT 22 Fortitude",
       "tags": ["custoEnergia", "bonusCA"],
-      "valores": { "custoEnergia": 0, "bonusCA": "+2" },
+      "valores": { "custoEnergia": 0, "bonusCA": "+2", "dt": "18", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" },
       "status": "aprovada|ajustada|irbalanceavel",
       "feedback": "explique"
     }
@@ -1460,11 +1464,12 @@ Regras:
 - Mantenha coerência narrativa: todas as habilidades devem pertencer ao mesmo personagem
 - Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA".
 - Habilidades instantaneas nao devem ter duracao nem tag "duracao".
+- Se houver DT, retorne o valor cheio: "DT 18 Constituicao" para atributo ou "DT 22 Fortitude" para pericia. DT por pericia deve ser 3-5 pontos maior.
 
 Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habilidades"):
 {
   "habilidades": [
-    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Módulo)", "nome": "nome criativo", "descricao": "descrição com mecânicas e placeholders", "custoEnergia": 0, "dano": "XdY+MOD ou vazio", "duracao": "X rodadas ou vazio/null se instantanea", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0 } }
+    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Módulo)", "nome": "nome criativo", "descricao": "descrição com mecânicas e placeholders", "custoEnergia": 0, "dano": "XdY+MOD ou vazio", "duracao": "X rodadas ou vazio/null se instantanea", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0, "dt": "18", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" } }
   ]
 }`
 
@@ -1498,7 +1503,8 @@ Os 4 Regentes:
 
 REGRA CRUCIAL DE MECÂNICA:
 - NADA no efeito é puramente narrativo. "Empurra o alvo 10m" NÃO é aceitável.
-- Todo efeito DEVE ter um mecânico de jogo: teste de resistência (FOR/DES/CON/INT/AM), CD, vantagem/desvantagem, dano (NdN+MOD), condição (caído, lento, cego, envenenado, etc.), duração em rodadas.
+- Todo efeito DEVE ter um mecânico de jogo: teste especifico de atributo/pericia, CD/DT, vantagem/desvantagem, dano (NdN+MOD), condição (caído, lento, cego, envenenado, etc.), duração em rodadas.
+- Se houver DT, retorne o valor cheio: "DT 18 Constituicao" para atributo ou "DT 22 Fortitude" para pericia. DT por pericia deve ser 3-5 pontos maior.
 - Se o ritual empurra, isso é: "Teste FOR vs FOR. Falha: alvo é deslocado 1 espaço e cai caído. Sucesso: alvo permanece."
 - Se o ritual protege, isso é: "Barreira com X PV e CA Y. Absorve dano até ser destruída. Dura X rodadas."
 - Cada efeito deve incluir: o que acontece, como resistir (se aplicável), dano/condição/resultados de sucesso e falha, duração, alcance, contrapeso.
@@ -1760,7 +1766,7 @@ TERMINOLOGIA DO SISTEMA (USE ESTES TERMOS)
 - NdN = formato de dados (3d10 = 3 dados de 10 lados)
 - MOD = modificador de atributo (FOR, DES, CON, INT, AM)
 - Vantagem / Desvantagem = mecanica de rolar 2d20 e ficar com o melhor/pior
-- Teste de Resistencia = FOR/DES/CON/INT/AM contra CD
+- Teste defensivo = atributo especifico (FOR/DES/CON/INT/APA/AM) ou pericia especifica (Fortitude/Reflexo/Vontade/etc) contra CD/DT. Nao use "teste de resistencia" generico.
 
 ==
 NIVEL DE PODER: ${guide.label}
@@ -1829,7 +1835,7 @@ REGRA #3 — FORMATO DE MECANICAS DE JOGO
 TODOS os efeitos devem usar MECANICAS CONCRETAS com valores. PROIBIDO prosa sem suporte mecanico.
 
 FORMATO CORRETO:
-- "Causa 3d10+8 de dano perfurante. Alvos devem realizar Teste de Resistencia CON CD 22 ou ficam atordoados por 1 rodada."
+- "Causa 3d10+8 de dano perfurante. Alvos devem realizar teste de Fortitude DT 22 ou ficam atordoados por 1 rodada."
 - "Concede +15% de chance de critico. O critico desta arma causa 3x de dano (1.5x adicional). Ativa apenas quando o portador esta abaixo de 50% de vida maxima."
 - "+2d6 em Testes de Percepcao com Vantagem contra ilusoes e criaturas ocultas."
 - "Ignora +3 de CA do alvo. Penetra armaduras de ate 5 pontos."
@@ -1941,6 +1947,8 @@ MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
 TAGS E DURACAO:
 - Use tags padronizadas: custoEnergia, dano, cura, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
 - CA significa Classe de Armadura. Efeitos como "+2 CA" usam tag "bonusCA" e valores.bonusCA.
+- DT deve vir cheia: "DT 18 Constituicao" ou "DT 22 Fortitude". Nunca retorne apenas "DT 18".
+- DT por atributo usa valor mais baixo; DT por pericia usa valor 3-5 pontos maior porque a rolagem inclui treinamento.
 - Nao crie nem aumente duracao se a habilidade for instantanea ou se nao tiver tag duracao. "1 turno/1 rodada" ou "ate o proximo turno" so contam se forem efeito persistente real.
 - PEH escala somente as tags existentes; nao adicione dano/cura/DT/duracao que nao pertencem ao conceito.
 
@@ -1952,9 +1960,9 @@ Quando o usuário pede alterações em uma habilidade específica, inclua SEMPRE
   "custoEnergia": numero,
   "dano": "string",
   "duracao": "string ou vazio/null se instantanea",
-  "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+  "dt": "DT <numero> <Atributo|Pericia> ou vazio. Ex: DT 18 Constituicao ou DT 22 Fortitude",
   "tags": ["custoEnergia"],
-  "valores": { "custoEnergia": 0 },
+  "valores": { "custoEnergia": 0, "dt": "18", "dtTipo": "atributo|pericia", "dtTeste": "Constituicao|Fortitude" },
   "descricaoBalanceada": "texto ajustado completo",
   "feedback": "explicação da mudança"
 }

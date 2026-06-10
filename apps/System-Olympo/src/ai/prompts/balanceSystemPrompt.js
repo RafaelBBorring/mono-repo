@@ -181,6 +181,7 @@ PISO MINIMO DE DT:
 FORMATO OBRIGATORIO NO JSON:
 - Campo "dt": SEMPRE "DT <numero> <Atributo|Pericia>" — ex: "DT 18 Constituicao", "DT 22 Fortitude", "DT 15 Destreza"
 - Campo "valores.dt": apenas o numero — ex: "18"
+- Campo "valores.dtTipo": "atributo" ou "pericia"; campo "valores.dtTeste": nome do atributo/pericia, ex: "Constituicao" ou "Fortitude".
 - NUNCA escreva "DT 18" sozinho. SEMPRE com o atributo ou pericia.
 - NUNCA use "teste de resistencia" na descricaoBalanceada — substitua pelo teste especifico: "teste de Constituicao", "teste de Fortitude", etc.
 
@@ -348,7 +349,9 @@ O JSON deve ser um array de objetos, um por habilidade, com esta estrutura exata
     "valores": {
       "custoEnergia": 25,
       "dano": "4d12+FOR+20",
-      "dt": "18"
+      "dt": "18",
+      "dtTipo": "atributo",
+      "dtTeste": "Constituicao"
     }
   }
 ]

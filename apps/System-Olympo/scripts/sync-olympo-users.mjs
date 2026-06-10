@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://wmkswavqtqyfcjuiwtbw.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta3N3YXZxdHF5ZmNqdWl3dGJ3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Njg5MDA5MSwiZXhwIjoyMDkyNDY2MDkxfQ.bS1XSnMOhxJ_MSeKzSmzn_Axpq5gEPxfCsSg4_enfgk'
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://wmkswavqtqyfcjuiwtbw.supabase.co'
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+
+if (!SUPABASE_SERVICE_KEY) {
+  throw new Error('Set SUPABASE_SERVICE_ROLE_KEY before running this script.')
+}
 const DEFAULT_PASSWORD = 'olympo2026'
 
 const USERS = [

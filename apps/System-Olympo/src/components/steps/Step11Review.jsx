@@ -8,7 +8,7 @@ import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
 import { RANK_COLORS } from '../../data/colors'
 import { calcPEHTotal, calcPericiasAvailable } from '../../utils/calculator'
-import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, normalizeSkillTags } from '../../utils/skillEvolution'
+import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, getSkillDtDisplay, hasSkillDtType, normalizeSkillTags } from '../../utils/skillEvolution'
 import { PERICIAS, GRAU_NAMES, getGrauBonus, getMaxGrauForLevel } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
@@ -2586,6 +2586,8 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   const maxEvo = getMaxEvolucao(h.tipo, charNivel)
   const evoDelta = calcEvolucaoDelta(h, evoNivel)
   const tagChips = getSkillTagChips(h)
+  const dtDisplay = getSkillDtDisplay(h)
+  const dtMissingType = !!dtDisplay && !hasSkillDtType(h)
   const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
   const { allowed: canUp, reason: upReason } = canEvolveSkill(h, evoNivel, charNivel)
   const canDown = evoNivel > 0 && h.tipo !== 'Passiva'
@@ -2716,7 +2718,15 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
                 const evoBonus = evoNivel > 0 ? evoDelta?.tagBonuses?.find(item => item.tag === chip.tag) : null
                 return (
                   <span key={chip.tag} className="text-[10px] bg-void/45 border border-sep/25 text-txt-dim/80 px-2 py-0.5 rounded font-mono">
-                    {chip.label}{chip.value ? ` ${chip.value}` : ''}{evoBonus ? <span className="text-gold/80"> {evoBonus.value}</span> : null}
+                    {chip.tag === 'dt' ? (
+                      <>
+                        DT: {chip.value || 'tipo?'}{evoBonus ? <span className="text-gold/80"> ({evoBonus.value})</span> : null}{chip.missingType ? <span className="text-amber-300/80"> tipo?</span> : null}
+                      </>
+                    ) : (
+                      <>
+                        {chip.label}{chip.value ? ` ${chip.value}` : ''}{evoBonus ? <span className="text-gold/80"> {evoBonus.value}</span> : null}
+                      </>
+                    )}
                   </span>
                 )
               })}
@@ -2745,9 +2755,9 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
                      ⏱ Duração: {h.duracao}{evoDelta?.duracaoExtra ? <span className="text-amber-300/80"> {evoDelta.duracaoExtra}</span> : ''}
                    </span>
                  )}
-                 {h.dt && (
+                 {dtDisplay && (
                    <span className="text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/20 text-xs font-mono" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                     🎯 DT: {h.dt}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}
+                     🎯 DT: {dtDisplay}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}{dtMissingType ? <span className="text-amber-300/80"> tipo?</span> : ''}
                    </span>
                  )}
                </div>
@@ -2775,9 +2785,9 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
                      ⏱ Duração: {h.duracao}{evoDelta?.duracaoExtra ? <span className="text-amber-300/80"> {evoDelta.duracaoExtra}</span> : ''}
                    </span>
                  )}
-                 {h.dt && (
+                 {dtDisplay && (
                    <span className="text-purple-400 px-3 py-1.5 rounded-lg border border-purple-500/20 text-xs font-mono" style={{ background: 'rgba(168,85,247,0.06)' }}>
-                     🎯 DT: {h.dt}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}
+                     🎯 DT: {dtDisplay}{evoDelta?.dtExtra > 0 ? <span className="text-purple-300/80"> (+{evoDelta.dtExtra})</span> : ''}{dtMissingType ? <span className="text-amber-300/80"> tipo?</span> : ''}
                    </span>
                  )}
                </div>

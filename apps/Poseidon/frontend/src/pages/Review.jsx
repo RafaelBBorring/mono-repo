@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { reviewAPI } from '../api/client'
+import { reviewAPI, mediaUrl } from '../api/client'
 import {
   Eye, ChevronLeft, ChevronRight, CheckCircle,
   XCircle, SkipForward, RefreshCw, Loader2
@@ -203,14 +203,14 @@ export default function ReviewPage() {
         <div className="grid grid-cols-5 gap-6">
           {/* ── Left: Video + Evidence ──────────────────────────── */}
           <div className="col-span-3 space-y-4">
-            <VideoPlayer src={current.video_url} />
+            <VideoPlayer src={mediaUrl(current.video_url)} />
 
             {/* AI Evidence crops */}
             {detail && (
               <div className="grid grid-cols-3 gap-3">
-                <Evidence label="Face Crop"     src={detail.face_crop_url} />
-                <Evidence label="Pose Skeleton" src={detail.pose_sketch_url} />
-                <Evidence label="Board Crop"    src={detail.board_crop_url} />
+                <Evidence label="Face Crop"     src={mediaUrl(detail.face_crop_url)} />
+                <Evidence label="Pose Skeleton" src={mediaUrl(detail.pose_sketch_url)} />
+                <Evidence label="Board Crop"    src={mediaUrl(detail.board_crop_url)} />
               </div>
             )}
           </div>

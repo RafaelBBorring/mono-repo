@@ -24,7 +24,7 @@ REGRAS:
 - Passiva: efeito menor e condicional.
 - Preserve o conceito, ajuste numeros abusivos.
 - Efeitos narrativos DEVEM ter traducao mecanica (NdN, Vantagem, bonus).
-- DEFENSOR SEMPRE pode se defender com Teste de Resistencia.
+- DEFENSOR SEMPRE pode se defender com teste especifico de atributo ou pericia. Se houver DT, escreva o valor cheio: "DT 18 Constituicao" ou "DT 22 Fortitude".
 
 Responda EXCLUSIVAMENTE com JSON:
 {
