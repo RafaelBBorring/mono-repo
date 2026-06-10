@@ -95,7 +95,7 @@ REGRAS CRITICAS:
 8. O DEFENSOR SEMPRE tem chance de resistir com teste especifico (atributo, pericia, CA, DT, etc). Nao use "teste de resistencia" generico.
 9. Se a habilidade envolver teste do alvo, inclua a DT base cheia: "DT 14 Constituicao" ou "DT 18 Fortitude". DT por atributo deve ser mais baixa; DT por pericia deve ser 3-5 pontos mais alta por causa do treinamento.
 10. Habilidades com PEH=0 sao INTENCIONALMENTE modestas. O poder vem da evolucao.
-11. Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA". Regeneracao/restauracao de energia usa tag "curaEnergia", nao "cura". Velocidade reduzida usa "lentidao". Habilidades instantaneas nao devem ter duracao nem tag "duracao".
+11. Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA". Regeneracao/restauracao de energia usa tag "curaEnergia", nao "cura". Nao existe tag "lentidao": velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real. Habilidades instantaneas nao devem ter duracao nem tag "duracao".
 
 Responda EXCLUSIVAMENTE com JSON:
 {

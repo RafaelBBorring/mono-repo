@@ -45,8 +45,8 @@ const DT_BONUS = [0, 2, 2, 3, 3, 4]
 
 const TAG_ORDER = [
   'custoEnergia', 'dano', 'cura', 'curaEnergia', 'duracao', 'dt', 'bonusAtaque', 'bonusCA',
-  'bonusResultado', 'vantagem', 'area', 'deslocamento', 'resistencia',
-  'paralisia', 'lentidao', 'curaStatus', 'invisibilidade', 'invocacao',
+  'bonusResultado', 'bonusReacoes', 'vantagem', 'area', 'deslocamento', 'resistencia',
+  'paralisia', 'curaStatus', 'invisibilidade', 'invocacao',
 ]
 
 const TAG_LABELS = {
@@ -59,12 +59,12 @@ const TAG_LABELS = {
   bonusAtaque: 'Ataque',
   bonusCA: 'CA',
   bonusResultado: 'Resultado',
+  bonusReacoes: 'Reacoes',
   vantagem: 'Vantagem',
   area: 'Area',
   deslocamento: 'Deslocamento',
   resistencia: 'Resistencia',
   paralisia: 'Controle',
-  lentidao: 'Lentidao',
   curaStatus: 'Status',
   invisibilidade: 'Invisibilidade',
   invocacao: 'Invocacao',
@@ -100,6 +100,9 @@ const TAG_ALIASES = {
   bonusresultado: 'bonusResultado',
   resultado: 'bonusResultado',
   pericia: 'bonusResultado',
+  bonusreacoes: 'bonusReacoes',
+  reacao: 'bonusReacoes',
+  reacoes: 'bonusReacoes',
   vantagem: 'vantagem',
   area: 'area',
   deslocamento: 'deslocamento',
@@ -110,11 +113,6 @@ const TAG_ALIASES = {
   paralisia: 'paralisia',
   atordoamento: 'paralisia',
   stun: 'paralisia',
-  lentidao: 'lentidao',
-  lento: 'lentidao',
-  lentos: 'lentidao',
-  velocidadereduzida: 'lentidao',
-  slow: 'lentidao',
   curastatus: 'curaStatus',
   status: 'curaStatus',
   invisibilidade: 'invisibilidade',
@@ -123,8 +121,8 @@ const TAG_ALIASES = {
 }
 
 const POWER_TAGS = new Set([
-  'dano', 'cura', 'curaEnergia', 'bonusAtaque', 'bonusCA', 'bonusResultado', 'vantagem',
-  'area', 'deslocamento', 'resistencia', 'paralisia', 'lentidao', 'curaStatus',
+  'dano', 'cura', 'curaEnergia', 'bonusAtaque', 'bonusCA', 'bonusResultado', 'bonusReacoes', 'vantagem',
+  'area', 'deslocamento', 'resistencia', 'paralisia', 'curaStatus',
   'invisibilidade', 'invocacao',
 ])
 
@@ -244,13 +242,13 @@ function inferSkillTags(skill = {}) {
   if (getSkillDtDisplay(skill) || /\b(dt|cd)\s*\d+|\bteste de\b/.test(text)) addTag(tags, 'dt')
   if (values.bonusCA || /\+\s*\d+\s*(?:de\s*)?(?:bonus\s*(?:de\s*)?)?ca\b|\bca\s*\+\s*\d+|classe de armadura/.test(text)) addTag(tags, 'bonusCA')
   if (values.bonusAtaque || /\+\s*\d+\s*(ataque|acerto|lutar|pontaria)\b/.test(text)) addTag(tags, 'bonusAtaque')
-  if (values.bonusResultado || /\+\s*\d+\s*(resultado|teste|pericia|pericias)\b/.test(text)) addTag(tags, 'bonusResultado')
+  if (values.bonusResultado || /[+-]\s*\d+\s*(resultado|teste|pericia|pericias)\b/.test(text) || hasActionResultPenaltyText(text)) addTag(tags, 'bonusResultado')
+  if (values.bonusReacoes || /[+-]\s*\d+\s*(reacao|reacoes)\b|perde.{0,12}reac|sem.{0,12}reac|nao pode reagir/.test(text)) addTag(tags, 'bonusReacoes')
   if (/\bvantagem\b/.test(text)) addTag(tags, 'vantagem')
   if (/\b(area|raio|cone|linha|explosao|explosao)\b/.test(text)) addTag(tags, 'area')
   if (/\b(teleporte|teleporta|deslocamento|dash|movimento|metros|m\b)/.test(text)) addTag(tags, 'deslocamento')
   if (/\bresistencia|resiste|reduz dano|reducao de dano/.test(text)) addTag(tags, 'resistencia')
   if (/\b(paralis|atordo|stun|imobiliz|incapacit)/.test(text)) addTag(tags, 'paralisia')
-  if (/\b(paralis|atordo|stun|imobiliz|incapacit)/.test(text) === false && /\b(lentidao|lento|velocidade reduzida|reduz.*velocidade|slow|desvantagem.*acao|perde.*acao.*movimento|perde.*reacao|sem.*movimento|sem.*reacao|-1.*acao|desvantagem.*teste)/.test(text)) addTag(tags, 'lentidao')
   if (/\b(remove|cura).{0,18}(condicao|status|veneno|medo|sangramento)/.test(text)) addTag(tags, 'curaStatus')
   if (/\binvis|furtividade|ficar ocult|oculto/.test(text)) addTag(tags, 'invisibilidade')
   if (/\binvoca|invocacao|conjura criatura|servo\b/.test(text)) addTag(tags, 'invocacao')
@@ -307,6 +305,30 @@ function extractEnergyRecoveryValue(text) {
   return ''
 }
 
+function hasActionResultPenaltyText(text) {
+  return /\b(lento|lentos|velocidade reduzida|reduz.*velocidade|slow|desvantagem.*acao|perde.*acao.*movimento|-?\d+.*resultado|-?\d+.*teste)/.test(text)
+}
+
+function extractActionResultPenaltyValue(text) {
+  const normalized = stripAccents(text)
+  const direct = extractSignedValue(normalized, [/[+]?(-?\d+)\s*(?:resultado|teste|pericia|pericias)\b/i])
+  if (direct) return direct
+  const speed = normalized.match(/\b(?:velocidade\s+reduzida\s+em|reduz.{0,18}velocidade.{0,12}em)\s*(\d+)\b/i)?.[1]
+  if (speed) return `-${Math.max(1, Number(speed)) * 2}`
+  if (/\b(lento|lentos|slow|desvantagem.*acao|perde.*acao.*movimento)\b/i.test(normalized)) return '-2'
+  return ''
+}
+
+function extractReactionValue(text) {
+  const normalized = stripAccents(text)
+  const lost = normalized.match(/\bperde\D{0,12}(\d+)\s*(?:reacao|reacoes)\b/i)?.[1]
+  if (lost) return `-${lost}`
+  if (/\b(?:sem|nao pode usar|nao pode fazer|nao pode gastar|nao pode reagir).{0,18}(?:reacao|reacoes|reagir)\b/i.test(normalized)) return '-1'
+  const direct = normalized.match(/([+-]\d+)\s*(?:reacao|reacoes)\b/i)?.[1]
+  if (direct) return direct
+  return ''
+}
+
 export function getSkillTagValue(skill = {}, tag) {
   const values = skill.valores || {}
   const text = [
@@ -329,11 +351,11 @@ export function getSkillTagValue(skill = {}, tag) {
   if (tag === 'duracao' && skill.duracao) return skill.duracao
   if (tag === 'bonusCA') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:de\s*)?(?:bonus\s*(?:de\s*)?)?CA\b/i, /\bCA\s*([+-]?\d+)\b/i])
   if (tag === 'bonusAtaque') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:ataque|acerto)\b/i])
-  if (tag === 'bonusResultado') return extractSignedValue(text, [/[+]?(-?\d+)\s*(?:resultado|teste|pericia|pericias)\b/i])
+  if (tag === 'bonusResultado') return extractActionResultPenaltyValue(text) || extractSignedValue(text, [/[+]?(-?\d+)\s*(?:resultado|teste|pericia|pericias)\b/i])
+  if (tag === 'bonusReacoes') return extractReactionValue(text)
   if (tag === 'area') return stripAccents(text).match(/\b(\d+\s*(?:m|metros?|pes|pés))\b/i)?.[1] || ''
   if (tag === 'deslocamento') return stripAccents(text).match(/\b(\d+\s*(?:m|metros?|pes|pés))\b/i)?.[1] || ''
   if (tag === 'resistencia') return text.match(/\b(\d+%|-?\d+\s*dano)\b/i)?.[1] || ''
-  if (tag === 'lentidao') return stripAccents(text).match(/\b(?:velocidade\s+reduzida\s+em|reduz.{0,18}velocidade.{0,12}em)\s*(\d+)\b/i)?.[1] || ''
   return ''
 }
 
@@ -389,8 +411,12 @@ export function calcEvolucaoDelta(skill, evolNivel) {
   const curaEnergiaExtra = tags.includes('curaEnergia') ? scaleNumber(delta.flat * evolNivel, splitBudgetByTags(tags)) : 0
   const caExtra      = tags.includes('bonusCA') ? Math.ceil(evolNivel / 2) : 0
   const ataqueExtra  = tags.includes('bonusAtaque') ? Math.ceil(evolNivel / 2) : 0
-  const resultadoExtra = tags.includes('bonusResultado') ? evolNivel : 0
-  const lentidaoExtra = tags.includes('lentidao') ? evolNivel : 0
+  const resultadoBase = getSkillTagValue(skill, 'bonusResultado')
+  const resultadoSign = /^-/.test(String(resultadoBase).trim()) ? -1 : 1
+  const resultadoExtra = tags.includes('bonusResultado') ? evolNivel * resultadoSign : 0
+  const reacoesBase = getSkillTagValue(skill, 'bonusReacoes')
+  const reacoesSign = /^-/.test(String(reacoesBase).trim()) ? -1 : 1
+  const reacoesExtra = tags.includes('bonusReacoes') ? Math.ceil(evolNivel / 2) * reacoesSign : 0
 
   const dadoExtraStr = tags.includes('dano') ? buildDiceExtra(delta.dadoExtra, evolNivel, damageMultiplier) : ''
 
@@ -412,8 +438,8 @@ export function calcEvolucaoDelta(skill, evolNivel) {
     dtExtra > 0 && { tag: 'dt', label: 'DT', value: `+${dtExtra}` },
     caExtra > 0 && { tag: 'bonusCA', label: 'CA', value: `+${caExtra}` },
     ataqueExtra > 0 && { tag: 'bonusAtaque', label: 'Ataque', value: `+${ataqueExtra}` },
-    resultadoExtra > 0 && { tag: 'bonusResultado', label: 'Resultado', value: `+${resultadoExtra}` },
-    lentidaoExtra > 0 && { tag: 'lentidao', label: 'Lentidao', value: `+${lentidaoExtra}` },
+    resultadoExtra !== 0 && { tag: 'bonusResultado', label: 'Resultado', value: `${resultadoExtra > 0 ? '+' : ''}${resultadoExtra}` },
+    reacoesExtra !== 0 && { tag: 'bonusReacoes', label: 'Reacoes', value: `${reacoesExtra > 0 ? '+' : ''}${reacoesExtra}` },
   ].filter(Boolean)
 
   const valores = {
@@ -427,7 +453,7 @@ export function calcEvolucaoDelta(skill, evolNivel) {
     caExtra,
     ataqueExtra,
     resultadoExtra,
-    lentidaoExtra,
+    reacoesExtra,
     danoTotal,
   }
 
@@ -444,7 +470,7 @@ export function calcEvolucaoDelta(skill, evolNivel) {
     caExtra,
     ataqueExtra,
     resultadoExtra,
-    lentidaoExtra,
+    reacoesExtra,
     allTags:      tags,
     tagBonuses,
     valores,

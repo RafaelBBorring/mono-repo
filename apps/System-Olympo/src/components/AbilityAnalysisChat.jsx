@@ -571,9 +571,10 @@ Tags atuais/inferidas: ${getSkillTagChips(ability).map(chip => chip.tag).join(',
 Status atual: ${ability.status || 'Pendente'}
 
 Regras de tags:
-- Retorne tags padronizadas: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, lentidao, curaStatus, invisibilidade, invocacao.
+- Retorne tags padronizadas: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, bonusReacoes, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
 - CA significa Classe de Armadura. Use bonusCA para efeitos como "+2 CA"; nao confunda com armadura de equipamento.
 - Regeneracao/restauracao de energia usa curaEnergia, nao cura. Ex: "regenera 5 energia por rodada" => valores.curaEnergia "+5/rodada".
+- Nao existe tag lentidao. Reducao de velocidade deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real.
 - Nao use tag duracao e nao preencha duracao para habilidades instantaneas. "1 turno/1 rodada" so deve ser duracao se for um efeito persistente real, nao janela de resolucao.
 
 Retorne primeiro um bloco JSON obrigatorio com os valores finais desta habilidade:

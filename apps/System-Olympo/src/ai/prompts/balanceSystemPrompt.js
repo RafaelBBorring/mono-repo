@@ -308,9 +308,10 @@ TAGS DISPONIVEIS:
 - custoEnergia  — Custo de pontos de energia
 - bonusAtaque   — Bonus em testes de ataque
 - bonusCA       — Bonus na Classe de Armadura
+- bonusResultado— Bonus ou penalidade em resultado de testes/acoes
+- bonusReacoes  — Bonus ou penalidade no numero de reacoes
 - vantagem      — Vantagem em teste especifico
 - paralisia     — Paralisia, atordoamento ou stun (perda TOTAL de acoes)
-- lentidao      — Reducao de velocidade/acoes. NAO existe "velocidade reduzida em 1" no sistema. TRADUZA para mecanicas reais (veja abaixo).
 - area          — Efeito em area
 - curaStatus    — Cura de condicao ou efeito de status
 - resistencia   — Resistencia a tipo de dano
@@ -328,15 +329,16 @@ REGRAS DE TAGS:
 - "1 turno", "1 rodada" ou "ate o inicio/fim do proximo turno" so contam como duracao se forem um efeito persistente real. Se forem apenas janela de resolucao de um teleporte, ataque, cura ou bonus imediato, retorne duracao null/vazia.
 - PEH deve escalar somente tags existentes. Nao crie dano, duracao, cura ou DT que nao existiam no conceito da habilidade.
 
-TRADUCAO DE "VELOCIDADE REDUZIDA" — TAG LENTIDAO:
+TRADUCAO DE "VELOCIDADE REDUZIDA" — MECANICA REAL:
 O Sistema Olympo NAO possui atributo "velocidade" ou "reducao de velocidade em X". Quando o jogador escrever algo como "velocidade reduzida", "lento", "movimento reduzido", VOCE DEVE traduzir para uma ou mais destas mecanicas reais:
 - Desvantagem em testes de DES/Reflexo
 - Perda da acao de movimento (alvo so pode usar Acao Padrao + Acao Bonus, sem movimento)
 - -1 acao por turno (alvo so tem 2 acoes em vez de 3)
 - Perda de reacoes (alvo nao pode reagir)
-- -X em testes de resultado/pericia (penalidade geral)
-Escolha a mecanica MAIS COERENTE com o conceito. Inclua "lentidao" nas tags e traduza na descricaoBalanceada.
-PEH evolui lentidao aumentando a severidade (ex: de desvantagem → perda de movimento → perda de acao).
+- -X em testes de resultado/pericia (penalidade geral). Nesse caso, use tag "bonusResultado" com valor negativo.
+- -Y reacoes ou alvo sem reacao. Nesse caso, use tag "bonusReacoes" com valor negativo.
+Escolha a mecanica MAIS COERENTE com o conceito. NUNCA inclua tag "lentidao"; ela nao existe no sistema.
+PEH evolui a penalidade aumentando a severidade (ex: Resultado -2 vira Resultado -4) ou endurecendo a restricao descrita.
 
 ═════════════════════════════════════════════════════
 FORMATO DE RESPOSTA — JSON OBRIGATORIO:
@@ -377,7 +379,7 @@ CAMPOS OBRIGATORIOS por tipo de habilidade:
 - Se da bonus CA: incluir tag "bonusCA" e valores.bonusCA (ex: "+2")
 - Se tem duracao explicita (> 1 rodada): duracao, valores.duracao. Se e instantanea, NAO inclua duracao.
 - Se exige teste: dt, valores.dt — SEMPRE no formato "DT <num> <Tipo>"
-- Se causa lentidao/reducao de acoes: incluir tag "lentidao" e traduzir na descricaoBalanceada
+- Se causa reducao de movimento/velocidade: traduzir para mecanica real. Para penalidade numerica, incluir "bonusResultado" negativo; para perda de reacao, incluir "bonusReacoes" negativo.
 - Passiva: nao exige custoEnergia (pode ser null ou 0)
 
 STATUS deve ser:

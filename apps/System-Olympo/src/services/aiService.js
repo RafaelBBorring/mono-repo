@@ -1114,7 +1114,7 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — O mestre julga qu
 - Retorne "dt" com o valor cheio e "valores.dtTipo"/"valores.dtTeste" quando houver DT.
 - DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
 - TAGS: Retorne "tags" e "valores" para cada habilidade. CA e Classe de Armadura usam a tag "bonusCA". Habilidades instantaneas NAO recebem tag "duracao" e devem retornar duracao vazia/null.
-- Use "curaEnergia" para energia/PE regenerado ou restaurado por rodada. Nao use "cura" se o efeito nao recupera vida. Use "lentidao" para velocidade reduzida.
+- Use "curaEnergia" para energia/PE regenerado ou restaurado por rodada. Nao use "cura" se o efeito nao recupera vida. Nao existe tag "lentidao": velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real.
 - PEH POR TAG: escale somente as tags reconhecidas no campo "instrucaoEvolucao". Se a habilidade nao tem tag "dano", nao adicione dano; se nao tem tag "duracao", nao adicione rodadas.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
@@ -1212,7 +1212,7 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — Aumente danos ~30
 - Retorne "dt" com o valor cheio e "valores.dtTipo"/"valores.dtTeste" quando houver DT.
 - DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
 - TAGS: Retorne "tags" e "valores" para cada habilidade. CA e Classe de Armadura usam a tag "bonusCA". Habilidades instantaneas NAO recebem tag "duracao" e devem retornar duracao vazia/null.
-- Use "curaEnergia" para energia/PE regenerado ou restaurado por rodada. Nao use "cura" se o efeito nao recupera vida. Use "lentidao" para velocidade reduzida.
+- Use "curaEnergia" para energia/PE regenerado ou restaurado por rodada. Nao use "cura" se o efeito nao recupera vida. Nao existe tag "lentidao": velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real.
 - PEH POR TAG: escale somente as tags reconhecidas no campo "instrucaoEvolucao". Se a habilidade nao tem tag "dano", nao adicione dano; se nao tem tag "duracao", nao adicione rodadas.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
@@ -1464,7 +1464,7 @@ Regras:
 - NAO atribua valores finais balanceados — use placeholders como XdY+MOD, X rodadas
 - Cada habilidade DEVE ter pelo menos 1 efeito mecânico concreto
 - Mantenha coerência narrativa: todas as habilidades devem pertencer ao mesmo personagem
-- Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA". Regeneracao/restauracao de energia usa tag "curaEnergia", nao "cura". Velocidade reduzida usa "lentidao".
+- Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA". Regeneracao/restauracao de energia usa tag "curaEnergia", nao "cura". Nao existe tag "lentidao": velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real.
 - Habilidades instantaneas nao devem ter duracao nem tag "duracao".
 - Se houver DT, retorne o valor cheio: "DT 18 Constituicao" para atributo ou "DT 22 Fortitude" para pericia. DT por pericia deve ser 3-5 pontos maior.
 
@@ -1947,9 +1947,10 @@ MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
 6. NUNCA simplesmente concorde — SEMPRE verifique contra os limites do sistema.
 
 TAGS E DURACAO:
-- Use tags padronizadas: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, lentidao, curaStatus, invisibilidade, invocacao.
+- Use tags padronizadas: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, bonusReacoes, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
 - CA significa Classe de Armadura. Efeitos como "+2 CA" usam tag "bonusCA" e valores.bonusCA.
 - Regeneracao/restauracao de energia usa tag "curaEnergia", nao "cura". Ex: "regenera 5 energia por rodada" => valores.curaEnergia "+5/rodada".
+- Nao existe tag "lentidao": velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real.
 - DT deve vir cheia: "DT 18 Constituicao" ou "DT 22 Fortitude". Nunca retorne apenas "DT 18".
 - DT por atributo usa valor mais baixo; DT por pericia usa valor 3-5 pontos maior porque a rolagem inclui treinamento.
 - Nao crie nem aumente duracao se a habilidade for instantanea ou se nao tiver tag duracao. "1 turno/1 rodada" ou "ate o proximo turno" so contam se forem efeito persistente real.

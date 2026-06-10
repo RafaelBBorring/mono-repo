@@ -22,9 +22,10 @@ PARADIGMA PEH: Habilidades comecam BASE. PEH e o UNICO motor de escala. Nivel do
 - Cada PEH: +1 dado + flat proporcional + custo energia proporcional + DT +1
 - Custo de energia OBRIGATORIO para Ativa e Ultimate.
 - Evolucao respeita conceito: cura evolui cura, dano evolui dano.
-- Tags controlam evolucao: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, lentidao, curaStatus, invisibilidade, invocacao.
+- Tags controlam evolucao: custoEnergia, dano, cura, curaEnergia, duracao, dt, bonusAtaque, bonusCA, bonusResultado, bonusReacoes, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
 - CA e Classe de Armadura usam bonusCA. Nao confunda com armadura de equipamento.
 - Regeneracao/restauracao de energia usa curaEnergia, nao cura. Ex: "regenera 5 energia por rodada" => tags ["curaEnergia"] e valores.curaEnergia "+5/rodada".
+- Nao existe tag lentidao. Reducao de velocidade deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real descrita.
 - DT deve vir cheia: "DT 18 Constituicao" ou "DT 22 Fortitude". Nunca retorne apenas "DT 18".
 - DT por atributo usa valor mais baixo; DT por pericia usa valor 3-5 pontos maior porque a rolagem inclui treinamento.
 - Nao crie nem aumente duracao se a habilidade for instantanea ou nao tiver tag duracao.

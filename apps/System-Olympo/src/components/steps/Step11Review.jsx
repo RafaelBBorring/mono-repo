@@ -2588,11 +2588,11 @@ const DETAIL_CHIP_META = {
   bonusCA: { icon: '◆', label: 'CA', color: 'text-cyan-300', border: 'border-cyan-500/20', bg: 'rgba(34,211,238,0.06)', accent: 'text-cyan-200/80' },
   bonusAtaque: { icon: '⌁', label: 'Ataque', color: 'text-indigo-300', border: 'border-indigo-500/20', bg: 'rgba(129,140,248,0.06)', accent: 'text-indigo-200/80' },
   bonusResultado: { icon: '+', label: 'Resultado', color: 'text-indigo-300', border: 'border-indigo-500/20', bg: 'rgba(129,140,248,0.06)', accent: 'text-indigo-200/80' },
+  bonusReacoes: { icon: '↻', label: 'Reações', color: 'text-indigo-300', border: 'border-indigo-500/20', bg: 'rgba(129,140,248,0.06)', accent: 'text-indigo-200/80' },
   area: { icon: '◎', label: 'Área', color: 'text-txt-dim', border: 'border-sep/25', bg: 'rgba(255,255,255,0.03)', accent: 'text-gold/80' },
   deslocamento: { icon: '↗', label: 'Deslocamento', color: 'text-sky-300', border: 'border-sky-500/20', bg: 'rgba(56,189,248,0.05)', accent: 'text-sky-200/80' },
   resistencia: { icon: '◈', label: 'Resistência', color: 'text-emerald-300', border: 'border-emerald-500/20', bg: 'rgba(16,185,129,0.05)', accent: 'text-emerald-200/80' },
   paralisia: { icon: '✕', label: 'Controle', color: 'text-fuchsia-300', border: 'border-fuchsia-500/20', bg: 'rgba(217,70,239,0.05)', accent: 'text-fuchsia-200/80' },
-  lentidao: { icon: '≋', label: 'Lentidão', color: 'text-amber-300', border: 'border-amber-500/20', bg: 'rgba(245,158,11,0.05)', accent: 'text-amber-200/80' },
 }
 
 function getChipBaseValue(h, chip, dtDisplay) {
@@ -2601,6 +2601,72 @@ function getChipBaseValue(h, chip, dtDisplay) {
   if (chip.tag === 'duracao') return h.duracao || chip.value
   if (chip.tag === 'dt') return dtDisplay || chip.value
   return chip.value
+}
+
+function firstNumber(value) {
+  const match = String(value || '').match(/[+-]?\d+/)
+  return match ? Number(match[0]) : null
+}
+
+function signedNumber(value) {
+  if (value == null || Number.isNaN(value)) return ''
+  return `${value > 0 ? '+' : ''}${value}`
+}
+
+function finalSignedValue(base, evo) {
+  const baseNum = firstNumber(base)
+  const evoNum = firstNumber(evo)
+  if (baseNum == null && evoNum == null) return base || ''
+  return signedNumber((baseNum || 0) + (evoNum || 0))
+}
+
+function finalDurationValue(base, evo) {
+  const baseNum = firstNumber(base)
+  const evoNum = firstNumber(evo)
+  if (baseNum == null || !evoNum) return base || ''
+  const total = baseNum + evoNum
+  const text = String(base || '').toLowerCase()
+  const unit = /turno/.test(text) ? (total === 1 ? 'turno' : 'turnos') : (total === 1 ? 'rodada' : 'rodadas')
+  return `${total} ${unit}`
+}
+
+function finalPerRoundValue(base, evo) {
+  const value = finalSignedValue(base, evo)
+  if (!value) return base || ''
+  const text = `${base || ''} ${evo || ''}`.toLowerCase()
+  if (/turno/.test(text)) return `${value}/turno`
+  if (/rod|round/.test(text)) return `${value}/rod.`
+  return value
+}
+
+function finalDtValue(base, evo) {
+  const extra = firstNumber(evo)
+  if (!extra) return base || ''
+  const match = String(base || '').match(/^(DT\s*)(\d+)(.*)$/i)
+  if (!match) return base || ''
+  return `${match[1]}${Number(match[2]) + extra}${match[3]}`.trim()
+}
+
+function finalDamageValue(base, evo) {
+  if (!evo) return base || ''
+  if (!base) return evo
+  return `${base} ${evo}`.replace(/\s+/g, ' ').trim()
+}
+
+function finalChipValue(h, chip, evoBonus, evoDelta, dtDisplay) {
+  const base = getChipBaseValue(h, chip, dtDisplay)
+  const evo = formatEvoForChip(chip, evoBonus)
+  if (chip.tag === 'custoEnergia') {
+    const baseNum = firstNumber(base)
+    if (baseNum != null && evoDelta?.valores?.energiaExtra > 0) return String(baseNum + evoDelta.valores.energiaExtra)
+    return base
+  }
+  if (chip.tag === 'dano') return finalDamageValue(base, evo)
+  if (chip.tag === 'duracao') return finalDurationValue(base, evo)
+  if (chip.tag === 'dt') return finalDtValue(base, evo)
+  if (chip.tag === 'curaEnergia') return finalPerRoundValue(base, evo)
+  if (['bonusCA', 'bonusAtaque', 'bonusResultado', 'bonusReacoes', 'cura'].includes(chip.tag)) return finalSignedValue(base, evo)
+  return base
 }
 
 function formatEvoForChip(chip, evoBonus) {
@@ -2614,10 +2680,8 @@ function buildAbilityDetailChips(h, tagChips, evoDelta, dtDisplay, dtMissingType
   return tagChips.map(chip => {
     const evoBonus = evoDelta?.tagBonuses?.find(item => item.tag === chip.tag) || null
     const meta = DETAIL_CHIP_META[chip.tag] || { icon: '', label: chip.label, color: 'text-txt-dim', border: 'border-sep/25', bg: 'rgba(255,255,255,0.03)', accent: 'text-gold/80' }
-    const value = getChipBaseValue(h, chip, dtDisplay)
-    let evo = formatEvoForChip(chip, evoBonus)
-    if (chip.tag === 'custoEnergia' && Number(value) > 0 && evoDelta?.valores?.energiaExtra > 0) evo = `→ ${Number(value) + evoDelta.valores.energiaExtra}`
-    return { ...meta, tag: chip.tag, value, evo, missingType: chip.tag === 'dt' && dtMissingType }
+    const value = finalChipValue(h, chip, evoBonus, evoDelta, dtDisplay)
+    return { ...meta, tag: chip.tag, value, evo: '', missingType: chip.tag === 'dt' && dtMissingType }
   }).filter(chip => chip.value || chip.evo)
 }
 
