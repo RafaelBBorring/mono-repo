@@ -7,6 +7,7 @@ import { generateAbilitiesFromDescription } from '../../services/aiService'
 import {
   calcEvolucaoDelta, calcPassivaAutoEvolucao,
   canEvolveSkill, getMaxEvolucao, calcPEHSpent,
+  getSkillTagChips, normalizeSkillTags,
 } from '../../utils/skillEvolution'
 
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -31,7 +32,7 @@ const EVO_STARS = (n, max) =>
   ))
 
 function makeEmpty(tipo) {
-  return { tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', camadaSCP: 2, ppEstimado: 0, status: 'Pendente', evolucaoNivel: 0 }
+  return { tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', dt: '', tags: [], valores: {}, camadaSCP: 2, ppEstimado: 0, status: 'Pendente', evolucaoNivel: 0 }
 }
 
 export default function Step10Abilities({ char, update, updateHabilidade }) {
@@ -105,7 +106,17 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
         const habs = [...(char.habilidades || [])]
         data.habilidades.forEach((gc, i) => {
           if (i < habs.length && habs[i]) {
-            habs[i] = { ...habs[i], nome: gc.nome || habs[i].nome, descricao: gc.descricao || habs[i].descricao }
+            const next = {
+              ...habs[i],
+              nome: gc.nome || habs[i].nome,
+              descricao: gc.descricao || habs[i].descricao,
+              ...(gc.custoEnergia != null && { custoEnergia: gc.custoEnergia }),
+              ...(gc.dano != null && { dano: gc.dano }),
+              ...(gc.duracao != null && { duracao: gc.duracao || '' }),
+              ...(gc.dt != null && { dt: gc.dt }),
+              ...(gc.valores && { valores: gc.valores }),
+            }
+            habs[i] = { ...next, tags: normalizeSkillTags({ ...next, tags: gc.tags }) }
           }
         })
         update({ habilidades: habs })
@@ -263,8 +274,9 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
           const isPassiva    = hab.tipo === 'Passiva'
           const autoEvo      = isPassiva ? calcPassivaAutoEvolucao(nivel) : null
           const evoAtual     = isPassiva ? autoEvo : (hab.evolucaoNivel || 0)
-          const maxEvo       = getMaxEvolucao(hab.tipo)
+          const maxEvo       = getMaxEvolucao(hab.tipo, nivel)
           const delta        = calcEvolucaoDelta(hab, evoAtual)
+          const tagChips     = getSkillTagChips(hab)
           const { allowed: canAdd, reason: addReason } = isPassiva
             ? { allowed: false, reason: 'Auto' }
             : canEvolveSkill(hab, evoAtual, nivel)
@@ -331,9 +343,9 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
               {showPreview && delta && (
                 <div className="bg-gold/5 border border-gold/20 rounded-lg px-4 py-2 text-xs space-y-0.5">
                   <p className="text-gold font-semibold mb-1">Preview — Evolução {evoAtual}/{maxEvo} ({delta.bracket})</p>
-                  {delta.danoTotal   && <p className="text-txt-main">Dano extra (cumulativo): <span className="text-gold font-mono">{delta.danoTotal}</span></p>}
-                  {delta.energiaExtra && <p className="text-txt-main">Custo Energia adicional: <span className="text-err font-mono">{delta.energiaExtra}</span></p>}
-                  {delta.duracaoExtra && <p className="text-txt-main">Duração adicional: <span className="text-ok font-mono">{delta.duracaoExtra}</span></p>}
+                  {delta.tagBonuses?.length > 0 ? delta.tagBonuses.map(item => (
+                    <p key={item.tag} className="text-txt-main">{item.label}: <span className="text-gold font-mono">{item.value}</span></p>
+                  )) : <p className="text-txt-dim">Nenhum incremento numerico direto detectado para as tags atuais.</p>}
                   <p className="text-txt-dim italic mt-1">Valores finais são calibrados pela IA durante análise de balanceamento.</p>
                 </div>
               )}
@@ -397,6 +409,15 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
                   />
                 </div>
               </div>
+              {tagChips.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tagChips.map(chip => (
+                    <span key={chip.tag} className="text-[10px] bg-void/50 border border-sep/30 text-txt-dim px-2 py-0.5 rounded font-mono">
+                      {chip.label}{chip.value ? ` ${chip.value}` : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}

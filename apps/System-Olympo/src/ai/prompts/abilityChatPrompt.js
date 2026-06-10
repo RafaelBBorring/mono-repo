@@ -22,6 +22,9 @@ PARADIGMA PEH: Habilidades comecam BASE. PEH e o UNICO motor de escala. Nivel do
 - Cada PEH: +1 dado + flat proporcional + custo energia proporcional + DT +1
 - Custo de energia OBRIGATORIO para Ativa e Ultimate.
 - Evolucao respeita conceito: cura evolui cura, dano evolui dano.
+- Tags controlam evolucao: custoEnergia, dano, cura, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
+- CA e Classe de Armadura usam bonusCA. Nao confunda com armadura de equipamento.
+- Nao crie nem aumente duracao se a habilidade for instantanea ou nao tiver tag duracao.
 - Estrategia: concentrar PEH = poder devastador porem caro. Distribuir = varias habilidades uteis.
 
 MODO DE REFINAMENTO — Quando o mestre pede ajustes:
@@ -38,7 +41,10 @@ Comece SEMPRE pelo bloco JSON. Depois, no maximo 3 linhas de analise.
 {
   "custoEnergia": numero,
   "dano": "string",
-  "duracao": "string",
+  "duracao": "string ou vazio/null se instantanea",
+  "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+  "tags": ["custoEnergia"],
+  "valores": { "custoEnergia": 0 },
   "descricaoBalanceada": "texto ajustado completo",
   "feedback": "explicacao"
 }

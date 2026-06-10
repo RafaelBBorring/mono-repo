@@ -238,6 +238,8 @@ Esquiva/Defesa: mesmos limites
 CA bonus:       N1-7:+4  | N8-13:+6  | N14-22:+6  | N23-30:+10 | N31-38:+12 | N39-50:+14
 Ataques Extras: N1-7:+1  | N8-13:+1  | N14-22:+1  | N23-30:+2  | N31-38:+2  | N39-50:+3
 
+CA = Classe de Armadura. Quando uma habilidade concede "+X CA", classifique como tag "bonusCA" e inclua valores.bonusCA. Nao trate CA como armadura de equipamento, durabilidade ou reducao de dano.
+
 ═════════════════════════════════════════════════════
 ECONOMIA DE ACOES EM COMBATE:
 ═════════════════════════════════════════════════════
@@ -320,6 +322,8 @@ REGRAS DE TAGS:
 - Toda habilidade Ativa ou Ultimate DEVE ter "custoEnergia".
 - Se ha qualquer forma de teste do alvo (resistencia, oposicao, evasao), DEVE ter "dt".
 - NUNCA adicione a tag "duracao" para efeitos instantaneos (dano imediato, cura imediata, efeitos sem duracao declarada). Somente use "duracao" quando a descricao explicitamente menciona rodadas, turnos ou tempo de efeito.
+- "1 turno", "1 rodada" ou "ate o inicio/fim do proximo turno" so contam como duracao se forem um efeito persistente real. Se forem apenas janela de resolucao de um teleporte, ataque, cura ou bonus imediato, retorne duracao null/vazia.
+- PEH deve escalar somente tags existentes. Nao crie dano, duracao, cura ou DT que nao existiam no conceito da habilidade.
 
 ═════════════════════════════════════════════════════
 FORMATO DE RESPOSTA — JSON OBRIGATORIO:

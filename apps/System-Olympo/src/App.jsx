@@ -1023,7 +1023,7 @@ function AppInner() {
       if (!toSave.habilidades) toSave.habilidades = []
       const idx = toSave.habilidades.length
       const tipo = allTipos[idx] || 'Extra (Triagem)'
-      toSave.habilidades.push({ tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', camadaSCP: 2, ppEstimado: 0, status: 'Pendente', evolucaoNivel: 0 })
+      toSave.habilidades.push({ tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', dt: '', tags: [], valores: {}, camadaSCP: 2, ppEstimado: 0, status: 'Pendente', evolucaoNivel: 0 })
     }
     if (toSave.habilidades.length > needed) toSave.habilidades.length = needed
     const { data, error } = await supabase.from('characters').insert({

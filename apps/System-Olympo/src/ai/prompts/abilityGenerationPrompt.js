@@ -95,11 +95,12 @@ REGRAS CRITICAS:
 8. O DEFENSOR SEMPRE tem chance de resistir (teste de resistencia, CA, DT, etc).
 9. Se a habilidade envolver teste do alvo, inclua a DT base: "DT 10+MOD".
 10. Habilidades com PEH=0 sao INTENCIONALMENTE modestas. O poder vem da evolucao.
+11. Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA". Habilidades instantaneas nao devem ter duracao nem tag "duracao".
 
 Responda EXCLUSIVAMENTE com JSON:
 {
   "habilidades": [
-    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Modulo)", "nome": "nome criativo", "descricao": "descricao com mecanicas e valores BASE", "custoEnergia": 0, "dano": "XdY+MOD", "duracao": "X rodadas" }
+    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Modulo)", "nome": "nome criativo", "descricao": "descricao com mecanicas e valores BASE", "custoEnergia": 0, "dano": "XdY+MOD", "duracao": "X rodadas ou vazio/null se instantanea", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0 } }
   ]
 }`
 }

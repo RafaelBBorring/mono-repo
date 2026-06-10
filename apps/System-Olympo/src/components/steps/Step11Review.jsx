@@ -8,7 +8,7 @@ import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
 import { RANK_COLORS } from '../../data/colors'
 import { calcPEHTotal, calcPericiasAvailable } from '../../utils/calculator'
-import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket } from '../../utils/skillEvolution'
+import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, normalizeSkillTags } from '../../utils/skillEvolution'
 import { PERICIAS, GRAU_NAMES, getGrauBonus, getMaxGrauForLevel } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
@@ -162,7 +162,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
       const copy = [...raw]
       while (copy.length < neededAbilities) {
         const tipo = allTipos[copy.length] || 'Extra (Triagem)'
-        copy.push({ tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', camadaSCP: 2, ppEstimado: 0, status: 'Pendente' })
+        copy.push({ tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', dt: '', tags: [], valores: {}, camadaSCP: 2, ppEstimado: 0, status: 'Pendente' })
       }
       if (copy.length > neededAbilities) copy.length = neededAbilities
       update({ habilidades: copy })
@@ -358,7 +358,17 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
       const habs = [...(char.habilidades || [])]
       result._generatedConcepts.forEach((gc, i) => {
         if (i < habs.length && habs[i]) {
-          habs[i] = { ...habs[i], nome: gc.nome || habs[i].nome, descricao: gc.descricao || habs[i].descricao }
+          const next = {
+            ...habs[i],
+            nome: gc.nome || habs[i].nome,
+            descricao: gc.descricao || habs[i].descricao,
+            ...(gc.custoEnergia != null && { custoEnergia: gc.custoEnergia }),
+            ...(gc.dano != null && { dano: gc.dano }),
+            ...(gc.duracao != null && { duracao: gc.duracao || '' }),
+            ...(gc.dt != null && { dt: gc.dt }),
+            ...(gc.valores && { valores: gc.valores }),
+          }
+          habs[i] = { ...next, tags: normalizeSkillTags({ ...next, tags: gc.tags }) }
         }
       })
       update({ habilidades: habs })
@@ -368,16 +378,26 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
       const habs = [...(char.habilidades || [])]
       result.habilidades.forEach(h => {
         if (h.index != null && habs[h.index]) {
+          const original = habs[h.index]
+          const incoming = { ...original, ...h, tipo: original.tipo }
+          const nextTags = normalizeSkillTags(incoming)
+          const hasDurationPatch = Object.prototype.hasOwnProperty.call(h, 'duracao')
+          const nextDuracao = hasDurationPatch
+            ? (h.duracao && nextTags.includes('duracao') ? h.duracao : '')
+            : undefined
           habs[h.index] = {
-            ...habs[h.index],
+            ...original,
             ...(h.nome && { nome: h.nome }),
             ...(h.descricaoBalanceada && { descricao: h.descricaoBalanceada }),
             ...(!h.descricaoBalanceada && h.descricao && { descricao: h.descricao }),
             ...(h.custoEnergia != null && { custoEnergia: h.custoEnergia }),
             ...(h.dano != null && { dano: h.dano }),
-            ...(h.duracao != null && { duracao: h.duracao }),
+            ...(nextDuracao !== undefined && { duracao: nextDuracao }),
+            ...(h.dt != null && { dt: h.dt }),
+            ...(h.valores && { valores: h.valores }),
             ...(h.camadaSCP != null && { camadaSCP: h.camadaSCP }),
             ...(h.ppEstimado != null && { ppEstimado: h.ppEstimado }),
+            tags: nextTags,
             status: 'Aprovada',
           }
         }
@@ -2440,6 +2460,7 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
     custoEnergia: h.custoEnergia || 0,
     dano: h.dano || '',
     duracao: h.duracao || '',
+    dt: h.dt || '',
     status: h.status || 'Pendente',
   })
   const editorRef = useRef(null)
@@ -2517,7 +2538,7 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
             <p className="text-txt-dim/30 text-[9px] mt-1">Selecione texto para aplicar formatação (negrito, itálico, cores)</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label className="text-sky-400 text-[10px] uppercase tracking-wider block mb-1">Energia</label>
               <input type="number" value={form.custoEnergia} onChange={e => handleChange('custoEnergia', Number(e.target.value) || 0)}
@@ -2532,6 +2553,11 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
               <label className="text-amber-400 text-[10px] uppercase tracking-wider block mb-1">Duração</label>
               <input type="text" value={form.duracao} onChange={e => handleChange('duracao', e.target.value)}
                 className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main focus:border-gold/40 focus:outline-none transition-colors" />
+            </div>
+            <div>
+              <label className="text-purple-400 text-[10px] uppercase tracking-wider block mb-1">DT</label>
+              <input type="text" value={form.dt} onChange={e => handleChange('dt', e.target.value)}
+                className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none transition-colors" />
             </div>
           </div>
         </div>
@@ -2557,8 +2583,9 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   const [editModal, setEditModal] = useState(false)
 
   const evoNivel = h.evolucaoNivel || 0
-  const maxEvo = getMaxEvolucao(h.tipo)
+  const maxEvo = getMaxEvolucao(h.tipo, charNivel)
   const evoDelta = calcEvolucaoDelta(h, evoNivel)
+  const tagChips = getSkillTagChips(h)
   const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
   const { allowed: canUp, reason: upReason } = canEvolveSkill(h, evoNivel, charNivel)
   const canDown = evoNivel > 0 && h.tipo !== 'Passiva'
@@ -2667,10 +2694,11 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           {evoDelta && evoNivel > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-2">
               <span className="text-[10px] text-indigo-400/70 font-mono">PEH {evoNivel} →</span>
-              {evoDelta.danoTotal && <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/20 font-mono">{evoDelta.danoTotal}</span>}
-              {evoDelta.energiaExtra && <span className="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/20 font-mono">{evoDelta.energiaExtra}E</span>}
-              {evoDelta.duracaoExtra && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono">{evoDelta.duracaoExtra}</span>}
-              {evoDelta.dtExtra > 0 && <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/20 font-mono">+{evoDelta.dtExtra} DT</span>}
+              {evoDelta.tagBonuses?.length > 0 ? evoDelta.tagBonuses.map(item => (
+                <span key={item.tag} className="text-[10px] bg-gold/10 text-gold px-1.5 py-0.5 rounded border border-gold/20 font-mono">{item.label} {item.value}</span>
+              )) : (
+                <span className="text-[10px] bg-void/40 text-txt-dim/60 px-1.5 py-0.5 rounded border border-sep/20 font-mono">sem incremento direto</span>
+              )}
             </div>
           )}
           {(activePreview?.ataque || activePreview?.ca || activePreview?.vida || activePreview?.energia || activePreview?.dano) ? (
@@ -2682,6 +2710,18 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
               {activePreview.dano ? <span className="effect-bonus-pill">Dano {activePreview.dano > 0 ? '+' : ''}{activePreview.dano}</span> : null}
             </div>
           ) : null}
+          {tagChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {tagChips.map(chip => {
+                const evoBonus = evoNivel > 0 ? evoDelta?.tagBonuses?.find(item => item.tag === chip.tag) : null
+                return (
+                  <span key={chip.tag} className="text-[10px] bg-void/45 border border-sep/25 text-txt-dim/80 px-2 py-0.5 rounded font-mono">
+                    {chip.label}{chip.value ? ` ${chip.value}` : ''}{evoBonus ? <span className="text-gold/80"> {evoBonus.value}</span> : null}
+                  </span>
+                )
+              })}
+            </div>
+          )}
            {!canEdit ? (
             <>
               {(h.descricao?.includes('<') && h.descricao?.includes('>')) ? (

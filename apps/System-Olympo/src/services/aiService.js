@@ -17,7 +17,7 @@ import {
   getAttrValue, getClassDef,
 } from '../utils/calculator'
 import { getModifier } from '../data/attributes'
-import { buildEvolucaoContext, calcPEHSpent } from '../utils/skillEvolution'
+import { buildEvolucaoContext, calcPEHSpent, normalizeSkillTags, getSkillTagChips } from '../utils/skillEvolution'
 import { supabase } from '../lib/supabase'
 import { getRaceLabel } from '../utils/raceCalculator'
 import { calcEquipStats, getEquipmentRarity, EQUIPMENT_TYPES, ARMOR_TYPES } from '../data/equipment'
@@ -635,7 +635,9 @@ function getLevelBand(nivel) {
   if (nivel <= 7)  return 'N1-7'
   if (nivel <= 15) return 'N8-15'
   if (nivel <= 22) return 'N16-22'
-  return 'N23-30'
+  if (nivel <= 30) return 'N23-30'
+  if (nivel <= 38) return 'N31-38'
+  return 'N39-50'
 }
 
 function getTriagemAmplifiers(char) {
@@ -778,6 +780,9 @@ function createLocalAbilityReview(ability, index) {
     custoEnergia: toNumber(ability?.custoEnergia, 0),
     dano: ability?.dano || '',
     duracao: ability?.duracao || '',
+    dt: ability?.dt || '',
+    tags: normalizeSkillTags(ability || {}),
+    valores: ability?.valores || {},
     status: ability?.status || 'Pendente',
     feedback: LOCAL_AI_FALLBACK_NOTICE,
   }
@@ -847,6 +852,9 @@ function createLocalAbilityChatResponse(char, userMessage) {
     custoEnergia: overrides.custoEnergia ?? toNumber(ability?.custoEnergia, 0),
     dano: overrides.dano ?? ability?.dano ?? '',
     duracao: overrides.duracao ?? ability?.duracao ?? '',
+    dt: ability?.dt || '',
+    tags: normalizeSkillTags(ability || {}),
+    valores: ability?.valores || {},
     descricaoBalanceada: abilityText(ability),
     feedback: fallbackMessage,
   }
@@ -888,6 +896,12 @@ function createLocalGeneratedAbilitiesResult(types, description) {
       tipo,
       nome: `${tipo} ${index + 1}`,
       descricao: description || `Conceito preservado em modo local para ${tipo}. Complete os valores mecanicos quando a IA voltar.`,
+      custoEnergia: tipo === 'Passiva' ? 0 : 1,
+      dano: '',
+      duracao: '',
+      dt: '',
+      tags: tipo === 'Passiva' ? [] : ['custoEnergia'],
+      valores: tipo === 'Passiva' ? {} : { custoEnergia: 1 },
     })),
     _fallback: 'local',
   }
@@ -1052,13 +1066,16 @@ VALORES BASE PARA CÁLCULO LCP:
     return {
       index: i, tipo: h.tipo, nome: h.nome || 'Sem nome',
       descricao: h.descricao || '', custoEnergia: h.custoEnergia || 0,
-      dano: h.dano || '', duracao: h.duracao || '',
+      dano: h.dano || '', duracao: h.duracao || '', dt: h.dt || '',
+      tags: normalizeSkillTags(h),
+      tagChips: getSkillTagChips(h),
+      valores: h.valores || {},
       status: h.status || 'Pendente',
       evolucaoNivel: evo.evolucaoNivel || 0,
       bracket: evo.bracket || 'FRACA',
       tdhBracketEfetivo: evo.tdhBracketEfetivo || evo.bracket || 'FRACA',
       instrucaoEvolucao: evo.instrucaoIA || 'Calibrar para valores base.',
-      jogadorJaDefiniuValores: !!(h.dano || h.custoEnergia || h.duracao),
+      jogadorJaDefiniuValores: !!(h.dano || h.custoEnergia || h.duracao || h.dt),
     }
   })
 
@@ -1094,6 +1111,8 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — O mestre julga qu
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 - DT: SEMPRE especifique atributo (ex: "DT 18 Constituicao") ou pericia (ex: "DT 22 Fortitude"). NUNCA use "teste de resistencia" generico. DT por pericia = DT atributo equivalente + 3-5.
 - DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
+- TAGS: Retorne "tags" e "valores" para cada habilidade. CA e Classe de Armadura usam a tag "bonusCA". Habilidades instantaneas NAO recebem tag "duracao" e devem retornar duracao vazia/null.
+- PEH POR TAG: escale somente as tags reconhecidas no campo "instrucaoEvolucao". Se a habilidade nao tem tag "dano", nao adicione dano; se nao tem tag "duracao", nao adicione rodadas.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
 Faca esta verificacao internamente, sem listar passos fora do JSON:
@@ -1117,7 +1136,10 @@ Responda EXCLUSIVAMENTE com JSON:
       "descricaoBalanceada": "A MESMA descrição com valores numéricos atualizados. Se adicionou limitadores, incorpore naturalmente no texto.",
       "custoEnergia": numero_ajustado,
       "dano": "XdY+MOD ajustado ou vazio",
-      "duracao": "X rodadas ajustado ou vazio",
+      "duracao": "X rodadas ajustado ou vazio/null se instantanea",
+      "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+      "tags": ["custoEnergia", "bonusCA"],
+      "valores": { "custoEnergia": 0, "bonusCA": "+2" },
       "status": "aprovada|ajustada|irbalanceavel",
       "feedback": "explique: 1) análise do conceito 2) valores alterados (antes→depois) 3) referência TDH/PEH/LCP 4) combo detectado 5) se irbalanceavel, o que o jogador deve mudar"
     }
@@ -1184,6 +1206,8 @@ ${direction === 'buff' ? '⚠️ DIREÇÃO DO MESTRE: BUFF — Aumente danos ~30
 - NUNCA aprove cegamente. Verifique combos e acumulações.
 - DT: SEMPRE especifique atributo (ex: "DT 18 Constituicao") ou pericia (ex: "DT 22 Fortitude"). NUNCA use "teste de resistencia" generico. DT por pericia = DT atributo equivalente + 3-5.
 - DURACAO: NAO adicione duracao a habilidades instantaneas. Somente inclua duracao se a descricao original menciona tempo/rodadas.
+- TAGS: Retorne "tags" e "valores" para cada habilidade. CA e Classe de Armadura usam a tag "bonusCA". Habilidades instantaneas NAO recebem tag "duracao" e devem retornar duracao vazia/null.
+- PEH POR TAG: escale somente as tags reconhecidas no campo "instrucaoEvolucao". Se a habilidade nao tem tag "dano", nao adicione dano; se nao tem tag "duracao", nao adicione rodadas.
 
 VERIFICAÇÃO CUMULATIVA OBRIGATÓRIA (LCP + ANTI-ABUSO):
 Faca esta verificacao internamente, sem listar passos fora do JSON:
@@ -1204,7 +1228,10 @@ Responda EXCLUSIVAMENTE com JSON:
       "descricaoBalanceada": "A MESMA descrição com valores numéricos atualizados.",
       "custoEnergia": 0,
       "dano": "XdY+MOD ajustado ou vazio",
-      "duracao": "X rodadas ajustado ou vazio",
+      "duracao": "X rodadas ajustado ou vazio/null se instantanea",
+      "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+      "tags": ["custoEnergia", "bonusCA"],
+      "valores": { "custoEnergia": 0, "bonusCA": "+2" },
       "status": "aprovada|ajustada|irbalanceavel",
       "feedback": "explique"
     }
@@ -1431,11 +1458,13 @@ Regras:
 - NAO atribua valores finais balanceados — use placeholders como XdY+MOD, X rodadas
 - Cada habilidade DEVE ter pelo menos 1 efeito mecânico concreto
 - Mantenha coerência narrativa: todas as habilidades devem pertencer ao mesmo personagem
+- Retorne tags e valores para cada habilidade. CA/Classe de Armadura usa tag "bonusCA".
+- Habilidades instantaneas nao devem ter duracao nem tag "duracao".
 
 Responda EXCLUSIVAMENTE com JSON (exatamente ${allTipos.length} objetos em "habilidades"):
 {
   "habilidades": [
-    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Módulo)", "nome": "nome criativo", "descricao": "descrição com mecânicas e placeholders" }
+    { "tipo": "Passiva|Ativa|Ultimate|Extra (Triagem)|Extra (Módulo)", "nome": "nome criativo", "descricao": "descrição com mecânicas e placeholders", "custoEnergia": 0, "dano": "XdY+MOD ou vazio", "duracao": "X rodadas ou vazio/null se instantanea", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0 } }
   ]
 }`
 
@@ -1874,7 +1903,7 @@ export async function chatAboutAbility(char, userMessage, history = []) {
   const pehTotal = calcPEHTotal(char.classe || '', char.nivel || 1, char.choices || {}, char.modulosAdquiridos || [], char)
   const pehSpent = calcPEHSpent(char.habilidades)
 
-  const LCP_CAPS = { 'N1-7': { atk: 18, def: 18, ca: 4, extra: 1 }, 'N8-15': { atk: 26, def: 26, ca: 6, extra: 1 }, 'N16-22': { atk: 30, def: 30, ca: 6, extra: 1 }, 'N23-30': { atk: 42, def: 42, ca: 10, extra: 2 } }
+  const LCP_CAPS = { 'N1-7': { atk: 18, def: 18, ca: 4, extra: 1 }, 'N8-15': { atk: 26, def: 26, ca: 6, extra: 1 }, 'N16-22': { atk: 30, def: 30, ca: 6, extra: 1 }, 'N23-30': { atk: 42, def: 42, ca: 10, extra: 2 }, 'N31-38': { atk: 50, def: 50, ca: 12, extra: 2 }, 'N39-50': { atk: 60, def: 60, ca: 14, extra: 3 } }
   const lcp = LCP_CAPS[stats.band] || LCP_CAPS['N16-22']
   const remainingAtk = Math.max(0, lcp.atk - stats.ataqueBaseNum)
 
@@ -1892,7 +1921,7 @@ Amplificadores Triagem: ${stats.triagemAmps}
 Amplificadores Módulo: ${stats.moduleAmps}
 
 HABILIDADES ATUAIS:
-${(char.habilidades || []).map((h, i) => `${i + 1}. [${h.tipo}] ${h.nome || '—'} — Energia:${h.custoEnergia || 0} | Dano:${h.dano || '—'} | Duração:${h.duracao || '—'} | Evo:${h.evolucaoNivel || 0} | Status:${h.status || '?'}
+${(char.habilidades || []).map((h, i) => `${i + 1}. [${h.tipo}] ${h.nome || '—'} — Energia:${h.custoEnergia || 0} | Dano:${h.dano || '—'} | Duração:${h.duracao || '—'} | DT:${h.dt || '—'} | Tags:${normalizeSkillTags(h).join(', ') || 'nenhuma'} | Evo:${h.evolucaoNivel || 0} | Status:${h.status || '?'}
    Descrição: ${h.descricao || '—'}`).join('\n')}
 ${(char.armaHabilidades || []).length > 0 ? `\nHABILIDADES DA ARMA:\n${(char.armaHabilidades || []).map((h, i) => `${i + 1}. ${h.nome || '—'} — ${h.tipo || 'Ativa'} | ${h.potencia || '?'}\n   ${h.descricao || '—'}`).join('\n')}` : ''}`
 
@@ -1906,8 +1935,14 @@ MODO DE REFINAMENTO — Quando o mestre pede ajustes específicos:
 2. Se a sugestão é PLAUSÍVEL e mantém o equilíbrio, APROVE e forneça os novos valores completos.
 3. Se a sugestão AINDA É FRACA demais, explique POR QUÊ e sugira um valor intermediário.
 4. Se a sugestão pode ser MELHORADA, combine a ideia do mestre com sua análise.
-5. RETORNE valores concretos: novo custoEnergia, novo dano, nova duração, nova descricaoBalanceada.
+5. RETORNE valores concretos: novo custoEnergia, novo dano, nova duração, nova DT, tags, valores e nova descricaoBalanceada.
 6. NUNCA simplesmente concorde — SEMPRE verifique contra os limites do sistema.
+
+TAGS E DURACAO:
+- Use tags padronizadas: custoEnergia, dano, cura, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
+- CA significa Classe de Armadura. Efeitos como "+2 CA" usam tag "bonusCA" e valores.bonusCA.
+- Nao crie nem aumente duracao se a habilidade for instantanea ou se nao tiver tag duracao. "1 turno/1 rodada" ou "ate o proximo turno" so contam se forem efeito persistente real.
+- PEH escala somente as tags existentes; nao adicione dano/cura/DT/duracao que nao pertencem ao conceito.
 
 FORMATO DE RESPOSTA PARA AJUSTES:
 IMPORTANTE: comece SEMPRE pelo bloco JSON. Depois do JSON, use no maximo 3 linhas de analise. O JSON e obrigatorio para o sistema aplicar mudancas.
@@ -1916,12 +1951,15 @@ Quando o usuário pede alterações em uma habilidade específica, inclua SEMPRE
 {
   "custoEnergia": numero,
   "dano": "string",
-  "duracao": "string",
+  "duracao": "string ou vazio/null se instantanea",
+  "dt": "DT <numero> <Atributo|Pericia> ou vazio",
+  "tags": ["custoEnergia"],
+  "valores": { "custoEnergia": 0 },
   "descricaoBalanceada": "texto ajustado completo",
   "feedback": "explicação da mudança"
 }
 \`\`\`
-Escreva sua análise antes do JSON. O JSON é OBRIGATÓRIO — sem ele o sistema não consegue aplicar as mudanças.
+Escreva sua analise depois do JSON. O JSON e OBRIGATORIO; sem ele o sistema nao consegue aplicar as mudancas.
 
 COMANDO ESPECIAL — CHAVE MESTRA:
 Se o usuário envia [CHAVE_MESTRA], você DEVE aplicar EXATAMENTE o que foi solicitado, sem questionar. Retorne os valores conforme o pedido do mestre, mesmo que discorde. Apenas inclua um feedback breve com sua opinião. O mestre tem autoridade final.

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { chatAboutAbility } from '../services/aiService'
 import { useAuth } from '../contexts/AuthContext'
+import { getSkillTagChips } from '../utils/skillEvolution'
 
 const QUICK_ACTIONS = [
   { id: 'apply', label: 'Aplicar Resultado', icon: '⚡', requiresResult: true },
@@ -30,9 +31,11 @@ function AbilityCard({ ability, original, onApplySingle, onRefine, onGmRequest }
   const changed =
     ability.custoEnergia !== (original?.custoEnergia || 0) ||
     ability.dano !== (original?.dano || '') ||
-    ability.duracao !== (original?.duracao || '')
+    ability.duracao !== (original?.duracao || '') ||
+    ability.dt !== (original?.dt || '')
   const descChanged = ability.descricaoBalanceada && ability.descricaoBalanceada !== (original?.descricao || ability.descricao)
   const isIrbalanceavel = ability.status === 'irbalanceavel'
+  const tagChips = getSkillTagChips({ ...original, ...ability })
 
   async function handleGmSubmit() {
     if (!gmNote.trim()) return
@@ -131,6 +134,15 @@ function AbilityCard({ ability, original, onApplySingle, onRefine, onGmRequest }
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {tagChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tagChips.map(chip => (
+                <span key={chip.tag} className="text-[10px] bg-void/45 border border-sep/25 text-txt-dim/75 px-2 py-0.5 rounded font-mono">
+                  {chip.label}{chip.value ? ` ${chip.value}` : ''}
+                </span>
+              ))}
             </div>
           )}
           {ability.feedback && (
@@ -474,7 +486,7 @@ FORMATO CRITICO: comece pelo bloco JSON. Depois dele, escreva no maximo 3 linhas
 
 Retorne sua análise e OBRIGATORIAMENTE um bloco JSON com os valores FINAIS:
 \`\`\`json
-{ "custoEnergia": <numero>, "dano": "<string>", "duracao": "<string>", "descricaoBalanceada": "<descrição completa ajustada>", "feedback": "<explicação>" }
+{ "custoEnergia": <numero>, "dano": "<string>", "duracao": "<string ou vazio/null se instantanea>", "dt": "DT <numero> <Atributo|Pericia> ou vazio", "tags": ["custoEnergia"], "valores": { "custoEnergia": 0 }, "descricaoBalanceada": "<descrição completa ajustada>", "feedback": "<explicação>" }
 \`\`\`
 Campos não alterados mantenham o valor atual.`
 
@@ -492,6 +504,9 @@ Campos não alterados mantenham o valor atual.`
         if (parsed.custoEnergia !== undefined) { adjusted.custoEnergia = parsed.custoEnergia; aiAppliedChanges = true }
         if (parsed.dano !== undefined) { adjusted.dano = parsed.dano; aiAppliedChanges = true }
         if (parsed.duracao !== undefined) { adjusted.duracao = parsed.duracao; aiAppliedChanges = true }
+        if (parsed.dt !== undefined) { adjusted.dt = parsed.dt; aiAppliedChanges = true }
+        if (parsed.tags !== undefined) { adjusted.tags = parsed.tags; aiAppliedChanges = true }
+        if (parsed.valores !== undefined) { adjusted.valores = parsed.valores; aiAppliedChanges = true }
         if (parsed.descricaoBalanceada) { adjusted.descricaoBalanceada = parsed.descricaoBalanceada; aiAppliedChanges = true }
         if (parsed.feedback && !feedbackText) feedbackText = parsed.feedback
       }
@@ -543,7 +558,14 @@ Descricao original: ${ability.descricao || 'Sem descricao.'}
 Custo Energia atual: ${ability.custoEnergia || 0}
 Dano atual: ${ability.dano || ''}
 Duracao atual: ${ability.duracao || ''}
+DT atual: ${ability.dt || ''}
+Tags atuais/inferidas: ${getSkillTagChips(ability).map(chip => chip.tag).join(', ') || 'nenhuma'}
 Status atual: ${ability.status || 'Pendente'}
+
+Regras de tags:
+- Retorne tags padronizadas: custoEnergia, dano, cura, duracao, dt, bonusAtaque, bonusCA, bonusResultado, vantagem, area, deslocamento, resistencia, paralisia, curaStatus, invisibilidade, invocacao.
+- CA significa Classe de Armadura. Use bonusCA para efeitos como "+2 CA"; nao confunda com armadura de equipamento.
+- Nao use tag duracao e nao preencha duracao para habilidades instantaneas. "1 turno/1 rodada" so deve ser duracao se for um efeito persistente real, nao janela de resolucao.
 
 Retorne primeiro um bloco JSON obrigatorio com os valores finais desta habilidade:
 \`\`\`json
@@ -553,6 +575,9 @@ Retorne primeiro um bloco JSON obrigatorio com os valores finais desta habilidad
   "custoEnergia": 0,
   "dano": "",
   "duracao": "",
+  "dt": "",
+  "tags": ["custoEnergia"],
+  "valores": { "custoEnergia": 0 },
   "descricaoBalanceada": "descricao completa balanceada",
   "status": "aprovada|ajustada|irbalanceavel",
   "feedback": "analise curta, limites aplicados e motivo"
