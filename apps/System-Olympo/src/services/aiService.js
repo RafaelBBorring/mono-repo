@@ -27,12 +27,12 @@ import { buildBalanceSystemPrompt as buildBalanceSystemPromptFromPrompts } from 
 
 // Infra: chamadas de IA passam pela Supabase Edge Function para manter a chave fora do navegador.
 
-const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free'
+const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-oss-120b:free'
 
 const OPENROUTER_MODEL = import.meta.env.VITE_OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
 const OPENROUTER_FUNCTION = import.meta.env.VITE_OPENROUTER_FUNCTION || 'openrouter-chat'
 const OPENROUTER_FUNCTIONS = [...new Set([OPENROUTER_FUNCTION, 'openrouter-chat', 'openrouter-proxy'])]
-const OPENROUTER_MAX_TOKENS = Math.max(Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 16384, 16384)
+const OPENROUTER_MAX_TOKENS = Math.max(Number(import.meta.env.VITE_OPENROUTER_MAX_TOKENS) || 120000, 120000)
 const MAX_RETRIES = 3
 const BASE_DELAY_MS = 1500
 const JSON_RESPONSE_FORMAT = { type: 'json_object' }

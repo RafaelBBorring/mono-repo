@@ -1,8 +1,8 @@
 const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY')
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'google/gemma-4-31b-it:free'
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-oss-120b:free'
 const OPENROUTER_REFERER = Deno.env.get('OPENROUTER_REFERER') || 'https://system-olympo.vercel.app'
 const OPENROUTER_TITLE = Deno.env.get('OPENROUTER_TITLE') || 'System Olympo 2.0'
-const OPENROUTER_MAX_TOKENS = Math.max(Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 16384, 16384)
+const OPENROUTER_MAX_TOKENS = Math.max(Number(Deno.env.get('OPENROUTER_MAX_TOKENS')) || 120000, 120000)
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const POLLINATIONS_API_KEY = Deno.env.get('POLLINATIONS_API_KEY') || ''
 const POLLINATIONS_URL = Deno.env.get('POLLINATIONS_URL') || 'https://text.pollinations.ai/openai'
@@ -52,7 +52,7 @@ function getModel(payload: ChatRequest) {
 }
 
 const FREE_MODEL_FALLBACKS = [
-  'google/gemma-4-31b-it:free',
+  'openai/gpt-oss-120b:free',
 ]
 
 function getModelCandidates(primaryModel: string) {
