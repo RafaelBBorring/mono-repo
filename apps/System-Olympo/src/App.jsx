@@ -268,100 +268,71 @@ function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredSheets.map((sheet, i) => {
             const level = sheet.data?.nivel || 1
             const tier = getLibraryTier(level)
             const classe = sheet.data?.classe || ''
             const classMeta = CLASS_META[classe]
-            const race = sheet.data?.raca || sheet.data?.racaTipo || ''
             const name = sheet.name || sheet.data?.nome || 'Sem Nome'
             const initial = name.charAt(0).toUpperCase()
 
             return (
               <div key={sheet.id}
-                className="library-card group"
+                className="library-card group relative cursor-pointer"
                 style={{
-                  animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${i * 70}ms both`,
-                }}>
-                <div className="library-card-accent" />
-                <div className="library-card-shimmer" />
+                  animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${i * 60}ms both`,
+                }}
+                onClick={() => onLoad(sheet.id)}>
+                <div className="library-card-accent" style={{ background: tier.color }} />
                 <div className="relative p-5">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="library-avatar-ring shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(sheet.id) }}
+                    className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center bg-void/60 border border-sep/30 text-txt-dim/40 hover:text-rose-400 hover:border-rose-400/30 transition-all opacity-0 group-hover:opacity-100 z-10">
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                  </button>
+
+                  <div className="flex flex-col items-center text-center pt-1">
+                    <div className="library-avatar-ring shrink-0 mb-3">
                       {sheet.data?.avatar ? (
                         <img src={sheet.data.avatar} alt=""
-                          className="w-[60px] h-[60px] rounded-full object-cover"
-                          style={{ border: '2px solid rgba(14,14,15,0.8)' }} />
+                          className="w-[56px] h-[56px] rounded-full object-cover"
+                          style={{ border: `2px solid ${tier.color}` }} />
                       ) : (
-                        <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center font-cinzel text-xl"
+                        <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center font-cinzel text-lg"
                           style={{
                             background: 'rgba(14,14,15,0.9)',
-                            border: '2px solid rgba(14,14,15,0.8)',
+                            border: `2px solid ${tier.color}`,
                             color: tier.color,
                           }}>
                           {initial}
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-cinzel text-on-surface text-base truncate group-hover:text-primary transition-colors duration-300">
-                        {name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+
+                    <h3 className="font-cinzel text-on-surface text-sm truncate w-full group-hover:text-primary transition-colors duration-300">
+                      {name}
+                    </h3>
+
+                    <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
+                      {classe && (
                         <span className={`library-class-badge ${classMeta?.slug || 'is-unknown'}`}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>
                             {classMeta?.icon || 'help'}
                           </span>
-                          {classe || 'Desconhecido'}
+                          {classe}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded font-mono text-xs font-bold ${tier.bg} ${tier.text}`}
-                            style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
-                            LV {level}
-                          </span>
-                          <span className={`font-mono ${tier.text}`} style={{ fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>
-                            {tier.label}
-                          </span>
-                        </div>
-                      </div>
+                      )}
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded font-mono text-[10px] font-bold ${tier.bg} ${tier.text}`}
+                        style={{ letterSpacing: '0.05em' }}>
+                        NV {level}
+                      </span>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 mb-4">
-                    {race && (
-                      <div className="library-stat-chip">
-                        <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#bdf4ff' }}>pets</span>
-                        <span className="truncate">{race}</span>
-                      </div>
+                    {sheet.data?.raca && (
+                      <span className="text-txt-dim/60 text-[11px] mt-2 truncate w-full">
+                        {sheet.data.raca}
+                      </span>
                     )}
-                    {sheet.data?.atributos && (
-                      <div className="library-stat-chip">
-                        <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#f7bd48' }}>tune</span>
-                        <span>{sheet.data.arrayTipo || 'Custom'}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button onClick={() => onLoad(sheet.id)}
-                      className="library-action-btn is-primary-action">
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
-                      Visualizar
-                    </button>
-                    {canExport && (
-                      <button onClick={() => exportToJson({ ...sheet.data, nome: sheet.name })}
-                        className="library-action-btn is-export-action">
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span>
-                        Exportar
-                      </button>
-                    )}
-                    <button onClick={() => onDelete(sheet.id)}
-                      className="library-action-btn is-delete-action ml-auto">
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
-                    </button>
                   </div>
                 </div>
               </div>

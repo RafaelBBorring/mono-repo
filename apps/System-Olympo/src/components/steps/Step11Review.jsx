@@ -112,21 +112,21 @@ function getSheetTriageTitle(char, cls) {
 
 function SheetViewTabs({ active, onChange, counts }) {
   return (
-    <div className="sheet-view-tabs" aria-label="Modos de leitura da ficha">
+    <nav className="sheet-menu-nav" aria-label="Modos de leitura da ficha">
       {SHEET_VIEWS.map(view => (
         <button
           key={view.key}
           type="button"
           onClick={() => onChange(view.key)}
-          className={`sheet-view-tab ${active === view.key ? 'is-active' : ''}`}
+          className={`sheet-menu-item ${active === view.key ? 'is-active' : ''}`}
           title={view.hint}
         >
-          <span className="material-symbols-outlined text-[16px]">{view.icon}</span>
-          <span>{view.label}</span>
+          <span className="material-symbols-outlined">{view.icon}</span>
+          <span className="sheet-menu-label">{view.label}</span>
           {counts?.[view.key] != null && <small>{counts[view.key]}</small>}
         </button>
       ))}
-    </div>
+    </nav>
   )
 }
 
@@ -461,7 +461,9 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         </button>
       </div>
 
-      <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
+      <div className="sheet-menu-layout">
+        <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
+        <div className="sheet-menu-content space-y-4 min-w-0">
 
       {pendingItems.length > 0 && (
         <div className="rounded-lg border transition-all duration-200" style={{ background: 'rgba(232,201,126,0.03)', borderColor: 'rgba(232,201,126,0.1)' }}>
@@ -1178,6 +1180,8 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         <button onClick={onSave} className="bg-gold text-void font-semibold px-6 py-2 rounded-lg text-xs hover:bg-gold-light transition-colors">
           Salvar e Ir para Biblioteca
         </button>
+      </div>
+        </div>
       </div>
     </div>
   )

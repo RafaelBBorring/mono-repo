@@ -569,6 +569,151 @@ button:active:not(:disabled) {
     box-shadow: 0 0 16px rgba(201, 168, 76, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
+  .sheet-menu-layout {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .sheet-menu-nav {
+    position: sticky;
+    top: 4.3rem;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    width: 3.25rem;
+    flex-shrink: 0;
+    padding: 0.4rem;
+    border: 1px solid rgba(201, 168, 76, 0.15);
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, rgba(13, 17, 26, 0.97), rgba(20, 25, 36, 0.93));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(201, 168, 76, 0.04);
+    backdrop-filter: blur(16px);
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+
+  .sheet-menu-nav:hover {
+    width: 11rem;
+  }
+
+  .sheet-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: #8888aa;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.55rem 0.5rem;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+    cursor: pointer;
+    min-height: 2.4rem;
+  }
+
+  .sheet-menu-item .material-symbols-outlined {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .sheet-menu-label {
+    opacity: 0;
+    transition: opacity 0.2s ease 0.05s;
+  }
+
+  .sheet-menu-nav:hover .sheet-menu-label {
+    opacity: 1;
+  }
+
+  .sheet-menu-item small {
+    margin-left: auto;
+    display: inline-grid;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(42, 42, 74, 0.6);
+    color: #c8c8d8;
+    font-family: "JetBrains Mono", "Courier New", monospace;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.2s ease 0.05s;
+  }
+
+  .sheet-menu-nav:hover .sheet-menu-item small {
+    opacity: 1;
+  }
+
+  .sheet-menu-item:hover {
+    border-color: rgba(201, 168, 76, 0.2);
+    background: rgba(201, 168, 76, 0.06);
+    color: #d8d8e8;
+  }
+
+  .sheet-menu-item.is-active {
+    border-color: rgba(201, 168, 76, 0.45);
+    background:
+      linear-gradient(135deg, rgba(201, 168, 76, 0.14), rgba(189, 244, 255, 0.04)),
+      rgba(201, 168, 76, 0.06);
+    color: #e8c97e;
+    box-shadow: 0 0 14px rgba(201, 168, 76, 0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .sheet-menu-item.is-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, #c9a84c, #e8c97e);
+  }
+
+  .sheet-menu-item {
+    position: relative;
+  }
+
+  .sheet-menu-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 1023px) {
+    .sheet-menu-layout {
+      flex-direction: column;
+    }
+
+    .sheet-menu-nav {
+      position: sticky;
+      top: 3.8rem;
+      flex-direction: row;
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.35rem;
+    }
+
+    .sheet-menu-nav:hover {
+      width: 100%;
+    }
+
+    .sheet-menu-item {
+      flex-direction: row;
+      min-width: max-content;
+    }
+
+    .sheet-menu-label,
+    .sheet-menu-item small {
+      opacity: 1;
+    }
+  }
+
   .character-sheet-shell {
     border-radius: 8px;
   }
@@ -4771,14 +4916,16 @@ body {
   }
 }
 
-/* Unified Resident Evil style inventory */
 .resident-inventory {
-  border: 1px solid rgba(245, 200, 76, 0.14);
-  border-radius: 12px;
+  border: 1px solid rgba(245, 200, 76, 0.18);
+  border-radius: 14px;
   background:
+    linear-gradient(180deg, rgba(245,200,76,0.03) 0%, transparent 40%),
     linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0)),
-    rgba(8, 9, 12, 0.55);
+    rgba(8, 9, 12, 0.6);
   padding: 1rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 
 .resident-inventory-toolbar,
@@ -4806,13 +4953,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border: 1px solid rgba(245, 200, 76, 0.2);
-  border-radius: 7px;
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(245, 200, 76, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
   color: rgba(244, 241, 255, 0.72);
   font-size: 0.68rem;
-  padding: 0.45rem 0.65rem;
-  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+  font-weight: 600;
+  padding: 0.45rem 0.7rem;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .resident-location-tabs button:hover,
@@ -4820,8 +4968,11 @@ body {
 .resident-location-create button:hover,
 .resident-location-tabs button.is-active {
   border-color: rgba(245, 200, 76, 0.5);
-  background: rgba(245, 200, 76, 0.1);
+  background:
+    linear-gradient(135deg, rgba(245, 200, 76, 0.12), rgba(245, 200, 76, 0.04));
   color: #f5c84c;
+  box-shadow: 0 0 12px rgba(245, 200, 76, 0.06);
+  transform: translateY(-1px);
 }
 
 .resident-location-tabs .material-symbols-outlined,
@@ -4858,6 +5009,7 @@ body {
 .resident-inventory-status {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
   margin-bottom: 0.9rem;
 }
 
@@ -4875,23 +5027,28 @@ body {
   grid-template-columns: 3.05rem minmax(0, 1fr);
   align-items: center;
   gap: 0.55rem;
-  border: 1px solid rgba(255,255,255,0.075);
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 10px;
-  background: rgba(0,0,0,0.22);
+  background: rgba(0,0,0,0.25);
   color: rgba(166, 163, 186, 0.72);
   padding: 0.48rem;
   text-align: left;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .resident-equipped-slot.has-entry {
-  border-color: rgba(52, 211, 153, 0.24);
-  background: rgba(52, 211, 153, 0.045);
+  border-color: rgba(52, 211, 153, 0.28);
+  background:
+    linear-gradient(135deg, rgba(52, 211, 153, 0.06), rgba(0,0,0,0.2));
   color: #f4f1ff;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.04);
 }
 
 .resident-equipped-slot:not(:disabled):hover {
-  border-color: rgba(245, 200, 76, 0.32);
-  background: rgba(245, 200, 76, 0.06);
+  border-color: rgba(245, 200, 76, 0.35);
+  background: rgba(245, 200, 76, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
 
 .resident-equipped-icon {
@@ -4933,11 +5090,17 @@ body {
 }
 
 .resident-mini-stat {
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 8px;
-  background: rgba(0,0,0,0.22);
-  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(245, 200, 76, 0.1);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(245,200,76,0.04), rgba(0,0,0,0.2));
+  padding: 0.55rem 0.7rem;
   min-width: 0;
+  transition: border-color 180ms ease;
+}
+
+.resident-mini-stat:hover {
+  border-color: rgba(245, 200, 76, 0.22);
 }
 
 .resident-mini-stat span {
@@ -4973,10 +5136,12 @@ body {
 }
 
 .resident-grid-wrap {
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 12px;
-  background: rgba(0,0,0,0.23);
-  padding: 0.65rem;
+  border: 1px solid rgba(245, 200, 76, 0.12);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(245,200,76,0.025), rgba(0,0,0,0.3));
+  padding: 0.7rem;
+  backdrop-filter: blur(4px);
 }
 
 .resident-grid {
@@ -4985,14 +5150,16 @@ body {
   position: relative;
   width: 100%;
   aspect-ratio: var(--grid-cols) / var(--grid-rows);
-  border: 1px solid rgba(245, 200, 76, 0.16);
-  border-radius: 11px;
+  border: 1px solid rgba(245, 200, 76, 0.14);
+  border-radius: 12px;
   background:
-    linear-gradient(rgba(245,200,76,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245,200,76,0.08) 1px, transparent 1px),
-    rgba(8, 9, 12, 0.78);
-  background-size: calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), auto;
+    linear-gradient(rgba(245,200,76,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,200,76,0.06) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgba(245,200,76,0.02), transparent),
+    rgba(8, 9, 12, 0.82);
+  background-size: calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows)), auto, auto;
   overflow: hidden;
+  box-shadow: inset 0 2px 12px rgba(0,0,0,0.3);
 }
 
 .resident-grid-cells,
@@ -5011,13 +5178,14 @@ body {
 .resident-grid-cells button {
   border: 0;
   background: transparent;
-  box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.055);
-  border-radius: 4px;
-  transition: background 120ms ease;
+  box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.04);
+  border-radius: 3px;
+  transition: all 120ms ease;
 }
 
 .resident-grid-cells button:hover {
-  background: rgba(245, 200, 76, 0.045);
+  background: rgba(245, 200, 76, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.12);
 }
 
 .resident-grid-cells button.is-drop-valid {
@@ -5062,21 +5230,22 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 7px;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(0,0,0,0.25)),
+    linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(0,0,0,0.3)),
     rgba(10, 14, 18, 0.92);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .resident-grid-card:hover .resident-grid-card-visual {
-  border-color: rgba(245, 200, 76, 0.5);
-  box-shadow: 0 0 10px rgba(245, 200, 76, 0.12);
+  border-color: rgba(245, 200, 76, 0.55);
+  box-shadow: 0 0 14px rgba(245, 200, 76, 0.15), inset 0 0 8px rgba(245, 200, 76, 0.04);
+  transform: translateY(-1px);
 }
 
 .resident-grid-card.is-selected .resident-grid-card-visual {
@@ -5278,9 +5447,12 @@ body {
 }
 
 .resident-grid-hint {
-  color: rgba(166, 163, 186, 0.55);
-  font-size: 0.64rem;
-  margin-top: 0.5rem;
+  color: rgba(166, 163, 186, 0.5);
+  font-size: 0.62rem;
+  margin-top: 0.6rem;
+  text-align: center;
+  font-family: "JetBrains Mono", "Courier New", monospace;
+  letter-spacing: 0.02em;
 }
 
 .resident-bp-board .resident-grid-wrap {
