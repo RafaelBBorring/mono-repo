@@ -15,6 +15,7 @@ import Step8Triages from './components/steps/Step8Triages'
 import Step10Abilities from './components/steps/Step10Abilities'
 import Step11Review from './components/steps/Step11Review'
 import RaceSkillTree from './components/RaceSkillTree'
+import SkillTreeView from './components/SkillTreeView'
 import ReferencePage from './components/ReferencePage'
 import LoginPage from './components/LoginPage'
 import HomeMenu from './components/HomeMenu'
@@ -51,7 +52,7 @@ const STEPS = [
   { id: 7, label: 'Triagens', comp: Step8Triages },
   { id: 8, label: 'Módulos', comp: Step7Modules },
   { id: 9, label: 'Perícias', comp: Step6Pericias },
-  { id: 10, label: 'Árvore Racial', comp: RaceSkillTree },
+  { id: 10, label: 'Árvore de Habilidades', comp: SkillTreeView },
   { id: 11, label: 'Habilidades', comp: Step10Abilities },
   { id: 12, label: 'Revisão', comp: Step11Review },
 ]
