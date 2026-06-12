@@ -6,15 +6,15 @@ import {
   getAllSkills, getBranchProgress,
 } from '../utils/skillTreeEngine'
 
-const CANVAS_W = 960
-const CANVAS_H = 760
+const CANVAS_W = 1280
+const CANVAS_H = 820
 
 const TIER_LABELS = [
   { y: 80, text: 'Despertar' },
-  { y: 220, text: 'Tier I' },
-  { y: 370, text: 'Tier II' },
-  { y: 520, text: 'Tier III' },
-  { y: 670, text: 'Suprema' },
+  { y: 230, text: 'Tier I' },
+  { y: 400, text: 'Tier II' },
+  { y: 560, text: 'Tier III' },
+  { y: 730, text: 'Suprema' },
 ]
 
 function getNodeSize(skill) {
@@ -176,14 +176,38 @@ export default function SkillTreeView({ char, update }) {
 
   const handleMouseUp = useCallback(() => {
     dragRef.current.active = false
+    dragRef.current.moved = false
     setTimeout(() => setDragging(false), 50)
+  }, [])
+
+  const zoomAtPoint = useCallback((cx, cy, delta) => {
+    setZoom(prevZoom => {
+      const newZoom = Math.max(0.3, Math.min(2.5, prevZoom + delta))
+      if (newZoom === prevZoom) return prevZoom
+      const scaleChange = newZoom / prevZoom
+      setPan(prevPan => ({
+        x: cx - (cx - prevPan.x) * scaleChange,
+        y: cy - (cy - prevPan.y) * scaleChange,
+      }))
+      return newZoom
+    })
   }, [])
 
   const handleWheel = useCallback((e) => {
     e.preventDefault()
-    const delta = -e.deltaY * 0.0012
-    setZoom(prev => Math.max(0.4, Math.min(2.2, prev + delta)))
-  }, [])
+    const rect = viewportRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    zoomAtPoint(mx, my, -e.deltaY * 0.0015)
+  }, [zoomAtPoint])
+
+  const handleZoomBtn = useCallback((dir) => {
+    const rect = viewportRef.current?.getBoundingClientRect()
+    const cx = rect ? rect.width / 2 : 0
+    const cy = rect ? rect.height / 2 : 0
+    zoomAtPoint(cx, cy, dir * 0.2)
+  }, [zoomAtPoint])
 
   const handleNodeClick = useCallback((e, skillId) => {
     if (dragRef.current.moved) return
@@ -211,6 +235,16 @@ export default function SkillTreeView({ char, update }) {
     const t = setTimeout(() => setJustUnlocked(null), 600)
     return () => clearTimeout(t)
   }, [justUnlocked])
+
+  useEffect(() => {
+    if (!viewportRef.current) return
+    const vpW = viewportRef.current.clientWidth
+    if (vpW > 0 && vpW < CANVAS_W) {
+      const initZoom = Math.max(0.3, (vpW - 40) / CANVAS_W)
+      setZoom(initZoom)
+      setPan({ x: 0, y: 0 })
+    }
+  }, [])
 
   return (
     <div className={`sk-tree-wrapper ${dragging ? 'dragging' : ''}`}>
@@ -365,6 +399,16 @@ export default function SkillTreeView({ char, update }) {
             viewportRef={viewportRef}
           />
         )}
+
+        <div className="sk-tree-zoom">
+          <button onClick={() => handleZoomBtn(1)} title="Aproximar">
+            <span className="material-symbols-outlined">add</span>
+          </button>
+          <span className="sk-tree-zoom-level">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => handleZoomBtn(-1)} title="Afastar">
+            <span className="material-symbols-outlined">remove</span>
+          </button>
+        </div>
       </div>
 
       <div className="sk-tree-help">

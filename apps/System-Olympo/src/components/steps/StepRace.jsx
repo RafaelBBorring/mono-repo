@@ -335,57 +335,61 @@ function SelectedRacePanel({ char, race, update, onClear, onSubraceSelect, onTog
               Atributos concedidos pelo deus pai
             </div>
           )}
+
+          <div className="race-tree-bridge mt-4">
+            <span className="material-symbols-outlined">tips_and_updates</span>
+            <span>Estes bônus são concedidos como <strong>esfera inicial gratuita</strong> na Árvore de Habilidades.</span>
+          </div>
         </section>
 
         {tree && (
           <section className="race-info-panel border-purple-400/25 bg-purple-400/[0.045] text-purple-200 p-5">
             <h3 className="race-section-title flex items-center gap-2">
               <span className="material-symbols-outlined text-purple-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_tree</span>
-              Prévia da Árvore de Habilidades
+              Árvore de Habilidades — {tree.name}
             </h3>
-            <p className="text-xs text-txt-dim mt-1 mb-3">
-              {tree.nodes.length} habilidades desbloqueáveis em {tree.branches.length} caminhos
+            <p className="text-xs text-txt-dim mt-1 mb-4">
+              {tree.nodes.length} habilidades · {tree.branches.length} caminhos · Cada caminho leva a um poder supremo único
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {tree.branches.map(branch => {
                 const branchNodes = tree.nodes.filter(n => n.branch === branch.id)
+                const tierCounts = [1, 2, 3, 4].map(t => branchNodes.filter(n => n.tier === t).length)
                 return (
-                  <div key={branch.id} className="rounded-xl border border-purple-400/15 bg-purple-400/[0.04] p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className="material-symbols-outlined text-base"
-                        style={{ fontVariationSettings: "'FILL' 1", color: branch.color }}
-                      >
-                        {branch.icon}
-                      </span>
-                      <span className="text-xs font-semibold" style={{ color: branch.color }}>{branch.name}</span>
+                  <div key={branch.id} className="race-tree-mini">
+                    <div className="race-tree-mini-head">
+                      <span className="material-symbols-outlined" style={{ color: branch.color, fontVariationSettings: "'FILL' 1" }}>{branch.icon}</span>
+                      <span className="race-tree-mini-name" style={{ color: branch.color }}>{branch.name}</span>
+                      <span className="race-tree-mini-count">{branchNodes.length}</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {branchNodes.slice(0, 8).map(node => (
-                        <div
-                          key={node.id}
-                          className="group relative"
-                          title={node.name}
-                        >
-                          <div
-                            className="w-5 h-5 rounded-full border-2 transition-colors duration-200"
-                            style={{
-                              borderColor: branch.color,
-                              backgroundColor: `${branch.color}33`,
-                            }}
-                          />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded bg-black/90 border border-white/10 text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                            {node.name}
+                    <div className="race-tree-mini-track">
+                      {[1, 2, 3, 4].map(t => {
+                        const count = tierCounts[t - 1]
+                        if (count === 0) return null
+                        return (
+                          <div key={t} className="race-tree-mini-row">
+                            <span className="race-tree-mini-tier">T{t}</span>
+                            <div className="race-tree-mini-bar">
+                              {Array.from({ length: Math.min(count, 6) }).map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={`race-tree-mini-node${t === 4 ? ' race-tree-mini-node--ult' : ''}`}
+                                  style={{ borderColor: branch.color, background: `${branch.color}1a` }}
+                                />
+                              ))}
+                              {count > 6 && <span className="race-tree-mini-x">+{count - 6}</span>}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                      {branchNodes.length > 8 && (
-                        <span className="text-[10px] text-purple-300/60 self-center ml-1">+{branchNodes.length - 8}</span>
-                      )}
+                        )
+                      })}
                     </div>
                   </div>
                 )
               })}
+            </div>
+            <div className="race-tree-bridge mt-4">
+              <span className="material-symbols-outlined">arrow_forward</span>
+              <span>Desbloqueie habilidades interativamente na <strong>Etapa 10</strong>. Cada caminho é independente — escolha seu foco.</span>
             </div>
           </section>
         )}
