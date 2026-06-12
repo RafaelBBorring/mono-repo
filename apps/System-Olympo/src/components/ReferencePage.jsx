@@ -7,6 +7,7 @@ import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '.
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, WEAPON_LIMITS, MARTIAL_ARTS_LIMITS, LEGENDARY_WEAPONS, WEAPON_POWER_LEVELS } from '../data/weapons'
 import { MARTIAL_ARTS, GRAU_LABELS as MA_GRAU_LABELS } from '../data/martialArts'
 import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../data/races'
+import { RACE_PROFILES, getRaceBonusSummary } from '../data/raceProfiles'
 import { ALCHEMY_FALLBACK_RITUALS } from '../data/alchemyFallbackRituals'
 import { SPELL_FALLBACK_RITUALS, SPELL_TRADITIONS } from '../data/spellFallbackRituals'
 import { RUNE_FALLBACK_RITUALS, RUNE_GRADES } from '../data/runeFallbackRituals'
@@ -357,23 +358,23 @@ function RacasSection() {
     <div>
       <SectionTitle>Raças</SectionTitle>
       <p className="text-txt-dim text-sm mb-4">
-        Cada raça oferece bônus de Camada 0, passivas raciais com valores mecânicos concretos, vantagens e desvantagens. A evolução separa poder (nível) de experiência (marcos narrativos).
+        Cada raça é definida por suas <span className="text-red-400 font-semibold">fraquezas</span> (o que a torna vulnerável), seus <span className="text-amber-300 font-semibold">poderes base</span> (capacidades inatas) e <span className="text-emerald-400 font-semibold">bônus numéricos</span> (HP, energia, PE e até 2 atributos). A árvore de evolução desenvolve esses fundamentos com PAR ganho por nível.
       </p>
 
       <div className="mb-4 bg-void rounded-lg border border-sep p-4">
-        <p className="text-gold text-xs font-semibold mb-2">Camada 0 — Bônus Raciais Inatos</p>
+        <p className="text-gold text-xs font-semibold mb-2">Tríade Racial</p>
         <div className="grid grid-cols-3 gap-3 text-xs">
-          <div className="bg-deep rounded-lg border border-sep/50 p-3">
-            <span className="text-txt-dim">Bônus de Atributos</span>
-            <div className="text-sky-400 font-mono mt-1">+/- direto em atributos base</div>
+          <div className="bg-deep rounded-lg border border-red-400/20 p-3">
+            <span className="text-red-400 font-semibold">Fraquezas</span>
+            <div className="text-txt-dim mt-1">Vulnerabilidades e limitações que definem a identidade da raça</div>
           </div>
-          <div className="bg-deep rounded-lg border border-sep/50 p-3">
-            <span className="text-txt-dim">Modificador de Vida</span>
-            <div className="text-emerald-400 font-mono mt-1">+/- HP fixo na criação</div>
+          <div className="bg-deep rounded-lg border border-amber-300/20 p-3">
+            <span className="text-amber-300 font-semibold">Poderes Base</span>
+            <div className="text-txt-dim mt-1">Capacidades inatas que toda a raça possui</div>
           </div>
-          <div className="bg-deep rounded-lg border border-sep/50 p-3">
-            <span className="text-txt-dim">Passivas Raciais</span>
-            <div className="text-amber-300 font-mono mt-1">Habilidades com custo, dano e duração</div>
+          <div className="bg-deep rounded-lg border border-emerald-400/20 p-3">
+            <span className="text-emerald-400 font-semibold">Bônus Base</span>
+            <div className="text-txt-dim mt-1">HP, Energia, PE e até 2 atributos — o resto vem da árvore</div>
           </div>
         </div>
       </div>
@@ -398,6 +399,8 @@ function RacasSection() {
         {filtered.map(race => {
           const isExpanded = expanded === race.id
           const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
+          const profile = RACE_PROFILES[race.id]
+          const bonusSummary = profile ? getRaceBonusSummary(race.id) : []
           return (
             <div key={race.id} className={`rounded-xl border ${catMeta.color} overflow-hidden`}>
               <button type="button" onClick={() => setExpanded(isExpanded ? null : race.id)}
@@ -409,84 +412,65 @@ function RacasSection() {
                     <span className={`text-[9px] px-2 py-0.5 rounded border ${catMeta.badge}`}>{catMeta.label}</span>
                     <span className="text-txt-dim text-[11px] ml-1">{'⭐'.repeat(race.dificuldade || 1)}</span>
                   </div>
-                  <div className="flex items-center gap-4 mt-0.5 text-xs">
-                    <span className="text-txt-dim">HP: <span className={race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}>{race.layer0.hpLabel || `${race.layer0.hpMod >= 0 ? '+' : ''}${race.layer0.hpMod}`}</span></span>
-                    <span className="text-txt-dim">Atr: <span className="text-sky-400">{getAttrBonusText(race)}</span></span>
-                    <span className="text-txt-dim">Passivas: <span className="text-amber-300">{race.passivasRaciais?.length || 0}</span></span>
+                  <div className="flex items-center gap-3 mt-0.5 text-xs flex-wrap">
+                    {profile && <>
+                      <span className="text-red-400/80">▲ {profile.fraquezas.length} fraquezas</span>
+                      <span className="text-amber-300/80">✦ {profile.poderesBase.length} poderes</span>
+                    </>}
+                    {bonusSummary.length > 0 && (
+                      <span className="text-emerald-400/80 font-mono text-[11px]">{bonusSummary.join(' · ')}</span>
+                    )}
                   </div>
                 </div>
                 <span className="text-txt-dim/40 text-sm shrink-0">{isExpanded ? '▲' : '▼'}</span>
               </button>
 
-              {isExpanded && (
+              {isExpanded && profile && (
                 <div className="px-5 pb-4 border-t border-sep/30 space-y-4">
                   <div className="pt-3">
                     <p className="text-txt-dim text-xs italic">{race.quote}</p>
                     <p className="text-txt-dim text-xs mt-2">{race.desc}</p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-void/60 rounded-lg p-3 border border-sep/30">
-                      <div className="text-gold text-[11px] font-semibold mb-2 uppercase tracking-wider">Camada 0</div>
-                      <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-txt-dim">Atributos</span>
-                          <span className="text-sky-400 font-mono">{getAttrBonusText(race)}</span>
+                  <div className="bg-red-950/20 rounded-lg p-4 border border-red-400/20">
+                    <div className="text-red-400 text-[11px] font-semibold mb-3 uppercase tracking-wider">▲ Fraquezas ({profile.fraquezas.length})</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {profile.fraquezas.map((f, i) => (
+                        <div key={i} className="bg-deep rounded-lg p-3 border border-red-400/10 flex gap-2.5">
+                          <span className="material-symbols-outlined text-red-400/70 text-[18px] shrink-0">{f.icon}</span>
+                          <div>
+                            <span className="text-red-300 text-xs font-semibold">{f.nome}</span>
+                            <p className="text-txt-dim text-[11px] mt-0.5 leading-relaxed">{f.desc}</p>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-txt-dim">Vida</span>
-                          <span className={`font-mono ${race.layer0.hpMod >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{race.layer0.hpLabel || `${race.layer0.hpMod >= 0 ? '+' : ''}${race.layer0.hpMod}`}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-void/60 rounded-lg p-3 border border-sep/30">
-                      <div className="text-emerald-400 text-[11px] font-semibold mb-2 uppercase tracking-wider">Vantagens ({race.vantagens.length})</div>
-                      <ul className="space-y-1">
-                        {race.vantagens.map((v, i) => (
-                          <li key={i} className="text-[11px] text-txt-dim flex gap-1.5">
-                            <span className="text-emerald-400/60 shrink-0">+</span>
-                            <span>{v}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="bg-void/60 rounded-lg p-3 border border-red-400/15">
-                      <div className="text-red-400 text-[11px] font-semibold mb-2 uppercase tracking-wider">Desvantagens ({race.desvantagens.length})</div>
-                      <ul className="space-y-1">
-                        {race.desvantagens.map((d, i) => (
-                          <li key={i} className="text-[11px] text-txt-dim flex gap-1.5">
-                            <span className="text-red-400/60 shrink-0">-</span>
-                            <span>{d}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      ))}
                     </div>
                   </div>
 
-                  {race.passivasRaciais?.length > 0 && (
-                    <div className="bg-void/60 rounded-lg p-4 border border-amber-300/15">
-                      <div className="text-amber-300 text-[11px] font-semibold mb-3 uppercase tracking-wider">Passivas Raciais — Habilidades Inatas com Valores Mecânicos</div>
-                      <div className="space-y-3">
-                        {race.passivasRaciais.map((pr, i) => (
-                          <div key={i} className="bg-deep rounded-lg p-3 border border-sep/40">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${pr.tipo === 'Ativa' ? 'bg-amber-300/15 text-amber-300 border border-amber-300/20' : 'bg-emerald-400/15 text-emerald-400 border border-emerald-400/20'}`}>
-                                {pr.tipo}
-                              </span>
-                              <span className="text-txt-main font-semibold">{pr.nome}</span>
-                            </div>
-                            <p className="text-txt-main text-xs leading-relaxed">{pr.efeito}</p>
-                            <div className="flex gap-4 mt-1.5 text-[11px]">
-                              {pr.custo && <span className="text-txt-dim">Custo: <span className="text-amber-300">{pr.custo}</span></span>}
-                              {pr.duracao && <span className="text-txt-dim">Duração: <span className="text-sky-400">{pr.duracao}</span></span>}
-                            </div>
+                  <div className="bg-amber-950/10 rounded-lg p-4 border border-amber-300/15">
+                    <div className="text-amber-300 text-[11px] font-semibold mb-3 uppercase tracking-wider">✦ Poderes Base ({profile.poderesBase.length})</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {profile.poderesBase.map((p, i) => (
+                        <div key={i} className="bg-deep rounded-lg p-3 border border-amber-300/10 flex gap-2.5">
+                          <span className="material-symbols-outlined text-amber-300/70 text-[18px] shrink-0">{p.icon}</span>
+                          <div>
+                            <span className="text-amber-200 text-xs font-semibold">{p.nome}</span>
+                            <p className="text-txt-dim text-[11px] mt-0.5 leading-relaxed">{p.desc}</p>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="bg-emerald-950/10 rounded-lg p-4 border border-emerald-400/15">
+                    <div className="text-emerald-400 text-[11px] font-semibold mb-3 uppercase tracking-wider">Bônus Base</div>
+                    <div className="flex flex-wrap gap-2">
+                      {bonusSummary.map((b, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded bg-deep border border-emerald-400/20 text-emerald-300 text-xs font-mono">{b}</span>
+                      ))}
+                    </div>
+                    <p className="text-txt-dim text-[11px] mt-2">Poderes adicionais, regeneração, PE extra e atributos evoluem pela <span className="text-gold">Árvore de Habilidades</span> com PAR.</p>
+                  </div>
 
                   {race.layer0.requiresDeus && race.deuses && (
                     <div className="bg-void/60 rounded-lg p-4 border border-amber-300/20">
@@ -515,78 +499,6 @@ function RacasSection() {
                       </div>
                     </div>
                   )}
-
-                  {race.formas && (
-                    <div className="bg-void/60 rounded-lg p-4 border border-amber-300/20">
-                      <div className="text-amber-300 text-[11px] font-semibold mb-3 uppercase tracking-wider">Formas Disponíveis (Dasariano)</div>
-                      <div className="grid grid-cols-3 gap-3">
-                        {race.formas.map((f, i) => (
-                          <div key={i} className="bg-deep rounded-lg p-3 border border-sep/40">
-                            <span className="font-semibold text-amber-300 text-sm">{f.nome}</span>
-                            {Object.keys(f.attrBonus).length > 0 && (
-                              <div className="text-sky-400 font-mono text-[11px] mt-1">{Object.entries(f.attrBonus).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' ')}</div>
-                            )}
-                            {f.hpExtra > 0 && <span className="text-emerald-400 font-mono text-[11px] ml-2">+{f.hpExtra} HP</span>}
-                            {f.garras && <span className="text-red-400 font-mono text-[11px] ml-2">Garras {f.garras}</span>}
-                            <p className="text-txt-dim text-[11px] mt-1">{f.desc}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="bg-void/60 rounded-lg p-4 border border-sep/30">
-                      <div className="text-gold text-[11px] font-semibold mb-3 uppercase tracking-wider">Evolução de Poder (por Nível)</div>
-                      <div className="space-y-1.5">
-                        {race.progressaoPoder.map((p, i) => (
-                          <div key={i} className="flex gap-3 items-start text-xs py-1">
-                            <span className="shrink-0 w-12 text-center font-mono font-bold rounded px-1.5 py-0.5 text-[10px] bg-gold/10 text-gold border border-gold/20">N{p.nivel}</span>
-                            <div className="flex-1">
-                              <span className="text-txt-main font-semibold">{p.ganho}</span>
-                              <span className="text-txt-dim ml-1">— {p.desc}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {race.marcosExperiencia?.length > 0 && (
-                      <div className="bg-void/60 rounded-lg p-4 border border-purple-400/15">
-                        <div className="text-purple-400 text-[11px] font-semibold mb-3 uppercase tracking-wider">Marcos de Experiência (conquistas narrativas)</div>
-                        <div className="space-y-1.5">
-                          {race.marcosExperiencia.map((item, i) =>
-                            item.marcos ? (
-                              <div key={i} className="space-y-1.5">
-                                <div className="flex items-center gap-2 text-xs py-1">
-                                  <span className="shrink-0 w-4 text-center text-purple-400 text-sm">◆</span>
-                                  <span className="text-purple-300 font-cinzel font-bold">{item.titulo}</span>
-                                  <span className="text-txt-dim text-[10px]">— {item.desc}</span>
-                                </div>
-                                {item.marcos.map((m, j) => (
-                                  <div key={j} className="flex gap-3 items-start text-xs py-1 pl-5">
-                                    <span className="shrink-0 w-4 text-center text-purple-400/60 text-xs">◇</span>
-                                    <div className="flex-1">
-                                      <span className="text-txt-main font-semibold">{m.marco}</span>
-                                      <span className="text-emerald-400 ml-1">→ {m.ganho}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div key={i} className="flex gap-3 items-start text-xs py-1">
-                                <span className="shrink-0 w-4 text-center text-purple-400 text-sm">◆</span>
-                                <div className="flex-1">
-                                  <span className="text-txt-main font-semibold">{item.marco}</span>
-                                  <span className="text-emerald-400 ml-1">→ {item.ganho}</span>
-                                </div>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
             </div>

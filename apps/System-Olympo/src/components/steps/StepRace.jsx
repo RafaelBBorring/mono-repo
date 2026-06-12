@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
-import { RACES, RACE_CATEGORIES, getAttrBonusText } from '../../data/races'
+import { RACES, RACE_CATEGORIES } from '../../data/races'
+import { getRaceProfile, getRaceBonusSummary } from '../../data/raceProfiles'
+import { getRaceTree } from '../../data/raceTrees'
 import {
   ATTR_KEYS,
   calculateRaceBonus,
@@ -7,7 +9,6 @@ import {
   getSelectedSubrace,
   getSubracesForRace,
 } from '../../utils/raceCalculator'
-import { formatRaceBonusParts, getRaceProgressionBonus } from '../../utils/raceMilestones'
 
 const CAT_COLORS = {
   humanoide: {
@@ -28,44 +29,11 @@ const CAT_COLORS = {
   },
 }
 
-function bonusLine(bonus = {}) {
-  const attrs = Object.entries(bonus.attrs || {})
-    .filter(([, v]) => v !== 0)
-    .map(([a, v]) => `${v >= 0 ? '+' : ''}${v} ${a}`)
-  if (bonus.hp) attrs.push(`${bonus.hp >= 0 ? '+' : ''}${bonus.hp} HP`)
-  if (bonus.pe) attrs.push(`${bonus.pe >= 0 ? '+' : ''}${bonus.pe} PE`)
-  if (bonus.pericias) attrs.push(`+${bonus.pericias} Pericias`)
-  if (bonus.modules) attrs.push(`+${bonus.modules} Modulos`)
-  return attrs.join(' | ') || 'Sem bonus numerico'
-}
-
-function compactBonus(bonus = {}) {
-  const parts = ATTR_KEYS
-    .map(attr => [attr, bonus.attrs?.[attr] || 0])
-    .filter(([, v]) => v !== 0)
-    .map(([attr, v]) => `${v >= 0 ? '+' : ''}${v}${attr}`)
-  if (bonus.hp) parts.push(`${bonus.hp >= 0 ? '+' : ''}${bonus.hp}HP`)
-  if (bonus.pe) parts.push(`+${bonus.pe}PE`)
-  if (bonus.pericias) parts.push(`+${bonus.pericias}PER`)
-  if (bonus.modules) parts.push(`+${bonus.modules}MOD`)
-  return parts
-}
-
-function Section({ title, tone = 'gold', children, dense = false }) {
-  const tones = {
-    gold: 'border-gold/25 bg-gold/[0.045] text-gold',
-    sky: 'border-sky-400/25 bg-sky-400/[0.045] text-sky-300',
-    purple: 'border-purple-400/25 bg-purple-400/[0.045] text-purple-300',
-    emerald: 'border-emerald-400/25 bg-emerald-400/[0.045] text-emerald-300',
-    red: 'border-red-400/25 bg-red-400/[0.045] text-red-300',
-    amber: 'border-amber-300/25 bg-amber-300/[0.045] text-amber-300',
-  }
-  return (
-    <section className={`race-info-panel ${tones[tone] || tones.gold} ${dense ? 'p-4' : 'p-5'}`}>
-      <h3 className="race-section-title">{title}</h3>
-      {children}
-    </section>
-  )
+function truncateDesc(text, maxWords = 12) {
+  if (!text) return ''
+  const words = text.split(' ')
+  if (words.length <= maxWords) return text
+  return words.slice(0, maxWords).join(' ') + '…'
 }
 
 function StatPill({ label, value, tone = 'sky' }) {
@@ -88,8 +56,6 @@ function StatPill({ label, value, tone = 'sky' }) {
 export default function StepRace({ char, update }) {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const selectedRace = RACES[char.raca] || null
-  const selectedSubrace = getSelectedSubrace(char)
-  const raceBonus = calculateRaceBonus(char)
 
   const filteredRaces = useMemo(() => {
     const all = Object.values(RACES)
@@ -115,8 +81,7 @@ export default function StepRace({ char, update }) {
   }
 
   function handleSubraceSelect(race, sub) {
-    const patch = { subraca: sub.id }
-    update(patch)
+    update({ subraca: sub.id })
   }
 
   function toggleAttrChoice(race, attr) {
@@ -128,8 +93,6 @@ export default function StepRace({ char, update }) {
     update({ racaAttrChoices: { ...(char.racaAttrChoices || {}), [attr]: !current } })
   }
 
-  const totals = compactBonus(raceBonus)
-
   return (
     <div className="race-stage space-y-6">
       <div className="race-hero">
@@ -139,18 +102,17 @@ export default function StepRace({ char, update }) {
             Origem do Personagem
           </div>
           <p className="text-on-surface-variant text-sm sm:text-base mt-3 max-w-3xl">
-            Escolha a raca, o caminho interno e as concessoes mecanicas. Tudo abaixo entra no calculo da ficha:
-            atributos, HP, PE, pericias, modulos e exportacao.
+            Escolha a raça que definirá sua origem, fraquezas e poderes inatos.
           </p>
         </div>
 
         <div className="race-hero-summary">
           <span className="text-outline text-xs uppercase tracking-[0.18em]">Escolha atual</span>
           <strong className="font-cinzel text-xl text-on-surface mt-1">
-            {selectedRace ? selectedRace.name : 'Nenhuma raca'}
+            {selectedRace ? selectedRace.name : 'Nenhuma raça'}
           </strong>
           <span className="text-purple-300 text-sm truncate">
-            {selectedSubrace ? selectedSubrace.name : 'Selecione uma origem'}
+            {selectedRace ? RACE_CATEGORIES.find(c => c.id === selectedRace.category)?.label || '' : 'Selecione uma origem'}
           </span>
         </div>
       </div>
@@ -178,19 +140,18 @@ export default function StepRace({ char, update }) {
         })}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
         {filteredRaces.map(race => {
           const isSelected = char.raca === race.id
           const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
           const catColor = CAT_COLORS[race.category] || CAT_COLORS.humanoide
-          const advantages = (race.vantagens || []).slice(0, 3)
 
           return (
             <button
               key={race.id}
               type="button"
               onClick={() => handleSelectRace(race.id)}
-              className={`race-square-card relative aspect-square rounded-2xl border border-white/[0.06] p-3 sm:p-4 flex flex-col items-center text-center transition-all duration-200 ease-out cursor-pointer ${isSelected ? 'race-square-card--selected' : ''}`}
+              className={`race-square-card relative rounded-2xl border border-white/[0.06] p-3 sm:p-4 flex flex-col items-center text-center transition-all duration-200 ease-out cursor-pointer ${isSelected ? 'race-square-card--selected' : ''}`}
             >
               {isSelected && (
                 <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gold flex items-center justify-center z-10 shadow-lg">
@@ -208,313 +169,284 @@ export default function StepRace({ char, update }) {
                 {catMeta.label}
               </span>
 
-              <div className="mt-auto pt-2.5 space-y-0.5 w-full px-0.5">
-                {advantages.map((adv, i) => (
-                  <p key={i} className="text-[10px] sm:text-[11px] text-txt-dim truncate leading-relaxed text-left">
-                    <span className={`${catColor.accent} mr-0.5`}>+</span>{adv}
-                  </p>
-                ))}
-              </div>
-
-
+              <p className="mt-auto pt-2.5 text-[10px] sm:text-[11px] text-txt-dim leading-relaxed line-clamp-2">
+                {truncateDesc(race.desc)}
+              </p>
             </button>
           )
         })}
       </div>
 
-      <div className="race-detail-panel">
-        {!selectedRace ? (
-          <div className="race-empty-state">
-            <div className="text-5xl text-gold/70">?</div>
-            <h3 className="font-cinzel text-2xl text-primary mt-4">Nenhuma raca selecionada</h3>
-            <p className="text-on-surface-variant text-sm mt-2 max-w-md">
-              Selecione uma origem no grid acima. O painel vai mostrar impacto numerico, caminho, passivas,
-              vantagens, fraquezas e evolucao.
-            </p>
+      {selectedRace && (
+        <SelectedRacePanel
+          char={char}
+          race={selectedRace}
+          update={update}
+          onClear={handleClearRace}
+          onSubraceSelect={handleSubraceSelect}
+          onToggleAttr={toggleAttrChoice}
+        />
+      )}
+    </div>
+  )
+}
+
+function SelectedRacePanel({ char, race, update, onClear, onSubraceSelect, onToggleAttr }) {
+  const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
+  const profile = getRaceProfile(race.id)
+  const tree = getRaceTree(race.id)
+  const subraces = getSubracesForRace(race.id)
+  const selectedSubrace = getSelectedSubrace(char)
+  const raceBonus = calculateRaceBonus(char)
+  const layer = race.layer0?.attrBonus || {}
+  const bonusSummary = getRaceBonusSummary(race.id)
+
+  const allowedAttrs = layer.escolherOpcoes || ATTR_KEYS
+  const selectedChoiceCount = Object.values(char.racaAttrChoices || {}).filter(Boolean).length
+  const maxChoices = layer.escolherQtd || 0
+
+  return (
+    <div className="race-detail-panel race-detail-panel--expanded">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-gold text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>expand_more</span>
+        <span className="font-cinzel text-gold text-sm font-bold tracking-wide uppercase">Detalhes da Raça Selecionada</span>
+        <div className="flex-1 h-px bg-gold/20 ml-2" />
+      </div>
+
+      <div className="space-y-5">
+        <div className="race-selected-header">
+          <div className="flex items-start gap-4 min-w-0">
+            <span className="race-selected-icon">{race.icon}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className={`font-cinzel text-2xl ${catMeta.title}`}>{race.name}</h3>
+                <span className={`text-xs px-2.5 py-1 rounded-full border ${catMeta.badge}`}>{catMeta.label}</span>
+              </div>
+              {race.quote && <p className="text-txt-dim text-sm italic mt-1">{race.quote}</p>}
+              <p className="text-txt-dim text-sm leading-relaxed mt-3 max-w-2xl">{race.desc}</p>
+            </div>
           </div>
-        ) : (
-          <SelectedRaceDetails
-            char={char}
-            race={selectedRace}
-            selectedSubrace={selectedSubrace}
-            raceBonus={raceBonus}
-            totals={totals}
-            update={update}
-            onClear={handleClearRace}
-            onSubraceSelect={handleSubraceSelect}
-            onToggleAttr={toggleAttrChoice}
-          />
+          <button type="button" onClick={onClear} className="race-soft-button shrink-0">Remover</button>
+        </div>
+
+        {profile && profile.fraquezas && profile.fraquezas.length > 0 && (
+          <section className="race-info-panel border-rose-400/25 bg-rose-400/[0.05] text-rose-200 p-5">
+            <h3 className="race-section-title flex items-center gap-2">
+              <span className="material-symbols-outlined text-rose-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+              Fraquezas Raciais
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              {profile.fraquezas.map((fq, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-xl border border-rose-400/15 bg-rose-400/[0.04] p-3 transition-all duration-200"
+                  style={{ animationDelay: `${i * 60}ms` }}
+                >
+                  <span className="material-symbols-outlined text-rose-400 text-xl mt-0.5 shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>{fq.icon}</span>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-rose-100 text-sm">{fq.nome}</div>
+                    <p className="text-rose-200/70 text-xs mt-0.5 leading-relaxed">{fq.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {profile && profile.poderesBase && profile.poderesBase.length > 0 && (
+          <section className="race-info-panel border-amber-300/25 bg-amber-300/[0.045] text-amber-200 p-5">
+            <h3 className="race-section-title flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-300 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              Poderes Base
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              {profile.poderesBase.map((pw, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-3"
+                >
+                  <span className="material-symbols-outlined text-amber-300 text-xl mt-0.5 shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>{pw.icon}</span>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-amber-100 text-sm">{pw.nome}</div>
+                    <p className="text-amber-200/70 text-xs mt-0.5 leading-relaxed">{pw.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="race-info-panel border-gold/25 bg-gold/[0.045] text-gold p-5">
+          <h3 className="race-section-title flex items-center gap-2">
+            <span className="material-symbols-outlined text-gold text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>tune</span>
+            Bônus Base
+          </h3>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {bonusSummary.map((part, i) => (
+              <span key={i} className="text-xs font-mono px-2.5 py-1 rounded-full border border-gold/20 bg-gold/[0.08] text-gold">
+                {part}
+              </span>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
+            {ATTR_KEYS.map(attr => {
+              const val = raceBonus.attrs[attr] || 0
+              if (val === 0) return null
+              return (
+                <StatPill
+                  key={attr}
+                  label={attr}
+                  value={`${val >= 0 ? '+' : ''}${val}`}
+                  tone={val < 0 ? 'red' : 'sky'}
+                />
+              )
+            })}
+          </div>
+
+          {layer.escolher && (
+            <div className="mt-4 pt-3 border-t border-gold/15">
+              <p className="text-xs text-txt-dim mb-2">
+                Escolha {maxChoices} {layer.escolherLabel || 'atributos'}. Valor: +{layer.escolherValor || 1} por atributo ({selectedChoiceCount}/{maxChoices})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {allowedAttrs.map(attr => {
+                  const selected = !!char.racaAttrChoices?.[attr]
+                  const disabled = !selected && selectedChoiceCount >= maxChoices
+                  return (
+                    <button
+                      key={attr}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onToggleAttr(race, attr)}
+                      className={`race-choice-chip ${selected ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}`}
+                    >
+                      {attr} {selected ? `+${layer.escolherValor || 1}` : ''}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {profile?.bonus?.attrsDeus && (
+            <div className="mt-3 text-xs text-amber-300/80 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              Atributos concedidos pelo deus pai
+            </div>
+          )}
+        </section>
+
+        {tree && (
+          <section className="race-info-panel border-purple-400/25 bg-purple-400/[0.045] text-purple-200 p-5">
+            <h3 className="race-section-title flex items-center gap-2">
+              <span className="material-symbols-outlined text-purple-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_tree</span>
+              Prévia da Árvore de Habilidades
+            </h3>
+            <p className="text-xs text-txt-dim mt-1 mb-3">
+              {tree.nodes.length} habilidades desbloqueáveis em {tree.branches.length} caminhos
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {tree.branches.map(branch => {
+                const branchNodes = tree.nodes.filter(n => n.branch === branch.id)
+                return (
+                  <div key={branch.id} className="rounded-xl border border-purple-400/15 bg-purple-400/[0.04] p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="material-symbols-outlined text-base"
+                        style={{ fontVariationSettings: "'FILL' 1", color: branch.color }}
+                      >
+                        {branch.icon}
+                      </span>
+                      <span className="text-xs font-semibold" style={{ color: branch.color }}>{branch.name}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {branchNodes.slice(0, 8).map(node => (
+                        <div
+                          key={node.id}
+                          className="group relative"
+                          title={node.name}
+                        >
+                          <div
+                            className="w-5 h-5 rounded-full border-2 transition-colors duration-200"
+                            style={{
+                              borderColor: branch.color,
+                              backgroundColor: `${branch.color}33`,
+                            }}
+                          />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded bg-black/90 border border-white/10 text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                            {node.name}
+                          </div>
+                        </div>
+                      ))}
+                      {branchNodes.length > 8 && (
+                        <span className="text-[10px] text-purple-300/60 self-center ml-1">+{branchNodes.length - 8}</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {subraces.length > 0 && (
+          <section className="race-info-panel border-purple-400/25 bg-purple-400/[0.045] text-purple-300 p-5">
+            <h3 className="race-section-title">
+              {race.id === 'SEMIDEUS' ? 'Caminho de Ascensão' : 'Sub-Raça / Caminho'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              {subraces.map(sub => {
+                const selected = selectedSubrace?.id === sub.id
+                const subAttrs = Object.entries(sub.bonus?.attrs || {})
+                  .filter(([, v]) => v !== 0)
+                  .map(([a, v]) => `${v >= 0 ? '+' : ''}${v} ${a}`)
+                if (sub.bonus?.hp) subAttrs.push(`${sub.bonus.hp >= 0 ? '+' : ''}${sub.bonus.hp} HP`)
+                if (sub.bonus?.pe) subAttrs.push(`+${sub.bonus.pe} PE`)
+                if (sub.bonus?.pericias) subAttrs.push(`+${sub.bonus.pericias} Perícias`)
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => onSubraceSelect(race, sub)}
+                    className={`race-path-card ${selected ? 'is-selected' : ''}`}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="font-semibold text-txt-main">{sub.name}</span>
+                      {selected && <span className="text-[10px] uppercase tracking-[0.14em] text-purple-300">Ativo</span>}
+                    </span>
+                    {subAttrs.length > 0 && (
+                      <span className="block text-xs text-sky-300 font-mono mt-2">{subAttrs.join(' | ')}</span>
+                    )}
+                    {(sub.minLevel || sub.requirement) && (
+                      <span className="block text-xs text-amber-300/85 mt-2">
+                        Requisito: {sub.minLevel ? `Nível ${sub.minLevel}+` : sub.requirement}
+                      </span>
+                    )}
+                    {sub.note && <span className="block text-xs text-txt-dim mt-2 leading-relaxed">{sub.note}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {race.layer0?.requiresDeus && race.deuses && (
+          <DivineLineage race={race} char={char} update={update} />
         )}
       </div>
     </div>
   )
 }
 
-function SelectedRaceDetails({
-  char,
-  race,
-  selectedSubrace,
-  raceBonus,
-  totals,
-  update,
-  onClear,
-  onSubraceSelect,
-  onToggleAttr,
-}) {
-  const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
-  const subraces = getSubracesForRace(race.id)
-  const layer = race.layer0?.attrBonus || {}
-  const allowedAttrs = layer.escolherOpcoes || ATTR_KEYS
-  const selectedChoiceCount = Object.values(char.racaAttrChoices || {}).filter(Boolean).length
-  const maxChoices = layer.escolherQtd || 0
-  const progressionPreview = formatRaceBonusParts(getRaceProgressionBonus(char))
-  const topBenefits = (race.vantagens || []).slice(0, 3)
-  const topDrawbacks = (race.desvantagens || []).slice(0, 3)
-
-  return (
-    <div className="space-y-5">
-      <div className="race-selected-header">
-        <div className="flex items-start gap-4 min-w-0">
-          <span className="race-selected-icon">{race.icon}</span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={`font-cinzel text-2xl ${catMeta.title}`}>{race.name}</h3>
-              <span className={`text-xs px-2.5 py-1 rounded-full border ${catMeta.badge}`}>{catMeta.label}</span>
-
-            </div>
-            {race.quote && <p className="text-txt-dim text-sm italic mt-1">{race.quote}</p>}
-            <p className="text-txt-dim text-sm leading-relaxed mt-3">{race.desc}</p>
-          </div>
-        </div>
-        <button type="button" onClick={onClear} className="race-soft-button shrink-0">Remover</button>
-      </div>
-
-      <Section title="Impacto Numerico Total" tone="gold">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-          {ATTR_KEYS.map(attr => (
-            <StatPill
-              key={attr}
-              label={attr}
-              value={`${raceBonus.attrs[attr] >= 0 ? '+' : ''}${raceBonus.attrs[attr] || 0}`}
-              tone={(raceBonus.attrs[attr] || 0) < 0 ? 'red' : 'sky'}
-            />
-          ))}
-          <StatPill label="HP" value={`${raceBonus.hp >= 0 ? '+' : ''}${raceBonus.hp}`} tone={raceBonus.hp < 0 ? 'red' : 'emerald'} />
-          <StatPill label="Energia" value={`${raceBonus.energia >= 0 ? '+' : ''}${raceBonus.energia || 0}`} tone="sky" />
-          <StatPill label="PE" value={`+${raceBonus.pe || 0}`} tone="emerald" />
-          <StatPill label="Dano" value={`${raceBonus.dano >= 0 ? '+' : ''}${raceBonus.dano || 0}`} tone="red" />
-          <StatPill label="Pericias" value={`+${raceBonus.pericias || 0}`} tone="gold" />
-          <StatPill label="Modulos" value={`+${raceBonus.modules || 0}`} tone="purple" />
-        </div>
-        <div className="mt-3 text-xs text-txt-dim">
-          Base racial: <span className="text-sky-300 font-mono">{getAttrBonusText(race)}</span>
-          {totals.length > 0 && <span className="ml-2 text-txt-dim/70">Total: {totals.join(' | ')}</span>}
-        </div>
-      </Section>
-
-      <Section title="Leitura Rapida" tone="sky" dense>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="race-quick-card">
-            <span className="race-quick-label">Forca da raca</span>
-            {topBenefits.map((item, i) => <p key={i}>{item}</p>)}
-          </div>
-          <div className="race-quick-card is-risk">
-            <span className="race-quick-label">Custo narrativo</span>
-            {topDrawbacks.map((item, i) => <p key={i}>{item}</p>)}
-          </div>
-          <div className="race-quick-card is-growth">
-            <span className="race-quick-label">Evolucao ja contabilizada</span>
-            {progressionPreview.length
-              ? progressionPreview.slice(0, 5).map((item, i) => <p key={i}>{item}</p>)
-              : <p>Sem bonus numerico ativo no nivel atual.</p>}
-          </div>
-        </div>
-      </Section>
-
-      {layer.escolher && (
-        <Section title={`Bonus Escolhivel (${selectedChoiceCount}/${maxChoices})`} tone="sky" dense>
-          <p className="text-xs text-txt-dim mb-3">
-            Escolha {maxChoices} {layer.escolherLabel || 'atributos'}. Valor aplicado: +{layer.escolherValor || 1} por atributo.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {allowedAttrs.map(attr => {
-              const selected = !!char.racaAttrChoices?.[attr]
-              const disabled = !selected && selectedChoiceCount >= maxChoices
-              return (
-                <button
-                  key={attr}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onToggleAttr(race, attr)}
-                  className={`race-choice-chip ${selected ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}`}
-                >
-                  {attr} {selected ? `+${layer.escolherValor || 1}` : ''}
-                </button>
-              )
-            })}
-          </div>
-        </Section>
-      )}
-
-      {subraces.length > 0 && (
-        <Section title={race.id === 'SEMIDEUS' ? 'Caminho de Ascensao' : 'Sub-Raca / Caminho'} tone="purple">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {subraces.map(sub => {
-              const selected = selectedSubrace?.id === sub.id
-              return (
-                <button
-                  key={sub.id}
-                  type="button"
-                  onClick={() => onSubraceSelect(race, sub)}
-                  className={`race-path-card ${selected ? 'is-selected' : ''}`}
-                >
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="font-semibold text-txt-main">{sub.name}</span>
-                    {selected && <span className="text-[10px] uppercase tracking-[0.14em] text-purple-300">Ativo</span>}
-                  </span>
-                  <span className="block text-xs text-sky-300 font-mono mt-2">{bonusLine(sub.bonus)}</span>
-                  {(sub.minLevel || sub.requirement) && (
-                    <span className="block text-xs text-amber-300/85 mt-2">
-                      Requisito: {sub.minLevel ? `Nivel ${sub.minLevel}+` : sub.requirement}
-                    </span>
-                  )}
-                  {sub.note && <span className="block text-xs text-txt-dim mt-2 leading-relaxed">{sub.note}</span>}
-                </button>
-              )
-            })}
-          </div>
-
-          {selectedSubrace?.marcos && (
-            <div className="mt-4 space-y-2 border-t border-purple-400/15 pt-4">
-              <div className="text-purple-300 text-sm font-semibold">Marcos deste caminho</div>
-              {selectedSubrace.marcos.map(([marco, condicao, ganho]) => (
-                <div key={marco} className="race-milestone">
-                  <span className="text-txt-main font-semibold">{marco}</span>
-                  <span className="text-txt-dim"> - {condicao}: </span>
-                  <span className="text-emerald-300">{ganho}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
-
-      {race.layer0?.requiresDeus && race.deuses && (
-        <DivineLineage race={race} char={char} update={update} />
-      )}
-
-      {race.passivasRaciais.length > 0 && (
-        <Section title={`Passivas Raciais (${race.passivasRaciais.length})`} tone="amber">
-          <div className="space-y-3">
-            {race.passivasRaciais.map((pr, i) => (
-              <div key={i} className="race-ability-row">
-                <span className={`race-ability-tag ${pr.tipo === 'Ativa' ? 'is-active' : 'is-passive'}`}>
-                  {pr.tipo === 'Ativa' ? 'ATV' : 'PSV'}
-                </span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-txt-main text-sm font-semibold">{pr.nome}</span>
-                    {pr.custo && !['---', '—'].includes(pr.custo) && <span className="text-xs text-amber-300/75">{pr.custo}</span>}
-                    {pr.duracao && !pr.duracao.startsWith('Cont') && <span className="text-xs text-sky-300/75">{pr.duracao}</span>}
-                  </div>
-                  <p className="text-txt-dim text-sm mt-1 leading-relaxed">{pr.efeito}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Section title={`Vantagens (${race.vantagens.length})`} tone="emerald" dense>
-          <ul className="space-y-2">
-            {race.vantagens.map((v, i) => (
-              <li key={i} className="race-list-line"><span className="text-emerald-300">+</span><span>{v}</span></li>
-            ))}
-          </ul>
-        </Section>
-        <Section title={`Desvantagens (${race.desvantagens.length})`} tone="red" dense>
-          <ul className="space-y-2">
-            {race.desvantagens.map((d, i) => (
-              <li key={i} className="race-list-line"><span className="text-red-300">-</span><span>{d}</span></li>
-            ))}
-          </ul>
-        </Section>
-      </div>
-
-      {race.formas && (
-        <Section title="Formas Disponiveis" tone="amber">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {race.formas.map((f, i) => (
-              <div key={i} className="race-form-card">
-                <span className="font-semibold text-amber-300 text-sm">{f.nome}</span>
-                <div className="text-sky-300 font-mono text-xs mt-2">{bonusLine({ attrs: f.attrBonus, hp: f.hpExtra })}</div>
-                {f.garras && <div className="text-red-300 font-mono text-xs mt-1">Garras {f.garras}</div>}
-                <p className="text-txt-dim text-xs mt-2 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      <Section title="Evolucao de Poder" tone="gold">
-        <div className="space-y-2">
-          {race.progressaoPoder.map((p, i) => {
-            const active = (char.nivel || 1) >= p.nivel
-            return (
-              <div key={i} className={`race-progression-row ${active ? 'is-active' : ''}`}>
-                <span className="race-level-pill">N{p.nivel}</span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-txt-main">{p.ganho}</span>
-                    {p.custo && <span className="text-xs text-amber-300">{p.custo}</span>}
-                    {p.duracao && <span className="text-xs text-sky-300">{p.duracao}</span>}
-                  </div>
-                  <p className="text-sm text-txt-dim mt-0.5">{p.desc}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </Section>
-
-      {race.marcosExperiencia && race.marcosExperiencia.length > 0 && (
-        <Section title="Marcos de Experiencia" tone="purple">
-          <div className="space-y-3">
-            {race.marcosExperiencia.map((item, i) =>
-              item.marcos ? (
-                <div key={i} className="race-milestone-group">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-purple-300 font-cinzel font-bold">{item.titulo}</span>
-                    <span className="text-txt-dim text-xs">{item.desc}</span>
-                  </div>
-                  <div className="mt-2 space-y-2">
-                    {item.marcos.map((m, j) => (
-                      <div key={j} className="race-milestone">
-                        <span className="text-txt-main font-semibold">{m.marco}</span>
-                        <span className="text-emerald-300 ml-1">{m.ganho}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div key={i} className="race-milestone">
-                  <span className="text-txt-main font-semibold">{item.marco}</span>
-                  <span className="text-emerald-300 ml-1">{item.ganho}</span>
-                </div>
-              )
-            )}
-          </div>
-        </Section>
-      )}
-    </div>
-  )
-}
-
 function DivineLineage({ race, char, update }) {
   return (
-    <Section title="Deus Pai / Heranca Divina" tone="amber">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[360px] overflow-y-auto pr-1">
+    <section className="race-info-panel border-amber-300/25 bg-amber-300/[0.045] text-amber-300 p-5">
+      <h3 className="race-section-title flex items-center gap-2">
+        <span className="material-symbols-outlined text-amber-300 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+        Deus Pai / Herança Divina
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3 max-h-[360px] overflow-y-auto pr-1">
         {race.deuses.map(deus => {
           const selected = char.racaDeus === deus.id
           return (
@@ -538,14 +470,14 @@ function DivineLineage({ race, char, update }) {
         const deus = race.deuses.find(d => d.id === char.racaDeus)
         return deus ? (
           <div className="race-god-detail">
-            <div className="text-amber-300 font-cinzel font-bold text-base">{deus.name} - {deus.title}</div>
+            <div className="text-amber-300 font-cinzel font-bold text-base">{deus.name} — {deus.title}</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mt-3">
-              <div><span className="text-txt-dim">Traco: </span><span className="text-txt-main">{deus.traco}</span></div>
+              <div><span className="text-txt-dim">Traço: </span><span className="text-txt-main">{deus.traco}</span></div>
               <div><span className="text-txt-dim">Especial: </span><span className="text-txt-main">{deus.especial}</span></div>
             </div>
           </div>
         ) : null
       })()}
-    </Section>
+    </section>
   )
 }

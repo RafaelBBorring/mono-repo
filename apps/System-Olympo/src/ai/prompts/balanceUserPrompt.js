@@ -16,7 +16,15 @@
  * - systemSkills: catalogo de skills sistemicas
  * - effectParamDefs: definicoes de tipos de efeito
  */
+import { getRaceProfile } from '../../data/raceProfiles'
+
 export function buildBalanceUserPrompt({ stats, char, evoCtx, pehTotal, pehSpent, habilidadesData, armaHabs, direction, systemSkills, effectParamDefs }) {
+  const raceProfile = getRaceProfile(char.raca)
+  const raceCtx = raceProfile ? `
+CONTEXTO RACIAL:
+Fraquezas: ${raceProfile.fraquezas.map(f => `${f.nome} (${f.desc})`).join(' | ')}
+Poderes Base: ${raceProfile.poderesBase.map(p => `${p.nome} (${p.desc})`).join(' | ')}` : ''
+
   const fichaCompleta = `
 FICHA CALCULADA REAL DO PERSONAGEM:
 Nome: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nivel: ${stats.nivel} | Faixa: ${stats.band} | Raca: ${char.raca || 'N/A'} (${char.racaTipo || 'N/A'})
@@ -29,7 +37,8 @@ Amplificadores Triagem: ${stats.triagemAmps}
 Amplificadores Modulo: ${stats.moduleAmps}
 Modulos: ${(char.modulosAdquiridos || []).map(m => m.id || m).join(', ') || 'Nenhum'}
 Pericias: ${Object.entries(char.pericias || {}).filter(([,v]) => v > 0).map(([k,v]) => `${k}(grau${v})`).join(', ') || 'Nenhuma'}
-Equipamentos: Armadura ${stats.equipStats.totalArmor}/${stats.equipStats.totalArmorMax} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}`
+Equipamentos: Armadura ${stats.equipStats.totalArmor}/${stats.equipStats.totalArmorMax} | Crit +${stats.equipStats.totalCrit}% | Dano +${stats.equipStats.totalDamage}
+${raceCtx}`
 
   const directionNote = direction === 'buff'
     ? 'DIRECAO DO MESTRE: BUFF — Aumente danos ~30-50%, reduza custos ~20%, aumente duracoes. Use TDH EFETIVO como MINIMO.'

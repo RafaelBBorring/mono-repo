@@ -7,8 +7,18 @@
  *
  * Tokens estimados: ~900-1300 tokens
  */
+import { getRaceProfile } from '../../data/raceProfiles'
+
 export function buildAbilityGenerationPrompt({ char, description, allTipos, tiposList, targetContext = null }) {
   const nivel = char.nivel || 1
+
+  const raceProfile = getRaceProfile(char.raca)
+  const raceBlock = raceProfile ? `
+CONTEXTO RACIAL:
+Raca: ${char.raca}
+Fraquezas: ${raceProfile.fraquezas.map(f => `${f.nome} (${f.desc})`).join(' | ')}
+Poderes Base: ${raceProfile.poderesBase.map(p => `${p.nome} (${p.desc})`).join(' | ')}
+Use este contexto para gerar habilidades coerentes com a identidade racial.` : ''
 
   const npcBlock = targetContext?.isNPC ? `
 ═════════════════════════════════════════════════════════════════
@@ -29,6 +39,7 @@ PERSONAGEM: ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nivel
 FOR ${char.atributos?.FOR} | DES ${char.atributos?.DES} | CON ${char.atributos?.CON} | INT ${char.atributos?.INT} | APA ${char.atributos?.APA} | AM ${char.atributos?.AM}
 Triagem: ${char.triagemPrincipal || 'Nenhuma'} (${char.triagemPrincipalNivel || 0})
 Modulos: ${(char.modulosAdquiridos || []).map(m => m.name || m.id).join(', ') || 'Nenhum'}
+${raceBlock}
 Descricao do jogador: "${description}"
 ${npcBlock}
 

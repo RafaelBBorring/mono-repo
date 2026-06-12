@@ -341,6 +341,15 @@ Escolha a mecanica MAIS COERENTE com o conceito. NUNCA inclua tag "lentidao"; el
 PEH evolui a penalidade aumentando a severidade (ex: Resultado -2 vira Resultado -4) ou endurecendo a restricao descrita.
 
 ═════════════════════════════════════════════════════
+CONTEXTO RACIAL NO BALANCEAMENTO:
+═════════════════════════════════════════════════════
+O personagem possui FRAQUEZAS e PODERES BASE raciais. Estes DEFINEM a identidade da raca e devem ser considerados:
+1. Habilidades NAO devem contradizer fraquezas raciais. Ex: Vampiro nao pode ter habilidade de luz solar; Lobisomem nao pode ser imune a prata.
+2. Habilidades podem SINERGIZAR com poderes base. Ex: Vampiro com regeneracao pode ter habilidades que custam HP; Mago com foco pode amplificar magias dependentes de foco.
+3. Fraquezas raciais ja sao contrapartida ao poder da raca. NAO penalize habilidades adicionalmente por causa da raca — a fraqueza ja equilibra.
+4. Se uma habilidade parece explorar uma fraqueza racial (ex: ignorar propria vulnerabilidade), marque como "Revisao necessaria".
+
+═════════════════════════════════════════════════════
 FORMATO DE RESPOSTA — JSON OBRIGATORIO:
 ═════════════════════════════════════════════════════
 Responda SEMPRE em JSON valido, sem markdown, sem code blocks.
