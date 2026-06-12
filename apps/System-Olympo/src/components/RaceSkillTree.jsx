@@ -44,6 +44,79 @@ function effectColor(type) {
   return '#9ca3af'
 }
 
+function isKeystone(node) {
+  return (node.effects || []).some(e => e.type === 'habilidade')
+}
+
+function nodeRadius(node) {
+  if (node.upgradeOf) return 0.38
+  if (isKeystone(node)) return 0.62
+  return 0.48
+}
+
+function computeLayout(tree) {
+  const positions = {}
+  const BRANCH_W = 15
+  const TIER_H = 6.5
+  const NODE_GAP = 3.4
+
+  const branchCount = tree.branches.length
+  tree.branches.forEach((branch, bi) => {
+    const colCenter = (bi - (branchCount - 1) / 2) * BRANCH_W
+    const branchNodes = tree.nodes.filter(n => n.branch === branch.id)
+
+    const tierMap = {}
+    branchNodes.forEach(n => {
+      const t = n.tier || 1
+      if (!tierMap[t]) tierMap[t] = []
+      tierMap[t].push(n)
+    })
+
+    Object.entries(tierMap).forEach(([tierStr, nodes]) => {
+      const tier = parseInt(tierStr)
+      const y = (5 - tier) * TIER_H
+
+      const regular = nodes.filter(n => !n.upgradeOf)
+      const upgrades = nodes.filter(n => n.upgradeOf)
+
+      const count = regular.length
+      const totalW = Math.max(0, (count - 1) * NODE_GAP)
+      regular.forEach((node, i) => {
+        positions[node.id] = {
+          x: colCenter - totalW / 2 + i * NODE_GAP,
+          y,
+        }
+      })
+
+      upgrades.forEach((node, i) => {
+        const parentPos = positions[node.upgradeOf]
+        if (parentPos) {
+          const side = (i % 2 === 0) ? 1 : -1
+          positions[node.id] = {
+            x: parentPos.x + side * NODE_GAP * 0.55,
+            y: parentPos.y - TIER_H * 0.38,
+          }
+        } else {
+          positions[node.id] = { x: colCenter, y: y - TIER_H * 0.38 }
+        }
+      })
+    })
+  })
+
+  return positions
+}
+
+function createBezierCurve(start, end) {
+  const dy = end.y - start.y
+  const ctrlOffset = Math.abs(dy) * 0.5
+  return new THREE.CubicBezierCurve3(
+    new THREE.Vector3(start.x, start.y, 0),
+    new THREE.Vector3(start.x, start.y - Math.sign(dy) * ctrlOffset * 0.6, 0),
+    new THREE.Vector3(end.x, end.y + Math.sign(dy) * ctrlOffset * 0.4, 0),
+    new THREE.Vector3(end.x, end.y, 0),
+  )
+}
+
 function ParCounter({ total, spent }) {
   const available = total - spent
   const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0
@@ -187,6 +260,7 @@ export default function RaceSkillTree({ char, update }) {
   const raceId = char?.raca || null
   const unlocked = char?.raceTreeUnlocked || []
   const tree = useMemo(() => getRaceTree(raceId), [raceId])
+  const layout = useMemo(() => tree ? computeLayout(tree) : null, [tree])
 
   const parTotal = useMemo(
     () => calcPARTotal(char?.classe, char?.nivel || 1, char?.progressaoChoices, char?.modulosAdquiridos, char),
@@ -197,7 +271,7 @@ export default function RaceSkillTree({ char, update }) {
 
   const containerRef = useRef(null)
   const threeRef = useRef(null)
-  const stateRef = useRef({ unlocked: [], available: 0, hoveredId: null })
+  const stateRef = useRef({ unlocked: [], available: 0, hoveredId: null, justUnlocked: null })
 
   const [hoveredNode, setHoveredNode] = useState(null)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
@@ -216,6 +290,7 @@ export default function RaceSkillTree({ char, update }) {
 
   const handleUnlock = useCallback((nodeId) => {
     if (getNodeState(nodeId) !== 'available') return
+    stateRef.current.justUnlocked = nodeId
     update({ raceTreeUnlocked: [...stateRef.current.unlocked, nodeId] })
   }, [getNodeState, update])
 
@@ -227,171 +302,327 @@ export default function RaceSkillTree({ char, update }) {
   }, [tree])
 
   useEffect(() => {
-    if (!tree || tree.nodes.length === 0 || !containerRef.current) return undefined
+    if (!tree || !layout || tree.nodes.length === 0 || !containerRef.current) return undefined
 
     const container = containerRef.current
     const W = () => container.clientWidth || 900
     const H = () => container.clientHeight || 640
 
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(50, W() / H(), 0.1, 200)
-    camera.position.set(0, 0, 24)
-    camera.lookAt(0, 0, 0)
+
+    const aspect = W() / H()
+    const VIEW_H = 36
+    let camZoom = 1
+    let camX = 0
+    let camY = 15
+    const camera = new THREE.OrthographicCamera(
+      -VIEW_H * aspect / 2, VIEW_H * aspect / 2,
+      VIEW_H / 2, -VIEW_H / 2,
+      0.1, 200
+    )
+    function syncCamera() {
+      const a = W() / H()
+      camera.left = -VIEW_H * a / 2 / camZoom
+      camera.right = VIEW_H * a / 2 / camZoom
+      camera.top = VIEW_H / 2 / camZoom
+      camera.bottom = -VIEW_H / 2 / camZoom
+      camera.position.set(camX, camY, 50)
+      camera.lookAt(camX, camY, 0)
+      camera.zoom = camZoom
+      camera.updateProjectionMatrix()
+    }
+    syncCamera()
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.setSize(W(), H(), false)
     container.appendChild(renderer.domElement)
-    renderer.domElement.style.cursor = 'default'
+    renderer.domElement.style.cursor = 'grab'
 
     const nodeGroup = new THREE.Group()
     scene.add(nodeGroup)
 
-    const STAR_N = 600
+    const STAR_N = 500
     const starGeo = new THREE.BufferGeometry()
     const starPos = new Float32Array(STAR_N * 3)
     const starCol = new Float32Array(STAR_N * 3)
+    const starSize = new Float32Array(STAR_N)
     const cGold = new THREE.Color(0xf7bd48)
     const cCyan = new THREE.Color(0x4bd5e0)
     const cWhite = new THREE.Color(0xffffff)
     for (let i = 0; i < STAR_N; i++) {
-      starPos[i * 3] = (Math.random() - 0.5) * 44
-      starPos[i * 3 + 1] = (Math.random() - 0.5) * 28
-      starPos[i * 3 + 2] = (Math.random() - 0.5) * 16 - 3
+      starPos[i * 3] = (Math.random() - 0.5) * 80
+      starPos[i * 3 + 1] = (Math.random() - 0.5) * 60 + 10
+      starPos[i * 3 + 2] = (Math.random() - 0.5) * 10 - 5
       const pick = Math.random()
-      const c = pick < 0.5 ? cWhite.clone().lerp(cGold, Math.random() * 0.5)
-        : pick < 0.8 ? cCyan.clone().lerp(cWhite, Math.random() * 0.6)
+      const c = pick < 0.5 ? cWhite.clone().lerp(cGold, Math.random() * 0.4)
+        : pick < 0.8 ? cCyan.clone().lerp(cWhite, Math.random() * 0.5)
           : cGold.clone()
       starCol[i * 3] = c.r
       starCol[i * 3 + 1] = c.g
       starCol[i * 3 + 2] = c.b
+      starSize[i] = Math.random() * 0.15 + 0.04
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3))
     starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3))
     const starMat = new THREE.PointsMaterial({
-      size: 0.12, vertexColors: true, transparent: true, opacity: 0.55,
+      size: 0.18, vertexColors: true, transparent: true, opacity: 0.4,
       blending: THREE.AdditiveBlending, depthWrite: false,
     })
     const stars = new THREE.Points(starGeo, starMat)
     scene.add(stars)
 
-    const posFor = (node) => ({
-      x: node.x * 13,
-      y: (0.55 - node.y) * 15,
-      z: 0,
-    })
-
     const connections = tree.connections || []
-    const linePositions = []
-    const lineColors = []
+    const connLines = []
     connections.forEach(([aId, bId]) => {
+      const pa = layout[aId]
+      const pb = layout[bId]
+      if (!pa || !pb) return
       const na = tree.nodes.find(n => n.id === aId)
-      const nb = tree.nodes.find(n => n.id === bId)
-      if (!na || !nb) return
-      const pa = posFor(na), pb = posFor(nb)
-      linePositions.push(pa.x, pa.y, pa.z, pb.x, pb.y, pb.z)
-      const bColor = new THREE.Color(branchMap[na.branch]?.color || '#888888')
-      lineColors.push(bColor.r, bColor.g, bColor.b, bColor.r, bColor.g, bColor.b)
+      const branchColor = new THREE.Color(branchMap[na?.branch]?.color || '#555555')
+      const curve = createBezierCurve(pa, pb)
+      const points = curve.getPoints(24)
+      const geo = new THREE.BufferGeometry().setFromPoints(points)
+      const mat = new THREE.LineBasicMaterial({
+        color: branchColor,
+        transparent: true,
+        opacity: 0.08,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+      const line = new THREE.Line(geo, mat)
+      nodeGroup.add(line)
+      connLines.push({ line, mat, baseColor: branchColor, aId, bId })
     })
-    const lineGeo = new THREE.BufferGeometry()
-    lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3))
-    lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3))
-    const lineMat = new THREE.LineBasicMaterial({
-      vertexColors: true, transparent: true, opacity: 0.18,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    })
-    const lineSegs = new THREE.LineSegments(lineGeo, lineMat)
-    nodeGroup.add(lineSegs)
 
-    const sphereGeo = new THREE.SphereGeometry(0.5, 24, 24)
-    const glowGeo = new THREE.SphereGeometry(0.85, 18, 18)
-    const nodeMeshes = {}
-    const coreMeshes = []
+    const nodeEntries = {}
+    const interactMeshes = []
 
     tree.nodes.forEach(node => {
-      const pos = posFor(node)
+      const pos = layout[node.id]
+      if (!pos) return
+      const r = nodeRadius(node)
       const branchColor = new THREE.Color(branchMap[node.branch]?.color || '#888888')
-      const coreMat = new THREE.MeshBasicMaterial({ color: 0x444444 })
-      const core = new THREE.Mesh(sphereGeo, coreMat)
-      core.position.set(pos.x, pos.y, pos.z)
-      core.userData = { nodeId: node.id, baseColor: branchColor }
-      nodeGroup.add(core)
-      coreMeshes.push(core)
+      const isEvo = !!node.upgradeOf
+      const isKey = isKeystone(node)
 
+      const nodeGroup3 = new THREE.Group()
+      nodeGroup3.position.set(pos.x, pos.y, 0)
+
+      const coreGeo = isKey
+        ? new THREE.OctahedronGeometry(r, 0)
+        : isEvo
+          ? new THREE.TetrahedronGeometry(r, 0)
+          : new THREE.IcosahedronGeometry(r, 0)
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0x333338, transparent: true, opacity: 0.9 })
+      const core = new THREE.Mesh(coreGeo, coreMat)
+      nodeGroup3.add(core)
+
+      const glowR = r * 1.8
+      const glowGeo = new THREE.SphereGeometry(glowR, 16, 16)
       const glowMat = new THREE.MeshBasicMaterial({
-        color: branchColor, transparent: true, opacity: 0.0,
+        color: branchColor, transparent: true, opacity: 0,
         blending: THREE.AdditiveBlending, depthWrite: false,
       })
       const glow = new THREE.Mesh(glowGeo, glowMat)
-      glow.position.set(pos.x, pos.y, pos.z)
-      nodeGroup.add(glow)
+      nodeGroup3.add(glow)
 
-      nodeMeshes[node.id] = { core, glow, baseColor: branchColor, targetScale: 1, currentScale: 1 }
+      const ringGeo = new THREE.RingGeometry(r * 1.3, r * 1.5, 32)
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: branchColor, transparent: true, opacity: 0,
+        side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+      const ring = new THREE.Mesh(ringGeo, ringMat)
+      nodeGroup3.add(ring)
+
+      const pickGeo = new THREE.SphereGeometry(r * 1.6, 8, 8)
+      const pickMat = new THREE.MeshBasicMaterial({ visible: false })
+      const pickMesh = new THREE.Mesh(pickGeo, pickMat)
+      pickMesh.position.set(pos.x, pos.y, 0)
+      pickMesh.userData = { nodeId: node.id }
+      nodeGroup.add(pickMesh)
+      interactMeshes.push(pickMesh)
+
+      nodeGroup.add(nodeGroup3)
+      nodeEntries[node.id] = {
+        group: nodeGroup3, core, glow, ring,
+        baseColor: branchColor, radius: r,
+        currentScale: 1, targetScale: 1,
+        unlockAnim: 0, isKey, isEvo,
+        pickMesh,
+      }
     })
 
-    const raycaster = new THREE.Raycaster()
-    const pointer = new THREE.Vector2()
-    let parallaxX = 0, parallaxY = 0
+    const particleBursts = []
+
+    function spawnBurst(pos, color) {
+      const COUNT = 28
+      const geo = new THREE.BufferGeometry()
+      const positions = new Float32Array(COUNT * 3)
+      const velocities = []
+      for (let i = 0; i < COUNT; i++) {
+        positions[i * 3] = pos.x
+        positions[i * 3 + 1] = pos.y
+        positions[i * 3 + 2] = 0
+        const angle = (i / COUNT) * Math.PI * 2 + Math.random() * 0.3
+        const speed = 2 + Math.random() * 3
+        velocities.push({
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+          z: 0,
+        })
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      const mat = new THREE.PointsMaterial({
+        color, size: 0.35,
+        transparent: true, opacity: 1,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+      const pts = new THREE.Points(geo, mat)
+      scene.add(pts)
+      particleBursts.push({ pts, geo, mat, velocities, life: 0, maxLife: 0.9 })
+    }
 
     function applyNodeVisuals() {
       const u = stateRef.current.unlocked
       const av = stateRef.current.available
       for (const node of tree.nodes) {
-        const entry = nodeMeshes[node.id]
+        const entry = nodeEntries[node.id]
         if (!entry) continue
         const state = u.includes(node.id) ? 'unlocked'
           : (canUnlockNode(raceId, node.id, u) && node.cost <= av) ? 'available'
             : 'locked'
         if (state === 'unlocked') {
           entry.core.material.color.copy(entry.baseColor)
+          entry.core.material.opacity = 1
           entry.glow.material.color.copy(entry.baseColor)
-          entry.glow.material.opacity = 0.28
+          entry.glow.material.opacity = 0.2
+          entry.ring.material.opacity = 0
         } else if (state === 'available') {
           entry.core.material.color.setHex(0xf7bd48)
+          entry.core.material.opacity = 0.95
           entry.glow.material.color.setHex(0xf7bd48)
-          entry.glow.material.opacity = 0.22
+          entry.glow.material.opacity = 0.15
+          entry.ring.material.color.setHex(0xf7bd48)
+          entry.ring.material.opacity = 0.5
         } else {
-          entry.core.material.color.setHex(0x3c3c44)
-          entry.glow.material.opacity = 0.0
+          entry.core.material.color.setHex(0x2a2a30)
+          entry.core.material.opacity = 0.7
+          entry.glow.material.opacity = 0
+          entry.ring.material.opacity = 0
+        }
+      }
+      const connAId = new Set(stateRef.current.unlocked)
+      for (const cl of connLines) {
+        const aActive = connAId.has(cl.aId)
+        const bActive = connAId.has(cl.bId)
+        if (aActive && bActive) {
+          cl.mat.color.copy(cl.baseColor)
+          cl.mat.opacity = 0.35
+        } else if (aActive || bActive) {
+          cl.mat.color.copy(cl.baseColor)
+          cl.mat.opacity = 0.16
+        } else {
+          cl.mat.color.copy(cl.baseColor)
+          cl.mat.opacity = 0.06
         }
       }
     }
     applyNodeVisuals()
 
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+
+    let isDragging = false
+    let dragStart = { x: 0, y: 0 }
+    let dragCamStart = { x: 0, y: 0 }
+    let hasMoved = false
+
     const clock = new THREE.Clock()
     let frameId = 0
 
     function animate() {
+      const dt = Math.min(clock.getDelta(), 0.05)
       const t = clock.getElapsedTime()
-      parallaxX += (((pointer.x) * 1.5) - parallaxX) * 0.04
-      parallaxY += (((pointer.y) * 1.2) - parallaxY) * 0.04
-      camera.position.x = parallaxX
-      camera.position.y = parallaxY
-      camera.lookAt(0, 0, 0)
 
-      stars.rotation.y = t * 0.012
-      stars.rotation.z = Math.sin(t * 0.08) * 0.02
+      stars.rotation.y = t * 0.008
+      stars.rotation.z = Math.sin(t * 0.06) * 0.01
 
       const hoveredId = stateRef.current.hoveredId
+      const u = stateRef.current.unlocked
+      const av = stateRef.current.available
+
       for (const node of tree.nodes) {
-        const entry = nodeMeshes[node.id]
+        const entry = nodeEntries[node.id]
         if (!entry) continue
-        entry.targetScale = (node.id === hoveredId) ? 1.45 : 1.0
-        entry.currentScale += (entry.targetScale - entry.currentScale) * 0.18
-        entry.core.scale.setScalar(entry.currentScale)
-        const u = stateRef.current.unlocked
-        const av = stateRef.current.available
         const state = u.includes(node.id) ? 'unlocked'
           : (canUnlockNode(raceId, node.id, u) && node.cost <= av) ? 'available'
             : 'locked'
+
+        entry.targetScale = (node.id === hoveredId) ? 1.4 : 1.0
+        if (entry.unlockAnim > 0) {
+          entry.unlockAnim -= dt * 2.5
+          const pop = Math.sin(Math.max(0, entry.unlockAnim) * Math.PI)
+          entry.targetScale = 1.0 + pop * 0.5
+        }
+        entry.currentScale += (entry.targetScale - entry.currentScale) * 0.2
+        entry.group.scale.setScalar(entry.currentScale)
+
+        if (entry.isKey || entry.isEvo) {
+          entry.core.rotation.y = t * 0.3
+          entry.core.rotation.x = t * 0.15
+        }
+
         if (state === 'available') {
-          const pulse = 0.5 + Math.sin(t * 3 + node.x * 5) * 0.5
-          entry.glow.material.opacity = 0.14 + pulse * 0.18
-          entry.glow.scale.setScalar(entry.currentScale * (1 + pulse * 0.15))
+          const pulse = 0.5 + Math.sin(t * 2.5 + node.x * 4) * 0.5
+          entry.glow.material.opacity = 0.12 + pulse * 0.18
+          entry.glow.scale.setScalar(1 + pulse * 0.15)
+          entry.ring.material.opacity = 0.3 + pulse * 0.3
+          entry.ring.scale.setScalar(1 + pulse * 0.2)
+          entry.ring.rotation.z = t * 0.5
+        } else if (state === 'unlocked') {
+          entry.glow.material.opacity = 0.15 + Math.sin(t * 1.5 + node.x * 3) * 0.05
         } else {
-          entry.glow.scale.setScalar(entry.currentScale)
+          entry.glow.scale.setScalar(1)
+          entry.ring.scale.setScalar(1)
         }
       }
+
+      for (let i = particleBursts.length - 1; i >= 0; i--) {
+        const pb = particleBursts[i]
+        pb.life += dt
+        const progress = pb.life / pb.maxLife
+        if (progress >= 1) {
+          scene.remove(pb.pts)
+          pb.geo.dispose()
+          pb.mat.dispose()
+          particleBursts.splice(i, 1)
+          continue
+        }
+        const posAttr = pb.geo.attributes.position
+        for (let j = 0; j < pb.velocities.length; j++) {
+          const v = pb.velocities[j]
+          posAttr.array[j * 3] += v.x * dt
+          posAttr.array[j * 3 + 1] += v.y * dt - progress * 2 * dt
+          posAttr.array[j * 3 + 2] += v.z * dt
+        }
+        posAttr.needsUpdate = true
+        pb.mat.opacity = 1 - progress
+        pb.mat.size = 0.35 * (1 - progress * 0.5)
+      }
+
+      if (stateRef.current.justUnlocked) {
+        const nodeId = stateRef.current.justUnlocked
+        stateRef.current.justUnlocked = null
+        const entry = nodeEntries[nodeId]
+        const pos = layout[nodeId]
+        if (entry && pos) {
+          entry.unlockAnim = 1
+          spawnBurst(pos, entry.baseColor)
+        }
+        applyNodeVisuals()
+      }
+
       renderer.render(scene, camera)
       frameId = requestAnimationFrame(animate)
     }
@@ -399,7 +630,11 @@ export default function RaceSkillTree({ char, update }) {
 
     function resize() {
       const w = W(), h = H()
-      camera.aspect = w / h
+      const a = w / h
+      camera.left = -VIEW_H * a / 2 / camZoom
+      camera.right = VIEW_H * a / 2 / camZoom
+      camera.top = VIEW_H / 2 / camZoom
+      camera.bottom = -VIEW_H / 2 / camZoom
       camera.updateProjectionMatrix()
       renderer.setSize(w, h, false)
     }
@@ -407,16 +642,34 @@ export default function RaceSkillTree({ char, update }) {
     const ro = new ResizeObserver(resize)
     ro.observe(container)
 
-    function setFromEvent(clientX, clientY) {
+    function getPointerCoords(clientX, clientY) {
       const rect = renderer.domElement.getBoundingClientRect()
       pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
       pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
       raycaster.setFromCamera(pointer, camera)
-      return raycaster.intersectObjects(coreMeshes, false)
+      return raycaster.intersectObjects(interactMeshes, false)
     }
 
-    function onMove(e) {
-      const hits = setFromEvent(e.clientX, e.clientY)
+    function onPointerDown(e) {
+      isDragging = true
+      hasMoved = false
+      dragStart = { x: e.clientX, y: e.clientY }
+      dragCamStart = { x: camX, y: camY }
+      renderer.domElement.style.cursor = 'grabbing'
+    }
+
+    function onPointerMove(e) {
+      if (isDragging) {
+        const dx = e.clientX - dragStart.x
+        const dy = e.clientY - dragStart.y
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) hasMoved = true
+        const worldPerPx = VIEW_H / renderer.domElement.clientHeight / camZoom
+        camX = dragCamStart.x - dx * worldPerPx
+        camY = dragCamStart.y + dy * worldPerPx
+        syncCamera()
+        return
+      }
+      const hits = getPointerCoords(e.clientX, e.clientY)
       if (hits.length > 0) {
         const nodeId = hits[0].object.userData.nodeId
         stateRef.current.hoveredId = nodeId
@@ -429,51 +682,73 @@ export default function RaceSkillTree({ char, update }) {
       } else {
         stateRef.current.hoveredId = null
         setHoveredNode(null)
-        renderer.domElement.style.cursor = 'default'
+        renderer.domElement.style.cursor = 'grab'
       }
     }
-    function onLeave() {
-      stateRef.current.hoveredId = null
-      setHoveredNode(null)
-      pointer.x = 0
-      pointer.y = 0
-    }
-    function onClick(e) {
-      const hits = setFromEvent(e.clientX, e.clientY)
-      if (hits.length > 0) {
-        const nodeId = hits[0].object.userData.nodeId
-        if (getNodeState(nodeId) === 'available') {
-          update({ raceTreeUnlocked: [...stateRef.current.unlocked, nodeId] })
+
+    function onPointerUp(e) {
+      if (isDragging && !hasMoved) {
+        const hits = getPointerCoords(e.clientX, e.clientY)
+        if (hits.length > 0) {
+          const nodeId = hits[0].object.userData.nodeId
+          if (getNodeState(nodeId) === 'available') {
+            handleUnlock(nodeId)
+          }
         }
       }
+      isDragging = false
+      renderer.domElement.style.cursor = 'grab'
     }
-    renderer.domElement.addEventListener('pointermove', onMove)
-    renderer.domElement.addEventListener('pointerleave', onLeave)
-    renderer.domElement.addEventListener('click', onClick)
+
+    function onPointerLeave() {
+      isDragging = false
+      stateRef.current.hoveredId = null
+      setHoveredNode(null)
+      renderer.domElement.style.cursor = 'grab'
+    }
+
+    function onWheel(e) {
+      e.preventDefault()
+      const factor = e.deltaY > 0 ? 0.88 : 1.12
+      camZoom = Math.max(0.35, Math.min(2.8, camZoom * factor))
+      syncCamera()
+    }
+
+    renderer.domElement.addEventListener('pointerdown', onPointerDown)
+    renderer.domElement.addEventListener('pointermove', onPointerMove)
+    renderer.domElement.addEventListener('pointerup', onPointerUp)
+    renderer.domElement.addEventListener('pointerleave', onPointerLeave)
+    renderer.domElement.addEventListener('wheel', onWheel, { passive: false })
 
     threeRef.current = { applyNodeVisuals }
 
     return () => {
       cancelAnimationFrame(frameId)
       ro.disconnect()
-      renderer.domElement.removeEventListener('pointermove', onMove)
-      renderer.domElement.removeEventListener('pointerleave', onLeave)
-      renderer.domElement.removeEventListener('click', onClick)
-      sphereGeo.dispose()
-      glowGeo.dispose()
+      renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+      renderer.domElement.removeEventListener('pointermove', onPointerMove)
+      renderer.domElement.removeEventListener('pointerup', onPointerUp)
+      renderer.domElement.removeEventListener('pointerleave', onPointerLeave)
+      renderer.domElement.removeEventListener('wheel', onWheel)
       starGeo.dispose()
       starMat.dispose()
-      lineGeo.dispose()
-      lineMat.dispose()
-      Object.values(nodeMeshes).forEach(m => {
-        m.core.material.dispose()
-        m.glow.material.dispose()
+      Object.values(nodeEntries).forEach(e => {
+        e.core.geometry.dispose()
+        e.core.material.dispose()
+        e.glow.geometry.dispose()
+        e.glow.material.dispose()
+        e.ring.geometry.dispose()
+        e.ring.material.dispose()
+        e.pickMesh.geometry.dispose()
+        e.pickMesh.material.dispose()
       })
+      connLines.forEach(cl => { cl.line.geometry.dispose(); cl.mat.dispose() })
+      particleBursts.forEach(pb => { pb.geo.dispose(); pb.mat.dispose() })
       renderer.dispose()
       if (renderer.domElement.parentNode === container) container.removeChild(renderer.domElement)
       threeRef.current = null
     }
-  }, [tree, raceId, branchMap, getNodeState, update])
+  }, [tree, layout, raceId, branchMap, getNodeState, handleUnlock, update])
 
   useEffect(() => {
     if (threeRef.current?.applyNodeVisuals) threeRef.current.applyNodeVisuals()
@@ -507,7 +782,7 @@ export default function RaceSkillTree({ char, update }) {
       <div
         ref={containerRef}
         className="relative w-full rounded-xl border border-white/[0.06] overflow-hidden"
-        style={{ height: 'min(70vh, 680px)', minHeight: 480, background: 'radial-gradient(ellipse at 50% 45%, #0e0e14 0%, #060608 70%)' }}
+        style={{ height: 'min(72vh, 720px)', minHeight: 500, background: 'radial-gradient(ellipse at 50% 45%, #0e0e14 0%, #060608 70%)' }}
       >
         <ParCounter total={parTotal} spent={parSpent} />
 
@@ -535,7 +810,7 @@ export default function RaceSkillTree({ char, update }) {
 
         <div className="absolute bottom-3 left-0 right-0 z-20 flex justify-center pointer-events-none">
           <span className="text-[10px] font-mono text-on-surface-variant/50 uppercase tracking-widest">
-            Passe o mouse para detalhes • Clique nas esferas douradas para evoluir
+            Arraste para navegar · Scroll para zoom · Clique nas esferas douradas para evoluir
           </span>
         </div>
       </div>
