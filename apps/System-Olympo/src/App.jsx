@@ -961,7 +961,7 @@ function AppInner() {
 
   async function loadSheets() {
     const client = profile.role === 'admin' ? getSupabaseAdmin() : supabase
-    const query = client.from('characters').select('id,user_id,name,updated_at').order('updated_at', { ascending: false })
+    const query = client.from('characters').select('id,user_id,name,updated_at,data').order('updated_at', { ascending: false })
     if (profile.role !== 'admin') query.eq('user_id', user.id)
     const { data, error } = await query
     if (error) console.error('Erro ao carregar fichas:', error.message)

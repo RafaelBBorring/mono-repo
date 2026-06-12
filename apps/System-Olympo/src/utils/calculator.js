@@ -112,7 +112,7 @@ export function calcVidaTotal(classe, nivel, attrs, skeletonPoints, choices, tri
     vidaPorNivelTotal += def.vidaPorNivel(getModifier(con))
   }
   const tankBonus = getTankBonus(triagemPrincipal, triagemPrincipalNivel || 0, subTriagem, subTriagemNivel || 0, nivel)
-  return base + vidaPorNivelTotal + prog.vida + tankBonus + (raceContext ? calculateRaceBonus(raceContext).hp : 0) + calcSystemSkillBonuses(raceContext || {}).vida
+  return base + vidaPorNivelTotal + prog.vida + tankBonus + (raceContext ? calculateRaceBonus(raceContext).hp : 0) + calcSystemSkillBonuses(raceContext || {}).vida + (raceContext ? (getRaceTreeFlatBonus(raceContext).vida || 0) : 0)
 }
 
 export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
@@ -133,14 +133,14 @@ export function calcEnergiaTotal(classe, nivel, attrs, skeletonPoints, choices, 
   if (subTriagem === 'INTUITIVO' && (subTriagemNivel || 0) >= 0.1) {
     intuitivoBonus += Math.floor(am * 0.5) * intuitivoMultiplier
   }
-  return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + (raceContext ? calculateRaceBonus(raceContext).energia : 0) + calcSystemSkillBonuses(raceContext || {}).energia
+  return base + energiaPorNivelTotal + prog.energia + intuitivoBonus + (raceContext ? calculateRaceBonus(raceContext).energia : 0) + calcSystemSkillBonuses(raceContext || {}).energia + (raceContext ? (getRaceTreeFlatBonus(raceContext).energia || 0) : 0)
 }
 
 export function calcPeTotal(classe, nivel, choices, raceContext) {
   const def = getClassDef(classe)
   if (!def) return 0
   const prog = getProgressionRewards(classe, nivel, choices)
-  return def.peBase + (def.pePorNivel * nivel) + prog.pe + (raceContext ? calculateRaceBonus(raceContext).pe : 0) + calcSystemSkillBonuses(raceContext || {}).pe
+  return def.peBase + (def.pePorNivel * nivel) + prog.pe + (raceContext ? calculateRaceBonus(raceContext).pe : 0) + calcSystemSkillBonuses(raceContext || {}).pe + (raceContext ? (getRaceTreeFlatBonus(raceContext).pe || 0) : 0)
 }
 
 export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
@@ -156,7 +156,7 @@ export function calcCA(attrs, skeletonPoints, pericias, raceContext) {
      (raceContext.subTriagem === 'TANK' && (raceContext.subTriagemNivel || 0) >= 0.3))
     ? Math.floor(con * 0.5)
     : 0
-  return 10 + treino + Math.max(modCON, modDES) + tankNaturalArmor + (raceContext ? calculateRaceBonus(raceContext).ca : 0) + calcSystemSkillBonuses(raceContext || {}).armadura + calcSystemSkillBonuses(raceContext || {}).ca
+  return 10 + treino + Math.max(modCON, modDES) + tankNaturalArmor + (raceContext ? calculateRaceBonus(raceContext).ca : 0) + calcSystemSkillBonuses(raceContext || {}).armadura + calcSystemSkillBonuses(raceContext || {}).ca + (raceContext ? (getRaceTreeFlatBonus(raceContext).ca || 0) : 0)
 }
 
 export function calcReacoes(attrs, skeletonPoints, triagemPrincipal, triagemPrincipalNivel, subTriagem, subTriagemNivel, raceContext) {
@@ -298,8 +298,14 @@ export function applyRaceTreeBonuses(stats, char) {
   }
   stats.vidaTotal = (stats.vidaTotal || 0) + (raceEffects.vida || 0)
   stats.energiaTotal = (stats.energiaTotal || 0) + (raceEffects.energia || 0)
+  stats.peTotal = (stats.peTotal || 0) + (raceEffects.pe || 0)
   stats.caBase = (stats.caBase || 0) + (raceEffects.ca || 0)
+  stats.regen = (stats.regen || 0) + (raceEffects.regen || 0)
   return stats
+}
+
+export function getRaceTreeFlatBonus(char) {
+  return aggregateEffects(char.raceTreeUnlocked || [], char.raca)
 }
 
 export function calcCarryCapacity(atributos, skeletonPoints, char) {
