@@ -1,10 +1,5 @@
 import { RACES } from '../data/races'
-import {
-  emptyRaceBonus,
-  getGrantedRaceMilestoneBonus,
-  getRaceProgressionBonus,
-  mergeRaceBonus,
-} from './raceMilestones'
+import { emptyRaceBonus } from './raceMilestones'
 
 export const ATTR_KEYS = ['FOR', 'DES', 'CON', 'INT', 'APA', 'AM']
 
@@ -256,9 +251,6 @@ export function calculateRaceBonus(char = {}) {
     total.modules += subrace.bonus.modules || 0
   }
   if (subrace?.note) total.notes.push(subrace.note)
-
-  mergeRaceBonus(total, getRaceProgressionBonus(char))
-  mergeRaceBonus(total, getGrantedRaceMilestoneBonus(char, race, subrace))
 
   return total
 }

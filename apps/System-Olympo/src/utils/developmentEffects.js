@@ -1,14 +1,6 @@
 import { TRIAGES } from '../data/triages'
 import { getModifier } from '../data/attributes'
 import { getAttrValue } from './calculator'
-import { RACES } from '../data/races'
-import { getSelectedSubrace } from './raceCalculator'
-import {
-  flattenRaceMilestones,
-  formatRaceBonusParts,
-  getGrantedRaceMilestoneBonus,
-  getRaceProgressionBonus,
-} from './raceMilestones'
 
 function signed(value) {
   return `${value >= 0 ? '+' : ''}${value}`
@@ -101,33 +93,5 @@ export function getTriageDevelopmentEffects(char = {}, classKey = char.classe) {
 }
 
 export function getRaceDevelopmentEffects(char = {}) {
-  const race = RACES[char.raca]
-  if (!race) return []
-  const subrace = getSelectedSubrace(char)
-  const progress = getRaceProgressionBonus(char)
-  const granted = getGrantedRaceMilestoneBonus(char, race, subrace)
-  const out = []
-  const progressParts = formatRaceBonusParts(progress)
-  const grantedParts = formatRaceBonusParts(granted)
-  if (progressParts.length) {
-    out.push({
-      key: 'race:progression',
-      source: race.name,
-      target: 'Progressao racial ativa',
-      value: progressParts.join(' | '),
-      formula: `ate o nivel ${char.nivel || 1}`,
-      note: 'Aplicado automaticamente pelos marcos de nivel da raca.',
-    })
-  }
-  if (grantedParts.length) {
-    out.push({
-      key: 'race:milestones',
-      source: race.name,
-      target: 'Marcos concedidos',
-      value: grantedParts.join(' | '),
-      formula: `${flattenRaceMilestones(race, subrace).filter(m => (char.raceMilestonesGranted || []).includes(m.key)).length} concedidos`,
-      note: 'Aplicado apos concessao do Mestre.',
-    })
-  }
-  return out
+  return []
 }

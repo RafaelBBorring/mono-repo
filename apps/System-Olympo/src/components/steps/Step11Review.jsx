@@ -37,7 +37,7 @@ import ImageUploadField from '../ImageUploadField'
 import { getSystemSkillById, SYSTEM_SKILLS, SYSTEM_SKILL_CATEGORIES, EFFECT_PARAM_DEFS } from '../../data/systemSkills'
 import { summarizeSystemSkillBonuses, createDefaultEffectsForSkill, calcSystemSkillBonuses } from '../../utils/systemSkills'
 
-import { flattenRaceMilestones, formatRaceBonusParts, parseRaceEffectText } from '../../utils/raceMilestones'
+import { flattenRaceMilestones, formatRaceBonusParts } from '../../utils/raceMilestones'
 import { SPECIAL_MATERIALS, getAvailableForgeMaterials, getMaterialIcon } from '../../data/materials'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
@@ -824,7 +824,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
                   <span className="text-txt-dim/30 text-[10px] group-open:rotate-180 transition-transform">▼</span>
                 </summary>
                 <div className="mt-2">
-                  <RaceHeritageSectionV2 char={char} update={update} isAdmin={isAdmin} />
+                  <RaceHeritageSectionV2 char={char} />
                 </div>
               </details>
             </div>
@@ -3307,27 +3307,14 @@ function WeaponMartialPanel({ char, update, canEdit }) {
   )
 }
 
-function RaceHeritageSectionV2({ char, update, isAdmin }) {
+function RaceHeritageSectionV2({ char }) {
   const race = RACES[char.raca]
   if (!race) return null
 
   const bonus = calculateRaceBonus(char)
   const subrace = getSelectedSubrace(char)
   const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
-  const nivel = char.nivel || 1
-  const progressaoAplicavel = (race.progressaoPoder || []).filter(p => p.nivel <= nivel)
   const milestones = flattenRaceMilestones(race, subrace)
-  const granted = new Set(char.raceMilestonesGranted || [])
-
-  function toggleMilestone(key) {
-    if (!update || !isAdmin) return
-    const current = char.raceMilestonesGranted || []
-    update({
-      raceMilestonesGranted: granted.has(key)
-        ? current.filter(item => item !== key)
-        : [...current, key],
-    })
-  }
 
   const statParts = formatRaceBonusParts(bonus)
 
@@ -3345,7 +3332,7 @@ function RaceHeritageSectionV2({ char, update, isAdmin }) {
                 {race.deuses.find(d => d.id === char.racaDeus)?.name || char.racaDeus}
               </span>
             )}
-            <span className="text-txt-dim text-sm ml-auto">Nv {nivel}</span>
+            <span className="text-txt-dim text-sm ml-auto">Nv {char.nivel || 1}</span>
           </div>
 
           {race.desc && <p className="text-txt-dim text-sm leading-relaxed mb-3">{race.desc}</p>}
@@ -3384,65 +3371,25 @@ function RaceHeritageSectionV2({ char, update, isAdmin }) {
           </div>
         )}
 
-        {progressaoAplicavel.length > 0 && (
-          <div>
-            <div className="text-txt-dim text-sm font-semibold mb-2">Progressao de Poder aplicada</div>
-            <div className="space-y-1">
-              {progressaoAplicavel.map(p => {
-                const parts = formatRaceBonusParts(parseRaceEffectText(`${p.ganho}. ${p.desc}`))
-                return (
-                  <div key={p.nivel} className="bg-void/40 border border-sep/30 rounded-lg px-3 py-2 flex gap-3">
-                    <span className="text-gold/70 font-mono text-sm shrink-0 w-8">N{p.nivel}</span>
-                    <div className="min-w-0">
-                      <span className="text-txt-main text-sm font-semibold">{p.ganho}</span>
-                      <span className="text-txt-dim text-sm ml-1">- {p.desc}</span>
-                      {parts.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {parts.map(part => <span key={part} className="race-grant-effect">{part}</span>)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
         {milestones.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="text-amber-300 text-sm font-semibold">Marcos de Experiencia</div>
-              <span className="text-txt-dim text-xs">{milestones.filter(m => granted.has(m.key)).length}/{milestones.length} concedidos</span>
+              <div className="text-amber-300 text-sm font-semibold">Marcos de Experiência</div>
+              <span className="text-txt-dim text-xs">(via Árvore de Habilidades)</span>
             </div>
             <div className="space-y-2">
-              {milestones.map(m => {
-                const isGranted = granted.has(m.key)
-                const parts = formatRaceBonusParts(parseRaceEffectText(`${m.title}. ${m.reward}`))
-                return (
-                  <div key={m.key} className={`race-grant-card ${isGranted ? 'is-granted' : ''}`}>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-txt-main text-sm font-semibold">{m.title}</span>
-                        <span className="text-[10px] text-amber-300/75 border border-amber-300/15 rounded px-1.5 py-0.5">{m.group}</span>
-                        {isGranted && <span className="text-[10px] text-emerald-300 border border-emerald-300/20 rounded px-1.5 py-0.5">Concedido</span>}
-                      </div>
-                      {m.condition && <div className="text-txt-dim text-xs mt-1">{m.condition}</div>}
-                      <div className="text-gold text-sm mt-1">{m.reward}</div>
-                      {parts.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {parts.map(part => <span key={part} className="race-grant-effect">{part}</span>)}
-                        </div>
-                      )}
+              {milestones.map(m => (
+                <div key={m.key} className="race-grant-card">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-txt-main text-sm font-semibold">{m.title}</span>
+                      <span className="text-[10px] text-amber-300/75 border border-amber-300/15 rounded px-1.5 py-0.5">{m.group}</span>
                     </div>
-                    {isAdmin && (
-                      <button type="button" onClick={() => toggleMilestone(m.key)} className={`race-grant-toggle ${isGranted ? 'is-granted' : ''}`}>
-                        {isGranted ? 'Revogar' : 'Conceder'}
-                      </button>
-                    )}
+                    {m.condition && <div className="text-txt-dim text-xs mt-1">{m.condition}</div>}
+                    <div className="text-gold text-sm mt-1">{m.reward}</div>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}
