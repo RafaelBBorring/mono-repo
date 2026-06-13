@@ -1183,7 +1183,7 @@ function AppInner() {
       ) : view === 'wizard' ? (
         <div className="flex flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">
-            <div className={`mx-auto py-6 ${currentStep === TOTAL_STEPS - 1 ? 'max-w-[1680px] px-2 sm:px-4 2xl:px-6' : currentStep === 1 ? 'max-w-7xl px-4' : 'max-w-3xl px-4'}`}>
+            <div className={`mx-auto py-6 ${currentStep === TOTAL_STEPS - 1 ? 'max-w-[1680px] px-2 sm:px-4 2xl:px-6' : currentStep === 1 ? 'max-w-7xl px-4' : currentStep === 9 ? 'max-w-[1600px] px-3 sm:px-4' : 'max-w-3xl px-4'}`}>
               <div className="mb-6 codex-card p-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-mono text-outline uppercase tracking-widest" style={{ fontSize: '11px' }}>Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
