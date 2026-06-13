@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { RACES, RACE_CATEGORIES } from '../../data/races'
-import { getRaceProfile, getRaceBonusSummary } from '../../data/raceProfiles'
+import { getRaceProfile } from '../../data/raceProfiles'
 import { getRaceTree } from '../../data/raceTrees'
 import {
   ATTR_KEYS,
-  calculateRaceBonus,
   getDefaultSubraceId,
   getSelectedSubrace,
   getSubracesForRace,
@@ -36,21 +35,66 @@ function truncateDesc(text, maxWords = 12) {
   return words.slice(0, maxWords).join(' ') + '…'
 }
 
-function StatPill({ label, value, tone = 'sky' }) {
-  const toneClass = {
-    sky: 'text-sky-300 border-sky-400/25 bg-sky-400/10',
-    emerald: 'text-emerald-300 border-emerald-400/25 bg-emerald-400/10',
-    gold: 'text-gold border-gold/25 bg-gold/10',
-    red: 'text-red-300 border-red-400/25 bg-red-400/10',
-    purple: 'text-purple-300 border-purple-400/25 bg-purple-400/10',
-  }[tone]
+function formatAttrs(attrs = {}) {
+  return Object.entries(attrs)
+    .filter(([, value]) => value !== 0)
+    .map(([attr, value]) => `${value >= 0 ? '+' : ''}${value}${attr}`)
+    .join('  ')
+}
 
-  return (
-    <div className={`race-stat-pill ${toneClass}`}>
-      <span className="text-[10px] uppercase tracking-[0.16em] opacity-70">{label}</span>
-      <span className="font-mono text-sm font-bold">{value}</span>
-    </div>
-  )
+function pushBonusChips(chips, bonus = {}) {
+  if (bonus.hp) chips.push(`${bonus.hp >= 0 ? '+' : ''}${bonus.hp} HP`)
+  if (bonus.energia) chips.push(`${bonus.energia >= 0 ? '+' : ''}${bonus.energia} Energia`)
+  if (bonus.pe) chips.push(`+${bonus.pe} PE`)
+  if (bonus.pericias) chips.push(`+${bonus.pericias} Perícias`)
+  if (bonus.modules) chips.push(`+${bonus.modules} Módulo`)
+  if (bonus.attrsEscolher) {
+    chips.push(`Escolhe ${bonus.attrsEscolher.qtd} atributo${bonus.attrsEscolher.qtd > 1 ? 's' : ''}`)
+  }
+  if (bonus.attrs) {
+    Object.entries(bonus.attrs)
+      .filter(([, value]) => value !== 0)
+      .forEach(([attr, value]) => chips.push(`${value >= 0 ? '+' : ''}${value} ${attr}`))
+  }
+}
+
+function getBonusChips(profile, selectedSubrace, selectedGod) {
+  const chips = []
+  pushBonusChips(chips, profile?.bonus)
+  if (selectedGod?.attr) {
+    Object.entries(selectedGod.attr)
+      .filter(([, value]) => value !== 0)
+      .forEach(([attr, value]) => chips.push(`${value >= 0 ? '+' : ''}${value} ${attr}`))
+  }
+  pushBonusChips(chips, selectedSubrace?.bonus)
+  return chips.length ? [...new Set(chips)].slice(0, 8) : ['Sem bônus inicial']
+}
+
+function getPowerItems(profile, selectedGod) {
+  const base = profile?.poderesBase || []
+  if (!selectedGod) return base
+  return [
+    { nome: `Traço de ${selectedGod.name}`, icon: 'auto_awesome', desc: selectedGod.traco },
+    { nome: 'Especial da linhagem', icon: 'bolt', desc: selectedGod.especial },
+    ...base.filter(power => power.nome !== 'Herança Divina').slice(0, 3),
+  ]
+}
+
+function getBranchPreview(tree, branch) {
+  const branchNodes = tree.nodes.filter(node => node.branch === branch.id && !node.upgradeOf)
+  const opener = branchNodes.find(node => node.tier === 1 && node.effects?.some(effect => effect.type === 'habilidade'))
+    || branchNodes.find(node => node.tier === 1)
+    || branchNodes[0]
+  const capstone = [...branchNodes].reverse().find(node => node.tier === 4 && node.effects?.some(effect => effect.type === 'habilidade'))
+    || [...branchNodes].reverse().find(node => node.tier === 4)
+    || branchNodes[branchNodes.length - 1]
+  return { opener, capstone, total: branchNodes.length }
+}
+
+function shortPathName(name = '') {
+  return name
+    .replace(/^Caminho\s+(do|da|das|dos|de)\s+/i, '')
+    .replace(/^Caminho\s+/i, '')
 }
 
 export default function StepRace({ char, update }) {
@@ -197,9 +241,10 @@ function SelectedRacePanel({ char, race, update, onClear, onSubraceSelect, onTog
   const tree = getRaceTree(race.id)
   const subraces = getSubracesForRace(race.id)
   const selectedSubrace = getSelectedSubrace(char)
-  const raceBonus = calculateRaceBonus(char)
+  const selectedGod = race.deuses?.find(d => d.id === char.racaDeus) || race.deuses?.[0] || null
+  const bonusChips = getBonusChips(profile, selectedSubrace, selectedGod)
+  const powerItems = getPowerItems(profile, selectedGod)
   const layer = race.layer0?.attrBonus || {}
-  const bonusSummary = getRaceBonusSummary(race.id)
 
   const allowedAttrs = layer.escolherOpcoes || ATTR_KEYS
   const selectedChoiceCount = Object.values(char.racaAttrChoices || {}).filter(Boolean).length
@@ -207,281 +252,206 @@ function SelectedRacePanel({ char, race, update, onClear, onSubraceSelect, onTog
 
   return (
     <div className="race-detail-panel race-detail-panel--expanded">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="race-panel-kicker">
         <span className="material-symbols-outlined text-gold text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>expand_more</span>
-        <span className="font-cinzel text-gold text-sm font-bold tracking-wide uppercase">Detalhes da Raça Selecionada</span>
-        <div className="flex-1 h-px bg-gold/20 ml-2" />
+        <span>Detalhes da Raça Selecionada</span>
+        <div />
       </div>
 
-      <div className="space-y-5">
-        <div className="race-selected-header">
-          <div className="flex items-start gap-4 min-w-0">
-            <span className="race-selected-icon">{race.icon}</span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className={`font-cinzel text-2xl ${catMeta.title}`}>{race.name}</h3>
-                <span className={`text-xs px-2.5 py-1 rounded-full border ${catMeta.badge}`}>{catMeta.label}</span>
-              </div>
-              {race.quote && <p className="text-txt-dim text-sm italic mt-1">{race.quote}</p>}
-              <p className="text-txt-dim text-sm leading-relaxed mt-3 max-w-2xl">{race.desc}</p>
+      <div className="race-dossier-shell">
+        <div className="race-dossier-hero">
+          <div className="race-dossier-sigil">{race.icon}</div>
+          <div className="race-dossier-copy">
+            <div className="race-dossier-title-row">
+              <h3 className={`font-cinzel ${catMeta.title}`}>{race.name}</h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${catMeta.badge}`}>{catMeta.label}</span>
+            </div>
+            <p className="race-dossier-desc">{race.desc}</p>
+            {race.quote && <p className="race-dossier-quote">{race.quote}</p>}
+            <div className="race-bonus-strip">
+              {bonusChips.map((chip, i) => (
+                <span key={`${chip}-${i}`}>{chip}</span>
+              ))}
             </div>
           </div>
-          <button type="button" onClick={onClear} className="race-soft-button shrink-0">Remover</button>
+          <button type="button" onClick={onClear} className="race-soft-button shrink-0 text-xs">Remover</button>
         </div>
 
-        {profile && profile.fraquezas && profile.fraquezas.length > 0 && (
-          <section className="race-info-panel border-rose-400/25 bg-rose-400/[0.05] text-rose-200 p-5">
-            <h3 className="race-section-title flex items-center gap-2">
-              <span className="material-symbols-outlined text-rose-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
-              Fraquezas Raciais
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-              {profile.fraquezas.map((fq, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 rounded-xl border border-rose-400/15 bg-rose-400/[0.04] p-3 transition-all duration-200"
-                  style={{ animationDelay: `${i * 60}ms` }}
-                >
-                  <span className="material-symbols-outlined text-rose-400 text-xl mt-0.5 shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>{fq.icon}</span>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-rose-100 text-sm">{fq.nome}</div>
-                    <p className="text-rose-200/70 text-xs mt-0.5 leading-relaxed">{fq.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+        {race.layer0?.requiresDeus && race.deuses && (
+          <DivineLineage race={race} selectedGod={selectedGod} update={update} />
         )}
 
-        {profile && profile.poderesBase && profile.poderesBase.length > 0 && (
-          <section className="race-info-panel border-amber-300/25 bg-amber-300/[0.045] text-amber-200 p-5">
-            <h3 className="race-section-title flex items-center gap-2">
-              <span className="material-symbols-outlined text-amber-300 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Poderes Base
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-              {profile.poderesBase.map((pw, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] p-3"
-                >
-                  <span className="material-symbols-outlined text-amber-300 text-xl mt-0.5 shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>{pw.icon}</span>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-amber-100 text-sm">{pw.nome}</div>
-                    <p className="text-amber-200/70 text-xs mt-0.5 leading-relaxed">{pw.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section className="race-info-panel border-gold/25 bg-gold/[0.045] text-gold p-5">
-          <h3 className="race-section-title flex items-center gap-2">
-            <span className="material-symbols-outlined text-gold text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>tune</span>
-            Bônus Base
-          </h3>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {bonusSummary.map((part, i) => (
-              <span key={i} className="text-xs font-mono px-2.5 py-1 rounded-full border border-gold/20 bg-gold/[0.08] text-gold">
-                {part}
-              </span>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
-            {ATTR_KEYS.map(attr => {
-              const val = raceBonus.attrs[attr] || 0
-              if (val === 0) return null
-              return (
-                <StatPill
-                  key={attr}
-                  label={attr}
-                  value={`${val >= 0 ? '+' : ''}${val}`}
-                  tone={val < 0 ? 'red' : 'sky'}
-                />
-              )
-            })}
-          </div>
-
-          {layer.escolher && (
-            <div className="mt-4 pt-3 border-t border-gold/15">
-              <p className="text-xs text-txt-dim mb-2">
-                Escolha {maxChoices} {layer.escolherLabel || 'atributos'}. Valor: +{layer.escolherValor || 1} por atributo ({selectedChoiceCount}/{maxChoices})
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {allowedAttrs.map(attr => {
-                  const selected = !!char.racaAttrChoices?.[attr]
-                  const disabled = !selected && selectedChoiceCount >= maxChoices
-                  return (
-                    <button
-                      key={attr}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => onToggleAttr(race, attr)}
-                      className={`race-choice-chip ${selected ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}`}
-                    >
-                      {attr} {selected ? `+${layer.escolherValor || 1}` : ''}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+        <div className="race-impact-grid">
+          {profile?.fraquezas?.length > 0 && (
+            <section className="race-impact-card race-impact-card--weak">
+              <h4 className="race-impact-title">
+                <span className="material-symbols-outlined text-rose-400 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+                Fraquezas
+              </h4>
+              <ul className="race-impact-list">
+                {profile.fraquezas.map((fq, i) => (
+                  <li key={i} className="race-impact-item">
+                    <span className="material-symbols-outlined text-rose-400/80 text-base shrink-0">{fq.icon}</span>
+                    <div className="min-w-0">
+                      <span>{fq.nome}</span>
+                      <p>{fq.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
-          {profile?.bonus?.attrsDeus && (
-            <div className="mt-3 text-xs text-amber-300/80 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-              Atributos concedidos pelo deus pai
-            </div>
+          {powerItems.length > 0 && (
+            <section className="race-impact-card race-impact-card--power">
+              <h4 className="race-impact-title">
+                <span className="material-symbols-outlined text-amber-300 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                Poderes e Potenciais
+              </h4>
+              <ul className="race-impact-list race-impact-list--power">
+                {powerItems.map((pw, i) => (
+                  <li key={i} className="race-impact-item">
+                    <span className="material-symbols-outlined text-amber-300/80 text-base shrink-0">{pw.icon}</span>
+                    <div className="min-w-0">
+                      <span>{pw.nome}</span>
+                      <p>{pw.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
+        </div>
 
-          <div className="race-tree-bridge mt-4">
-            <span className="material-symbols-outlined">tips_and_updates</span>
-            <span>Estes bônus são concedidos como <strong>esfera inicial gratuita</strong> na Árvore de Habilidades.</span>
-          </div>
-        </section>
-
-        {tree && (
-          <section className="race-info-panel border-purple-400/25 bg-purple-400/[0.045] text-purple-200 p-5">
-            <h3 className="race-section-title flex items-center gap-2">
-              <span className="material-symbols-outlined text-purple-400 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>account_tree</span>
-              Árvore de Habilidades — {tree.name}
-            </h3>
-            <p className="text-xs text-txt-dim mt-1 mb-4">
-              {tree.nodes.length} habilidades · {tree.branches.length} caminhos · Cada caminho leva a um poder supremo único
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {tree.branches.map(branch => {
-                const branchNodes = tree.nodes.filter(n => n.branch === branch.id)
-                const tierCounts = [1, 2, 3, 4].map(t => branchNodes.filter(n => n.tier === t).length)
+        {layer.escolher && (
+          <div className="race-attribute-choice-row">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-txt-dim">
+              Escolha {maxChoices} atributos (+{layer.escolherValor || 1} cada) - {selectedChoiceCount}/{maxChoices}
+            </span>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {allowedAttrs.map(attr => {
+                const selected = !!char.racaAttrChoices?.[attr]
+                const disabled = !selected && selectedChoiceCount >= maxChoices
                 return (
-                  <div key={branch.id} className="race-tree-mini">
-                    <div className="race-tree-mini-head">
-                      <span className="material-symbols-outlined" style={{ color: branch.color, fontVariationSettings: "'FILL' 1" }}>{branch.icon}</span>
-                      <span className="race-tree-mini-name" style={{ color: branch.color }}>{branch.name}</span>
-                      <span className="race-tree-mini-count">{branchNodes.length}</span>
-                    </div>
-                    <div className="race-tree-mini-track">
-                      {[1, 2, 3, 4].map(t => {
-                        const count = tierCounts[t - 1]
-                        if (count === 0) return null
-                        return (
-                          <div key={t} className="race-tree-mini-row">
-                            <span className="race-tree-mini-tier">T{t}</span>
-                            <div className="race-tree-mini-bar">
-                              {Array.from({ length: Math.min(count, 6) }).map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={`race-tree-mini-node${t === 4 ? ' race-tree-mini-node--ult' : ''}`}
-                                  style={{ borderColor: branch.color, background: `${branch.color}1a` }}
-                                />
-                              ))}
-                              {count > 6 && <span className="race-tree-mini-x">+{count - 6}</span>}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
+                  <button
+                    key={attr}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onToggleAttr(race, attr)}
+                    className={`race-choice-chip race-choice-chip--sm ${selected ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}`}
+                  >
+                    {attr}{selected ? ` +${layer.escolherValor || 1}` : ''}
+                  </button>
                 )
               })}
             </div>
-            <div className="race-tree-bridge mt-4">
-              <span className="material-symbols-outlined">arrow_forward</span>
-              <span>Desbloqueie habilidades interativamente na <strong>Etapa 10</strong>. Cada caminho é independente — escolha seu foco.</span>
+          </div>
+        )}
+
+        {tree && (
+          <section className="race-pathway-section">
+            <h4 className="race-minimal-section-label">
+              <span className="material-symbols-outlined text-purple-400 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>account_tree</span>
+              Árvore racial - {tree.name}
+            </h4>
+            <div className="race-pathway-map">
+              {tree.branches.map(branch => {
+                const preview = getBranchPreview(tree, branch)
+                return (
+                  <article key={branch.id} className="race-pathway" style={{ '--path-color': branch.color }}>
+                    <div className="race-pathway-orb">
+                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>{branch.icon}</span>
+                      <strong>{shortPathName(branch.name)}</strong>
+                      <small>{preview.total} nós</small>
+                    </div>
+                    <div className="race-pathway-caption">
+                      <p>{branch.desc}</p>
+                      {preview.opener && <span>Início: {preview.opener.name}</span>}
+                      {preview.capstone && <span>Ápice: {preview.capstone.name}</span>}
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           </section>
         )}
 
         {subraces.length > 0 && (
-          <section className="race-info-panel border-purple-400/25 bg-purple-400/[0.045] text-purple-300 p-5">
-            <h3 className="race-section-title">
-              {race.id === 'SEMIDEUS' ? 'Caminho de Ascensão' : 'Sub-Raça / Caminho'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          <section className="race-subrace-section">
+            <h4 className="race-minimal-section-label">
+              <span className="material-symbols-outlined text-purple-400 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>fork_right</span>
+              {race.id === 'SEMIDEUS' ? 'Caminho de Ascensão' : 'Sub-raças'}
+            </h4>
+            <div className="race-subrace-pills">
               {subraces.map(sub => {
                 const selected = selectedSubrace?.id === sub.id
-                const subAttrs = Object.entries(sub.bonus?.attrs || {})
-                  .filter(([, v]) => v !== 0)
-                  .map(([a, v]) => `${v >= 0 ? '+' : ''}${v} ${a}`)
+                const subAttrs = []
                 if (sub.bonus?.hp) subAttrs.push(`${sub.bonus.hp >= 0 ? '+' : ''}${sub.bonus.hp} HP`)
                 if (sub.bonus?.pe) subAttrs.push(`+${sub.bonus.pe} PE`)
                 if (sub.bonus?.pericias) subAttrs.push(`+${sub.bonus.pericias} Perícias`)
+                Object.entries(sub.bonus?.attrs || {}).filter(([, v]) => v !== 0).forEach(([a, v]) => subAttrs.push(`${v >= 0 ? '+' : ''}${v} ${a}`))
+
                 return (
                   <button
                     key={sub.id}
                     type="button"
                     onClick={() => onSubraceSelect(race, sub)}
-                    className={`race-path-card ${selected ? 'is-selected' : ''}`}
+                    className={`race-subrace-pill ${selected ? 'is-selected' : ''}`}
                   >
-                    <span className="flex items-start justify-between gap-3">
-                      <span className="font-semibold text-txt-main">{sub.name}</span>
-                      {selected && <span className="text-[10px] uppercase tracking-[0.14em] text-purple-300">Ativo</span>}
-                    </span>
+                    <span className="race-subrace-pill-name">{sub.name}</span>
                     {subAttrs.length > 0 && (
-                      <span className="block text-xs text-sky-300 font-mono mt-2">{subAttrs.join(' | ')}</span>
+                      <span className="race-subrace-pill-stats">{subAttrs.join(' · ')}</span>
                     )}
-                    {(sub.minLevel || sub.requirement) && (
-                      <span className="block text-xs text-amber-300/85 mt-2">
-                        Requisito: {sub.minLevel ? `Nível ${sub.minLevel}+` : sub.requirement}
-                      </span>
-                    )}
-                    {sub.note && <span className="block text-xs text-txt-dim mt-2 leading-relaxed">{sub.note}</span>}
                   </button>
                 )
               })}
             </div>
+            {selectedSubrace?.note && (
+              <p className="race-subrace-note">{selectedSubrace.note}</p>
+            )}
           </section>
-        )}
-
-        {race.layer0?.requiresDeus && race.deuses && (
-          <DivineLineage race={race} char={char} update={update} />
         )}
       </div>
     </div>
   )
 }
 
-function DivineLineage({ race, char, update }) {
+function DivineLineage({ race, selectedGod, update }) {
   return (
-    <section className="race-info-panel border-amber-300/25 bg-amber-300/[0.045] text-amber-300 p-5">
-      <h3 className="race-section-title flex items-center gap-2">
-        <span className="material-symbols-outlined text-amber-300 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
-        Deus Pai / Herança Divina
-      </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3 max-h-[360px] overflow-y-auto pr-1">
+    <section className="race-lineage-panel">
+      <h4 className="race-minimal-section-label">
+        <span className="material-symbols-outlined text-amber-300 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+        Linhagem divina
+      </h4>
+      <div className="race-lineage-scroll">
         {race.deuses.map(deus => {
-          const selected = char.racaDeus === deus.id
+          const selected = selectedGod?.id === deus.id
           return (
             <button
               key={deus.id}
               type="button"
               onClick={() => update({ racaDeus: deus.id })}
-              className={`race-god-card ${selected ? 'is-selected' : ''}`}
+              className={`race-lineage-chip ${selected ? 'is-selected' : ''}`}
             >
-              <span className="font-semibold text-txt-main">{deus.name}</span>
-              <span className="block text-[11px] text-txt-dim mt-0.5">{deus.title}</span>
-              <span className="block text-xs text-sky-300 font-mono mt-2">
-                {Object.entries(deus.attr).map(([a, v]) => `${v >= 0 ? '+' : ''}${v}${a}`).join(' | ')}
-              </span>
+              <span>{deus.name}</span>
+              <small>{formatAttrs(deus.attr)}</small>
             </button>
           )
         })}
       </div>
 
-      {char.racaDeus && (() => {
-        const deus = race.deuses.find(d => d.id === char.racaDeus)
-        return deus ? (
-          <div className="race-god-detail">
-            <div className="text-amber-300 font-cinzel font-bold text-base">{deus.name} — {deus.title}</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mt-3">
-              <div><span className="text-txt-dim">Traço: </span><span className="text-txt-main">{deus.traco}</span></div>
-              <div><span className="text-txt-dim">Especial: </span><span className="text-txt-main">{deus.especial}</span></div>
-            </div>
+      {selectedGod && (
+        <div className="race-lineage-focus">
+          <div>
+            <span>Traço</span>
+            <p>{selectedGod.traco}</p>
           </div>
-        ) : null
-      })()}
+          <div>
+            <span>Especial</span>
+            <p>{selectedGod.especial}</p>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
