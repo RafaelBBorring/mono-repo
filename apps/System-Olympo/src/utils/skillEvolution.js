@@ -114,6 +114,27 @@ export const SKILL_TAG_OPTIONS = TAG_ORDER.map(tag => ({
   label: TAG_LABELS[tag] || tag,
 }))
 
+export const TAG_CHIP_META = {
+  custoEnergia:   { icon: '⚡',  color: '#38bdf8', bg: 'rgba(56,189,248,0.10)',  border: 'rgba(56,189,248,0.25)' },
+  dano:           { icon: '⚔',  color: '#f87171', bg: 'rgba(239,68,68,0.10)',   border: 'rgba(239,68,68,0.25)' },
+  cura:           { icon: '✚',  color: '#34d399', bg: 'rgba(16,185,129,0.10)',  border: 'rgba(16,185,129,0.25)' },
+  curaEnergia:    { icon: '↺',  color: '#22d3ee', bg: 'rgba(34,211,238,0.10)',  border: 'rgba(34,211,238,0.25)' },
+  duracao:        { icon: '⏱',  color: '#fbbf24', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)' },
+  dt:             { icon: '🎯', color: '#a855f7', bg: 'rgba(168,85,247,0.10)',  border: 'rgba(168,85,247,0.25)' },
+  bonusAtaque:    { icon: '⌁',  color: '#818cf8', bg: 'rgba(129,140,248,0.10)', border: 'rgba(129,140,248,0.25)' },
+  bonusCA:        { icon: '◆',  color: '#22d3ee', bg: 'rgba(34,211,238,0.10)',  border: 'rgba(34,211,238,0.25)' },
+  bonusResultado: { icon: '+',  color: '#818cf8', bg: 'rgba(129,140,248,0.10)', border: 'rgba(129,140,248,0.25)' },
+  bonusReacoes:   { icon: '↻',  color: '#818cf8', bg: 'rgba(129,140,248,0.10)', border: 'rgba(129,140,248,0.25)' },
+  vantagem:       { icon: '★',  color: '#fbbf24', bg: 'rgba(251,191,36,0.10)',  border: 'rgba(251,191,36,0.25)' },
+  area:           { icon: '◎',  color: '#a8a29e', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.10)' },
+  deslocamento:   { icon: '↗',  color: '#38bdf8', bg: 'rgba(56,189,248,0.08)',  border: 'rgba(56,189,248,0.20)' },
+  resistencia:    { icon: '◈',  color: '#34d399', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.20)' },
+  paralisia:      { icon: '✕',  color: '#e879f9', bg: 'rgba(217,70,239,0.08)',  border: 'rgba(217,70,239,0.20)' },
+  curaStatus:     { icon: '⚕',  color: '#34d399', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.20)' },
+  invisibilidade: { icon: '👻', color: '#c084fc', bg: 'rgba(192,132,252,0.08)', border: 'rgba(192,132,252,0.20)' },
+  invocacao:      { icon: '☩',  color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.20)' },
+}
+
 const TAG_ALIASES = {
   custo: 'custoEnergia',
   custoenergia: 'custoEnergia',

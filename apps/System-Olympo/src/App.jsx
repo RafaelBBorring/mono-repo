@@ -1177,7 +1177,22 @@ function AppInner() {
               )}
 
               {currentStep === TOTAL_STEPS - 1 ? (
-                <Step11Review {...reviewProps} />
+                <>
+                  <CharacterCenter
+                    char={char}
+                    update={update}
+                    updateHabilidade={updateHabilidade}
+                    canEdit={true}
+                    characterId={null}
+                  />
+                  <div className="flex justify-center mt-6 pb-6">
+                    <button onClick={handleSave}
+                      className="px-8 py-3 rounded-lg font-cinzel font-semibold text-sm bg-gradient-to-r from-gold/20 to-amber-600/10 text-gold border border-gold/30 hover:from-gold/30 hover:to-amber-600/15 hover:border-gold/50 transition-all shadow-lg shadow-gold/10">
+                      <span className="material-symbols-outlined text-sm align-middle mr-2">save</span>
+                      Salvar Personagem
+                    </button>
+                  </div>
+                </>
               ) : (
                 <>
                   <StepComponent {...stepProps} />

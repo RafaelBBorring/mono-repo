@@ -173,17 +173,17 @@ export default function AvatarCropper({ value, onChange }) {
 
   function saveAvatar() {
     if (!img) return
-    const outSize = 128
+    const outSize = 256
     const c = document.createElement('canvas')
     c.width = outSize
     c.height = outSize
     const ctx = c.getContext('2d')
     const outScale = outSize / AVATAR_SIZE
     ctx.beginPath()
-    roundRect(ctx, 0, 0, outSize, outSize, 18)
+    roundRect(ctx, 0, 0, outSize, outSize, 36)
     ctx.clip()
     ctx.drawImage(img, offset.x * outScale, offset.y * outScale, img.width * scale * outScale, img.height * scale * outScale)
-    onChange(c.toDataURL('image/webp', 0.7))
+    onChange(c.toDataURL('image/webp', 0.85))
   }
 
   function handleRemove() {

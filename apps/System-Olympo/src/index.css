@@ -8287,6 +8287,52 @@ body {
   font-family: 'JetBrains Mono', monospace;
 }
 
+.cc-orb-input {
+  background: transparent !important;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.cc-orb-input::-webkit-inner-spin-button,
+.cc-orb-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cc-orb-input:focus {
+  border-bottom-color: rgba(247,189,72,0.5);
+}
+
+.cc-orb-reset {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(247,189,72,0.15);
+  border: 1px solid rgba(247,189,72,0.3);
+  color: #f7bd48;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-orb-reset:hover {
+  background: rgba(247,189,72,0.25);
+  transform: scale(1.1);
+}
+
+.cc-tag-chip {
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
 /* COMBAT */
 .cc-combat-row {
   display: grid;

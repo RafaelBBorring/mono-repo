@@ -14,7 +14,7 @@ import { MODULES_PASSIVE, MODULES_ACTIVE } from '../data/modules'
 import { getRaceTree } from '../data/raceTrees'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcPARTotal, calcRaceTreePARSpent, calcCarryCapacity, calcCarriedLoad, getAttrValue } from '../utils/calculator'
 import { calculateRaceBonus, getRaceLabel, getSelectedSubrace } from '../utils/raceCalculator'
-import { normalizeSkillTags, getSkillTagChips, calcEvolucaoDelta, getSkillBracket } from '../utils/skillEvolution'
+import { normalizeSkillTags, getSkillTagChips, calcEvolucaoDelta, getSkillBracket, TAG_CHIP_META } from '../utils/skillEvolution'
 import { getLevelBand } from '../utils/skillEvolution'
 import ResidentInventorySection from './ResidentInventorySection'
 import SkillTreeView from './SkillTreeView'
@@ -169,12 +169,13 @@ function ParticleBackdrop() {
   return <div ref={mountRef} className="fixed inset-0 -z-10" style={{ pointerEvents: 'none' }} />
 }
 
-function ResourceOrb({ label, current, max, type }) {
+function ResourceOrb({ label, current, max, type, editable, onChange }) {
   const percent = max > 0 ? Math.min(100, (current / max) * 100) : 0
   const color = getResourceColor(type)
   const radius = 52
   const circumference = 2 * Math.PI * radius
   const dashOffset = circumference - (percent / 100) * circumference
+  const isModified = current !== max
 
   return (
     <div className="cc-orb glass-panel flex flex-col items-center" data-gsap>
@@ -190,9 +191,26 @@ function ResourceOrb({ label, current, max, type }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-mono text-2xl font-bold" style={{ color }}>{current}</span>
+          {editable ? (
+            <input
+              type="number"
+              value={current}
+              onChange={e => onChange?.(Number(e.target.value) || 0)}
+              className="cc-orb-input font-mono text-2xl font-bold text-center"
+              style={{ color, width: 70 }}
+            />
+          ) : (
+            <span className="font-mono text-2xl font-bold" style={{ color }}>{current}</span>
+          )}
           <span className="text-[10px] text-txt-dim font-mono">/ {max}</span>
         </div>
+        {isModified && editable && (
+          <button
+            className="cc-orb-reset"
+            onClick={() => onChange?.(max)}
+            title="Restaurar"
+          >↺</button>
+        )}
       </div>
       <span className="cc-orb-label" style={{ color }}>{label}</span>
     </div>
@@ -245,9 +263,15 @@ function AbilityCard({ habilidade, index, onExpand }) {
       )}
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {chips.slice(0, 4).map((chip, i) => (
-            <span key={i} className="cc-tag-chip">{chip.label}{chip.value ? ` ${chip.value}` : ''}</span>
-          ))}
+          {chips.slice(0, 4).map((chip, i) => {
+            const meta = TAG_CHIP_META[chip.tag] || {}
+            return (
+              <span key={i} className="cc-tag-chip"
+                style={meta.color ? { color: meta.color, background: meta.bg, borderColor: meta.border } : undefined}>
+                {chip.label}{chip.value ? ` ${chip.value}` : ''}
+              </span>
+            )
+          })}
           {chips.length > 4 && <span className="cc-tag-chip">+{chips.length - 4}</span>}
         </div>
       )}
@@ -453,9 +477,15 @@ Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
                 <div className="mt-3">
                   <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Tags</div>
                   <div className="flex flex-wrap gap-1.5">
-                    {chips.map((chip, i) => (
-                      <span key={i} className="cc-tag-chip cc-tag-chip--lg">{chip.label}{chip.value ? ` ${chip.value}` : ''}</span>
-                    ))}
+                    {chips.map((chip, i) => {
+                      const meta = TAG_CHIP_META[chip.tag] || {}
+                      return (
+                        <span key={i} className="cc-tag-chip cc-tag-chip--lg"
+                          style={meta.color ? { color: meta.color, background: meta.bg, borderColor: meta.border } : undefined}>
+                          {meta.icon ? `${meta.icon} ` : ''}{chip.label}{chip.value ? ` ${chip.value}` : ''}
+                        </span>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -778,9 +808,9 @@ export default function CharacterCenter({ char, update, updateHabilidade, onShow
 
               {/* RESOURCES */}
               <div className="cc-resources-row">
-                <ResourceOrb label="VIDA" current={currentVida} max={stats.vidaTotal} type="vida" />
-                <ResourceOrb label="ENERGIA" current={currentEnergia} max={stats.energiaTotal} type="energia" />
-                <ResourceOrb label="PE" current={currentPe} max={stats.peTotal} type="pe" />
+                <ResourceOrb label="VIDA" current={currentVida} max={stats.vidaTotal} type="vida" editable={canEdit} onChange={v => update({ vidaAtual: v })} />
+                <ResourceOrb label="ENERGIA" current={currentEnergia} max={stats.energiaTotal} type="energia" editable={canEdit} onChange={v => update({ energiaAtual: v })} />
+                <ResourceOrb label="PE" current={currentPe} max={stats.peTotal} type="pe" editable={canEdit} onChange={v => update({ peAtual: v })} />
               </div>
 
               {/* COMBAT STATS */}
