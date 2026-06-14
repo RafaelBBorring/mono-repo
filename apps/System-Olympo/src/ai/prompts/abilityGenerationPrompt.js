@@ -118,8 +118,8 @@ Responda EXCLUSIVAMENTE com JSON:
 
 function getLevelBand(nivel) {
   if (nivel <= 7)  return 'N1-7'
-  if (nivel <= 15) return 'N8-15'
-  if (nivel <= 22) return 'N16-22'
+  if (nivel <= 13) return 'N8-13'
+  if (nivel <= 22) return 'N14-22'
   if (nivel <= 30) return 'N23-30'
   if (nivel <= 38) return 'N31-38'
   return 'N39-50'

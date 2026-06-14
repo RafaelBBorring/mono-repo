@@ -633,8 +633,8 @@ async function callAIStream(messages, onChunk) {
 
 function getLevelBand(nivel) {
   if (nivel <= 7)  return 'N1-7'
-  if (nivel <= 15) return 'N8-15'
-  if (nivel <= 22) return 'N16-22'
+  if (nivel <= 13) return 'N8-13'
+  if (nivel <= 22) return 'N14-22'
   if (nivel <= 30) return 'N23-30'
   if (nivel <= 38) return 'N31-38'
   return 'N39-50'
@@ -1003,7 +1003,8 @@ function estimateLocalItemWeight(nome, descricao) {
 }
 
 function buildCrossClassContext(nivel) {
-  const refAttrs = { FOR: 10, DES: 14, CON: 14, INT: 12, APA: 10, AM: 16 }
+  const cap = nivel <= 7 ? 20 : nivel <= 13 ? 26 : nivel <= 22 ? 32 : nivel <= 30 ? 38 : nivel <= 38 ? 44 : 50
+  const refAttrs = { FOR: Math.round(cap * 0.5), DES: Math.round(cap * 0.7), CON: Math.round(cap * 0.7), INT: Math.round(cap * 0.6), APA: Math.round(cap * 0.5), AM: Math.round(cap * 0.8) }
   const sk = {}
   const choices = {}
   const results = {}
@@ -1043,8 +1044,16 @@ Amplificadores de Módulo: ${stats.moduleAmps}
 Módulos: ${(char.modulosAdquiridos || []).map(m => m.id || m).join(', ') || 'Nenhum'}
 Perícias: ${Object.entries(char.pericias || {}).filter(([,v]) => v > 0).map(([k,v]) => `${k}(grau${v})`).join(', ') || 'Nenhuma'}
 
+═══ ÂNCORA PRIMÁRIA — VALORES REAIS DA FICHA ═══
+A ficha acima é sua ÚNICA referência. Os valores abaixo são DERIVADOS dela:
+- VIDA TOTAL do personagem: ${stats.vidaTotal}. Esta é a base para todo cálculo de dano percentual.
+- DANO TOTAL BASE (sem habilidades): ${stats.danoBase} + ${stats.armaDanoBonus}. Uma habilidade Fraca não deve causar menos que ~50% deste valor nem mais que o dobro.
+- ENERGIA TOTAL: ${stats.energiaTotal}. Custo de Ultimate não deve exceder 50% (${Math.round(stats.energiaTotal * 0.5)}E).
+- TETO ABSOLUTO DE DANO: ${Math.round(stats.vidaTotal * 0.30)} (30% da própria vida). NENHUMA habilidade single-target deve causar mais que isto em dano direto, mesmo Ultimate com 5 PEH.
+- PISO DE DANO PARA ATIVA: ${Math.round(stats.vidaTotal * 0.05)} (5% da própria vida). Habilidades abaixo disso são INÚTEIS e devem ser ajustadas para cima.
+
 ═══ REFERÊNCIA CROSS-CLASS (Nível ${stats.nivel}) ═══
-Use estes valores como âncora para julgar se danos/bônus são excessivos:
+Estimativa de HP/Energia de cada classe neste nível com atributos típicos:
 ${(() => { const cc = buildCrossClassContext(stats.nivel); return Object.entries(cc).map(([, c]) => `${c.name}: HP~${c.hp} | Energia~${c.energia}`).join('\n') })()}
 
 ═══ ANÁLISE DE IMPACTO ═══
@@ -1054,11 +1063,11 @@ ${(() => { const cc = buildCrossClassContext(stats.nivel); return Object.entries
 VALORES BASE PARA CÁLCULO LCP:
 - Ataque Base numérico: +${stats.ataqueBaseNum}
 - CA Base: ${stats.caBase}
-- Limite LCP Ataque para ${stats.band}: ${stats.band === 'N1-7' ? '+18' : stats.band === 'N8-15' ? '+26' : stats.band === 'N16-22' ? '+30' : '+42'}
-- Limite LCP Esquiva para ${stats.band}: ${stats.band === 'N1-7' ? '+18' : stats.band === 'N8-15' ? '+26' : stats.band === 'N16-22' ? '+30' : '+42'}
-- Limite LCP CA bônus para ${stats.band}: ${stats.band === 'N1-7' ? '+4' : stats.band === 'N8-15' ? '+6' : stats.band === 'N16-22' ? '+6' : '+10'}
-- Limite LCP Ataques Extras para ${stats.band}: ${stats.band === 'N1-7' ? '+1' : stats.band === 'N8-15' ? '+1' : stats.band === 'N16-22' ? '+1' : '+2'}
-- Bônus MÁXIMO de habilidades no Ataque: ${(() => { const cap = stats.band === 'N1-7' ? 18 : stats.band === 'N8-15' ? 26 : stats.band === 'N16-22' ? 30 : 42; return '+' + (cap - stats.ataqueBaseNum); })()}
+- Limite LCP Ataque para ${stats.band}: ${stats.band === 'N1-7' ? '+18' : stats.band === 'N8-13' ? '+26' : stats.band === 'N14-22' ? '+30' : stats.band === 'N23-30' ? '+42' : stats.band === 'N31-38' ? '+50' : '+60'}
+- Limite LCP Esquiva para ${stats.band}: ${stats.band === 'N1-7' ? '+18' : stats.band === 'N8-13' ? '+26' : stats.band === 'N14-22' ? '+30' : stats.band === 'N23-30' ? '+42' : stats.band === 'N31-38' ? '+50' : '+60'}
+- Limite LCP CA bônus para ${stats.band}: ${stats.band === 'N1-7' ? '+4' : stats.band === 'N8-13' ? '+6' : stats.band === 'N14-22' ? '+6' : stats.band === 'N23-30' ? '+10' : stats.band === 'N31-38' ? '+12' : '+14'}
+- Limite LCP Ataques Extras para ${stats.band}: ${stats.band === 'N1-7' ? '+1' : stats.band === 'N8-13' ? '+1' : stats.band === 'N14-22' ? '+1' : stats.band === 'N23-30' ? '+2' : stats.band === 'N31-38' ? '+2' : '+3'}
+- Bônus MÁXIMO de habilidades no Ataque: ${(() => { const cap = stats.band === 'N1-7' ? 18 : stats.band === 'N8-13' ? 26 : stats.band === 'N14-22' ? 30 : stats.band === 'N23-30' ? 42 : stats.band === 'N31-38' ? 50 : 60; return '+' + Math.max(0, cap - stats.ataqueBaseNum); })()}
 `
 
   const habilidadesData = (char.habilidades || []).map((h, i) => {
