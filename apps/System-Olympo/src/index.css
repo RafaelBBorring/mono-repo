@@ -9490,172 +9490,51 @@ body {
 
 /* End STEP 7 Soft-Skills styles */
 
-/* === KNOWLEDGE BOOKSHELF === */
-.cc-knowledge-shelf {
-  overflow: visible !important;
-}
-
-.cc-knowledge-shelf-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 18px;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  border-radius: 12px;
-}
-
-.cc-knowledge-shelf-header:hover {
-  background: rgba(255,255,255,0.03);
-}
-
-.cc-knowledge-shelf-icon {
-  font-size: 24px;
-  font-variation-settings: 'FILL' 1, 'wght' 400;
-  flex-shrink: 0;
-}
-
-.cc-knowledge-shelf-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 120px;
-  text-align: left;
-}
-
-.cc-knowledge-shelf-label {
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.cc-knowledge-shelf-count {
-  font-size: 0.7rem;
-  color: rgba(231,229,228,0.4);
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.cc-knowledge-shelf-books {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  flex: 1;
-  height: 44px;
-  overflow: hidden;
-}
-
-.cc-knowledge-book-spine {
-  min-width: 6px;
-  max-width: 32px;
-  flex: 1;
-  background: linear-gradient(180deg,
-    var(--book-color) 0%,
-    color-mix(in srgb, var(--book-color) 60%, #000) 100%);
-  border-radius: 3px 3px 0 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 3px;
+/* === KNOWLEDGE TAB BUTTONS === */
+.cc-knowledge-tab-btn {
   position: relative;
-  box-shadow:
-    inset 1px 0 rgba(255,255,255,0.15),
-    inset -1px 0 rgba(0,0,0,0.3),
-    0 2px 4px rgba(0,0,0,0.4);
-  animation: ccBookAppear 0.3s ease both;
-  transition: transform 0.15s ease;
-}
-
-.cc-knowledge-book-spine:hover {
-  transform: translateY(-3px);
-}
-
-.cc-knowledge-book-text {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-size: 0.55rem;
-  color: rgba(255,255,255,0.9);
-  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
-  white-space: nowrap;
-  overflow: hidden;
-  max-height: 100%;
-  font-weight: 600;
-}
-
-.cc-knowledge-book-more {
-  min-width: 24px;
-  max-width: 24px;
-  font-size: 0.6rem;
-  align-items: center;
-  padding-top: 0;
-}
-
-.cc-knowledge-book-more span {
-  color: rgba(255,255,255,0.8);
-  font-weight: 700;
-  writing-mode: horizontal-tb;
-}
-
-@keyframes ccBookAppear {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.cc-knowledge-shelf-content {
-  padding: 0 18px 14px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(6,7,12,0.4);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.cc-knowledge-item {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-
-.cc-knowledge-item-header {
-  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin-bottom: 4px;
-}
-
-.cc-knowledge-item-circle {
-  font-size: 16px;
-}
-
-.cc-knowledge-item-name {
-  font-size: 0.85rem;
-  color: var(--txt-main, #e7e5e4);
-  font-weight: 500;
-}
-
-.cc-knowledge-item-circle-label {
-  font-size: 0.65rem;
-  font-family: 'JetBrains Mono', monospace;
-  color: rgba(247,189,72,0.6);
-  background: rgba(247,189,72,0.08);
-  border-radius: 4px;
-  padding: 1px 6px;
-}
-
-.cc-knowledge-item-pe {
-  font-size: 0.65rem;
-  font-family: 'JetBrains Mono', monospace;
-  color: rgba(74,163,255,0.7);
-  background: rgba(74,163,255,0.08);
-  border-radius: 4px;
-  padding: 1px 6px;
-  margin-left: auto;
-}
-
-.cc-knowledge-item-desc {
-  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
   color: rgba(231,229,228,0.5);
-  line-height: 1.5;
+}
+
+.cc-knowledge-tab-btn:hover {
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.03);
+  color: rgba(231,229,228,0.8);
+}
+
+.cc-knowledge-tab-btn--active {
+  border-color: rgba(247,189,72,0.4);
+  background: rgba(247,189,72,0.06);
+  color: #f7bd48;
+  box-shadow: 0 0 16px rgba(247,189,72,0.08);
+}
+
+.cc-knowledge-tab-count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(255,255,255,0.08);
+  color: rgba(231,229,228,0.7);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.cc-knowledge-tab-btn--active .cc-knowledge-tab-count {
+  background: rgba(247,189,72,0.15);
+  color: #f7bd48;
 }
 
 /* === ABILITY EDIT FIELDS === */
