@@ -19,14 +19,7 @@ import { getLevelBand } from '../utils/skillEvolution'
 import ResidentInventorySection from './ResidentInventorySection'
 import SkillTreeView from './SkillTreeView'
 import { chatAboutAbility } from '../services/aiService'
-import AlchemyLibrarySection from './AlchemyLibrarySection'
-import SpellLibrarySection from './SpellLibrarySection'
-import RuneLibrarySection from './RuneLibrarySection'
-import MagicLibrarySection from './MagicLibrarySection'
-import { getAlchemyProfile } from '../utils/alchemyRules'
-import { getSpellProfile } from '../utils/spellRules'
-import { getRuneProfile } from '../utils/runeRules'
-import { getMagicProfile } from '../utils/magicRules'
+import { MysticKnowledgePanel } from './MysticKnowledgePanel'
 
 const RESOURCE_COLORS = {
   vida: '#3dff92',
@@ -617,86 +610,6 @@ const SIDEBAR_ITEMS = [
   { key: 'inventario', label: 'Inventário', icon: 'inventory_2' },
 ]
 
-const KNOWLEDGE_TABS = [
-  { key: 'alchemy', label: 'Alquimia', icon: '⚗', field: 'alchemyRituals' },
-  { key: 'spells',  label: 'Feitiços', icon: '✨', field: 'spells' },
-  { key: 'runes',   label: 'Runas',    icon: '💎', field: 'runes' },
-  { key: 'magic',   label: 'Magias',   icon: '🔥', field: 'magics' },
-]
-
-function KnowledgeTab({ char, update }) {
-  const [activeKey, setActiveKey] = useState(null)
-
-  const profiles = useMemo(() => ({
-    alchemy: getAlchemyProfile(char),
-    spells: getSpellProfile(char),
-    runes: getRuneProfile(char),
-    magic: getMagicProfile(char),
-  }), [char])
-
-  const systemOptIn = char.systemsOptIn || {}
-  const enabled = {
-    alchemy: profiles.alchemy.hasAccess && (systemOptIn.alchemy || (char.alchemyRituals || []).length > 0),
-    spells: profiles.spells.hasAccess && (systemOptIn.spells || (char.spells || []).length > 0),
-    runes: profiles.runes.hasAccess && (systemOptIn.runes || (char.runes || []).length > 0),
-    magic: profiles.magic.hasAccess && (systemOptIn.magic || (char.magics || []).length > 0),
-  }
-
-  const visibleTabs = KNOWLEDGE_TABS.filter(t => profiles[t.key]?.hasAccess)
-
-  if (visibleTabs.length === 0) {
-    return (
-      <div className="glass-panel" data-gsap style={{ padding: '48px 28px', textAlign: 'center' }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 56, color: 'rgba(255,255,255,0.1)' }}>menu_book</span>
-        <p className="text-txt-dim text-sm mt-4">Nenhuma disciplina mística desbloqueada ainda.</p>
-        <p className="text-txt-dim/50 text-xs mt-1">Adquira Soft-Skills como "Estudos de Alquimia" para desbloquear disciplinas.</p>
-      </div>
-    )
-  }
-
-  const fieldMap = { alchemy: 'alchemyRituals', spells: 'spells', runes: 'runes', magic: 'magics' }
-
-  function toggleTab(key) {
-    const next = activeKey === key ? null : key
-    setActiveKey(next)
-    if (next && !enabled[next] && update) {
-      update({ systemsOptIn: { ...systemOptIn, [next]: true }, [fieldMap[next]]: char[fieldMap[next]] || [] })
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {visibleTabs.map(tab => {
-          const isActive = activeKey === tab.key
-          const count = (char[tab.field] || []).length
-          return (
-            <button key={tab.key} onClick={() => toggleTab(tab.key)}
-              className={`cc-knowledge-tab-btn ${isActive ? 'cc-knowledge-tab-btn--active' : ''}`}>
-              <span className="text-2xl">{tab.icon}</span>
-              <span className="text-sm font-semibold">{tab.label}</span>
-              {count > 0 && <span className="cc-knowledge-tab-count">{count}</span>}
-            </button>
-          )
-        })}
-      </div>
-
-      {activeKey === 'alchemy' && enabled.alchemy && (
-        <AlchemyLibrarySection char={char} update={update} />
-      )}
-      {activeKey === 'spells' && enabled.spells && (
-        <SpellLibrarySection char={char} update={update} />
-      )}
-      {activeKey === 'runes' && enabled.runes && (
-        <RuneLibrarySection char={char} update={update} />
-      )}
-      {activeKey === 'magic' && enabled.magic && (
-        <MagicLibrarySection char={char} update={update} />
-      )}
-    </div>
-  )
-}
-
 export default function CharacterCenter({ char, update, updateHabilidade, onShowSheet, onShowBoard, onShowRaceTree, onLevelUp, onRaceEvolve, characterId, canEdit, onTransferItem }) {
   const containerRef = useRef(null)
   const [activeTab, setActiveTab] = useState('personagem')
@@ -1075,7 +988,7 @@ export default function CharacterCenter({ char, update, updateHabilidade, onShow
                 <p className="text-txt-dim text-sm mt-1">Disciplinas místicas, rituais e magias dominadas pelo personagem.</p>
               </div>
 
-              <KnowledgeTab char={char} update={update} />
+              <MysticKnowledgePanel char={char} update={update} canEdit={canEdit} />
             </div>
           )}
 
