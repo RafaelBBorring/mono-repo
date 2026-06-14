@@ -24,6 +24,7 @@ import LevelUpModal from './components/LevelUpModal'
 import RaceEvolveModal from './components/RaceEvolveModal'
 import AdminDashboard from './components/AdminDashboard'
 import CharacterWorkspace from './components/CharacterWorkspace'
+import CharacterCenter from './components/CharacterCenter'
 import CodexDashboard from './components/codex/CodexDashboard'
 import NpcCreator from './components/codex/NpcCreator'
 import NpcSheet from './components/codex/NpcSheet'
@@ -50,7 +51,7 @@ const STEPS = [
   { id: 5, label: 'Progressão', comp: Step5Progression },
   { id: 6, label: 'Pontos Esqueleto', comp: Step4SkeletonPoints },
   { id: 7, label: 'Triagens', comp: Step8Triages },
-  { id: 8, label: 'Módulos', comp: Step7Modules },
+  { id: 8, label: 'Soft-Skills', comp: Step7Modules },
   { id: 9, label: 'Perícias', comp: Step6Pericias },
   { id: 10, label: 'Árvore de Habilidades', comp: SkillTreeView },
   { id: 11, label: 'Habilidades', comp: Step10Abilities },
@@ -141,10 +142,13 @@ function importFromJson(file) {
 }
 
 const LIBRARY_TIERS = [
-  { min: 1, max: 8, label: 'Novato', color: '#60a5fa', glow: 'rgba(96,165,250,0.3)', text: 'text-sky-400', bg: 'bg-sky-400/10', bar: 'bg-sky-400' },
-  { min: 9, max: 16, label: 'Veterano', color: '#f7bd48', glow: 'rgba(247,189,72,0.3)', text: 'text-primary', bg: 'bg-primary/10', bar: 'bg-primary' },
-  { min: 17, max: 24, label: 'Elite', color: '#c084fc', glow: 'rgba(192,132,252,0.3)', text: 'text-purple-400', bg: 'bg-purple-400/10', bar: 'bg-purple-400' },
-  { min: 25, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.35)', text: 'text-rose-400', bg: 'bg-rose-400/10', bar: 'bg-rose-400' },
+  { min: 1, max: 7, label: 'Novato', color: '#60a5fa', glow: 'rgba(96,165,250,0.3)', text: 'text-sky-400', bg: 'bg-sky-400/10', bar: 'bg-sky-400' },
+  { min: 8, max: 13, label: 'Veterano', color: '#f7bd48', glow: 'rgba(247,189,72,0.3)', text: 'text-primary', bg: 'bg-primary/10', bar: 'bg-primary' },
+  { min: 14, max: 22, label: 'Elite', color: '#c084fc', glow: 'rgba(192,132,252,0.3)', text: 'text-purple-400', bg: 'bg-purple-400/10', bar: 'bg-purple-400' },
+  { min: 23, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.35)', text: 'text-rose-400', bg: 'bg-rose-400/10', bar: 'bg-rose-400' },
+  { min: 31, max: 38, label: 'Mítico', color: '#34d399', glow: 'rgba(52,211,153,0.35)', text: 'text-emerald-400', bg: 'bg-emerald-400/10', bar: 'bg-emerald-400' },
+  { min: 39, max: 44, label: 'Ascendente', color: '#fb923c', glow: 'rgba(251,146,60,0.35)', text: 'text-orange-400', bg: 'bg-orange-400/10', bar: 'bg-orange-400' },
+  { min: 45, max: 50, label: 'Transcendente', color: '#f472b6', glow: 'rgba(244,114,182,0.4)', text: 'text-pink-400', bg: 'bg-pink-400/10', bar: 'bg-pink-400' },
 ]
 
 const CLASS_META = {
@@ -282,6 +286,8 @@ function CharacterLibrary({ sheets, onLoad, onDelete, onImport, canExport }) {
               <div key={sheet.id}
                 className="library-card group relative cursor-pointer"
                 style={{
+                  '--tier-color': tier.color,
+                  '--tier-glow': tier.glow,
                   animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${i * 60}ms both`,
                 }}
                 onClick={() => onLoad(sheet.id)}>
@@ -429,7 +435,7 @@ function FullSheetViewer({ sheetId, onBack }) {
   const [sheet, setSheet] = useState(null)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [showRaceEvolve, setShowRaceEvolve] = useState(false)
-  const [mode, setMode] = useState('sheet')
+  const [mode, setMode] = useState('dashboard')
   const [saveError, setSaveError] = useState('')
   const [transferTargets, setTransferTargets] = useState([])
   const [transferRequest, setTransferRequest] = useState(null)
@@ -707,7 +713,7 @@ function FullSheetViewer({ sheetId, onBack }) {
   if (mode === 'board') {
     return (
       <>
-        <CharacterWorkspace char={char} update={update} onBack={() => setMode('sheet')} />
+        <CharacterWorkspace char={char} update={update} onBack={() => setMode('dashboard')} />
         {showLevelUp && (
           <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
         )}
@@ -720,68 +726,36 @@ function FullSheetViewer({ sheetId, onBack }) {
     )
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-gold text-sm hover:text-gold-light transition-colors">← Voltar à Biblioteca</button>
-        <div className="flex gap-2">
-          <button onClick={() => setMode('sheet')} className="border px-3 py-1.5 rounded text-xs transition-colors border-gold bg-gold text-void font-semibold">
-            Ficha
-          </button>
-          <button onClick={() => setMode('board')} className="border px-3 py-1.5 rounded text-xs transition-colors border-sep text-txt-dim hover:border-gold hover:text-gold">
-            Quadro
-          </button>
-          <button onClick={() => exportToJson(char)} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
-            Exportar JSON
-          </button>
-          <button onClick={() => setShowRaceEvolve(true)}
-            className="bg-purple-400/10 border border-purple-400/40 text-purple-300 px-4 py-1.5 rounded text-sm hover:bg-purple-400 hover:text-void transition-colors font-semibold">
-            ⬆ Evoluir Raca
-          </button>
-          {(char.nivel || 1) < 30 && (
-            <button onClick={() => setShowLevelUp(true)}
-              className="bg-gold/10 border border-gold/40 text-gold px-4 py-1.5 rounded text-sm hover:bg-gold hover:text-void transition-colors font-semibold">
-              ▲ Subir de Nivel ({char.nivel || 1} → {(char.nivel || 1) + 1})
-            </button>
-          )}
+  if (mode === 'sheet') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setMode('dashboard')} className="text-gold text-sm hover:text-gold-light transition-colors">← Voltar ao Dashboard</button>
+          <div className="flex gap-2">
+            <button onClick={() => setMode('dashboard')} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">Dashboard</button>
+            <button onClick={() => setMode('sheet')} className="border px-3 py-1.5 rounded text-xs transition-colors border-gold bg-gold text-void font-semibold">Ficha Detalhada</button>
+            <button onClick={() => setMode('board')} className="border px-3 py-1.5 rounded text-xs transition-colors border-sep text-txt-dim hover:border-gold hover:text-gold">Quadro</button>
+            <button onClick={() => exportToJson(char)} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">Exportar JSON</button>
+          </div>
         </div>
+        {saveError && (
+          <div className="bg-red-500/15 border border-red-500/40 text-red-300 px-4 py-2 rounded text-sm">{saveError}</div>
+        )}
+        <Step11Review char={char} update={update} updateHabilidade={updateHabilidade} onSave={() => {}} onEdit={onBack} onNew={() => {}} characterId={sheet.id} normalizeAbilities={false} transferTargets={transferTargets} onTransferItem={handleTransferItem} />
+        {transferRequest && (<TransferItemModal item={transferRequest.item} targets={transferTargets} locations={transferRequest.locations || []} onConfirm={confirmTransferItem} onConfirmLocation={confirmTransferToLocation} onClose={() => setTransferRequest(null)} />)}
+        {showLevelUp && (<LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />)}
+        {showRaceEvolve && (<RaceEvolveModal char={char} update={update} onApply={(patch) => { update(patch); setShowRaceEvolve(false) }} onClose={() => setShowRaceEvolve(false)} />)}
       </div>
-      {saveError && (
-        <div className="bg-red-500/15 border border-red-500/40 text-red-300 px-4 py-2 rounded text-sm">
-          {saveError}
-        </div>
-      )}
-      <Step11Review
-        char={char}
-        update={update}
-        updateHabilidade={updateHabilidade}
-        onSave={() => {}}
-        onEdit={onBack}
-        onNew={() => {}}
-        characterId={sheet.id}
-        normalizeAbilities={false}
-        transferTargets={transferTargets}
-        onTransferItem={handleTransferItem}
-      />
-      {transferRequest && (
-        <TransferItemModal
-          item={transferRequest.item}
-          targets={transferTargets}
-          locations={transferRequest.locations || []}
-          onConfirm={confirmTransferItem}
-          onConfirmLocation={confirmTransferToLocation}
-          onClose={() => setTransferRequest(null)}
-        />
-      )}
-      {showLevelUp && (
-        <LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />
-      )}
-      {showRaceEvolve && (
-        <RaceEvolveModal char={char} update={update}
-          onApply={(patch) => { update(patch); setShowRaceEvolve(false) }}
-          onClose={() => setShowRaceEvolve(false)} />
-      )}
-    </div>
+    )
+  }
+
+  return (
+    <>
+      <CharacterCenter char={char} update={update} onShowSheet={() => setMode('sheet')} onShowBoard={() => setMode('board')} onShowRaceTree={() => setMode('sheet')} onLevelUp={() => setShowLevelUp(true)} onRaceEvolve={() => setShowRaceEvolve(true)} />
+      {saveError && (<div className="fixed bottom-4 right-4 bg-red-500/15 border border-red-500/40 text-red-300 px-4 py-2 rounded text-sm z-50">{saveError}</div>)}
+      {showLevelUp && (<LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />)}
+      {showRaceEvolve && (<RaceEvolveModal char={char} update={update} onApply={(patch) => { update(patch); setShowRaceEvolve(false) }} onClose={() => setShowRaceEvolve(false)} />)}
+    </>
   )
 }
 

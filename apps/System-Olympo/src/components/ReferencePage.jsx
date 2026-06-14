@@ -44,7 +44,7 @@ const SECTION_CATEGORIES = [
     icon: '⚔️',
     color: 'text-red-400 border-red-400/30 bg-red-400/5',
     activeColor: 'bg-red-400 text-white',
-    sections: ['Triagens', 'Módulos Passivos', 'Módulos Especiais', 'Módulos Ativos'],
+    sections: ['Triagens', 'Soft-Skills Passivas', 'Soft-Skills Ativas'],
   },
   {
     id: 'equipment',
@@ -83,9 +83,8 @@ const SECTION_VERSIONS = {
   'Progressão': 'v2.0',
   'Perícias': 'v2.1 — Mai 2026',
   'Triagens': 'v2.1 — Mai 2026',
-  'Módulos Passivos': 'v2.0',
-  'Módulos Especiais': 'v2.0',
-  'Módulos Ativos': 'v2.0',
+  'Soft-Skills Passivas': 'v3.0 — Jun 2026',
+  'Soft-Skills Ativas': 'v3.0 — Jun 2026',
   'Armas': 'v2.0',
   'Ranks de Arma': 'v2.0',
   'Equipamentos': 'v2.1 — Mai 2026',
@@ -138,9 +137,8 @@ export default function ReferencePage() {
       'Progressão': ['progressao', 'nivel', 'level', 'peh', 'evolucao'],
       'Perícias': ['pericia', 'skill', 'treinamento', 'grau', 'bloqueio', 'reflexo', 'percepcao', 'medicina', 'tecnologia', 'furtividade', 'lutar', 'pontaria', 'alquimia', 'conhecimento', 'dirigir', 'fortitude', 'intimidar', 'investigacao', 'pilotar', 'persuasao', 'poder', 'contra-ataque', 'atletismo', 'crime', 'vontade', 'estabilizar', 'kit medico', 'cura', 'diagnostico', 'veneno', 'escalar', 'arrombar', 'esconder', 'esquivar', 'coagir', 'convencer', 'diagnosticar'],
       'Triagens': ['triagem', 'tank', 'assassino', 'combate', 'atirador', 'tecnico', 'graduado', 'intuitivo', 'suporte'],
-      'Módulos Passivos': ['modulo', 'passivo', 'module'],
-      'Módulos Especiais': ['modulo', 'especial', 'module'],
-      'Módulos Ativos': ['modulo', 'ativo', 'module'],
+      'Soft-Skills Passivas': ['modulo', 'passivo', 'module', 'soft-skill'],
+      'Soft-Skills Ativas': ['modulo', 'ativo', 'module', 'soft-skill'],
       'Armas': ['arma', 'weapon', 'dano', 'machado', 'espada', 'rifle', 'pistola', 'escopeta'],
       'Ranks de Arma': ['rank', 'patente', 'comum', 'incomum', 'raro', 'epico', 'heroico', 'ancestral', 'mitico', 'transcendente'],
       'Equipamentos': ['equipamento', 'equipment', 'armadura', 'peitoral', 'elmo', 'calca', 'bota', 'categoria', 'set', 'bonus', 'guerreiro', 'furtivo', 'medico', 'tecnologico', 'demolidor', 'exploracao', 'escudo', 'durabilidade'],
@@ -318,9 +316,9 @@ export default function ReferencePage() {
                 {section === 'Progressão' && <ProgressionSection />}
                 {section === 'Perícias' && <PericiasSection />}
                 {section === 'Triagens' && <TriagesSection />}
-                {section === 'Módulos Passivos' && <ModulesSection items={MODULES_PASSIVE} title="Módulos Passivos" />}
-                {section === 'Módulos Especiais' && <ModulesSection items={MODULES_SPECIAL} title="Módulos Especiais" special />}
-                {section === 'Módulos Ativos' && <ModulesSection items={MODULES_ACTIVE} title="Módulos Ativos" active />}
+                {section === 'Soft-Skills Passivas' && <ModulesSection items={MODULES_PASSIVE} title="Soft-Skills Passivas" />}
+
+                {section === 'Soft-Skills Ativas' && <ModulesSection items={MODULES_ACTIVE} title="Soft-Skills Ativas" active />}
                 {section === 'Armas' && <WeaponsSection />}
                 {section === 'Ranks de Arma' && <RanksSection />}
                 {section === 'Limites de Equipamento' && <EquipLimitsSection />}

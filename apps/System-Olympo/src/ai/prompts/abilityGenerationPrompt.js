@@ -54,24 +54,28 @@ O que torna uma habilidade poderosa sao os PONTOS DE EVOLUCAO (PEH) investidos n
 Voce esta gerando habilidades com PEH = 0 (sem evolucao). Use os valores BASE abaixo.
 
 VALORES BASE (PEH = 0):
-Ativa Fraca:    2d6+4 de dano    | Custo: 5-10E
+Ativa Fraca:    2d6+4 de dano    | Custo: 8-12E
 Ativa Media:    3d8+8 de dano    | Custo: 12-20E
-Ativa Forte:    4d10+12 de dano  | Custo: 22-35E
-Ultimate:       5d12+16 de dano  | Custo: 35-50E
+Ativa Forte:    4d10+12 de dano  | Custo: 20-30E
+Ultimate:       5d12+16 de dano  | Custo: 30-45E
 Passiva:        Efeito passivo sem custo de energia
 
-TETO MAXIMO (TDH) — ALCANCADO APENAS COM PEH MAXIMO:
-Ativa Fraca (max 5 PEH):    8d12+32   | Custo: 30-50E
-Ativa Media (max 5 PEH):    10d12+45  | Custo: 50-80E
-Ativa Forte (max 5 PEH):    14d12+60  | Custo: 70-120E
-Ultimate (max 3 PEH):       20d12+80  | Custo: 110-180E
+TETO MAXIMO (TDH) — ALCANCADO APENAS COM PEH MAXIMO (RETORNOS DIMINUINTOS):
+Ativa Fraca (max 5 PEH):    ~7d6+29    | Custo: ~35-45E
+Ativa Media (max 5 PEH):    ~8d8+48    | Custo: ~50-65E
+Ativa Forte (max 5 PEH):    ~11d10+72  | Custo: ~70-85E
+Ultimate (max 5 PEH):       ~12d12+76  | Custo: ~85-110E
+
+REGRA CRITICA DE ENERGIA: O custo de energia NUNCA deve exceder 45% da energia total do personagem.
+CUSTO = PODER: Se a habilidade custa muito, ela DEVE ser poderosa.
 
 CALIBRACAO HP ESPERADO POR NIVEL:
 N5:140-210 | N10:250-380 | N15:380-560 | N20:520-760 | N25:700-980 | N30:950-1400 | N35:1100-1300 | N40:1350-1600 | N45:1600-1900 | N50:1900-2200
 
 OBJETIVO DE COMBATE: PvP no mesmo nivel deve durar ~10 rodadas.
 - O dano BASE e BAIXO de proposito — o jogador investe PEH para alcancar o poder ideal.
-- Cada PEH investido aumenta: ~+1 dado, ~+bonus flat, ~+custo de energia proporcional.
+- Cada PEH aumenta o poder COM RETORNOS DIMINUINTOS (PEH 1->2 da mais que PEH 7->8).
+- Formula de dano: base + delta * PEH^0.7. Formula de energia: base + delta * PEH^0.65.
 - Estrategia: distribuir PEH entre habilidades OU concentrar tudo em uma.
 
 DT (Dificuldade de Teste) BASE:

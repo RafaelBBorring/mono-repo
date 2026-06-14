@@ -332,7 +332,7 @@ function ModulesPhase({ working, deltaMods, onUpdate }) {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-cinzel text-gold text-lg">Módulos de Evolução</h3>
+      <h3 className="font-cinzel text-gold text-lg">Soft-Skills</h3>
       <p className="text-txt-dim text-sm">Você ganhou <span className="text-gold font-mono">+{deltaMods}</span> módulo(s). Selecione abaixo.</p>
       <div className="bg-void border border-sep rounded p-3 text-center text-sm">
         <span className="text-txt-dim">Restantes: </span>

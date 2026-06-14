@@ -284,9 +284,9 @@ export default function RaceSkillTree({ char, update }) {
     const av = stateRef.current.available
     if (u.includes(nodeId)) return 'unlocked'
     const node = tree?.nodes.find(n => n.id === nodeId)
-    if (node && canUnlockNode(raceId, nodeId, u) && node.cost <= av) return 'available'
+    if (node && canUnlockNode(raceId, nodeId, u, char?.nivel || 1) && node.cost <= av) return 'available'
     return 'locked'
-  }, [raceId, tree])
+  }, [raceId, tree, char?.nivel])
 
   const handleUnlock = useCallback((nodeId) => {
     if (getNodeState(nodeId) !== 'available') return
@@ -490,7 +490,7 @@ export default function RaceSkillTree({ char, update }) {
         const entry = nodeEntries[node.id]
         if (!entry) continue
         const state = u.includes(node.id) ? 'unlocked'
-          : (canUnlockNode(raceId, node.id, u) && node.cost <= av) ? 'available'
+          : (canUnlockNode(raceId, node.id, u, char?.nivel || 1) && node.cost <= av) ? 'available'
             : 'locked'
         if (state === 'unlocked') {
           entry.core.material.color.copy(entry.baseColor)
@@ -556,7 +556,7 @@ export default function RaceSkillTree({ char, update }) {
         const entry = nodeEntries[node.id]
         if (!entry) continue
         const state = u.includes(node.id) ? 'unlocked'
-          : (canUnlockNode(raceId, node.id, u) && node.cost <= av) ? 'available'
+          : (canUnlockNode(raceId, node.id, u, char?.nivel || 1) && node.cost <= av) ? 'available'
             : 'locked'
 
         entry.targetScale = (node.id === hoveredId) ? 1.4 : 1.0

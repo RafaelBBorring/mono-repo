@@ -153,7 +153,7 @@ export default function Step5Progression({ char, update, updateNested }) {
           <TotalBadge label="Energia Fixo" value={totals.energia} color="text-sky-400" />
           <TotalBadge label="PE Fixo" value={totals.pe} color="text-amber-400" />
           <TotalBadge label="Pontos Esqueleto" value={totals.esqueleto} color="text-cyan-400" />
-          <TotalBadge label="Módulos" value={totals.modulo} color="text-orange-400" />
+          <TotalBadge label="Soft-Skills" value={totals.modulo} color="text-orange-400" />
           <TotalBadge label="Perícias Treinadas" value={totals.pericias} color="text-violet-400" />
         </div>
       </div>

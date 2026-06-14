@@ -61,18 +61,21 @@ TIPOS DE EFEITO E PARAMETROS:
 ${JSON.stringify(Object.entries(effectParamDefs || {}).map(([type, def]) => ({ type, label: def.label, params: Object.entries(def.params).map(([k, p]) => ({ key: k, label: p.label, type: p.type, default: p.default })) })), null, 2)}
 
   ${directionNote}
-INSTRUCOES CRITICAS:
-- PARADIGMA PEH: Habilidades comecam BASE. O nivel do personagem NAO escala dano. PEH e o UNICO motor de escala.
-- Para cada habilidade, verifique o campo "instrucaoIA" no contexto de evolucao — ele indica QUANTOS PEH foram investidos e qual o TDH efetivo.
-- Se evolucaoNivel = 0: use valores BASE (Fraca: 2d6+4, Media: 3d8+8, Forte: 4d10+12, Ult: 5d12+16).
-- Se evolucaoNivel > 0: escale proporcionalmente. Cada PEH = +1 dado + flat + custo energia. Respeite o teto TDH.
-- O dano da habilidade e EXTRA ao dano base+arma+atributo.
-- CUSTO DE ENERGIA OBRIGATORIO para Ativa e Ultimate. Nunca retorne custoEnergia: 0.
-- VERIFICACAO CUMULATIVA OBRIGATORIA (LCP + ANTI-ABUSO).
-- Economia de Acoes: habilidade + conhecimento NAO na mesma acao. Max 2 ataques/turno. Max 3 acoes totais/turno.
-- EVOLUCAO RESPETA CONCEITO: cura evolui cura, dano evolui dano, buff evolui buff. NUNCA adicione efeito contraditorio.
-- TAGS OBRIGATORIAS: retorne tags e valores para cada efeito numerico. Use bonusCA para Classe de Armadura/CA. Use curaEnergia para regeneracao/restauracao de energia/PE por rodada; nao classifique isso como cura de vida. Nao existe tag lentidao: velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real. Nao use duracao para habilidades instantaneas.
-- PEH POR TAG: escale somente as tags existentes. Se nao ha tag dano, nao adicione dano; se nao ha tag duracao, nao adicione rodadas.
+  INSTRUCOES CRITICAS:
+  - PARADIGMA PEH: Habilidades comecam BASE. O nivel do personagem NAO escala dano. PEH e o UNICO motor de escala.
+  - ESCALA DIMINUINTA: Cada PEH concede MENOS incremento que o anterior. PEH 1->2 da mais que PEH 7->8.
+  - TETO DE ENERGIA: NUNCA faca uma habilidade custar mais de 45% da energia total (${stats.energiaTotal}E). Calcule: custo / ${stats.energiaTotal} = percentual.
+  - CUSTO = PODER: Se a habilidade custa muito, ela DEVE ser poderosa. Se custa pouco, nao pode ser devastadora. A proporcao e sagrada.
+  - Para cada habilidade, verifique o campo "instrucaoIA" no contexto de evolucao — ele indica QUANTOS PEH foram investidos e qual o TDH efetivo.
+  - Se evolucaoNivel = 0: use valores BASE (Fraca: 2d6+4, Media: 3d8+8, Forte: 4d10+12, Ult: 5d12+16).
+  - Se evolucaoNivel > 0: escale com retornos diminutos. Use PEH^0.7 para dano e PEH^0.65 para energia. Respeite o teto TDH.
+  - O dano da habilidade e EXTRA ao dano base+arma+atributo.
+  - CUSTO DE ENERGIA OBRIGATORIO para Ativa e Ultimate. Nunca retorne custoEnergia: 0.
+  - VERIFICACAO CUMULATIVA OBRIGATORIA (LCP + ANTI-ABUSO).
+  - Economia de Acoes: habilidade + conhecimento NAO na mesma acao. Max 2 ataques/turno. Max 3 acoes totais/turno.
+  - EVOLUCAO RESPETA CONCEITO: cura evolui cura, dano evolui dano, buff evolui buff. NUNCA adicione efeito contraditorio.
+  - TAGS OBRIGATORIAS: retorne tags e valores para cada efeito numerico. Use bonusCA para Classe de Armadura/CA. Use curaEnergia para regeneracao/restauracao de energia/PE por rodada; nao classifique isso como cura de vida. Nao existe tag lentidao: velocidade reduzida deve virar bonusResultado negativo, bonusReacoes negativo ou outra mecanica real. Nao use duracao para habilidades instantaneas.
+  - PEH POR TAG: escale somente as tags existentes. Se nao ha tag dano, nao adicione dano; se nao ha tag duracao, nao adicione rodadas.
 
 Responda EXCLUSIVAMENTE com JSON:
 {

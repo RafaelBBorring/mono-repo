@@ -119,35 +119,65 @@ EXEMPLO: Alvo Guerreiro N5 (HP medio ~160), Ativa Media PEH=0:
 - 31.5 / 160 = 19.7% — ACIMA do range 8-12%. Ajustar para ~2d10+FOR+8 → media = 11+3+8 = 22 → 13.8%.
 - Ainda alto. Ajustar flat: 2d10+FOR+5 → 19 → 11.9%. APROVADO.
 
-COM PEH INVESTIDO, os percentuais SOBEM proporcionalmente:
-- 1 PEH: multiplicar percentual base por ~1.3-1.5
-- 3 PEH: multiplicar percentual base por ~2.0-2.5
-- 5 PEH: multiplicar percentual base por ~2.5-3.5 (maximo absoluto)
+  COM PEH INVESTIDO, os percentuais SOBEM com retornos diminutos:
+  - 1 PEH: multiplicar percentual base por ~1.25
+  - 2 PEH: multiplicar percentual base por ~1.5
+  - 3 PEH: multiplicar percentual base por ~1.7
+  - 4 PEH: multiplicar percentual base por ~1.85
+  - 5 PEH: multiplicar percentual base por ~2.0 (maximo absoluto)
+  - 6-8 PEH: multiplicar percentual base por ~2.1-2.3 (apenas niveis 38+)
+  - O CRESCIMENTO DIMINUI a cada PEH — PEH 1 para PEH 2 da +25%, mas PEH 7 para PEH 8 da apenas +5%.
 
 ═════════════════════════════════════════════════════
-PARADIGMA PEH — PONTOS DE EVOLUCAO COMO MOTOR DE ESCALA:
-═════════════════════════════════════════════════════
-Habilidades comecam no NIVEL BASE (PEH=0). O UNICO motor de escala sao os PEH investidos.
-O nivel do personagem NAO escala dano de habilidade — apenas determina QUANTOS PEH estao disponiveis.
+  PARADIGMA PEH — PONTOS DE EVOLUCAO COM MOTOR DE ESCALA DIMINUINTA:
+  ═════════════════════════════════════════════════════
+  Habilidades comecam no NIVEL BASE (PEH=0). O UNICO motor de escala sao os PEH investidos.
+  O nivel do personagem NAO escala dano de habilidade — apenas determina QUANTOS PEH estao disponiveis.
 
-VALORES BASE (PEH = 0):
-Ativa Fraca:    2d8+FOR+6    | Custo: 8-15E
-Ativa Media:    3d10+FOR+12  | Custo: 15-25E
-Ativa Forte:    4d12+FOR+20  | Custo: 25-40E
-Ultimate:       5d12+FOR+30  | Custo: 40-60E
-Passiva:        Efeito passivo sem custo
+  PRINCIPIO FUNDAMENTAL — CUSTO vs PODER:
+  O custo de energia de uma habilidade DEVE ser proporcional ao seu impacto no combate.
+  - Se uma habilidade custa 15-25% da energia total: deve ser uma habilidade tatica util.
+  - Se custa 25-35%: deve ser poderosa o suficiente para virar um combate.
+  - Se custa 35-45%: deve ser DEVASTADORA — capaz de eliminar ameacas ou mudar o rumo da batalha.
+  - NUNCA exceda 45% da energia total do personagem. Este e o TETO ABSOLUTO.
+  - Se o custo calculado ultrapassar 45%, reduza o custo E aumente o poder para justificar o gasto.
+  - Uma habilidade cara FRACA e um ERRO DE BALANCEAMENTO. Custo alto = poder alto, sempre.
 
-INCREMENTO POR PEH INVESTIDO:
-Fraca por PEH:   +2d8  +8 flat   +5-8E custo
-Media por PEH:   +2d10 +12 flat  +8-12E custo
-Forte por PEH:   +3d12 +18 flat  +12-20E custo
-Ultimate por PEH:+4d12 +25 flat  +20-35E custo
+  VALORES BASE (PEH = 0):
+  Ativa Fraca:    2d6+FOR+4     | Custo: 8-12E
+  Ativa Media:    3d8+FOR+8     | Custo: 12-20E
+  Ativa Forte:    4d10+FOR+12   | Custo: 20-30E
+  Ultimate:       5d12+FOR+16   | Custo: 30-45E
+  Passiva:        Efeito passivo sem custo
 
-TETO MAXIMO (5 PEH investidos):
-Ativa Fraca (5 PEH):  2d8+(5x2d8)+FOR+6+(5x8) = 12d8+FOR+46   | Custo: 33-55E
-Ativa Media (5 PEH):  3d10+(5x2d10)+FOR+12+(5x12) = 13d10+FOR+72  | Custo: 55-85E
-Ativa Forte (5 PEH):  4d12+(5x3d12)+FOR+20+(5x18) = 19d12+FOR+110 | Custo: 85-140E
-Ultimate (5 PEH):     5d12+(5x4d12)+FOR+30+(5x25) = 25d12+FOR+155 | Custo: 140-235E
+  ESCALA POR PEH (RETORNOS DIMINUINTOS):
+  Cada PEH adicional concede MENOS incremento que o anterior. Isso evita explosao de valores.
+  A formula de energia: custoBase + (deltaEnergia * PEH^0.65)
+  A formula de dano: dadoBase + (deltaDado * PEH^0.7)
+
+  INCREMENTO MEDIO POR PEH (nao linear — valores reais sao menores nos PEH altos):
+  Fraca por PEH:   +1d6  +5 flat   +4-6E custo
+  Media por PEH:   +1d8  +8 flat   +6-8E custo
+  Forte por PEH:   +1d10 +10 flat  +8-10E custo
+  Ultimate por PEH:+1d12 +12 flat  +10-14E custo
+
+  TETO MAXIMO (5 PEH investidos):
+  Ativa Fraca (5 PEH):  ~7d6+FOR+29   | Custo: ~35-45E
+  Ativa Media (5 PEH):  ~8d8+FOR+48   | Custo: ~50-65E
+  Ativa Forte (5 PEH):  ~11d10+FOR+72 | Custo: ~70-85E
+  Ultimate (5 PEH):     ~12d12+FOR+76 | Custo: ~85-110E
+
+  TETO MAXIMO (8 PEH — apenas niveis 45+):
+  Ativa Forte (8 PEH):  ~14d10+FOR+82 | Custo maximo: ~100-115E
+  Ultimate (8 PEH):     ~15d12+FOR+87 | Custo maximo: ~120-140E
+
+  VERIFICACAO OBRIGATORIA — RAZAO CUSTO/BENEFICIO:
+  Antes de finalizar qualquer habilidade, verifique:
+  1. CustoEnergia / EnergiaTotalDoPersonagem = percentual. Deve ser <= 45%.
+  2. DanoMedio / HPMedioDoAlvo = percentual. Deve estar na faixa da categoria (ver tabela abaixo).
+  3. Se o custo percentual e alto (>30%) mas o dano percentual e baixo (<10%), AUMENTE o dano.
+  4. Se o custo percentual e baixo (<15%) mas o dano percentual e alto (>25%), REDUZA o dano ou AUMENTE o custo.
+  5. O PODER deve SEMPRE justificar o CUSTO. Nunca entregue uma habilidade fraca com custo alto.
 
 ═════════════════════════════════════════════════════
 DT — TESTE DE DIFICULDADE (REGRAS CRITICAS DO SISTEMA):
@@ -191,11 +221,13 @@ CURA, BUFF, ESCUDO:
 CURA: mesma escala que dano do bracket equivalente.
 BUFF/ESCUDO: +2 valor por PEH ou +1 rodada de duracao por PEH.
 
-ENERGIA CUSTO ESCALA COM PEH:
-- Custo base + (custo por PEH x evolucaoNivel) = custo final.
-- Uma habilidade com 5 PEH pode custar 30-50% da energia total — uso tatico.
-- CONCENTRAR PEH = habilidade devastadora porem cara.
-- DISTRIBUIR PEH = varias habilidades uteis com custo gerenciavel.
+  ENERGIA CUSTO ESCALA COM PEH (RETORNOS DIMINUINTOS):
+  - Custo = custoBase + (deltaEnergia * PEH^0.65). O crescimento DIMINUI a cada PEH.
+  - NUNCA exceda 45% da energia total do personagem. Use os dados REAIS da ficha.
+  - Uma habilidade com 5+ PEH pode custar 30-40% da energia — uso tatico decisivo.
+  - Se o custo calculado ultrapassar 45%: REDUZA o custo e AUMENTE o poder para compensar.
+  - CONCENTRAR PEH = habilidade devastadora porem cara — o poder DEVE corresponder ao custo.
+  - DISTRIBUIR PEH = varias habilidades uteis com custo gerenciavel.
 
 ═════════════════════════════════════════════════════
 PRINCIPIO FUNDAMENTAL — INTEGRIDADE DO CONCEITO vs RIGOR NUMERICO:

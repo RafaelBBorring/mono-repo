@@ -26,44 +26,46 @@ export function getMaxEvolucao(tipo, charNivel = 30) {
 }
 
 const DELTAS = {
-  FRACA:    { dadoExtra: '2d8',  flat: 8,  energia: 16 },
-  MEDIA:    { dadoExtra: '2d10', flat: 12, energia: 28 },
-  FORTE:    { dadoExtra: '3d12', flat: 18, energia: 42 },
-  ULTIMATE: { dadoExtra: '4d12', flat: 25, energia: 60 },
+  FRACA:    { dadoExtra: '1d8',  flat: 5,  energia: 6 },
+  MEDIA:    { dadoExtra: '1d10', flat: 8,  energia: 10 },
+  FORTE:    { dadoExtra: '2d10', flat: 12, energia: 14 },
+  ULTIMATE: { dadoExtra: '2d12', flat: 16, energia: 20 },
   PASSIVA:  { dadoExtra: '',     flat: 0,  energia: 0 },
 }
 
 const HEAL_DELTAS = {
-  FRACA: 18,
-  MEDIA: 28,
-  FORTE: 42,
-  ULTIMATE: 60,
+  FRACA: 10,
+  MEDIA: 16,
+  FORTE: 24,
+  ULTIMATE: 32,
   PASSIVA: 0,
 }
 
 const ENERGY_RECOVERY_DELTAS = {
-  FRACA: 10,
-  MEDIA: 16,
-  FORTE: 24,
-  ULTIMATE: 35,
+  FRACA: 6,
+  MEDIA: 10,
+  FORTE: 14,
+  ULTIMATE: 20,
   PASSIVA: 0,
 }
 
 const DURATION_ROUND_ENERGY = {
-  FRACA: 4,
-  MEDIA: 7,
-  FORTE: 10,
-  ULTIMATE: 16,
+  FRACA: 2,
+  MEDIA: 4,
+  FORTE: 5,
+  ULTIMATE: 8,
   PASSIVA: 0,
 }
 
 const COMPLEXITY_ENERGY_SURCHARGE = {
-  FRACA: 1,
-  MEDIA: 2,
-  FORTE: 3,
-  ULTIMATE: 5,
+  FRACA: 0.5,
+  MEDIA: 1,
+  FORTE: 1.5,
+  ULTIMATE: 2,
   PASSIVA: 0,
 }
+
+const ENERGY_DIMINISHING_EXPONENT = 0.65
 
 const EVOLUTION_LEVEL_COST = {
   DEFAULT: [0, 1, 1, 2, 2, 3, 4, 5, 6],
@@ -537,7 +539,8 @@ function buildDiceExtra(dadoExtra, evolNivel, multiplier) {
   if (!dadoExtra) return ''
   const match = dadoExtra.match(/^(\d+)(d\d+)$/)
   if (!match) return ''
-  const qtd = scaleNumber(parseInt(match[1]) * evolNivel, multiplier)
+  const scaledEvol = Math.pow(evolNivel, 0.7)
+  const qtd = scaleNumber(parseInt(match[1]) * scaledEvol, multiplier)
   return qtd > 0 ? `+${qtd}${match[2]}` : ''
 }
 
@@ -580,15 +583,15 @@ export function calcEvolucaoDelta(skill, evolNivel) {
 
   const duracaoExtra = 0
   const durationEnergyPressure = calcDurationEnergyPressure(skill, bracket, evolNivel, tags.includes('duracao'))
-  const flatExtra    = tags.includes('dano') ? scaleNumber(delta.flat * evolNivel, damageMultiplier) : 0
+  const flatExtra    = tags.includes('dano') ? scaleNumber(delta.flat * Math.pow(evolNivel, 0.7), damageMultiplier) : 0
   const energiaExtra = tags.includes('custoEnergia')
-    ? (delta.energia * evolNivel)
+    ? Math.round(delta.energia * Math.pow(evolNivel, ENERGY_DIMINISHING_EXPONENT))
       + durationEnergyPressure
-      + (Math.max(0, powerCount - 2) * evolNivel * (COMPLEXITY_ENERGY_SURCHARGE[bracket] || 0))
+      + Math.round(Math.max(0, powerCount - 2) * Math.pow(evolNivel, 0.5) * (COMPLEXITY_ENERGY_SURCHARGE[bracket] || 0))
     : 0
   const dtExtra      = tags.includes('dt') ? sumProgression(DT_BONUS, evolNivel) : 0
-  const curaExtra    = tags.includes('cura') ? scaleNumber((HEAL_DELTAS[bracket] || 0) * evolNivel, supportMultiplier) : 0
-  const curaEnergiaExtra = tags.includes('curaEnergia') ? scaleNumber((ENERGY_RECOVERY_DELTAS[bracket] || 0) * evolNivel, supportMultiplier) : 0
+  const curaExtra    = tags.includes('cura') ? scaleNumber((HEAL_DELTAS[bracket] || 0) * Math.pow(evolNivel, 0.7), supportMultiplier) : 0
+  const curaEnergiaExtra = tags.includes('curaEnergia') ? scaleNumber((ENERGY_RECOVERY_DELTAS[bracket] || 0) * Math.pow(evolNivel, 0.7), supportMultiplier) : 0
   const caExtra      = tags.includes('bonusCA') ? Math.ceil(evolNivel / 2) : 0
   const ataqueExtra  = tags.includes('bonusAtaque') ? Math.ceil(evolNivel / 2) : 0
   const resultadoBase = getSkillTagValue(skill, 'bonusResultado')
@@ -735,7 +738,7 @@ export function buildEvolucaoContext(habilidades, charNivel) {
 
     const instrucaoIA = evoNivel === 0
       ? `PEH investido: 0. Use valores BASE (${bracket}). NAO escale por nivel do personagem. Tags reconhecidas: ${tags.join(', ') || 'nenhuma'}.`
-      : `Nivel de evolucao: ${evoNivel}/${maxEvo}. Custo acumulado: ${pehCost} PEH. Escale SOMENTE as tags reconhecidas nesta habilidade: ${tags.join(', ') || 'nenhuma'}. Incrementos sugeridos: ${bonusText}. TDH efetivo: ${tdhEfetivo}. PEH NAO aumenta duracao; duracao longa pesa no custo de energia. Se a tag dano estiver ausente, NAO adicione dano novo. Custo de energia aumenta apenas em Ativas/Ultimates.`
+      : `Nivel de evolucao: ${evoNivel}/${maxEvo}. Custo acumulado: ${pehCost} PEH. Escale com RETORNOS DIMINUINTOS (PEH^0.7 para dano, PEH^0.65 para energia). Escale SOMENTE as tags reconhecidas: ${tags.join(', ') || 'nenhuma'}. Incrementos sugeridos: ${bonusText}. TDH efetivo: ${tdhEfetivo}. CUSTO DE ENERGIA NUNCA deve exceder 45% da energia total do personagem. PEH NAO aumenta duracao; duracao longa pesa no custo de energia. Se a tag dano estiver ausente, NAO adicione dano novo. Custo de energia aumenta apenas em Ativas/Ultimates.`
     return {
       index: i,
       nome: h.nome || `Habilidade ${i + 1}`,

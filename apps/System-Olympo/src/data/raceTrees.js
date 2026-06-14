@@ -45,8 +45,8 @@ VAMPIRO: {
     { id: 'vamp_sangue_4_evo', name: 'Regeneração Dobrada Aprimorado', desc: 'Aumenta Regeneração Dobrada em +12 vida.', branch: 'sangue', cost: 1, tier: 3, requires: ['vamp_sangue_4'], upgradeOf: 'vamp_sangue_4', effects: [{ type: 'evolution', target: 'vamp_sangue_4', stat: 'vida', value: 12 }], x: 0.05, y: 0.45 },
     { id: 'vamp_sangue_5_evo', name: 'Constituição Sombria Aprimorado', desc: 'Aumenta Constituição Sombria em +12 vida.', branch: 'sangue', cost: 1, tier: 3, requires: ['vamp_sangue_5'], upgradeOf: 'vamp_sangue_5', effects: [{ type: 'evolution', target: 'vamp_sangue_5', stat: 'vida', value: 12 }], x: 0.1, y: 0.45 },
     { id: 'vamp_necro_4_evo', name: 'Sangue Corrompido Ampliado', desc: 'Aumenta Sangue Corrompido em +8 energia.', branch: 'necromancia', cost: 1, tier: 3, requires: ['vamp_necro_4'], upgradeOf: 'vamp_necro_4', effects: [{ type: 'evolution', target: 'vamp_necro_4', stat: 'energia', value: 8 }], x: 0.55, y: 0.45 },
-    { id: 'vamp_sangue_regen', name: 'Regeneração Vampírica', desc: 'Regeneração passiva de 5 HP por rodada em combate.', branch: 'sangue', cost: 1, tier: 2, requires: ['vamp_sangue_2'], effects: [{ type: 'regen', value: 5 }], x: 0.25, y: 0.65 },
-    { id: 'vamp_sangue_regen_evo', name: 'Regeneração Acelerada', desc: 'Aumenta Regeneração Vampírica em +7 HP por rodada.', branch: 'sangue', cost: 1, tier: 3, requires: ['vamp_sangue_regen'], upgradeOf: 'vamp_sangue_regen', effects: [{ type: 'evolution', target: 'vamp_sangue_regen', stat: 'regen', value: 7 }], x: 0.25, y: 0.45 }
+    { id: 'vamp_sangue_regen', name: 'Regeneração Aprimorada', desc: 'MELHORA sua regeneração inata: +5 HP/rodada em combate. Acumulativo com a regeneração racial base.', branch: 'sangue', cost: 1, tier: 2, requires: ['vamp_sangue_2'], effects: [{ type: 'regen', value: 5 }], x: 0.25, y: 0.65 },
+    { id: 'vamp_sangue_regen_evo', name: 'Regeneração Acelerada', desc: 'Aumenta o bônus de regeneração em +7 HP/rodada.', branch: 'sangue', cost: 1, tier: 3, requires: ['vamp_sangue_regen'], upgradeOf: 'vamp_sangue_regen', effects: [{ type: 'evolution', target: 'vamp_sangue_regen', stat: 'regen', value: 7 }], x: 0.25, y: 0.45 }
   ],
   connections: [
     ['vamp_sombra_1', 'vamp_sombra_3'],
@@ -1134,13 +1134,17 @@ export function getPrerequisites(raceId, nodeId) {
   return node.requires
 }
 
-export function canUnlockNode(raceId, nodeId, unlockedNodeIds) {
+export function canUnlockNode(raceId, nodeId, unlockedNodeIds, charNivel = 50) {
   const tree = RACE_TREES[raceId]
   if (!tree) return false
   const node = tree.nodes.find(n => n.id === nodeId)
   if (!node) return false
   if (unlockedNodeIds.includes(nodeId)) return false
-  return node.requires.every(reqId => unlockedNodeIds.includes(reqId))
+  if (!node.requires.every(reqId => unlockedNodeIds.includes(reqId))) return false
+  if (node.minLevel && charNivel < node.minLevel) return false
+  const hasActiveAbility = (node.effects || []).some(e => e.type === 'habilidade')
+  if (hasActiveAbility && charNivel < 30) return false
+  return true
 }
 
 export function getTotalParCost(unlockedNodeIds, raceId) {

@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE, MODULE_PRESETS } from '../../data/modules'
+import { ALL_MODULES, MODULES_PASSIVE, MODULES_ACTIVE, MODULE_PRESETS } from '../../data/modules'
 import { calcModulesAvailable } from '../../utils/calculator'
 import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
 
 const ALL_MODULE_MAP = Object.fromEntries(
-  [...MODULES_PASSIVE, ...MODULES_SPECIAL, ...MODULES_ACTIVE].map(m => [m.id, m])
+  [...MODULES_PASSIVE, ...MODULES_ACTIVE].map(m => [m.id, m])
 )
 
 export default function Step7Modules({ char, update, updateNested }) {
@@ -26,7 +26,6 @@ export default function Step7Modules({ char, update, updateNested }) {
   function getModuleList() {
     switch (activeTab) {
       case 'passivos': return MODULES_PASSIVE
-      case 'especiais': return MODULES_SPECIAL
       case 'ativos': return MODULES_ACTIVE
       default: return MODULES_PASSIVE
     }
@@ -117,22 +116,21 @@ export default function Step7Modules({ char, update, updateNested }) {
   }
 
   const tabs = [
-    { key: 'passivos', label: 'Passivos' },
-    { key: 'especiais', label: 'Especiais' },
-    { key: 'ativos', label: 'Ativos' },
+    { key: 'passivos', label: 'Passivas' },
+    { key: 'ativos', label: 'Ativas' },
   ]
 
-  const typeMap = { passivos: 'passivo', especiais: 'especial', ativos: 'ativo' }
+  const typeMap = { passivos: 'passivo', ativos: 'ativo' }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="section-header text-primary mb-0 flex-1">
           <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}>extension</span>
-          Módulos de Evolução
+          Soft-Skills
         </div>
         <div className="text-sm text-on-surface-variant">
-          Módulos: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-on-surface-variant' : 'text-err'}`}>{remaining}</span>/{totalAvailable} disponíveis
+          Soft-Skills: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-on-surface-variant' : 'text-err'}`}>{remaining}</span>/{totalAvailable} disponíveis
         </div>
       </div>
 
@@ -254,7 +252,7 @@ export default function Step7Modules({ char, update, updateNested }) {
 
       {modulosAdquiridos.length > 0 && (
         <div className="codex-card p-5">
-          <h3 className="font-cinzel text-primary text-lg mb-3 tracking-wider">Módulos Adquiridos</h3>
+          <h3 className="font-cinzel text-primary text-lg mb-3 tracking-wider">Soft-Skills Adquiridas</h3>
           <div className="flex flex-wrap gap-2">
             {modulosAdquiridos.map((mod, idx) => (
               <div

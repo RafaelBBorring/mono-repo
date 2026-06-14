@@ -4,7 +4,7 @@ export const TRIAGES = {
       name: 'Tático',
       desc: 'Mestres estrategistas que manipulam o campo de batalha através de marcações e comandos táticos.',
       levels: {
-        0.1: 'Gasta 1 PE para rolar novamente um teste falho seu ou de aliado. Usos por rodada: 1 + N÷10 (arredondado para baixo).',
+        0.1: 'Gasta (3 + N÷5) PE para rolar novamente um teste falho seu ou de aliado. Usos por combate: 2 + N÷15 (arredondado para baixo).',
         0.2: '03 PE — Marca Alvo; ataques aliados ganham +10 + N÷2 de Dano contra ele por 04 Rodadas. 1× marca ativa por vez.',
         0.3: 'Marca 02 Inimigos simultaneamente; se ambos caírem em 03 Rodadas, aliados recuperam 05 + N÷5 PE (1× por combate).',
         0.4: 'Com 06 PE, escolhe 01 Aliado para atacar junto; ambos recebem +3 + N÷5 no Resultado. 1×/rodada.',

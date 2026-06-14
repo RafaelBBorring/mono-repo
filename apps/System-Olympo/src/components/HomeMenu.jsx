@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
 const LEVEL_TIERS = [
-  { min: 1, max: 8, label: 'Novato', color: '#60a5fa', glow: 'rgba(96,165,250,0.35)', border: 'border-sky-400/50', bg: 'bg-sky-400/10', text: 'text-sky-400', bar: 'bg-sky-400' },
-  { min: 9, max: 16, label: 'Veterano', color: '#f7bd48', glow: 'rgba(247,189,72,0.35)', border: 'border-primary/50', bg: 'bg-primary/10', text: 'text-primary', bar: 'bg-primary' },
-  { min: 17, max: 24, label: 'Elite', color: '#c084fc', glow: 'rgba(192,132,252,0.35)', border: 'border-purple-400/50', bg: 'bg-purple-400/10', text: 'text-purple-400', bar: 'bg-purple-400' },
-  { min: 25, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.4)', border: 'border-rose-400/50', bg: 'bg-rose-400/10', text: 'text-rose-400', bar: 'bg-rose-400' },
+  { min: 1, max: 7, label: 'Novato', color: '#60a5fa', glow: 'rgba(96,165,250,0.35)', border: 'border-sky-400/50', bg: 'bg-sky-400/10', text: 'text-sky-400', bar: 'bg-sky-400' },
+  { min: 8, max: 13, label: 'Veterano', color: '#f7bd48', glow: 'rgba(247,189,72,0.35)', border: 'border-primary/50', bg: 'bg-primary/10', text: 'text-primary', bar: 'bg-primary' },
+  { min: 14, max: 22, label: 'Elite', color: '#c084fc', glow: 'rgba(192,132,252,0.35)', border: 'border-purple-400/50', bg: 'bg-purple-400/10', text: 'text-purple-400', bar: 'bg-purple-400' },
+  { min: 23, max: 30, label: 'Lendário', color: '#f87171', glow: 'rgba(248,113,113,0.4)', border: 'border-rose-400/50', bg: 'bg-rose-400/10', text: 'text-rose-400', bar: 'bg-rose-400' },
+  { min: 31, max: 38, label: 'Mítico', color: '#34d399', glow: 'rgba(52,211,153,0.4)', border: 'border-emerald-400/50', bg: 'bg-emerald-400/10', text: 'text-emerald-400', bar: 'bg-emerald-400' },
+  { min: 39, max: 44, label: 'Ascendente', color: '#fb923c', glow: 'rgba(251,146,60,0.4)', border: 'border-orange-400/50', bg: 'bg-orange-400/10', text: 'text-orange-400', bar: 'bg-orange-400' },
+  { min: 45, max: 50, label: 'Transcendente', color: '#f472b6', glow: 'rgba(244,114,182,0.45)', border: 'border-pink-400/50', bg: 'bg-pink-400/10', text: 'text-pink-400', bar: 'bg-pink-400' },
 ]
 
 function getInitial(name) {
@@ -31,7 +34,7 @@ function CharacterCard({ sheet, onOpenSheet, index = 0 }) {
       style={{
         transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease',
         animation: `staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) ${index * 80}ms both`,
-        borderColor: hovering ? 'rgba(247,189,72,0.4)' : undefined,
+        borderColor: hovering ? tier.color : `${tier.color}30`,
       }}
     >
       <div
@@ -42,10 +45,10 @@ function CharacterCard({ sheet, onOpenSheet, index = 0 }) {
         {sheet.data?.avatar ? (
           <img src={sheet.data.avatar} alt=""
             className="w-full h-full object-cover rounded-xl border-2 transition-all duration-400"
-            style={{ borderColor: hovering ? tier.color : 'rgba(247,189,72,0.2)', boxShadow: hovering ? `0 0 24px ${tier.glow}` : 'none' }} />
+            style={{ borderColor: hovering ? tier.color : `${tier.color}30`, boxShadow: hovering ? `0 0 24px ${tier.glow}` : 'none' }} />
         ) : (
           <div className="w-full h-full rounded-xl border-2 bg-surface-container flex items-center justify-center text-2xl font-cinzel transition-all duration-400"
-            style={{ borderColor: hovering ? tier.color : 'rgba(247,189,72,0.2)', color: tier.color, boxShadow: hovering ? `0 0 24px ${tier.glow}` : 'none' }}>
+            style={{ borderColor: hovering ? tier.color : `${tier.color}30`, color: tier.color, boxShadow: hovering ? `0 0 24px ${tier.glow}` : 'none' }}>
             {getInitial(sheet.name || sheet.data?.nome)}
           </div>
         )}
@@ -305,10 +308,14 @@ export default function HomeMenu({
         <HomeThreeStage />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background z-10 pointer-events-none" />
         <div className="relative z-20 text-center max-w-4xl px-6">
-          <h1 className="font-cinzel text-primary text-glow-gold mb-4 tracking-[0.2em]"
-              style={{ fontSize: 'clamp(2.5rem, 8vw, 4.5rem)', lineHeight: 1.1 }}>
+          <h1 className="font-cinzel hero-title-shimmer text-glow-gold mb-4 tracking-[0.2em]"
+              style={{ fontSize: 'clamp(2.75rem, 8.5vw, 5.25rem)', lineHeight: 1.1, textShadow: '0 4px 24px rgba(247, 189, 72, 0.3), 0 0 12px rgba(247, 189, 72, 0.35)' }}>
             HERDEIROS DO AMANHÃ
           </h1>
+          <div className="inline-flex items-center gap-2 mb-8 px-4 py-1.5 rounded-full border border-primary/25 bg-primary/5 backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'glowPulse 2.5s ease-in-out infinite' }} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/80">Versão 3.0</span>
+          </div>
           <p className="text-on-surface-variant font-body mb-10 max-w-2xl mx-auto italic"
              style={{ fontSize: 'clamp(1rem, 2vw, 1.15rem)', lineHeight: 1.7 }}>
             "O destino não é escrito nas estrelas, mas sim nos arquivos que os deuses esqueceram."

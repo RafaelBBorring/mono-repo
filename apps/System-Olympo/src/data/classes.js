@@ -21,7 +21,7 @@ export const CLASSES = {
     energiaBase: (am) => 35 + (am * 2),
     energiaPorNivel: (modAm) => 4 + modAm,
     peBase: 12,
-    pePorNivel: 2,
+    pePorNivel: 3,
     danoBase: '2d8',
     danoBaseMod: 'FOR',
     periciasIniciais: 5,
