@@ -9,6 +9,7 @@ import {
   getFolderAssignments,
   assignToFolder,
   removeFromFolder,
+  migrateCodexIfNeeded,
 } from '../../services/codexDb'
 
 const PROFILE_COLORS = {
@@ -128,6 +129,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
+      await migrateCodexIfNeeded()
       const [npcData, folderData, assignData] = await Promise.all([
         getAllNpcs(),
         getAllFolders(),

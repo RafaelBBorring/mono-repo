@@ -4,6 +4,9 @@ const STORE_NAME = 'npcs'
 const FOLDERS_STORE = 'folders'
 const ASSIGNMENTS_STORE = 'assignments'
 
+const SEED_VERSION_KEY = 'codex-seed-version'
+const CURRENT_SEED_VERSION = '2026-06-13-rebalance-v1'
+
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
@@ -237,6 +240,34 @@ export async function importNpcs(npcs, folders = [], assignments = {}) {
     transaction.oncomplete = () => resolve(count)
     transaction.onerror = () => reject(transaction.error)
   })
+}
+
+export async function migrateCodexIfNeeded() {
+  const stored = localStorage.getItem(SEED_VERSION_KEY)
+  if (stored === CURRENT_SEED_VERSION) return { migrated: false, count: 0 }
+  const { rebalanceNpc } = await import('../utils/codexMigrator')
+  const npcs = await getAllNpcs()
+  if (!npcs.length) { localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION); return { migrated: false, count: 0 } }
+  let count = 0
+  const updated = npcs.map(npc => {
+    if (npc._rebalanced) return npc
+    const rebalanced = rebalanceNpc(npc)
+    if (rebalanced !== npc) count++
+    return rebalanced
+  })
+  if (count > 0) {
+    await new Promise((resolve, reject) => {
+      openDB().then(db => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite')
+        const store = transaction.objectStore(STORE_NAME)
+        updated.forEach(npc => store.put({ ...npc, updated_at: new Date().toISOString() }))
+        transaction.oncomplete = () => resolve()
+        transaction.onerror = () => reject(transaction.error)
+      })
+    })
+  }
+  localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION)
+  return { migrated: count > 0, count }
 }
 
 export async function exportAllNpcs() {
