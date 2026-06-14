@@ -1,5 +1,6 @@
 import { getRaceTree } from '../data/raceTrees'
 import { RACES } from '../data/races'
+import { getEvolutionAbility } from '../data/evolutionAbilities'
 
 const EFFECT_ICONS = {
   vida: 'favorite',
@@ -112,23 +113,28 @@ export function adaptRaceTree(raceId) {
     const tier = node.tier
     const hasNoReqs = !node.requires || node.requires.length === 0
     const isEvo = !!node.upgradeOf
+    const evoAbility = isEvo ? getEvolutionAbility(node.id) : null
 
     skillTree[node.id] = {
       id: node.id,
-      name: node.name,
-      description: node.desc,
+      name: evoAbility ? evoAbility.nome : node.name,
+      description: evoAbility ? evoAbility.descricao : node.desc,
       maxRank: 1,
       cost: node.cost || 1,
       dependsOn: node.requires || [],
       requireMode: 'all',
       branch: node.branch,
       tier,
-      icon: getIconForNode(node, branch),
+      icon: evoAbility ? 'auto_awesome' : getIconForNode(node, branch),
       position: pos,
-      stats: effectsToStats(node.effects || []),
+      stats: evoAbility
+        ? [{ label: 'Custo', value: evoAbility.custo }, ...effectsToStats(node.effects || [])]
+        : effectsToStats(node.effects || []),
       isKeystone: tier === 1 && hasNoReqs && !isEvo,
       isUltimate: tier === 4 && !isEvo,
       isEvolution: isEvo,
+      isHabilidade: !!evoAbility,
+      habilidadeInfo: evoAbility || null,
     }
   })
 

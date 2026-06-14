@@ -5,6 +5,8 @@ import { PERICIAS, GRAU_NAMES } from '../data/pericias'
 import { RACES } from '../data/races'
 import { TRIAGES } from '../data/triages'
 import { getRaceAdjustedAttrs, getRaceLabel } from '../utils/raceCalculator'
+import { getRaceTree } from '../data/raceTrees'
+import { calcPARTotal, calcRaceTreePARSpent } from '../utils/calculator'
 
 function uid(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -146,7 +148,6 @@ function SectionBody({ type, char, grimoirePages, expanded }) {
   if (type === 'race') {
     const passivas = race?.passivasRaciais || []
     const vantagens = race?.vantagens || []
-    const marcos = race?.marcosExperiencia || []
     return (
       <>
         <div className="board-sec-accent bg-emerald-400/30" />
@@ -181,18 +182,46 @@ function SectionBody({ type, char, grimoirePages, expanded }) {
             {(race.desvantagens || []).map((d, i) => <div key={i} className="board-detail-simple board-text-rose">✕ {d}</div>)}
           </div>
         )}
-        {expanded && marcos.length > 0 && (
-          <div className="board-detail-list">
-            <label className="board-detail-label">Marcos de Experiência</label>
-            {marcos.map((m, i) => (
-              <div key={i} className="board-detail-item">
-                <strong>Marco {i + 1}</strong>
-                <p className="board-text-dim">{m.marco}</p>
-                <p className="board-text-gold">{m.ganho}</p>
+        {expanded && (() => {
+          const tree = getRaceTree(char.raca)
+          if (!tree) return null
+          const unlocked = char.raceTreeUnlocked || []
+          const parTotal = calcPARTotal(char.classe, char.nivel || 1, char.progressaoChoices, char.modulosAdquiridos, char)
+          const parSpent = calcRaceTreePARSpent(unlocked, char.raca)
+          const available = parTotal - parSpent
+          return (
+            <div className="board-detail-list">
+              <label className="board-detail-label">Árvore de Habilidades</label>
+              <div className="board-detail-item">
+                <strong>{tree.name}</strong>
+                <div className="board-chip-grid mt-1">
+                  <span>Desbloqueados <strong>{unlocked.length}</strong></span>
+                  <span>Disponíveis <strong className="board-text-gold">{available}</strong> PAR</span>
+                </div>
+                {tree.branches?.map(branch => {
+                  const branchNodes = tree.nodes.filter(n => n.branch === branch.id)
+                  const branchUnlocked = branchNodes.filter(n => unlocked.includes(n.id))
+                  return (
+                    <div key={branch.id} className="mt-2">
+                      <div className="flex items-center gap-2">
+                        <span className="board-detail-tag" style={{ color: branch.color }}>{branch.name}</span>
+                        <span className="board-text-dim text-xs">{branchUnlocked.length}/{branchNodes.length}</span>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        {branchNodes.map(n => (
+                          <span key={n.id} className="board-skill-dot"
+                            style={unlocked.includes(n.id)
+                              ? { background: branch.color, borderColor: branch.color }
+                              : {}} />
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )
+        })()}
       </>
     )
   }

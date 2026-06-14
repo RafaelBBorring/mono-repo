@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useDeferredValue, useMemo } from 'react'
+﻿import { useState, useRef, useEffect, useDeferredValue, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcAbilityCostReduction, calcExtraAbilities, calcExtraAbilitiesTypes, calcCarryCapacity, calcCarriedLoad, calcSkeletonPointsAvailable, getProgressionRewards } from '../../utils/calculator'
@@ -39,6 +39,7 @@ import { summarizeSystemSkillBonuses, createDefaultEffectsForSkill, calcSystemSk
 
 import { flattenRaceMilestones, formatRaceBonusParts } from '../../utils/raceMilestones'
 import { SPECIAL_MATERIALS, getAvailableForgeMaterials, getMaterialIcon } from '../../data/materials'
+import RaceSkillTree from '../RaceSkillTree'
 
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -122,6 +123,14 @@ const SHEET_VIEWS = [
   { key: 'inventory', label: 'Bolsa', hint: 'Itens, equipamentos e notas.', icon: 'inventory_2' },
   { key: 'mystic', label: 'Místico', hint: 'Disciplinas opcionais.', icon: 'auto_fix_high' },
   { key: 'full', label: 'Tudo', hint: 'Ficha completa sem filtros.', icon: 'menu_book' },
+]
+
+const DASH_TABS = [
+  { key: 'overview', label: 'Visão', icon: 'dashboard' },
+  { key: 'abilities', label: 'Poderes', icon: 'auto_awesome' },
+  { key: 'equipment', label: 'Bolsa', icon: 'inventory_2' },
+  { key: 'evolution', label: 'Evolução', icon: 'trending_up' },
+  { key: 'mystic', label: 'Místico', icon: 'auto_fix_high' },
 ]
 
 function getSheetTriageTitle(char, cls) {
@@ -266,7 +275,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const spellsEnabled = spellProfile.hasAccess && (systemOptIn.spells || (char.spells || []).length > 0)
   const runesEnabled = runeProfile.hasAccess && (systemOptIn.runes || (char.runes || []).length > 0)
   const magicEnabled = magicProfile.hasAccess && (systemOptIn.magic || (char.magics || []).length > 0)
-  const [sheetView, setSheetView] = useState('full')
+  const [sheetView, setSheetView] = useState('overview')
   const [skillCatalogOpen, setSkillCatalogOpen] = useState(false)
   const [oracleFocusRequest, setOracleFocusRequest] = useState(null)
   const [forgeMenuOpen, setForgeMenuOpen] = useState(false)
@@ -458,8 +467,7 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   }
 
   const canEdit = !!update
-  const showAll = sheetView === 'full'
-  const visible = (...views) => showAll || views.includes(sheetView)
+  const visible = (...views) => views.includes(sheetView)
   const abilityCount = (char.habilidades || []).filter(h => h.nome || h.descricao).length
   const mysticCount = (char.alchemyRituals || []).length + (char.spells || []).length + (char.runes || []).length + (char.magics || []).length
   const equipmentCount = Array.isArray(char.equipamentos)
@@ -475,43 +483,85 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
   const primaryTriage = getSheetTriageTitle(char, cls)
 
   return (
-    <div className="sheet-experience space-y-4">
-      <div className="sheet-actionbar">
-        <button onClick={handleCopy} className="border border-sep text-txt-dim px-3 py-1.5 rounded text-xs hover:border-gold hover:text-gold transition-colors">
-          Copiar Texto
-        </button>
-        <button onClick={onSave} className="bg-gold text-void font-semibold px-5 py-1.5 rounded text-xs hover:bg-gold-light transition-colors">
-          Salvar Ficha ✓
-        </button>
+    <div className="dash-root space-y-3">
+      <div className="dash-topbar">
+        <div className="dash-topbar-left">
+          <div className="relative shrink-0">
+            {char.avatar ? (
+              <img src={char.avatar} alt="" className="dash-topbar-avatar" />
+            ) : (
+              <div className="dash-topbar-avatar dash-topbar-avatar-empty">
+                <span className="material-symbols-outlined">person</span>
+              </div>
+            )}
+            {canEdit && (
+              <>
+                <button type="button" onClick={() => avatarInputRef.current?.click()} className="dash-topbar-avatar-btn" title="Alterar ícone do personagem">
+                  <span className="material-symbols-outlined">photo_camera</span>
+                </button>
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} />
+              </>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="dash-topbar-name">{char.nome || 'Sem Nome'}</h2>
+            <div className="dash-topbar-meta">
+              <span>{cls || '—'}</span>
+              <span className="dash-topbar-sep">·</span>
+              <span>Nível {char.nivel || 1}</span>
+              <span className="dash-topbar-sep">·</span>
+              <span>{getRaceLabel(char) || '—'}</span>
+              {primaryTriage !== 'Sem triagem' && (
+                <>
+                  <span className="dash-topbar-sep">·</span>
+                  <span style={{ color: '#c084fc' }}>{primaryTriage}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="dash-topbar-right">
+          <button onClick={handleCopy} className="dash-topbar-btn" title="Copiar ficha como texto">
+            <span className="material-symbols-outlined">content_copy</span>
+          </button>
+          <button onClick={onSave} className="dash-topbar-btn dash-topbar-btn-primary">
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>save</span>
+            Salvar
+          </button>
+        </div>
       </div>
 
-      <div className="sheet-menu-layout">
-        <SheetViewTabs active={sheetView} onChange={setSheetView} counts={sheetCounts} />
-        <div className="sheet-menu-content space-y-4 min-w-0">
+      <nav className="dash-tabs">
+        {DASH_TABS.map(tab => (
+          <button key={tab.key} type="button" onClick={() => setSheetView(tab.key)} className={`dash-tab ${sheetView === tab.key ? 'is-active' : ''}`}>
+            <span className="material-symbols-outlined">{tab.icon}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div className="dash-content space-y-3">
 
       {pendingItems.length > 0 && (
-        <div className="rounded-lg border transition-all duration-200" style={{ background: 'rgba(232,201,126,0.03)', borderColor: 'rgba(232,201,126,0.1)' }}>
-          <button type="button" onClick={() => setPendingExpanded(!pendingExpanded)}
-            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors rounded-lg">
-            <span className="material-symbols-outlined text-[14px] text-amber-300/60">pending_actions</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-300/70">{pendingItems.length} pendência{pendingItems.length > 1 ? 's' : ''}</span>
-            <span className="material-symbols-outlined text-[12px] text-txt-dim/40 ml-auto transition-transform duration-200" style={{ transform: pendingExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
+        <div className="dash-pending-bar">
+          <button type="button" onClick={() => setPendingExpanded(!pendingExpanded)} className="dash-pending-toggle">
+            <span className="material-symbols-outlined">pending_actions</span>
+            <span className="dash-pending-count">{pendingItems.length} pendência{pendingItems.length > 1 ? 's' : ''}</span>
           </button>
           {pendingExpanded && (
-            <div className="px-3 pb-2.5 flex flex-wrap gap-1.5">
+            <div className="dash-pending-badges w-full">
               {pendingItems.map(item => (
-                <span key={item.key} className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-full border ${item.color}`}>
-                  <span className="material-symbols-outlined text-[11px]">{item.icon}</span>
+                <span key={item.key} className={`dash-pending-badge ${item.color}`}>
+                  <span className="material-symbols-outlined">{item.icon}</span>
                   {item.label}
                 </span>
               ))}
             </div>
           )}
+          {!pendingExpanded && (
+            <span className="material-symbols-outlined dash-pending-chevron">expand_more</span>
+          )}
         </div>
-      )}
-
-      {cls && skelTotal > 0 && (
-        <SkeletonPointAllocator char={char} update={update} sk={sk} skelTotal={skelTotal} skelSpent={skelSpent} sysSkillBonuses={sysSkillBonuses} skelBase={skelBase} isAdmin={isAdmin} />
       )}
 
       {skillCatalogOpen && isAdmin && (
@@ -531,681 +581,483 @@ function ReviewContent({ char, onSave, onEdit, onNew, update, updateHabilidade, 
         />
       )}
 
-      <div className="codex-card overflow-hidden">
-        <div className="flex flex-col xl:flex-row">
-          <section className="flex-1 p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, rgba(232,201,126,0.08) 0%, rgba(14,14,15,0.95) 40%, rgba(189,244,255,0.04) 100%)' }}>
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'repeating-linear-gradient(135deg, rgba(232,201,126,0.02) 0 1px, transparent 1px 20px)' }} />
-            <div className="relative shrink-0">
-              <div className="absolute -inset-1.5 rounded-2xl opacity-60" style={{ background: 'linear-gradient(135deg, #c9a84c, #bdf4ff)', filter: 'blur(4px)' }} />
-              {char.avatar ? (
-                <img src={char.avatar} alt="" className="relative w-28 h-28 rounded-2xl object-cover border-2 border-primary/30" style={{ boxShadow: '0 0 24px rgba(201,168,76,0.15)' }} />
-              ) : (
-                <div className="relative w-28 h-28 rounded-2xl bg-surface-container border-2 border-primary/20 flex items-center justify-center" style={{ boxShadow: '0 0 24px rgba(201,168,76,0.15)' }}>
-                  <span className="material-symbols-outlined text-4xl text-primary/30">person</span>
-                </div>
-              )}
-              {canEdit && (
-                <>
-                  <button type="button" onClick={() => avatarInputRef.current?.click()}
-                    className="absolute -right-1 -bottom-1 w-8 h-8 rounded-full bg-deep/95 border border-gold/40 text-gold grid place-items-center hover:bg-gold hover:text-void transition-colors"
-                    title="Alterar ícone do personagem">
-                    <span className="material-symbols-outlined text-[16px]">photo_camera</span>
-                  </button>
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarFile} />
-                </>
-              )}
-            </div>
-            <div className="relative flex-1 text-center md:text-left space-y-3 min-w-0">
-              <h2 className="font-cinzel text-white uppercase tracking-[0.05em] truncate" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', lineHeight: 1.1, textShadow: '0 0 20px rgba(232,201,126,0.15)' }}>
-                {char.nome || 'Sem Nome'}
-              </h2>
-              <div className="flex flex-wrap justify-center md:justify-start gap-x-5 gap-y-1">
-                <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>Classe: {cls || '—'}</span>
-                <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>Nível {char.nivel || 1}</span>
-                <span className="font-mono text-outline uppercase" style={{ fontSize: '11px', letterSpacing: '0.15em' }}>{getRaceLabel(char) || '—'}</span>
+      {sheetView === 'overview' && (
+        <>
+          <div className="dash-resources">
+            <div className="dash-resource-pill dash-resource-vida">
+              <span className="material-symbols-outlined dash-resource-icon">favorite</span>
+              <div className="dash-resource-body">
+                <span className="dash-resource-label">Vida</span>
+                <span className={`dash-resource-value ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}>
+                  {canEdit ? (
+                    <input type="number" value={vidaAtual} onChange={e => update({ vidaAtual: Number(e.target.value) || 0 })} className="dash-resource-input" />
+                  ) : (vidaAtual)}
+                  <small>/{vidaNow}</small>
+                </span>
               </div>
-              <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                <span className="px-3 py-1 rounded-lg font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em', background: 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05))', border: '1px solid rgba(201,168,76,0.3)', color: '#e8c97e' }}>{cls || '—'}</span>
-                <span className="px-3 py-1 rounded-lg font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em', background: 'rgba(189,244,255,0.08)', border: '1px solid rgba(189,244,255,0.2)', color: '#bdf4ff' }}>Nível {char.nivel || 1}</span>
-                {primaryTriage !== 'Sem triagem' && (
-                  <span className="px-3 py-1 rounded-lg font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.1em', background: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.2)', color: '#c084fc' }}>{primaryTriage}</span>
-                )}
-              </div>
+              <div className="dash-resource-bar"><div className="dash-resource-bar-fill" style={{ width: `${vidaNow > 0 ? Math.min(100, (vidaAtual / vidaNow) * 100) : 0}%` }} /></div>
             </div>
-          </section>
-
-          <section className="xl:w-[420px] grid grid-cols-3 border-t xl:border-t-0 xl:border-l border-white/5">
-            <div className="flex flex-col items-center justify-center py-5 relative" style={{ background: 'linear-gradient(180deg, rgba(52,211,153,0.06) 0%, rgba(52,211,153,0.02) 100%)' }}>
-              <span className="font-mono uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px', color: 'rgba(52,211,153,0.6)' }}>Vida</span>
-              {canEdit ? (
-                <input type="number" value={vidaAtual}
-                  onChange={e => update({ vidaAtual: Number(e.target.value) || 0 })}
-                  className={`hero-resource-input font-mono leading-none bg-transparent text-center outline-none transition-colors min-w-[80px] ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`}
-                  style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
-              ) : (
-                <span className={`font-mono leading-none ${hpColor(vidaNow > 0 ? Math.round((vidaAtual / vidaNow) * 100) : 0)}`} style={{ fontSize: String(vidaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{vidaAtual}</span>
-              )}
-              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">/ {vidaNow}</span>
-              <div className="absolute bottom-0 left-2 right-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(52,211,153,0.1)' }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${vidaNow > 0 ? Math.min(100, (vidaAtual / vidaNow) * 100) : 0}%`, background: 'linear-gradient(90deg, #34d399, #10b981)' }} />
+            <div className="dash-resource-pill dash-resource-energia">
+              <span className="material-symbols-outlined dash-resource-icon">bolt</span>
+              <div className="dash-resource-body">
+                <span className="dash-resource-label">Energia</span>
+                <span className={`dash-resource-value ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}>
+                  {canEdit ? (
+                    <input type="number" value={energiaAtual} onChange={e => update({ energiaAtual: Number(e.target.value) || 0 })} className="dash-resource-input" />
+                  ) : (energiaAtual)}
+                  <small>/{energiaNow}</small>
+                </span>
+              </div>
+              <div className="dash-resource-bar"><div className="dash-resource-bar-fill" style={{ width: `${energiaNow > 0 ? Math.min(100, (energiaAtual / energiaNow) * 100) : 0}%` }} /></div>
+            </div>
+            <div className="dash-resource-pill dash-resource-pe">
+              <span className="material-symbols-outlined dash-resource-icon">stars</span>
+              <div className="dash-resource-body">
+                <span className="dash-resource-label">Pontos de Esforço</span>
+                <span className={`dash-resource-value ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}>
+                  {canEdit ? (
+                    <input type="number" value={peAtual} onChange={e => update({ peAtual: Number(e.target.value) || 0 })} className="dash-resource-input" />
+                  ) : (peAtual)}
+                  <small>/{peNow}</small>
+                </span>
+              </div>
+              <div className="dash-resource-bar"><div className="dash-resource-bar-fill" style={{ width: `${peNow > 0 ? Math.min(100, (peAtual / peNow) * 100) : 0}%` }} /></div>
+            </div>
+            <div className="dash-resource-pill dash-resource-ca">
+              <span className="material-symbols-outlined dash-resource-icon">shield</span>
+              <div className="dash-resource-body">
+                <span className="dash-resource-label">CA</span>
+                <span className="dash-resource-value" style={{ color: '#fb7185' }}>
+                  {derived.ca}
+                  {equipmentStats.totalArmorMax ? <small style={{ marginLeft: '0.3rem' }}>{equipmentStats.totalArmor}/{equipmentStats.totalArmorCap}</small> : null}
+                </span>
               </div>
             </div>
-            <div className="flex flex-col items-center justify-center py-5 relative border-x border-white/5" style={{ background: 'linear-gradient(180deg, rgba(56,189,248,0.06) 0%, rgba(56,189,248,0.02) 100%)' }}>
-              <span className="font-mono uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px', color: 'rgba(56,189,248,0.6)' }}>Energia</span>
-              {canEdit ? (
-                <input type="number" value={energiaAtual}
-                  onChange={e => update({ energiaAtual: Number(e.target.value) || 0 })}
-                  className={`hero-resource-input font-mono leading-none bg-transparent text-center outline-none transition-colors min-w-[80px] ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`}
-                  style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
-              ) : (
-                <span className={`font-mono leading-none ${enColor(energiaNow > 0 ? Math.round((energiaAtual / energiaNow) * 100) : 0)}`} style={{ fontSize: String(energiaAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{energiaAtual}</span>
-              )}
-              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">/ {energiaNow}</span>
-              <div className="absolute bottom-0 left-2 right-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(56,189,248,0.1)' }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${energiaNow > 0 ? Math.min(100, (energiaAtual / energiaNow) * 100) : 0}%`, background: 'linear-gradient(90deg, #38bdf8, #0ea5e9)' }} />
-              </div>
+          </div>
+
+          <div className="dash-attrs">
+            {['FOR','DES','CON','INT','APA','AM'].map(a => {
+              const v = totalAttr(a)
+              const m = getModifier(v)
+              const cap = getAttrCap(char.nivel || 1)
+              const pts = sk[a] || 0
+              const pct = Math.min(100, Math.round((v / (cap + 10)) * 100))
+              return (
+                <div key={a} className="dash-attr">
+                  <div className="dash-attr-fill" style={{ height: `${pct}%` }} />
+                  <span className="dash-attr-icon">{ATTR_ICONS[a]}</span>
+                  <span className="dash-attr-sigla">{a}</span>
+                  <span className="dash-attr-value">{v}</span>
+                  <span className={`dash-attr-mod ${m >= 0 ? 'pos' : 'neg'}`}>{m >= 0 ? '+' : ''}{m}</span>
+                  {pts > 0 && <span className="dash-attr-skel">+{pts}</span>}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-red-400" />
+              <h3>Combate</h3>
+              <div className="dash-section-header-line" />
             </div>
-            <div className="flex flex-col items-center justify-center py-5 relative" style={{ background: 'linear-gradient(180deg, rgba(232,201,126,0.06) 0%, rgba(232,201,126,0.02) 100%)' }}>
-              <span className="font-mono uppercase tracking-[0.2em] mb-1" style={{ fontSize: '10px', color: 'rgba(232,201,126,0.6)' }}>P.E.</span>
-              {canEdit ? (
-                <input type="number" value={peAtual}
-                  onChange={e => update({ peAtual: Number(e.target.value) || 0 })}
-                  className={`hero-resource-input font-mono leading-none bg-transparent text-center outline-none transition-colors min-w-[80px] ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`}
-                  style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }} />
-              ) : (
-                <span className={`font-mono leading-none ${peColor(peNow > 0 ? Math.round((peAtual / peNow) * 100) : 0)}`} style={{ fontSize: String(peAtual).length > 3 ? '1.5rem' : 'clamp(1.75rem, 4vw, 2.75rem)' }}>{peAtual}</span>
-              )}
-              <span className="font-mono text-txt-dim/30 text-[10px] mt-1">/ {peNow}</span>
-              <div className="absolute bottom-0 left-2 right-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(232,201,126,0.1)' }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${peNow > 0 ? Math.min(100, (peAtual / peNow) * 100) : 0}%`, background: 'linear-gradient(90deg, #e8c97e, #c9a84c)' }} />
-              </div>
+            <div className="dash-combat">
+              <div className="dash-combat-stat"><small>CA</small><strong>{derived.ca}</strong></div>
+              {equipmentStats.totalDurabilityMax ? <div className="dash-combat-stat"><small>Durabilidade</small><strong className="is-gold">{equipmentStats.totalDurability}/{equipmentStats.totalDurabilityMax}</strong></div> : null}
+              {(activeBonuses.ataque || sysSkillBonuses.ataque) ? <div className="dash-combat-stat"><small>Ataque</small><strong className="is-gold">{(activeBonuses.ataque || 0) + sysSkillBonuses.ataque > 0 ? '+' : ''}{(activeBonuses.ataque || 0) + sysSkillBonuses.ataque}</strong></div> : null}
+              <div className="dash-combat-stat"><small>Reações</small><strong>{derived.reacoes}</strong></div>
+              <div className="dash-combat-stat"><small>Percepção</small><strong>{derived.percepcao}</strong></div>
+              <div className="dash-combat-stat"><small>Dano Base</small><strong className="is-gold" style={{ fontSize: '0.85rem' }}>{derived.danoBase}</strong></div>
             </div>
-          </section>
-        </div>
+            {(equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeSetBonuses.length > 0) && (
+              <div className="dash-combat-bonuses">
+                {equipmentStats.totalCrit ? <span className="dash-combat-bonus border-purple-400/20 bg-purple-400/10 text-purple-300">Crit +{equipmentStats.totalCrit}%</span> : null}
+                {equipmentStats.totalDamage ? <span className="dash-combat-bonus border-red-400/20 bg-red-400/10 text-red-300">Dano +{equipmentStats.totalDamage}</span> : null}
+                {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
+                  <span key={`${type.id}-${bonus.pieces}`} className={`dash-combat-bonus ${type.badgeClass}`}>{type.label} {count}/4: {bonus.label}</span>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* ═══ BODY ═══ */}
-        <div className="p-4 sm:p-5">
-          <div className={`sheet-body-grid sheet-view-${sheetView} grid grid-cols-1 lg:grid-cols-12 gap-5`}>
-
-            {/* ═══ LEFT COLUMN ═══ */}
-            <div className="lg:col-span-7 space-y-5">
-
-              {/* ATTRIBUTES */}
-              <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="📊" title="Atributos" color="bg-amber-400" />
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-                  {['FOR','DES','CON','INT','APA','AM'].map(a => {
-                    const v = totalAttr(a)
-                    const m = getModifier(v)
-                    const cap = getAttrCap(char.nivel || 1)
-                    const pts = sk[a] || 0
-                    const pct = Math.min(100, Math.round((v / (cap + 10)) * 100))
-                    return (
-                      <div key={a} className="flex flex-col items-center p-3 rounded-xl border border-primary/10 hover:border-primary/30 transition-all duration-200 relative overflow-hidden group" style={{ background: 'linear-gradient(180deg, rgba(232,201,126,0.04) 0%, rgba(14,14,15,0.6) 100%)' }}>
-                        <div className="absolute bottom-0 left-0 right-0 transition-all duration-500" style={{ height: `${pct}%`, background: 'linear-gradient(0deg, rgba(201,168,76,0.06) 0%, transparent 100%)' }} />
-                        <span className="font-mono uppercase tracking-widest mb-1 relative z-10" style={{ fontSize: '10px', color: 'rgba(232,201,126,0.5)' }}>{ATTR_ICONS[a]} {a}</span>
-                        <span className="font-mono text-white leading-none relative z-10" style={{ fontSize: '28px' }}>{v}</span>
-                        <span className={`font-mono font-bold relative z-10 ${m >= 0 ? 'text-primary' : 'text-secondary-fixed-dim'}`} style={{ fontSize: '11px' }}>
-                          {m >= 0 ? '+' : ''}{m}
-                        </span>
-                        {pts > 0 && <span className="text-[8px] text-emerald-400/50 font-mono relative z-10">+{pts} skel</span>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-
-              {/* RESOURCES */}
-              <section className={visible('overview') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="💎" title="Recursos" color="bg-emerald-400" />
-                <div className="grid grid-cols-3 gap-2.5">
-                  <ResBox label="Vida" icon="❤" current={vidaAtual} max={vidaNow}
-                    pctColor={hpColor} pctBarColor={hpBarColor}
-                    canEdit={canEdit}
-                    onChange={v => update({ vidaAtual: Number(v) || 0 })} onReset={() => update({ vidaAtual: null })} />
-                  <ResBox label="Energia" icon="⚡" current={energiaAtual} max={energiaNow}
-                    pctColor={enColor} pctBarColor={enBarColor}
-                    canEdit={canEdit}
-                    onChange={v => update({ energiaAtual: Number(v) || 0 })} onReset={() => update({ energiaAtual: null })} />
-                  <ResBox label="PE" icon="✦" current={peAtual} max={peNow}
-                    pctColor={peColor} pctBarColor={peBarColor}
-                    canEdit={canEdit}
-                    onChange={v => update({ peAtual: Number(v) || 0 })} onReset={() => update({ peAtual: null })} />
-                </div>
-              </section>
-
-              {/* COMBAT */}
-              <section className={visible('overview', 'combat') ? 'sheet-panel rounded-xl p-4 relative overflow-hidden' : 'hidden'} style={{ background: 'linear-gradient(135deg, rgba(251,113,133,0.04) 0%, rgba(14,14,15,0.6) 50%, rgba(14,14,15,0.8) 100%)', border: '1px solid rgba(251,113,133,0.12)' }}>
-                <SectionHeader icon="⚔" title="Combate" color="bg-red-400" />
-                <div className="grid grid-cols-4 gap-3">
-                  <CombatStat label="CA" value={derived.ca} />
-                  {equipmentStats.totalArmorMax ? <CombatStat label="Armadura" value={equipmentStats.totalArmorRaw > equipmentStats.totalArmor ? `${equipmentStats.totalArmor}/${equipmentStats.totalArmorCap}` : equipmentStats.totalArmor} isGold /> : null}
-                  {equipmentStats.totalDurabilityMax ? <CombatStat label="Durabilidade" value={`${equipmentStats.totalDurability}/${equipmentStats.totalDurabilityMax}`} isGold /> : null}
-                  {activeBonuses.ataque || sysSkillBonuses.ataque ? <CombatStat label="Ataque" value={`${(activeBonuses.ataque || 0) + sysSkillBonuses.ataque > 0 ? '+' : ''}${(activeBonuses.ataque || 0) + sysSkillBonuses.ataque}`} isGold /> : null}
-                  <div className="text-center">
-                    <span className="text-txt-dim/50 text-[10px] uppercase block">Reações</span>
-                    <span className="text-txt-main text-xl font-mono block">{derived.reacoes}</span>
-                    {((char.triagemPrincipal === 'ASSASSINO' && (char.triagemPrincipalNivel || 0) >= 0.2) || (char.subTriagem === 'ASSASSINO' && (char.subTriagemNivel || 0) >= 0.2)) && (
-                      <span className="text-[8px] text-purple-400/70 block mt-0.5">+{Math.floor(totalAttr('DES') / 15)} Assassino</span>
-                    )}
-                  </div>
-                  <CombatStat label="Percepção" value={derived.percepcao} />
-                  <div className="text-center">
-                    <span className="text-txt-dim/50 text-[10px] uppercase block">Dano Base</span>
-                    <span className="text-gold text-xs font-mono block mt-1 leading-tight">{derived.danoBase}</span>
-                  </div>
-                </div>
-                {(equipmentStats.totalCrit || equipmentStats.totalDamage || equipmentStats.activeSetBonuses.length > 0) && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {equipmentStats.totalCrit ? <span className="text-[10px] px-2 py-1 rounded border border-purple-400/20 bg-purple-400/10 text-purple-300">Crit +{equipmentStats.totalCrit}%</span> : null}
-                    {equipmentStats.totalDamage ? <span className="text-[10px] px-2 py-1 rounded border border-red-400/20 bg-red-400/10 text-red-300">Dano +{equipmentStats.totalDamage}</span> : null}
-                    {equipmentStats.activeSetBonuses.map(({ type, count, bonus }) => (
-                      <span key={`${type.id}-${bonus.pieces}`} className={`text-[10px] px-2 py-1 rounded border ${type.badgeClass}`}>{type.label} {count}/4: {bonus.label}</span>
-                    ))}
-                  </div>
-                )}
-                {((char.triagemPrincipal === 'ATIRADOR' && (char.triagemPrincipalNivel || 0) >= 0.1) || (char.subTriagem === 'ATIRADOR' && (char.subTriagemNivel || 0) >= 0.1)) && (
-                  <div className="mt-2 bg-sky-500/5 border border-sky-500/15 rounded px-2.5 py-1.5 text-[10px] text-sky-400/80 flex items-center gap-1.5">
-                    <span className="text-sky-400">★</span>
-                    Vantagem em Pontaria
-                  </div>
-                )}
-              </section>
-
-              {/* PERÍCIAS */}
-              <section className={visible('traits') ? 'sheet-panel' : 'hidden'}>
-                <div className="flex items-center justify-between">
-                  <SectionHeader icon="📜" title="Perícias Treinadas" color="bg-cyan-400" />
-                  {canEdit && cls && (
-                    <button
-                      onClick={() => setEditingPericias(!editingPericias)}
-                      className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${
-                        editingPericias
-                          ? 'bg-cyan-400/15 border-cyan-400/40 text-cyan-300'
-                          : 'bg-void border-sep/30 text-txt-dim hover:border-cyan-400/30 hover:text-cyan-300'
-                      }`}
-                    >
-                      {editingPericias ? 'Fechar' : 'Editar'}
-                    </button>
-                  )}
-                </div>
-                {cls && (
-                  <div className="mb-2 flex items-center gap-2 text-[10px] text-txt-dim">
-                    <span>Pontos: <span className={`font-mono ${(periciasTotal - periciasUsed) > 0 ? 'text-cyan-400' : 'text-ok'}`}>{periciasUsed}/{periciasTotal}</span></span>
-                    <span className="text-txt-dim/40">|</span>
-                    <span>Grau máx: <span className="font-mono text-gold">{periciasMaxGrau} ({GRAU_NAMES[periciasMaxGrau]})</span></span>
-                  </div>
-                )}
-                {editingPericias && canEdit && cls ? (
-                  <div className="space-y-1.5">
-                    {PERICIAS.map(pericia => {
-                      const grau = (char.pericias || {})[pericia.name] || 0
-                      const bestAttr = pericia.attrs.map(a => ({ a, v: totalAttr(a) })).reduce((a, b) => a.v >= b.v ? a : b)
-                      const bonus = Math.max(...pericia.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau)
-                      const remaining = periciasTotal - periciasUsed
-                      const canUpgrade = remaining > 0 && (grau < periciasMaxGrau)
-                      return (
-                        <div
-                          key={pericia.name}
-                          className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors ${
-                            grau > 0
-                              ? 'border-cyan-400/30 bg-cyan-400/5'
-                              : 'border-sep/20 bg-void/30'
-                          }`}
-                        >
-                          <span className={`text-xs flex-1 min-w-0 truncate ${grau > 0 ? 'text-txt-main' : 'text-txt-dim/60'}`}>{pericia.name}</span>
-                          <span className="text-[9px] text-txt-dim/50 w-10 text-center">{pericia.attrs.join('/')}</span>
-                          <span className="text-[9px] text-gold/60 font-mono w-6 text-center">{bestAttr.a}</span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => adjustPericia(pericia.name, -1)}
-                              disabled={grau <= 0}
-                              className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${
-                                grau > 0 ? 'bg-err/10 text-err/60 hover:bg-err/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'
-                              }`}
-                            >−</button>
-                            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded text-center min-w-[70px] ${
-                              grau > 0 ? 'bg-cyan-400/15 text-cyan-300' : 'bg-void text-txt-dim/40'
-                            }`}>{GRAU_NAMES[grau]}</span>
-                            <button
-                              onClick={() => adjustPericia(pericia.name, 1)}
-                              disabled={!canUpgrade}
-                              className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${
-                                canUpgrade || grau > 0 ? 'bg-ok/10 text-ok/60 hover:bg-ok/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'
-                              }`}
-                            >+</button>
-                          </div>
-                          <span className={`font-mono text-xs w-8 text-right ${grau > 0 ? 'text-cyan-400' : 'text-txt-dim/30'}`}>
-                            {bonus >= 0 ? '+' : ''}{grau > 0 ? bonus : 0}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : periciasArr.length > 0 ? (
-                  <div className="overflow-hidden rounded-lg border border-sep/60">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-void/80">
-                          <th className="text-left px-3 py-2 text-txt-dim font-body font-normal">Perícia</th>
-                          <th className="text-center px-2 py-2 text-txt-dim font-body font-normal w-16">Atr.</th>
-                          <th className="text-center px-2 py-2 text-txt-dim font-body font-normal w-28">Grau</th>
-                          <th className="text-center px-2 py-2 text-txt-dim font-body font-normal w-16">Bônus</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {periciasArr.map(([name, grau]) => {
-                          const pDef = PERICIAS.find(p => p.name === name)
-                          const bestAttr = pDef ? pDef.attrs.map(a => ({ a, v: totalAttr(a) })).reduce((a, b) => a.v >= b.v ? a : b).a : '—'
-                          const bonus = pDef ? Math.max(...pDef.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau) : grau * 5
-                          return (
-                            <tr key={name} className="border-t border-sep/30 hover:bg-void/40 transition-colors">
-                              <td className="px-3 py-2 text-txt-main">{name}</td>
-                              <td className="px-2 py-2 text-center text-gold/80 font-mono text-xs">{bestAttr}</td>
-                              <td className="px-2 py-2 text-center text-txt-dim text-xs">{GRAU_NAMES[grau] || grau}</td>
-                              <td className="px-2 py-2 text-center font-mono text-cyan-400">{bonus >= 0 ? '+' : ''}{bonus}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-txt-dim/60 text-xs italic">Nenhuma perícia treinada</p>
-                )}
-              </section>
-
-              {/* TRIAGENS */}
-              <section className={visible('traits', 'combat') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="★" title="Triagens" color="bg-purple-400" />
-                <TriagemSection char={char} cls={cls} />
-              </section>
-
-              {/* INVENTÁRIO & EQUIPAMENTOS */}
-              <section className={visible('inventory') ? 'sheet-panel space-y-5' : 'hidden'}>
-                <SectionHeader icon="🎒" title="Inventário & Equipamentos" color="bg-amber-400" />
-                <ResidentInventorySection
-                  char={char}
-                  characterId={characterId}
-                  canEdit={canEdit}
-                  update={update}
-                  onTransferItem={onTransferItem}
-                  maxCarry={carryCapacity}
-                  totalCarryWeight={carriedLoad}
-                />
-              </section>
-
-              {/* HERANÇA RACIAL */}
-              <details className={visible('traits') ? 'group sheet-panel' : 'hidden'}>
-                <summary className="flex items-center gap-2 cursor-pointer hover:bg-gold/[0.035] rounded-lg px-1 py-1 -mx-1 transition-colors list-none">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="w-1 h-4 rounded-full bg-emerald-400" />
-                    <span className="text-txt-dim text-[11px]">🧬</span>
-                    <h3 className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Herança Racial</h3>
-                    <div className="flex-1 h-px bg-gradient-to-r from-sep/60 to-transparent" />
-                  </div>
-                  <span className="text-txt-dim/30 text-[10px] group-open:rotate-180 transition-transform">▼</span>
-                </summary>
-                <div className="mt-2">
-                  <RaceHeritageSectionV2 char={char} />
-                </div>
-              </details>
-            </div>
-
-            {/* ═══ RIGHT COLUMN ═══ */}
-            <div className="lg:col-span-5 space-y-5">
-
-              {visible('overview') && (
-                <section className="sheet-panel sheet-focus-panel">
-                  <SectionHeader icon=">" title="Mapa da Ficha" color="bg-gold" />
-                  <div className="sheet-focus-grid">
-                    {[
-                      { key: 'combat', label: 'Combate', value: `${derived.ca} CA`, desc: `${derived.reacoes} reações` },
-                      { key: 'powers', label: 'Poderes', value: abilityCount, desc: `${acquiredModules.length} módulos` },
-                      { key: 'traits', label: 'Traços', value: periciasArr.length, desc: primaryTriage },
-                      { key: 'inventory', label: 'Bolsa', value: `${carriedLoad}/${carryCapacity} kg`, desc: `${inventoryCount} itens` },
-                    ].map(item => (
-                      <button key={item.key} type="button" onClick={() => setSheetView(item.key)} className="sheet-focus-card">
-                        <span>{item.label}</span>
-                        <strong>{item.value}</strong>
-                        <small>{item.desc}</small>
-                      </button>
-                    ))}
-                  </div>
-                </section>
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-cyan-400" />
+              <h3>Perícias</h3>
+              {canEdit && cls && (
+                <button onClick={() => { setSheetView('evolution'); }} className="ml-auto text-[10px] px-2.5 py-1 rounded border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20 transition-colors">Editar</button>
               )}
-
-              {/* ARMAS & ARTE MARCIAL */}
-              <div className={sheetView === 'combat' ? '' : 'hidden'}>
-                <WeaponMartialPanel char={char} update={update} canEdit={canEdit} />
+              <div className="dash-section-header-line" />
+            </div>
+            {periciasArr.length > 0 ? (
+              <div className="dash-pericias">
+                {periciasArr.map(([name, grau]) => {
+                  const pDef = PERICIAS.find(p => p.name === name)
+                  const bonus = pDef ? Math.max(...pDef.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau) : grau * 5
+                  return (
+                    <span key={name} className="dash-pericia-chip">
+                      {name}
+                      <small>{GRAU_NAMES[grau] || grau}</small>
+                      <strong>{bonus >= 0 ? '+' : ''}{bonus}</strong>
+                    </span>
+                  )
+                })}
               </div>
+            ) : (
+              <p className="text-txt-dim/50 text-xs italic">Nenhuma perícia treinada</p>
+            )}
+          </div>
 
-              {/* MÓDULOS */}
-              <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="⚙" title="Módulos de Evolução" color="bg-yellow-400" />
-                {acquiredModules.length > 0 ? (
-                  <div className="space-y-1.5">
-                    {acquiredModules.map((m, i) => {
-                      const isPassive = !m.pe
-                      const isSpecial = MODULES_SPECIAL.some(s => s.id === m.id)
-                      return (
-                        <div key={i} className="bg-void/50 border border-sep/40 rounded-lg px-3 py-2.5 hover:border-gold/20 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${isSpecial ? 'bg-purple-400/10 text-purple-400 border border-purple-400/20' : isPassive ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' : 'bg-sky-400/10 text-sky-400 border border-sky-400/20'}`}>
-                              {isSpecial ? 'ESP' : isPassive ? 'PSV' : 'ATV'}
-                            </span>
-                            <span className="text-txt-main text-sm font-semibold">{m.name}</span>
-                            {(m.boughtCount || 1) > 1 && (
-                              <span className="text-gold font-mono text-xs bg-gold/10 px-1 rounded">×{m.boughtCount}</span>
-                            )}
-                          </div>
-                          {canEdit && !isPassive && (
-                            <button
-                              type="button"
-                              onClick={() => toggleActiveEffect(`module_${m.id}`)}
-                              className={`active-toggle mt-2 ${activeEffects[`module_${m.id}`] ? 'is-active' : ''}`}
-                            >
-                              {activeEffects[`module_${m.id}`] ? 'Ativo na ficha' : 'Ligar efeito'}
-                            </button>
-                          )}
-                          <p className="text-txt-dim text-xs mt-1 leading-relaxed">{m.desc}</p>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-txt-dim/60 text-xs italic">Nenhum módulo adquirido</p>
-                )}
-              </section>
-
-              {/* BALANCE ANALYSIS */}
-              <div className={visible('powers') ? '' : 'hidden'}>
-                <AbilityAnalysisChat
-                  char={char}
-                  onApply={handleBalanceApply}
-                  characterId={characterId}
-                  focusRequest={oracleFocusRequest}
-                />
-              </div>
-
-              {/* HABILIDADES */}
-              <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="✦" title="Habilidades" color="bg-indigo-400" />
-                {canEdit && (
-                  <div className="mb-3 bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-2.5 flex items-center gap-3 text-[11px]">
-                    <span className="text-indigo-400 font-semibold">PEH</span>
-                    <div className="flex-1 flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-void rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${pehRemaining < 0 ? 'bg-red-500' : pehRemaining === 0 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
-                          style={{ width: `${Math.min(100, Math.max(0, (pehSpent / Math.max(1, pehTotal)) * 100))}%` }}
-                        />
-                      </div>
-                      <span className={`font-mono ${pehRemaining < 0 ? 'text-red-400' : pehRemaining === 0 ? 'text-emerald-400' : 'text-indigo-400'}`}>
-                        {pehRemaining}/{pehTotal}
-                      </span>
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-indigo-400" />
+              <h3>Habilidades</h3>
+              <button onClick={() => setSheetView('abilities')} className="ml-auto text-[10px] px-2.5 py-1 rounded border border-indigo-400/30 bg-indigo-400/10 text-indigo-300 hover:bg-indigo-400/20 transition-colors">Ver tudo</button>
+              <div className="dash-section-header-line" />
+            </div>
+            <div className="dash-abilities-summary">
+              {(char.habilidades || []).filter(h => h.nome).length > 0 ? (
+                (char.habilidades || []).filter(h => h.nome).map((h, fi) => {
+                  const i = (char.habilidades || []).indexOf(h)
+                  const typeClass = h.tipo === 'Ultimate' ? 't-Ultimate' : h.tipo === 'Passiva' ? 't-Passiva' : h.tipo.startsWith('Extra') ? 't-Extra' : 't-Ativa'
+                  return (
+                    <div key={fi} className="dash-ability-summary">
+                      <span className={`dash-ability-type ${typeClass}`}>{h.tipo === 'Ultimate' ? 'ULT' : h.tipo === 'Passiva' ? 'PSV' : h.tipo.startsWith('Extra') ? 'EXT' : 'ATV'}</span>
+                      <span className="dash-ability-name">{h.nome}</span>
+                      {h.custoEnergia > 0 && <span className="dash-ability-cost">{h.custoEnergia}⚡</span>}
+                      <span className="dash-ability-status" style={{ background: h.status === 'Aprovada' ? '#34d399' : h.status === 'Revisão necessária' ? '#fb7185' : '#fbbf24' }} title={h.status || 'Pendente'} />
                     </div>
-                    <span className="text-txt-dim/60">gastos: {pehSpent}</span>
-                  </div>
-                )}
-                {costReduction > 0 && (
-                  <div className="mb-2 bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 text-[11px] text-blue-400/80 flex items-center gap-1.5">
-                    <span className="text-blue-400">★</span>
-                    Suporte: −{Math.round(costReduction * 100)}% custo de Buffs
-                  </div>
-                )}
-                <div className="space-y-1.5">
-                  {(char.habilidades || []).map((h, i) => (
-                    <HabilidadeCard
-                      key={i}
-                      h={h}
-                      i={i}
-                      canEdit={canEdit}
-                      updateHabilidade={updateHabilidade}
-                      charNivel={char.nivel || 1}
-                      pehRemaining={pehRemaining}
-                      active={!!activeEffects[`habilidade_${i}`]}
-                      activePreview={parseActiveBonuses(h)}
-                      onToggleActive={() => toggleActiveEffect(`habilidade_${i}`)}
-                      onAnalyzeWithOracle={() => setOracleFocusRequest({
-                        id: `habilidade_${i}_${Date.now()}`,
-                        index: i,
-                        ability: h,
-                      })}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              {hasSystemSkills && (
-                <section className={visible('powers') ? 'sheet-panel' : 'hidden'}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <SectionHeader icon="✦" title="Skills Sistêmicas" color="bg-purple-400" />
-                    {isAdmin && (
-                      <button onClick={() => setSkillCatalogOpen(true)} className="ml-auto bg-purple-400/10 border border-purple-300/30 text-purple-300 rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-purple-400/20 transition-colors">
-                        + Atribuir Skill
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    {(char.systemSkills || []).length > 0 ? (
-                      <div className="grid grid-cols-1 gap-4">
-                        {(char.systemSkills || []).map((entry, i) => {
-                          const skill = getSystemSkillById(entry.skillId)
-                          const effects = entry.effects || []
-                          const availableTypes = skill?.effectTypes || Object.keys(EFFECT_PARAM_DEFS)
-                          const repeatableTypes = ['damage_per_level_interval', 'damage_per_attribute_interval', 'resource_per_level', 'attribute_cap_bonus', 'forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus', 'manual_flag']
-                          const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || repeatableTypes.includes(t))
-                          const isActive = entry.active !== false
-                          const skillColors = {
-                            forge_master: 'from-amber-400/20 via-orange-500/10 to-amber-600/5',
-                            skeleton_progression: 'from-emerald-400/20 via-green-500/10 to-emerald-600/5',
-                            scaling_damage: 'from-red-400/20 via-rose-500/10 to-red-600/5',
-                            resource_growth: 'from-cyan-400/20 via-sky-500/10 to-cyan-600/5',
-                            attribute_cap_break: 'from-violet-400/20 via-purple-500/10 to-violet-600/5',
-                          }
-                          const gradient = skillColors[entry.skillId] || 'from-purple-400/15 via-indigo-500/10 to-purple-600/5'
-                          return (
-                            <div
-                              key={entry.id || i}
-                              onClick={(e) => {
-                                if (entry.skillId === 'forge_master' && !e.target.closest('button,input,select,textarea')) setForgeMenuOpen(true)
-                              }}
-                              className={`relative overflow-hidden rounded-xl border transition-all duration-300 group ${isActive ? `border-purple-300/40 bg-gradient-to-br ${gradient}` : 'border-sep/20 bg-void/40 opacity-60'}`}
-                              style={{
-                                boxShadow: isActive ? '0 0 20px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'none',
-                              }}
-                            >
-                              <div className={`absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M20%200%20L40%2020%20L20%2040%20L0%2020Z%22%20fill%3D%22none%22%20stroke%3D%22rgba(168%2C%2085%2C%20247%2C0.03)%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E')] opacity-30 pointer-events-none`} />
-                              <div className="relative px-4 pt-3 pb-3">
-                                <div className="flex items-start gap-3">
-                                  <div className={`relative shrink-0 ${isActive ? '' : 'opacity-40'}`}>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${isActive ? 'border-purple-300/30 bg-purple-400/20' : 'border-sep/30 bg-void/60'}`}>
-                                      <span className="text-xl" style={{ textShadow: isActive ? '0 0 10px rgba(168, 85, 247, 0.5)' : 'none' }}>
-                                        {entry.skillId === 'forge_master' ? '⚒️' : entry.skillId === 'skeleton_progression' ? '💀' : entry.skillId === 'scaling_damage' ? '⚔️' : entry.skillId === 'resource_growth' ? '💎' : entry.skillId === 'attribute_cap_break' ? '🔮' : '✦'}
-                                      </span>
-                                    </div>
-                                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${isActive ? 'bg-purple-400 animate-pulse' : 'bg-sep/40'}`} style={{ boxShadow: isActive ? '0 0 8px rgba(168, 85, 247, 0.6)' : 'none' }} />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className={`text-[13px] font-bold tracking-wide ${isActive ? 'text-purple-100' : 'text-txt-dim/60'}`} style={{ textShadow: isActive ? '0 0 10px rgba(168, 85, 247, 0.3)' : 'none' }}>{skill?.name || entry.skillId}</span>
-                                      <span className={`text-[8px] rounded-full px-2 py-0.5 font-bold uppercase tracking-wider ${isActive ? 'bg-purple-400/25 text-purple-200 border border-purple-300/30' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{isActive ? 'Ativa' : 'Inativa'}</span>
-                                      {skill?.rarity && (
-                                        <span className={`text-[8px] rounded px-2 py-0.5 font-medium ${isActive ? 'bg-amber-400/15 text-amber-200 border border-amber-300/20' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{skill.rarity}</span>
-                                      )}
-                                    </div>
-                                    <p className={`text-[10px] mt-2 leading-relaxed ${isActive ? 'text-txt-dim/80' : 'text-txt-dim/40'}`}>{skill?.short || 'Integração sistêmica definida pelo mestre.'}</p>
-                                  </div>
-                                  {isAdmin && (
-                                    <div className="ml-auto flex items-center gap-2 shrink-0">
-                                      {entry.skillId === 'forge_master' && (
-                                        <button onClick={() => setForgeMenuOpen(true)}
-                                          className="w-7 h-7 grid place-items-center rounded border border-amber-300/30 text-amber-300/70 hover:text-amber-200 hover:bg-amber-400/20 transition-colors"
-                                          title="Abrir encantamentos">
-                                          <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
-                                        </button>
-                                      )}
-                                      <button onClick={() => { if (confirm(`Remover a skill "${skill?.name || entry.skillId}"? Os efeitos serão perdidos.`)) update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) }) }}
-                                        className="w-7 h-7 grid place-items-center rounded text-err/50 hover:text-err hover:bg-err/15 transition-colors border border-transparent hover:border-err/25"
-                                        title="Excluir Skill">
-                                        <span className="material-symbols-outlined text-[15px]">close</span>
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              {effects.length > 0 && (
-                                <div className={`px-4 pb-3 ${isAdmin ? '' : 'pt-2'}`}>
-                                  <div className="space-y-2">
-                                    {effects.map((effect, ei) => {
-                                      const eDef = EFFECT_PARAM_DEFS[effect.type]
-                                      if (!eDef) return null
-                                      return (
-                                        <div key={ei} className="bg-void/50 border border-purple-300/20 rounded-lg px-3 py-2 backdrop-blur-sm">
-                                          <div className="flex items-center justify-between mb-1.5">
-                                            <span className="text-purple-200/90 text-[10px] font-semibold tracking-wide">◆ {eDef.label}</span>
-                                            {isAdmin && (
-                                              <button onClick={() => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.filter((_, fi) => fi !== ei) } : s) })}
-                                                className="text-err/50 hover:text-err text-[9px] transition-colors opacity-70 hover:opacity-100">✕</button>
-                                            )}
-                                          </div>
-                                          {!isAdmin && (
-                                            <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                                              {Object.entries(eDef.params).map(([pKey, pDef]) => (
-                                                <span key={pKey} className="text-txt-dim/50 text-[9px]"><span className="text-purple-300/70">{pDef.label}:</span> <span className="text-txt-dim/90">{effect[pKey] ?? pDef.default}</span></span>
-                                              ))}
-                                            </div>
-                                          )}
-                                          {isAdmin && Object.entries(eDef.params).map(([pKey, pDef]) => {
-                                            if (pDef.type === 'select') return (
-                                              <div key={pKey} className="flex items-center gap-2 mt-1.5">
-                                                <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
-                                                <select value={effect[pKey] ?? pDef.default} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
-                                                  className="flex-1 bg-void/70 text-txt-main text-[10px] border border-purple-300/25 rounded px-2.5 py-1 focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20">
-                                                  {(pDef.options || []).map(o => <option key={o.value} value={o.value} className="bg-void text-txt-main">{o.label}</option>)}
-                                                </select>
-                                              </div>
-                                            )
-                                            if (pDef.type === 'number') return (
-                                              <div key={pKey} className="flex items-center gap-2 mt-1.5">
-                                                <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
-                                                <input type="number" value={effect[pKey] ?? pDef.default} min={pDef.min} max={pDef.max}
-                                                  onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value === '' ? '' : Number(e.target.value) } : ef) } : s) })}
-                                                  className="w-16 bg-void/70 text-txt-dim text-[10px] border border-purple-300/25 rounded px-2 py-0.5 text-center focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20" />
-                                              </div>
-                                            )
-                                            return (
-                                              <div key={pKey} className="flex items-center gap-2 mt-1.5">
-                                                <span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span>
-                                                <input type="text" value={effect[pKey] ?? pDef.default ?? ''}
-                                                  onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })}
-                                                  className="flex-1 bg-void/70 text-txt-dim text-[10px] border border-purple-300/25 rounded px-2 py-0.5 focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20" />
-                                              </div>
-                                            )
-                                          })}
-                                        </div>
-                                      )
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                              {isAdmin && addableTypes.length > 0 && (
-                                <div className="px-4 pb-3 pt-2">
-                                  <select onChange={e => { if (e.target.value) { const pDef = EFFECT_PARAM_DEFS[e.target.value]; const newEff = { type: e.target.value }; if (pDef) for (const [k, p] of Object.entries(pDef.params)) { if (p.default != null) newEff[k] = p.default; } update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: [...(s.effects || []), newEff] } : s) }); e.target.value = '' } }}
-                                    className="w-full text-[10px] bg-void/50 border border-dashed border-purple-300/30 text-purple-200/50 rounded-lg px-3 py-2 hover:border-purple-400/40 hover:text-purple-200/70 transition-colors cursor-pointer focus:border-purple-400/50 focus:outline-none focus:ring-1 focus:ring-purple-400/20">
-                                    <option value="">✧ Adicionar efeito arcânico...</option>
-                                    {addableTypes.map(t => <option key={t} value={t}>{EFFECT_PARAM_DEFS[t]?.label || t}</option>)}
-                                  </select>
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-txt-dim/40 text-xs italic text-center py-4">Nenhuma Skill atribuída pelo Mestre.</p>
-                    )}
-                    {summarizeSystemSkillBonuses(char).length > 0 && (
-                      <div className="bg-purple-400/5 border border-purple-300/25 rounded-xl px-4 py-3 backdrop-blur-sm">
-                        <div className="text-[10px] text-purple-300/70 font-semibold mb-2 uppercase tracking-widest">✦ Bônus Ativos</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {summarizeSystemSkillBonuses(char).map((line, i) => (
-                            <span key={i} className="text-[10px] bg-purple-400/15 text-purple-200 border border-purple-300/25 rounded-md px-2.5 py-1 shadow-[0_0_8px_rgba(168,85,247,0.1)]">{line}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').length > 0 && (
-                      <div className="space-y-2">
-                        {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').map(notice => (
-                          <div key={notice.id} className="rounded-lg border border-warn/25 bg-warn/5 px-3 py-2.5 flex items-start gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-txt-main text-[11px] font-semibold">{notice.title}</p>
-                              <p className="text-txt-dim/60 text-[10px] mt-0.5">{notice.message}</p>
-                              {notice.suggestedEffects && (
-                                <div className="mt-1.5 flex flex-wrap gap-1">
-                                  {notice.suggestedEffects.map((ef, ei) => (
-                                    <span key={ei} className="text-[8px] bg-sky-400/10 text-sky-300 border border-sky-400/15 rounded px-1.5 py-0.5">{EFFECT_PARAM_DEFS[ef.type]?.label || ef.type}</span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            {isAdmin && (
-                              <div className="flex gap-1.5 shrink-0">
-                                <button onClick={() => { const effects = notice.suggestedEffects && notice.suggestedEffects.length > 0 ? notice.suggestedEffects : createDefaultEffectsForSkill(notice.skillId); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId: notice.skillId, active: true, sourceAbilityIndex: notice.abilityIndex ?? null, notes: '', effects, createdAt: new Date().toISOString() }], systemSkillNotifications: (char.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n) }) }}
-                                  className="text-[10px] bg-gold text-void px-3 py-1 rounded-md font-semibold hover:bg-gold/90 transition-colors">Atribuir</button>
-                                <button onClick={() => update({ systemSkillNotifications: (char.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n) })}
-                                  className="text-[10px] border border-err/30 text-err/70 px-2.5 py-1 rounded-md hover:bg-err/10 transition-colors">Descartar</button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </section>
+                  )
+                })
+              ) : (
+                <p className="text-txt-dim/50 text-xs italic">Nenhuma habilidade definida</p>
               )}
-
-              {/* NOTAS */}
-              <section className={visible('inventory') ? 'sheet-panel' : 'hidden'}>
-                <SectionHeader icon="📝" title="Notas" color="bg-gray-400" />
-                {canEdit ? (
-                  <textarea value={char.notas || ''} onChange={e => update({ notas: e.target.value })} placeholder="Anotações do jogador..."
-                    rows={3}
-                    className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors placeholder:text-txt-dim/40" />
-                ) : (
-                  <p className="text-txt-main/80 text-xs whitespace-pre-wrap leading-relaxed">{char.notas || '—'}</p>
-                )}
-              </section>
-
             </div>
-
           </div>
 
-          <div className={`mt-5 border-t border-sep/30 pt-5 ${visible('mystic') ? '' : 'hidden'}`}>
-            <MysticKnowledgeGrid
-              char={char} update={update} canEdit={canEdit}
-              alchemyProfile={alchemyProfile} spellProfile={spellProfile}
-              runeProfile={runeProfile} magicProfile={magicProfile}
-              alchemyEnabled={alchemyEnabled} spellsEnabled={spellsEnabled}
-              runesEnabled={runesEnabled} magicEnabled={magicEnabled}
-              systemOptIn={systemOptIn}
-            />
+          {acquiredModules.length > 0 && (
+            <div className="dash-section">
+              <div className="dash-section-header">
+                <div className="dash-section-header-bar bg-yellow-400" />
+                <h3>Módulos</h3>
+                <div className="dash-section-header-line" />
+              </div>
+              <div className="dash-module-chips">
+                {acquiredModules.map((m, i) => {
+                  const isPassive = !m.pe
+                  const isSpecial = MODULES_SPECIAL.some(s => s.id === m.id)
+                  return (
+                    <span key={i} className={`dash-module-chip ${isSpecial ? 'is-special' : isPassive ? 'is-passive' : 'is-active'}`}>
+                      <span className="mod-type">{isSpecial ? 'ESP' : isPassive ? 'PSV' : 'ATV'}</span>
+                      {m.name}
+                      {(m.boughtCount || 1) > 1 && <span className="mod-count">×{m.boughtCount}</span>}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {sheetView === 'abilities' && (
+        <div className="space-y-3">
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-indigo-400" />
+              <h3>Habilidades</h3>
+              {costReduction > 0 && (
+                <span className="ml-auto text-[10px] text-blue-400/80 flex items-center gap-1"><span className="text-blue-400">★</span> −{Math.round(costReduction * 100)}% custo de Buffs</span>
+              )}
+              <div className="dash-section-header-line" />
+            </div>
+            {canEdit && (
+              <div className="mb-3 bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-2.5 flex items-center gap-3 text-[11px]">
+                <span className="text-indigo-400 font-semibold">PEH</span>
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-void rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${pehRemaining < 0 ? 'bg-red-500' : pehRemaining === 0 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${Math.min(100, Math.max(0, (pehSpent / Math.max(1, pehTotal)) * 100))}%` }} />
+                  </div>
+                  <span className={`font-mono ${pehRemaining < 0 ? 'text-red-400' : pehRemaining === 0 ? 'text-emerald-400' : 'text-indigo-400'}`}>{pehRemaining}/{pehTotal}</span>
+                </div>
+                <span className="text-txt-dim/60">gastos: {pehSpent}</span>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              {(char.habilidades || []).map((h, i) => (
+                <HabilidadeCard key={i} h={h} i={i} canEdit={canEdit} updateHabilidade={updateHabilidade} charNivel={char.nivel || 1} pehRemaining={pehRemaining} active={!!activeEffects[`habilidade_${i}`]} activePreview={parseActiveBonuses(h)} onToggleActive={() => toggleActiveEffect(`habilidade_${i}`)} onAnalyzeWithOracle={() => setOracleFocusRequest({ id: `habilidade_${i}_${Date.now()}`, index: i, ability: h })} />
+              ))}
+            </div>
+          </div>
+
+          <AbilityAnalysisChat char={char} onApply={handleBalanceApply} characterId={characterId} focusRequest={oracleFocusRequest} />
+
+          {acquiredModules.length > 0 && (
+            <div className="dash-section">
+              <div className="dash-section-header">
+                <div className="dash-section-header-bar bg-yellow-400" />
+                <h3>Módulos de Evolução</h3>
+                <div className="dash-section-header-line" />
+              </div>
+              <div className="dash-module-chips">
+                {acquiredModules.map((m, i) => {
+                  const isPassive = !m.pe
+                  const isSpecial = MODULES_SPECIAL.some(s => s.id === m.id)
+                  return (
+                    <div key={i} className={`dash-module-chip ${isSpecial ? 'is-special' : isPassive ? 'is-passive' : 'is-active'}`} style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.3rem', padding: '0.5rem 0.6rem' }}>
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="mod-type">{isSpecial ? 'ESP' : isPassive ? 'PSV' : 'ATV'}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>{m.name}</span>
+                        {(m.boughtCount || 1) > 1 && <span className="mod-count">×{m.boughtCount}</span>}
+                      </div>
+                      <p style={{ fontSize: '0.66rem', color: 'rgba(156,143,123,0.6)', lineHeight: 1.4 }}>{m.desc}</p>
+                      {canEdit && !isPassive && (
+                        <button type="button" onClick={() => toggleActiveEffect(`module_${m.id}`)} className={`active-toggle ${activeEffects[`module_${m.id}`] ? 'is-active' : ''}`} style={{ fontSize: '0.58rem', padding: '0.25rem 0.5rem' }}>
+                          {activeEffects[`module_${m.id}`] ? 'Ativo' : 'Ativar'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {hasSystemSkills && (
+            <div className="dash-section">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="dash-section-header">
+                  <div className="dash-section-header-bar bg-purple-400" />
+                  <h3>Skills Sistêmicas</h3>
+                  <div className="dash-section-header-line" />
+                </div>
+                {isAdmin && (
+                  <button onClick={() => setSkillCatalogOpen(true)} className="ml-auto bg-purple-400/10 border border-purple-300/30 text-purple-300 rounded-lg px-3 py-1.5 text-[11px] font-semibold hover:bg-purple-400/20 transition-colors">+ Atribuir Skill</button>
+                )}
+              </div>
+              <div className="space-y-3">
+                {(char.systemSkills || []).length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {(char.systemSkills || []).map((entry, i) => {
+                      const skill = getSystemSkillById(entry.skillId)
+                      const effects = entry.effects || []
+                      const availableTypes = skill?.effectTypes || Object.keys(EFFECT_PARAM_DEFS)
+                      const repeatableTypes = ['damage_per_level_interval', 'damage_per_attribute_interval', 'resource_per_level', 'attribute_cap_bonus', 'forge_rank_bonus', 'forge_enchantment_slots', 'forge_quality_bonus', 'manual_flag']
+                      const addableTypes = availableTypes.filter(t => !effects.some(e => e.type === t) || repeatableTypes.includes(t))
+                      const isActive = entry.active !== false
+                      const skillColors = { forge_master: 'from-amber-400/20 via-orange-500/10 to-amber-600/5', skeleton_progression: 'from-emerald-400/20 via-green-500/10 to-emerald-600/5', scaling_damage: 'from-red-400/20 via-rose-500/10 to-red-600/5', resource_growth: 'from-cyan-400/20 via-sky-500/10 to-cyan-600/5', attribute_cap_break: 'from-violet-400/20 via-purple-500/10 to-violet-600/5' }
+                      const gradient = skillColors[entry.skillId] || 'from-purple-400/15 via-indigo-500/10 to-purple-600/5'
+                      return (
+                        <div key={entry.id || i} onClick={(e) => { if (entry.skillId === 'forge_master' && !e.target.closest('button,input,select,textarea')) setForgeMenuOpen(true) }} className={`relative overflow-hidden rounded-xl border transition-all duration-300 group ${isActive ? `border-purple-300/40 bg-gradient-to-br ${gradient}` : 'border-sep/20 bg-void/40 opacity-60'}`} style={{ boxShadow: isActive ? '0 0 20px rgba(168, 85, 247, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'none' }}>
+                          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2240%22%20height%3D%2240%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M20%200%20L40%2020%20L20%2040%20L0%2020Z%22%20fill%3D%22none%22%20stroke%3D%22rgba(168%2C%2085%2C%20247%2C0.03)%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E')] opacity-30 pointer-events-none" />
+                          <div className="relative px-4 pt-3 pb-3">
+                            <div className="flex items-start gap-3">
+                              <div className={`relative shrink-0 ${isActive ? '' : 'opacity-40'}`}>
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${isActive ? 'border-purple-300/30 bg-purple-400/20' : 'border-sep/30 bg-void/60'}`}>
+                                  <span className="text-xl" style={{ textShadow: isActive ? '0 0 10px rgba(168, 85, 247, 0.5)' : 'none' }}>{entry.skillId === 'forge_master' ? '⚒️' : entry.skillId === 'skeleton_progression' ? '💀' : entry.skillId === 'scaling_damage' ? '⚔️' : entry.skillId === 'resource_growth' ? '💎' : entry.skillId === 'attribute_cap_break' ? '🔮' : '✦'}</span>
+                                </div>
+                                <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${isActive ? 'bg-purple-400 animate-pulse' : 'bg-sep/40'}`} style={{ boxShadow: isActive ? '0 0 8px rgba(168, 85, 247, 0.6)' : 'none' }} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`text-[13px] font-bold tracking-wide ${isActive ? 'text-purple-100' : 'text-txt-dim/60'}`} style={{ textShadow: isActive ? '0 0 10px rgba(168, 85, 247, 0.3)' : 'none' }}>{skill?.name || entry.skillId}</span>
+                                  <span className={`text-[8px] rounded-full px-2 py-0.5 font-bold uppercase tracking-wider ${isActive ? 'bg-purple-400/25 text-purple-200 border border-purple-300/30' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{isActive ? 'Ativa' : 'Inativa'}</span>
+                                  {skill?.rarity && (<span className={`text-[8px] rounded px-2 py-0.5 font-medium ${isActive ? 'bg-amber-400/15 text-amber-200 border border-amber-300/20' : 'bg-sep/15 text-txt-dim/50 border border-sep/20'}`}>{skill.rarity}</span>)}
+                                </div>
+                                <p className={`text-[10px] mt-2 leading-relaxed ${isActive ? 'text-txt-dim/80' : 'text-txt-dim/40'}`}>{skill?.short || 'Integração sistêmica definida pelo mestre.'}</p>
+                              </div>
+                              {isAdmin && (
+                                <div className="ml-auto flex items-center gap-2 shrink-0">
+                                  {entry.skillId === 'forge_master' && (<button onClick={() => setForgeMenuOpen(true)} className="w-7 h-7 grid place-items-center rounded border border-amber-300/30 text-amber-300/70 hover:text-amber-200 hover:bg-amber-400/20 transition-colors" title="Abrir encantamentos"><span className="material-symbols-outlined text-[15px]">auto_fix_high</span></button>)}
+                                  <button onClick={() => { if (confirm(`Remover a skill "${skill?.name || entry.skillId}"? Os efeitos serão perdidos.`)) update({ systemSkills: (char.systemSkills || []).filter((_, si) => si !== i) }) }} className="w-7 h-7 grid place-items-center rounded text-err/50 hover:text-err hover:bg-err/15 transition-colors border border-transparent hover:border-err/25" title="Excluir Skill"><span className="material-symbols-outlined text-[15px]">close</span></button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {effects.length > 0 && (
+                            <div className={`px-4 pb-3 ${isAdmin ? '' : 'pt-2'}`}>
+                              <div className="space-y-2">
+                                {effects.map((effect, ei) => {
+                                  const eDef = EFFECT_PARAM_DEFS[effect.type]
+                                  if (!eDef) return null
+                                  return (
+                                    <div key={ei} className="bg-void/50 border border-purple-300/20 rounded-lg px-3 py-2 backdrop-blur-sm">
+                                      <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-purple-200/90 text-[10px] font-semibold tracking-wide">◆ {eDef.label}</span>
+                                        {isAdmin && (<button onClick={() => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.filter((_, fi) => fi !== ei) } : s) })} className="text-err/50 hover:text-err text-[9px] transition-colors opacity-70 hover:opacity-100">✕</button>)}
+                                      </div>
+                                      {!isAdmin && (<div className="flex flex-wrap gap-x-3 gap-y-0.5">{Object.entries(eDef.params).map(([pKey, pDef]) => (<span key={pKey} className="text-txt-dim/50 text-[9px]"><span className="text-purple-300/70">{pDef.label}:</span> <span className="text-txt-dim/90">{effect[pKey] ?? pDef.default}</span></span>))}</div>)}
+                                      {isAdmin && Object.entries(eDef.params).map(([pKey, pDef]) => {
+                                        if (pDef.type === 'select') return (<div key={pKey} className="flex items-center gap-2 mt-1.5"><span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span><select value={effect[pKey] ?? pDef.default} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })} className="flex-1 bg-void/70 text-txt-main text-[10px] border border-purple-300/25 rounded px-2.5 py-1 focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20">{(pDef.options || []).map(o => <option key={o.value} value={o.value} className="bg-void text-txt-main">{o.label}</option>)}</select></div>)
+                                        if (pDef.type === 'number') return (<div key={pKey} className="flex items-center gap-2 mt-1.5"><span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span><input type="number" value={effect[pKey] ?? pDef.default} min={pDef.min} max={pDef.max} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value === '' ? '' : Number(e.target.value) } : ef) } : s) })} className="w-16 bg-void/70 text-txt-dim text-[10px] border border-purple-300/25 rounded px-2 py-0.5 text-center focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20" /></div>)
+                                        return (<div key={pKey} className="flex items-center gap-2 mt-1.5"><span className="text-txt-dim/50 text-[10px] min-w-[100px]">{pDef.label}</span><input type="text" value={effect[pKey] ?? pDef.default ?? ''} onChange={e => update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: s.effects.map((ef, fi) => fi === ei ? { ...ef, [pKey]: e.target.value } : ef) } : s) })} className="flex-1 bg-void/70 text-txt-dim text-[10px] border border-purple-300/25 rounded px-2 py-0.5 focus:border-purple-400/40 focus:outline-none focus:ring-1 focus:ring-purple-400/20" /></div>)
+                                      })}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          {isAdmin && addableTypes.length > 0 && (
+                            <div className="px-4 pb-3 pt-2">
+                              <select onChange={e => { if (e.target.value) { const pDef = EFFECT_PARAM_DEFS[e.target.value]; const newEff = { type: e.target.value }; if (pDef) for (const [k, p] of Object.entries(pDef.params)) { if (p.default != null) newEff[k] = p.default; } update({ systemSkills: (char.systemSkills || []).map((s, si) => si === i ? { ...s, effects: [...(s.effects || []), newEff] } : s) }); e.target.value = '' } }} className="w-full text-[10px] bg-void/50 border border-dashed border-purple-300/30 text-purple-200/50 rounded-lg px-3 py-2 hover:border-purple-400/40 hover:text-purple-200/70 transition-colors cursor-pointer focus:border-purple-400/50 focus:outline-none focus:ring-1 focus:ring-purple-400/20">
+                                <option value="">✧ Adicionar efeito arcânico...</option>
+                                {addableTypes.map(t => <option key={t} value={t}>{EFFECT_PARAM_DEFS[t]?.label || t}</option>)}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (<p className="text-txt-dim/40 text-xs italic text-center py-4">Nenhuma Skill atribuída pelo Mestre.</p>)}
+                {summarizeSystemSkillBonuses(char).length > 0 && (
+                  <div className="bg-purple-400/5 border border-purple-300/25 rounded-xl px-4 py-3 backdrop-blur-sm">
+                    <div className="text-[10px] text-purple-300/70 font-semibold mb-2 uppercase tracking-widest">✦ Bônus Ativos</div>
+                    <div className="flex flex-wrap gap-1.5">{summarizeSystemSkillBonuses(char).map((line, i) => (<span key={i} className="text-[10px] bg-purple-400/15 text-purple-200 border border-purple-300/25 rounded-md px-2.5 py-1" style={{ boxShadow: '0 0 8px rgba(168,85,247,0.1)' }}>{line}</span>))}</div>
+                  </div>
+                )}
+                {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').length > 0 && (
+                  <div className="space-y-2">
+                    {(char.systemSkillNotifications || []).filter(n => n.status !== 'closed').map(notice => (
+                      <div key={notice.id} className="rounded-lg border border-warn/25 bg-warn/5 px-3 py-2.5 flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-txt-main text-[11px] font-semibold">{notice.title}</p>
+                          <p className="text-txt-dim/60 text-[10px] mt-0.5">{notice.message}</p>
+                          {notice.suggestedEffects && (<div className="mt-1.5 flex flex-wrap gap-1">{notice.suggestedEffects.map((ef, ei) => (<span key={ei} className="text-[8px] bg-sky-400/10 text-sky-300 border border-sky-400/15 rounded px-1.5 py-0.5">{EFFECT_PARAM_DEFS[ef.type]?.label || ef.type}</span>))}</div>)}
+                        </div>
+                        {isAdmin && (
+                          <div className="flex gap-1.5 shrink-0">
+                            <button onClick={() => { const effects = notice.suggestedEffects && notice.suggestedEffects.length > 0 ? notice.suggestedEffects : createDefaultEffectsForSkill(notice.skillId); update({ systemSkills: [...(char.systemSkills || []), { id: `skill_${Date.now()}`, skillId: notice.skillId, active: true, sourceAbilityIndex: notice.abilityIndex ?? null, notes: '', effects, createdAt: new Date().toISOString() }], systemSkillNotifications: (char.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n) }) }} className="text-[10px] bg-gold text-void px-3 py-1 rounded-md font-semibold hover:bg-gold/90 transition-colors">Atribuir</button>
+                            <button onClick={() => update({ systemSkillNotifications: (char.systemSkillNotifications || []).map(n => n.id === notice.id ? { ...n, status: 'closed', resolvedAt: new Date().toISOString() } : n) })} className="text-[10px] border border-err/30 text-err/70 px-2.5 py-1 rounded-md hover:bg-err/10 transition-colors">Descartar</button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {sheetView === 'equipment' && (
+        <div className="space-y-3">
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-red-400" />
+              <h3>Armas & Arte Marcial</h3>
+              <div className="dash-section-header-line" />
+            </div>
+            <WeaponMartialPanel char={char} update={update} canEdit={canEdit} />
+          </div>
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-amber-400" />
+              <h3>Inventário & Equipamentos</h3>
+              <div className="dash-section-header-line" />
+            </div>
+            <ResidentInventorySection char={char} characterId={characterId} canEdit={canEdit} update={update} onTransferItem={onTransferItem} maxCarry={carryCapacity} totalCarryWeight={carriedLoad} />
+          </div>
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-gray-400" />
+              <h3>Notas</h3>
+              <div className="dash-section-header-line" />
+            </div>
+            {canEdit ? (
+              <textarea value={char.notas || ''} onChange={e => update({ notas: e.target.value })} placeholder="Anotações do jogador..." rows={3} className="w-full bg-void/60 border border-sep/40 rounded-lg px-3 py-2 text-xs text-txt-main resize-none focus:border-gold/40 focus:outline-none transition-colors placeholder:text-txt-dim/40" />
+            ) : (<p className="text-txt-main/80 text-xs whitespace-pre-wrap leading-relaxed">{char.notas || '—'}</p>)}
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex justify-center gap-3 pb-4">
-        <button onClick={onNew} className="border border-gold/50 text-gold px-5 py-2 rounded-lg text-xs hover:bg-gold hover:text-void transition-colors font-semibold">
+      {sheetView === 'evolution' && (
+        <div className="space-y-3">
+          {cls && skelTotal > 0 && (
+            <SkeletonPointAllocator char={char} update={update} sk={sk} skelTotal={skelTotal} skelSpent={skelSpent} sysSkillBonuses={sysSkillBonuses} skelBase={skelBase} isAdmin={isAdmin} />
+          )}
+          <div className="dash-section">
+            <div className="flex items-center justify-between">
+              <div className="dash-section-header">
+                <div className="dash-section-header-bar bg-cyan-400" />
+                <h3>Perícias</h3>
+                <div className="dash-section-header-line" />
+              </div>
+              {canEdit && cls && (
+                <button onClick={() => setEditingPericias(!editingPericias)} className={`text-[10px] px-2.5 py-1 rounded border transition-colors ${editingPericias ? 'bg-cyan-400/15 border-cyan-400/40 text-cyan-300' : 'bg-void border-sep/30 text-txt-dim hover:border-cyan-400/30 hover:text-cyan-300'}`}>{editingPericias ? 'Fechar' : 'Editar'}</button>
+              )}
+            </div>
+            {cls && (<div className="mb-2 flex items-center gap-2 text-[10px] text-txt-dim"><span>Pontos: <span className={`font-mono ${(periciasTotal - periciasUsed) > 0 ? 'text-cyan-400' : 'text-ok'}`}>{periciasUsed}/{periciasTotal}</span></span><span className="text-txt-dim/40">|</span><span>Grau máx: <span className="font-mono text-gold">{periciasMaxGrau} ({GRAU_NAMES[periciasMaxGrau]})</span></span></div>)}
+            {editingPericias && canEdit && cls ? (
+              <div className="space-y-1.5">
+                {PERICIAS.map(pericia => {
+                  const grau = (char.pericias || {})[pericia.name] || 0
+                  const bestAttr = pericia.attrs.map(a => ({ a, v: totalAttr(a) })).reduce((a, b) => a.v >= b.v ? a : b)
+                  const bonus = Math.max(...pericia.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau)
+                  const remaining = periciasTotal - periciasUsed
+                  const canUpgrade = remaining > 0 && (grau < periciasMaxGrau)
+                  return (
+                    <div key={pericia.name} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors ${grau > 0 ? 'border-cyan-400/30 bg-cyan-400/5' : 'border-sep/20 bg-void/30'}`}>
+                      <span className={`text-xs flex-1 min-w-0 truncate ${grau > 0 ? 'text-txt-main' : 'text-txt-dim/60'}`}>{pericia.name}</span>
+                      <span className="text-[9px] text-txt-dim/50 w-10 text-center">{pericia.attrs.join('/')}</span>
+                      <span className="text-[9px] text-gold/60 font-mono w-6 text-center">{bestAttr.a}</span>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => adjustPericia(pericia.name, -1)} disabled={grau <= 0} className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${grau > 0 ? 'bg-err/10 text-err/60 hover:bg-err/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'}`}>−</button>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded text-center min-w-[70px] ${grau > 0 ? 'bg-cyan-400/15 text-cyan-300' : 'bg-void text-txt-dim/40'}`}>{GRAU_NAMES[grau]}</span>
+                        <button onClick={() => adjustPericia(pericia.name, 1)} disabled={!canUpgrade} className={`w-5 h-5 flex items-center justify-center rounded text-xs transition-colors ${canUpgrade || grau > 0 ? 'bg-ok/10 text-ok/60 hover:bg-ok/20' : 'bg-void border border-sep/20 text-sep/20 cursor-not-allowed'}`}>+</button>
+                      </div>
+                      <span className={`font-mono text-xs w-8 text-right ${grau > 0 ? 'text-cyan-400' : 'text-txt-dim/30'}`}>{bonus >= 0 ? '+' : ''}{grau > 0 ? bonus : 0}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : periciasArr.length > 0 ? (
+              <div className="dash-pericias">
+                {periciasArr.map(([name, grau]) => {
+                  const pDef = PERICIAS.find(p => p.name === name)
+                  const bonus = pDef ? Math.max(...pDef.attrs.map(a => getModifier(totalAttr(a)))) + getGrauBonus(grau) : grau * 5
+                  return (<span key={name} className="dash-pericia-chip">{name}<small>{GRAU_NAMES[grau] || grau}</small><strong>{bonus >= 0 ? '+' : ''}{bonus}</strong></span>)
+                })}
+              </div>
+            ) : (<p className="text-txt-dim/60 text-xs italic">Nenhuma perícia treinada</p>)}
+          </div>
+          <div className="dash-section">
+            <div className="dash-section-header">
+              <div className="dash-section-header-bar bg-purple-400" />
+              <h3>Triagens</h3>
+              <div className="dash-section-header-line" />
+            </div>
+            <TriagemSection char={char} cls={cls} />
+          </div>
+          <details className="dash-collapsible">
+            <summary>
+              <div className="dash-section-header-bar bg-emerald-400" />
+              <span className="font-cinzel text-txt-main text-xs uppercase tracking-[0.15em]">Herança Racial</span>
+              <span className="ml-auto text-txt-dim/30 text-[10px]">▼</span>
+            </summary>
+            <div className="dash-collapsible-content mt-2">
+              <RaceHeritageSectionV2 char={char} update={update} />
+            </div>
+          </details>
+        </div>
+      )}
+
+      {sheetView === 'mystic' && (
+        <MysticKnowledgeGrid char={char} update={update} canEdit={canEdit} alchemyProfile={alchemyProfile} spellProfile={spellProfile} runeProfile={runeProfile} magicProfile={magicProfile} alchemyEnabled={alchemyEnabled} spellsEnabled={spellsEnabled} runesEnabled={runesEnabled} magicEnabled={magicEnabled} systemOptIn={systemOptIn} />
+      )}
+
+      <div className="dash-footer">
+        <button onClick={onNew} className="dash-topbar-btn">
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add</span>
           Novo Personagem
         </button>
-        <button onClick={onSave} className="bg-gold text-void font-semibold px-6 py-2 rounded-lg text-xs hover:bg-gold-light transition-colors">
+        <button onClick={onSave} className="dash-topbar-btn dash-topbar-btn-primary">
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>library_books</span>
           Salvar e Ir para Biblioteca
         </button>
       </div>
-        </div>
       </div>
     </div>
   )
@@ -3419,14 +3271,13 @@ function WeaponMartialPanel({ char, update, canEdit }) {
   )
 }
 
-function RaceHeritageSectionV2({ char }) {
+function RaceHeritageSectionV2({ char, update }) {
   const race = RACES[char.raca]
   if (!race) return null
 
   const bonus = calculateRaceBonus(char)
   const subrace = getSelectedSubrace(char)
   const catMeta = RACE_CATEGORIES.find(c => c.id === race.category) || RACE_CATEGORIES[0]
-  const milestones = flattenRaceMilestones(race, subrace)
 
   const statParts = formatRaceBonusParts(bonus)
 
@@ -3483,26 +3334,13 @@ function RaceHeritageSectionV2({ char }) {
           </div>
         )}
 
-        {milestones.length > 0 && (
+        {update && char.raca && (
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <div className="text-amber-300 text-sm font-semibold">Marcos de Experiência</div>
-              <span className="text-txt-dim text-xs">(via Árvore de Habilidades)</span>
+              <div className="text-amber-300 text-sm font-semibold">Árvore de Habilidades</div>
+              <span className="text-txt-dim text-xs">(constelação racial)</span>
             </div>
-            <div className="space-y-2">
-              {milestones.map(m => (
-                <div key={m.key} className="race-grant-card">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-txt-main text-sm font-semibold">{m.title}</span>
-                      <span className="text-[10px] text-amber-300/75 border border-amber-300/15 rounded px-1.5 py-0.5">{m.group}</span>
-                    </div>
-                    {m.condition && <div className="text-txt-dim text-xs mt-1">{m.condition}</div>}
-                    <div className="text-gold text-sm mt-1">{m.reward}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <RaceSkillTree char={char} update={update} />
           </div>
         )}
       </div>
@@ -3656,20 +3494,6 @@ function RaceHeritageSection({ char }) {
                   <div className="text-txt-main text-sm font-semibold">{marco}</div>
                   <div className="text-txt-dim text-sm">{condicao}</div>
                   <div className="text-emerald-400 text-sm">{ganho}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {race.marcosExperiencia?.length > 0 && (
-          <div>
-            <div className="text-amber-300 text-sm font-semibold mb-2">Marcos de Experiência</div>
-            <div className="space-y-1">
-              {race.marcosExperiencia.map((m, i) => (
-                <div key={i} className="bg-amber-400/5 border border-amber-400/15 rounded-lg px-3 py-1.5">
-                  <div className="text-txt-dim text-sm">{m.marco}</div>
-                  <div className="text-gold text-sm">{m.ganho}</div>
                 </div>
               ))}
             </div>
