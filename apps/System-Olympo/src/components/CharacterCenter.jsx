@@ -17,11 +17,7 @@ import { calculateRaceBonus, getRaceLabel, getSelectedSubrace } from '../utils/r
 import { normalizeSkillTags, getSkillTagChips, calcEvolucaoDelta, getSkillBracket } from '../utils/skillEvolution'
 import { getLevelBand } from '../utils/skillEvolution'
 import ResidentInventorySection from './ResidentInventorySection'
-import RaceSkillTree from './RaceSkillTree'
-import AlchemyLibrarySection from './AlchemyLibrarySection'
-import SpellLibrarySection from './SpellLibrarySection'
-import RuneLibrarySection from './RuneLibrarySection'
-import MagicLibrarySection from './MagicLibrarySection'
+import SkillTreeView from './SkillTreeView'
 
 const RESOURCE_COLORS = {
   vida: '#3dff92',
@@ -232,7 +228,7 @@ function AbilityCard({ habilidade, index, onExpand }) {
         borderColor: style.border,
         boxShadow: `0 0 24px ${style.glow}`,
       }}
-      onClick={() => onExpand && onExpand(habilidade)}
+      onClick={() => onExpand && onExpand({ habilidade, index })}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="material-symbols-outlined text-lg" style={{ color: style.color, fontVariationSettings: "'FILL' 1" }}>{style.icon}</span>
@@ -258,13 +254,18 @@ function AbilityCard({ habilidade, index, onExpand }) {
   )
 }
 
-function AbilityDetailModal({ habilidade, onClose }) {
+function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
+  const [editMode, setEditMode] = useState(false)
+  const [draft, setDraft] = useState(habilidade)
+
+  useEffect(() => { setDraft(habilidade); setEditMode(false) }, [habilidade])
+
   if (!habilidade) return null
-  const tags = normalizeSkillTags(habilidade)
-  const chips = getSkillTagChips(habilidade)
-  const evoNivel = habilidade.evolucaoNivel || 0
-  const delta = evoNivel > 0 ? calcEvolucaoDelta(habilidade, evoNivel) : null
-  const tipo = habilidade.tipo || 'Ativa'
+  const chips = getSkillTagChips(draft)
+  const evoNivel = draft.evolucaoNivel || 0
+  const delta = evoNivel > 0 ? calcEvolucaoDelta(draft, evoNivel) : null
+  const tipo = draft.tipo || 'Ativa'
+  const canEdit = onEdit && index != null
 
   const tipoStyle = {
     Passiva: { color: '#00ffae', icon: 'shield' },
@@ -273,50 +274,120 @@ function AbilityDetailModal({ habilidade, onClose }) {
   }
   const style = tipoStyle[tipo] || tipoStyle.Ativa
 
+  function save() {
+    onEdit(index, draft)
+    setEditMode(false)
+  }
+
+  function patch(p) {
+    setDraft(prev => ({ ...prev, ...p }))
+  }
+
   return (
     <div className="cc-modal-overlay" onClick={onClose}>
-      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()}>
+      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ overflow: 'visible' }}>
         <button className="cc-modal-close" onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
         </button>
         <div className="cc-modal-header">
           <span className="material-symbols-outlined" style={{ color: style.color, fontSize: 32, fontVariationSettings: "'FILL' 1" }}>{style.icon}</span>
-          <div>
-            <span className="cc-ability-type" style={{ color: style.color }}>{tipo.toUpperCase()}</span>
-            <h3 className="font-cinzel text-xl text-txt-main mt-1">{habilidade.nome || 'Habilidade'}</h3>
+          <div className="flex-1">
+            {editMode ? (
+              <input
+                className="cc-edit-input cc-edit-input--title"
+                value={draft.nome || ''}
+                onChange={e => patch({ nome: e.target.value })}
+                placeholder="Nome da habilidade"
+              />
+            ) : (
+              <>
+                <span className="cc-ability-type" style={{ color: style.color }}>{tipo.toUpperCase()}{index != null ? ` · SLOT ${index + 1}` : ''}</span>
+                <h3 className="font-cinzel text-xl text-txt-main mt-1">{draft.nome || 'Habilidade'}</h3>
+              </>
+            )}
           </div>
+          {canEdit && !editMode && (
+            <button className="cc-modal-edit-btn" onClick={() => setEditMode(true)}>
+              <span className="material-symbols-outlined text-sm">edit</span> Editar
+            </button>
+          )}
+          {editMode && (
+            <button className="cc-modal-edit-btn cc-modal-edit-btn--save" onClick={save}>
+              <span className="material-symbols-outlined text-sm">check</span> Salvar
+            </button>
+          )}
         </div>
         <div className="cc-modal-body">
-          <p className="text-sm text-txt-main leading-relaxed mb-3">
-            {habilidade.descricaoBalanceada || habilidade.descricao || '—'}
-          </p>
-          <div className="cc-modal-stats">
-            {habilidade.custoEnergia > 0 && <div className="cc-modal-stat"><span className="text-txt-dim">Energia</span><span className="font-mono text-tomato">{habilidade.custoEnergia}</span></div>}
-            {habilidade.dano && <div className="cc-modal-stat"><span className="text-txt-dim">Dano</span><span className="font-mono text-tomato">{habilidade.dano}</span></div>}
-            {habilidade.dt && <div className="cc-modal-stat"><span className="text-txt-dim">DT</span><span className="font-mono">{habilidade.dt}</span></div>}
-            {habilidade.duracao && <div className="cc-modal-stat"><span className="text-txt-dim">Duração</span><span>{habilidade.duracao}</span></div>}
-            {habilidade.alcance && <div className="cc-modal-stat"><span className="text-txt-dim">Alcance</span><span>{habilidade.alcance}</span></div>}
-            {habilidade.cooldown && <div className="cc-modal-stat"><span className="text-txt-dim">Recarga</span><span>{habilidade.cooldown}</span></div>}
-          </div>
-          {chips.length > 0 && (
-            <div className="mt-3">
-              <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Tags</div>
-              <div className="flex flex-wrap gap-1.5">
-                {chips.map((chip, i) => (
-                  <span key={i} className="cc-tag-chip cc-tag-chip--lg">{chip.label}{chip.value ? ` ${chip.value}` : ''}</span>
-                ))}
+          {editMode ? (
+            <div className="space-y-3">
+              <textarea
+                className="cc-edit-textarea"
+                value={draft.descricaoBalanceada || draft.descricao || ''}
+                onChange={e => patch({ descricaoBalanceada: e.target.value, descricao: e.target.value })}
+                rows={4}
+                placeholder="Descrição da habilidade"
+              />
+              <div className="cc-edit-grid">
+                <label className="cc-edit-field">
+                  <span>Energia</span>
+                  <input type="number" value={draft.custoEnergia || ''} onChange={e => patch({ custoEnergia: parseInt(e.target.value) || 0 })} />
+                </label>
+                <label className="cc-edit-field">
+                  <span>Dano</span>
+                  <input type="text" value={draft.dano || ''} onChange={e => patch({ dano: e.target.value })} />
+                </label>
+                <label className="cc-edit-field">
+                  <span>DT</span>
+                  <input type="text" value={draft.dt || ''} onChange={e => patch({ dt: e.target.value })} />
+                </label>
+                <label className="cc-edit-field">
+                  <span>Duração</span>
+                  <input type="text" value={draft.duracao || ''} onChange={e => patch({ duracao: e.target.value })} />
+                </label>
+                <label className="cc-edit-field">
+                  <span>Alcance</span>
+                  <input type="text" value={draft.alcance || ''} onChange={e => patch({ alcance: e.target.value })} />
+                </label>
+                <label className="cc-edit-field">
+                  <span>Recarga</span>
+                  <input type="text" value={draft.cooldown || ''} onChange={e => patch({ cooldown: e.target.value })} />
+                </label>
               </div>
             </div>
-          )}
-          {delta && delta.tagBonuses.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-sep/50">
-              <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Bônus de Evolução (PEH {evoNivel})</div>
-              <div className="flex flex-wrap gap-1.5">
-                {delta.tagBonuses.map((b, i) => (
-                  <span key={i} className="cc-evo-bonus">{b.label} {b.value}</span>
-                ))}
+          ) : (
+            <>
+              <p className="text-sm text-txt-main leading-relaxed mb-3">
+                {draft.descricaoBalanceada || draft.descricao || '—'}
+              </p>
+              <div className="cc-modal-stats">
+                {draft.custoEnergia > 0 && <div className="cc-modal-stat"><span className="text-txt-dim">Energia</span><span className="font-mono text-tomato">{draft.custoEnergia}</span></div>}
+                {draft.dano && <div className="cc-modal-stat"><span className="text-txt-dim">Dano</span><span className="font-mono text-tomato">{draft.dano}</span></div>}
+                {draft.dt && <div className="cc-modal-stat"><span className="text-txt-dim">DT</span><span className="font-mono">{draft.dt}</span></div>}
+                {draft.duracao && <div className="cc-modal-stat"><span className="text-txt-dim">Duração</span><span>{draft.duracao}</span></div>}
+                {draft.alcance && <div className="cc-modal-stat"><span className="text-txt-dim">Alcance</span><span>{draft.alcance}</span></div>}
+                {draft.cooldown && <div className="cc-modal-stat"><span className="text-txt-dim">Recarga</span><span>{draft.cooldown}</span></div>}
               </div>
-            </div>
+              {chips.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Tags</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chips.map((chip, i) => (
+                      <span key={i} className="cc-tag-chip cc-tag-chip--lg">{chip.label}{chip.value ? ` ${chip.value}` : ''}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {delta && delta.tagBonuses.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-sep/50">
+                  <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Bônus de Evolução (PEH {evoNivel})</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {delta.tagBonuses.map((b, i) => (
+                      <span key={i} className="cc-evo-bonus">{b.label} {b.value}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -382,7 +453,98 @@ const SIDEBAR_ITEMS = [
   { key: 'inventario', label: 'Inventário', icon: 'inventory_2' },
 ]
 
-export default function CharacterCenter({ char, update, onShowSheet, onShowBoard, onShowRaceTree, onLevelUp, onRaceEvolve, characterId, canEdit, onTransferItem }) {
+const KNOWLEDGE_TYPES = [
+  { key: 'alchemyRituals', field: 'alchemyRituals', label: 'Alquimia', icon: 'science', color: '#34d399', accent: 'emerald' },
+  { key: 'spells', field: 'spells', label: 'Feitiçaria', icon: 'auto_fix_high', color: '#60a5fa', accent: 'sky' },
+  { key: 'runes', field: 'runes', label: 'Runas', icon: 'token', color: '#c084fc', accent: 'purple' },
+  { key: 'magics', field: 'magics', label: 'Magia', icon: 'whatshot', color: '#f7bd48', accent: 'amber' },
+]
+
+function KnowledgeBookshelf({ char }) {
+  const [expanded, setExpanded] = useState(null)
+
+  const sections = KNOWLEDGE_TYPES.map(kt => {
+    const items = char[kt.field] || []
+    return { ...kt, items, count: items.length }
+  }).filter(s => s.count > 0)
+
+  if (sections.length === 0) {
+    return (
+      <div className="glass-panel" data-gsap style={{ padding: '48px 28px', textAlign: 'center' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 56, color: 'rgba(255,255,255,0.1)' }}>menu_book</span>
+        <p className="text-txt-dim text-sm mt-4">Nenhum conhecimento místico desbloqueado ainda.</p>
+        <p className="text-txt-dim/50 text-xs mt-1">Adquira Soft-Skills como "Estudos de Alquimia" para desbloquear disciplinas.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {sections.map(section => {
+        const isOpen = expanded === section.key
+        return (
+          <div key={section.key} className="glass-panel cc-knowledge-shelf" data-gsap style={{ overflow: 'visible' }}>
+            <button
+              className="cc-knowledge-shelf-header"
+              onClick={() => setExpanded(isOpen ? null : section.key)}
+              style={{ '--kn-color': section.color }}
+            >
+              <span className="material-symbols-outlined cc-knowledge-shelf-icon" style={{ color: section.color }}>
+                {isOpen ? 'expand_less' : 'menu_book'}
+              </span>
+              <div className="cc-knowledge-shelf-info">
+                <span className="cc-knowledge-shelf-label font-cinzel" style={{ color: section.color }}>{section.label}</span>
+                <span className="cc-knowledge-shelf-count">{section.count} {section.count === 1 ? 'item' : 'itens'}</span>
+              </div>
+              <div className="cc-knowledge-shelf-books">
+                {section.items.slice(0, 8).map((item, i) => (
+                  <div
+                    key={i}
+                    className="cc-knowledge-book-spine"
+                    style={{
+                      '--book-color': section.color,
+                      height: `${28 + (item.circle || 1) * 6}px`,
+                      animationDelay: `${i * 0.08}s`,
+                    }}
+                    title={item.name || item.nome}
+                  >
+                    <span className="cc-knowledge-book-text">{item.name || item.nome || '?'}</span>
+                  </div>
+                ))}
+                {section.count > 8 && (
+                  <div className="cc-knowledge-book-spine cc-knowledge-book-more" style={{ '--book-color': section.color }}>
+                    <span>+{section.count - 8}</span>
+                  </div>
+                )}
+              </div>
+            </button>
+            {isOpen && (
+              <div className="cc-knowledge-shelf-content">
+                {section.items.map((item, i) => (
+                  <div key={i} className="cc-knowledge-item">
+                    <div className="cc-knowledge-item-header">
+                      <span className="material-symbols-outlined cc-knowledge-item-circle" style={{ color: section.color }}>
+                        {CIRCLE_ICON[item.circle] || 'brightness_1'}
+                      </span>
+                      <span className="cc-knowledge-item-name">{item.name || item.nome || '—'}</span>
+                      {item.circle && <span className="cc-knowledge-item-circle-label">{item.circle}º Círculo</span>}
+                      {item.pe && <span className="cc-knowledge-item-pe">{item.pe} PE</span>}
+                    </div>
+                    <p className="cc-knowledge-item-desc">{item.effect || item.descricao || item.short_description || '—'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+const CIRCLE_ICON = { 1: 'looks_one', 2: 'looks_two', 3: 'looks_3', 4: 'looks_4' }
+
+export default function CharacterCenter({ char, update, updateHabilidade, onShowSheet, onShowBoard, onShowRaceTree, onLevelUp, onRaceEvolve, characterId, canEdit, onTransferItem }) {
   const containerRef = useRef(null)
   const [activeTab, setActiveTab] = useState('personagem')
   const [abilityModal, setAbilityModal] = useState(null)
@@ -419,13 +581,13 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
     return m
   }, [])
 
-  const racialActiveAbilities = useMemo(() => {
+  const racialAbilities = useMemo(() => {
     const tree = getRaceTree(char.raca)
     if (!tree) return []
     const unlocked = char.raceTreeUnlocked || []
     return tree.nodes
       .filter(n => unlocked.includes(n.id))
-      .flatMap(n => (n.effects || []).filter(e => e.type === 'habilidade' && e.tipo === 'ativa'))
+      .flatMap(n => (n.effects || []).filter(e => e.type === 'habilidade'))
   }, [char.raca, char.raceTreeUnlocked])
 
   return (
@@ -456,7 +618,7 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
               >
                 <span className="material-symbols-outlined">{item.icon}</span>
                 <span className="cc-sidebar-btn-label">{item.label}</span>
-                {item.key === 'conhecimentos' && racialActiveAbilities.length === 0 && (char.spells?.length || char.runes?.length || char.magics?.length || char.alchemyRituals?.length) > 0 && (
+                {item.key === 'conhecimentos' && racialAbilities.length === 0 && (char.spells?.length || char.runes?.length || char.magics?.length || char.alchemyRituals?.length) > 0 && (
                   <span className="cc-sidebar-badge" />
                 )}
               </button>
@@ -615,18 +777,18 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
                 </div>
               </div>
 
-              {/* RACIAL ACTIVE ABILITIES */}
-              {racialActiveAbilities.length > 0 && (
+              {/* RACIAL ABILITIES */}
+              {racialAbilities.length > 0 && (
                 <div className="glass-panel cc-abilities-panel" data-gsap>
                   <h2 className="cc-section-title">
-                    <span className="material-symbols-outlined">spa</span> HABILIDADES RACIAIS ATIVAS
+                    <span className="material-symbols-outlined">spa</span> HABILIDADES RACIAIS
                   </h2>
                   <div className="cc-abilities-grid cc-abilities-grid--racial">
-                    {racialActiveAbilities.map((hab, i) => (
+                    {racialAbilities.map((hab, i) => (
                       <div key={i} className="cc-ability-card cc-ability-card--racial glass-panel"
                         data-gsap
                         style={{ borderColor: '1px solid rgba(52,211,153,0.3)', boxShadow: '0 0 24px rgba(52,211,153,0.1)' }}
-                        onClick={() => setAbilityModal(hab)}
+                        onClick={() => setAbilityModal({ habilidade: hab, index: null })}
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span className="material-symbols-outlined text-lg" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>spa</span>
@@ -746,31 +908,26 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
 
               {/* Race tree */}
               <div className="cc-race-tree-container" data-gsap>
-                <RaceSkillTree char={char} update={update} />
+                <SkillTreeView char={char} update={update} />
               </div>
             </div>
           )}
 
           {activeTab === 'conhecimentos' && (
             <div className="cc-container">
-              <div className="glass-panel cc-knowledge-header" data-gsap>
+              <div className="glass-panel cc-knowledge-header" data-gsap style={{ padding: '20px 28px' }}>
                 <h2 className="cc-section-title">
-                  <span className="material-symbols-outlined">auto_stories</span> CONHECIMENTOS
+                  <span className="material-symbols-outlined">auto_stories</span> GRIMÓRIOS & CONHECIMENTOS
                 </h2>
-                <p className="text-txt-dim text-sm">Grimórios, rituais, runas, magias e feitiços do personagem.</p>
+                <p className="text-txt-dim text-sm mt-1">Disciplinas místicas, rituais e magias dominadas pelo personagem.</p>
               </div>
 
-              <div className="cc-knowledge-grid">
-                <AlchemyLibrarySection char={char} update={canEdit ? update : null} wide />
-                <SpellLibrarySection char={char} update={canEdit ? update : null} wide />
-                <RuneLibrarySection char={char} update={canEdit ? update : null} wide />
-                <MagicLibrarySection char={char} update={canEdit ? update : null} wide />
-              </div>
+              <KnowledgeBookshelf char={char} />
             </div>
           )}
 
           {activeTab === 'inventario' && (
-            <div className="cc-container">
+            <div className="cc-container cc-inventory-tab">
               <ResidentInventorySection
                 char={char}
                 characterId={characterId}
@@ -786,7 +943,13 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
       </div>
 
       {abilityModal && (
-        <AbilityDetailModal habilidade={abilityModal} onClose={() => setAbilityModal(null)} />
+        <AbilityDetailModal
+          habilidade={abilityModal.habilidade}
+          index={abilityModal.index}
+          onClose={() => setAbilityModal(null)}
+          onEdit={updateHabilidade}
+          char={char}
+        />
       )}
     </div>
   )

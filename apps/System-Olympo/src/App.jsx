@@ -751,7 +751,7 @@ function FullSheetViewer({ sheetId, onBack }) {
 
   return (
     <>
-      <CharacterCenter char={char} update={update} onShowSheet={() => setMode('sheet')} onShowBoard={() => setMode('board')} onShowRaceTree={() => setMode('sheet')} onLevelUp={() => setShowLevelUp(true)} onRaceEvolve={() => setShowRaceEvolve(true)} characterId={sheet.id} canEdit={true} onTransferItem={handleTransferItem} />
+      <CharacterCenter char={char} update={update} updateHabilidade={updateHabilidade} onShowSheet={() => setMode('sheet')} onShowBoard={() => setMode('board')} onShowRaceTree={() => setMode('sheet')} onLevelUp={() => setShowLevelUp(true)} onRaceEvolve={() => setShowRaceEvolve(true)} characterId={sheet.id} canEdit={true} onTransferItem={handleTransferItem} />
       {saveError && (<div className="fixed bottom-4 right-4 bg-red-500/15 border border-red-500/40 text-red-300 px-4 py-2 rounded text-sm z-50">{saveError}</div>)}
       {showLevelUp && (<LevelUpModal char={char} onApply={handleLevelUp} onClose={() => setShowLevelUp(false)} />)}
       {showRaceEvolve && (<RaceEvolveModal char={char} update={update} onApply={(patch) => { update(patch); setShowRaceEvolve(false) }} onClose={() => setShowRaceEvolve(false)} />)}
