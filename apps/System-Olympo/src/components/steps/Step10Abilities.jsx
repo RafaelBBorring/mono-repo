@@ -8,7 +8,7 @@ import {
   calcEvolucaoDelta, calcPassivaAutoEvolucao,
   canEvolveSkill, getMaxEvolucao, calcPEHSpent,
   getSkillTagChips, normalizeSkillTags,
-  SKILL_TAG_OPTIONS, buildSkillTagOverridePatch,
+  SKILL_TAG_OPTIONS, buildSkillTagOverridePatch, buildSkillTagValuePatch,
   getNextEvolucaoCost, calcEvolucaoCost,
 } from '../../utils/skillEvolution'
 
@@ -35,6 +35,7 @@ const EVO_STARS = (n, max) =>
 
 function EffectCardControls({ hab, onChange }) {
   const activeTags = normalizeSkillTags(hab)
+  const chipValues = new Map(getSkillTagChips(hab).map(chip => [chip.tag, chip.value || '']))
 
   return (
     <div className="bg-void/35 border border-sep/25 rounded-lg p-3 space-y-2">
@@ -42,7 +43,49 @@ function EffectCardControls({ hab, onChange }) {
         <span className="text-[10px] text-txt-dim uppercase tracking-wider font-semibold">Cards de efeito</span>
         <span className="text-[10px] text-gold/60 font-mono">{activeTags.length} ativos</span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {SKILL_TAG_OPTIONS.map(opt => {
+          const active = activeTags.includes(opt.tag)
+          return (
+            <div
+              key={opt.tag}
+              className={`rounded border p-2 transition-colors ${
+                active
+                  ? 'bg-gold/10 border-gold/35 text-gold'
+                  : 'bg-black/20 border-sep/25 text-txt-dim/45 hover:text-txt-dim hover:border-sep/60'
+              }`}>
+              <button
+                type="button"
+                onClick={() => onChange(buildSkillTagOverridePatch(hab, opt.tag))}
+                className="w-full flex items-center justify-between gap-2 text-[10px] font-mono"
+                title={active ? 'Ocultar card' : 'Mostrar card'}
+              >
+                <span>{active ? '✓' : '+'} {opt.label}</span>
+                {active && <span className="text-[9px] text-gold/60">editar</span>}
+              </button>
+              {active && (
+                <input
+                  type="text"
+                  value={chipValues.get(opt.tag) || ''}
+                  onChange={e => onChange(buildSkillTagValuePatch(hab, opt.tag, e.target.value))}
+                  placeholder="valor do card"
+                  className="mt-1 w-full bg-void/70 border border-sep/25 rounded px-2 py-1 text-[11px] text-txt-main font-mono focus:border-gold/50 focus:outline-none"
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function LegacyEffectCardControls({ hab, onChange }) {
+  const activeTags = normalizeSkillTags(hab)
+
+  return (
+    <div className="hidden">
+      <div>
         {SKILL_TAG_OPTIONS.map(opt => {
           const active = activeTags.includes(opt.tag)
           return (
@@ -50,12 +93,6 @@ function EffectCardControls({ hab, onChange }) {
               key={opt.tag}
               type="button"
               onClick={() => onChange(buildSkillTagOverridePatch(hab, opt.tag))}
-              className={`text-[10px] px-2 py-1 rounded border font-mono transition-colors ${
-                active
-                  ? 'bg-gold/10 border-gold/35 text-gold'
-                  : 'bg-black/20 border-sep/25 text-txt-dim/45 hover:text-txt-dim hover:border-sep/60'
-              }`}
-              title={active ? 'Ocultar card' : 'Mostrar card'}
             >
               {active ? '✓' : '+'} {opt.label}
             </button>

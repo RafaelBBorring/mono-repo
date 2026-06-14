@@ -8,7 +8,7 @@ import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
 import { RANK_COLORS } from '../../data/colors'
 import { calcPEHTotal, calcPericiasAvailable } from '../../utils/calculator'
-import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, getSkillDtDisplay, hasSkillDtType, normalizeSkillTags, SKILL_TAG_OPTIONS, buildSkillTagOverridePatch, getNextEvolucaoCost, calcEvolucaoCost } from '../../utils/skillEvolution'
+import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, getSkillDtDisplay, hasSkillDtType, normalizeSkillTags, SKILL_TAG_OPTIONS, buildSkillTagOverridePatch, buildSkillTagValuePatch, getNextEvolucaoCost, calcEvolucaoCost } from '../../utils/skillEvolution'
 import { PERICIAS, GRAU_NAMES, getGrauBonus, getMaxGrauForLevel } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
@@ -54,25 +54,32 @@ function parseActiveBonuses(source) {
   const tags = isAbilitySource ? new Set(normalizeSkillTags(source)) : new Set()
   const values = source?.valores || {}
   const bonuses = { ataque: 0, ca: 0, vida: 0, energia: 0, dano: 0 }
+  const manualNumber = (tag) => {
+    const match = String(values[tag] || '').match(/[+-]?\d+/)
+    return match ? Number(match[0]) : 0
+  }
   const signedNumbers = [...text.matchAll(/([+-]\s*\d+)(?:\s*(?:em|no|na|de|para|ao|a))?\s*([a-zA-ZÀ-ÿ ]{0,28})/g)]
 
   if (isAbilitySource && values.bonusVida) bonuses.vida += Number(values.bonusVida) || 0
   if (isAbilitySource && values.bonusEnergia) bonuses.energia += Number(values.bonusEnergia) || 0
+  if (isAbilitySource && tags.has('bonusCA')) bonuses.ca += manualNumber('bonusCA')
+  if (isAbilitySource && tags.has('bonusAtaque')) bonuses.ataque += manualNumber('bonusAtaque')
+  if (isAbilitySource && tags.has('dano')) bonuses.dano += manualNumber('dano')
 
   signedNumbers.forEach((match) => {
     const value = Number(match[1].replace(/\s+/g, ''))
     const target = (match[2] || '').toLowerCase()
     if (!Number.isFinite(value)) return
     if (/ataque|acerto|pontaria|golpe/.test(target)) {
-      if (!isAbilitySource || tags.has('bonusAtaque')) bonuses.ataque += value
+      if (!isAbilitySource || (tags.has('bonusAtaque') && !values.bonusAtaque)) bonuses.ataque += value
     } else if (/ca|defesa|armadura|bloqueio|esquiva/.test(target)) {
-      if (!isAbilitySource || tags.has('bonusCA')) bonuses.ca += value
+      if (!isAbilitySource || (tags.has('bonusCA') && !values.bonusCA)) bonuses.ca += value
     } else if (/vida|hp/.test(target)) {
       if (!isAbilitySource && !/\b(cura|curar|recupera|regenera|restaura)\b/.test(normalized)) bonuses.vida += value
     } else if (/energia/.test(target)) {
       if (!isAbilitySource && !/\b(custo|gasta|paga|consome)\b/.test(normalized)) bonuses.energia += value
     } else if (/dano/.test(target)) {
-      if (!isAbilitySource || (tags.has('dano') && /\b(ataque|ataques|golpe|golpes|arma|proximo ataque|proximo golpe)\b/.test(normalized))) bonuses.dano += value
+      if (!isAbilitySource || (tags.has('dano') && !values.dano && /\b(ataque|ataques|golpe|golpes|arma|proximo ataque|proximo golpe)\b/.test(normalized))) bonuses.dano += value
     }
   })
 
@@ -2474,8 +2481,10 @@ function RichTextToolbar({ editorRef }) {
   )
 }
 
-function EffectCardControls({ hab, onToggle }) {
+function EffectCardControls({ hab, onChange }) {
   const activeTags = normalizeSkillTags(hab)
+  const chipValues = new Map(getSkillTagChips(hab).map(chip => [chip.tag, chip.value || '']))
+  const onToggle = (tag) => onChange?.(buildSkillTagOverridePatch(hab, tag))
 
   return (
     <div className="bg-void/35 border border-sep/25 rounded-lg p-3 space-y-2">
@@ -2483,7 +2492,7 @@ function EffectCardControls({ hab, onToggle }) {
         <span className="text-[10px] text-txt-dim uppercase tracking-wider font-semibold">Cards de efeito</span>
         <span className="text-[10px] text-gold/60 font-mono">{activeTags.length} ativos</span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {SKILL_TAG_OPTIONS.map(opt => {
           const active = activeTags.includes(opt.tag)
           return (
@@ -2500,6 +2509,44 @@ function EffectCardControls({ hab, onToggle }) {
             >
               {active ? '✓' : '+'} {opt.label}
             </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function EditableEffectCardControls({ hab, onChange }) {
+  const activeTags = normalizeSkillTags(hab)
+  const chipValues = new Map(getSkillTagChips(hab).map(chip => [chip.tag, chip.value || '']))
+
+  return (
+    <div className="bg-void/35 border border-sep/25 rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-txt-dim uppercase tracking-wider font-semibold">Cards de efeito</span>
+        <span className="text-[10px] text-gold/60 font-mono">{activeTags.length} ativos</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {SKILL_TAG_OPTIONS.map(opt => {
+          const active = activeTags.includes(opt.tag)
+          return (
+            <div key={opt.tag} className={`rounded border p-2 transition-colors ${active ? 'bg-gold/10 border-gold/35 text-gold' : 'bg-black/20 border-sep/25 text-txt-dim/45 hover:text-txt-dim hover:border-sep/60'}`}>
+              <button type="button" onClick={() => onChange(buildSkillTagOverridePatch(hab, opt.tag))}
+                className="w-full flex items-center justify-between gap-2 text-[10px] font-mono"
+                title={active ? 'Ocultar card' : 'Mostrar card'}>
+                <span>{active ? '✓' : '+'} {opt.label}</span>
+                {active && <span className="text-[9px] text-gold/60">editar</span>}
+              </button>
+              {active && (
+                <input
+                  type="text"
+                  value={chipValues.get(opt.tag) || ''}
+                  onChange={e => onChange(buildSkillTagValuePatch(hab, opt.tag, e.target.value))}
+                  placeholder="valor do card"
+                  className="mt-1 w-full bg-void/70 border border-sep/25 rounded px-2 py-1 text-[11px] text-txt-main font-mono focus:border-gold/50 focus:outline-none"
+                />
+              )}
+            </div>
           )
         })}
       </div>
@@ -2541,10 +2588,10 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
     }
   }
 
-  function handleEffectCardToggle(tag) {
+  function handleEffectCardChange(patch) {
     setForm(prev => ({
       ...prev,
-      ...buildSkillTagOverridePatch(prev, tag),
+      ...patch,
     }))
   }
 
@@ -2626,7 +2673,7 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
                 className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none transition-colors" />
             </div>
           </div>
-          <EffectCardControls hab={form} onToggle={handleEffectCardToggle} />
+          <EditableEffectCardControls hab={form} onChange={handleEffectCardChange} />
         </div>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-sep/20 bg-void/40">
