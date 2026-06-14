@@ -99,7 +99,7 @@ const SECTION_VERSIONS = {
   'Grimórios': 'v2.0',
   'Hierarquia Mística': 'v2.1 — Jun 2026',
   'Criação de Personagem': 'v2.0',
-  'Balanceamento': 'v2.0',
+  'Balanceamento': 'v3.0 — Jun 2026',
   'Skills Sistemicas': 'v2.2 - Mai 2026',
 }
 
@@ -3141,7 +3141,7 @@ function BalanceProtocolSection() {
 
   const evoRules = [
     { tipo: 'Passiva',   max: 3,  custo: 'Automática', restricao: 'Evolui sozinha nos N10, N20 e N30. Sem custo de PEH.' },
-    { tipo: 'Ativa',     max: 5,  custo: '1 PEH / nível', restricao: 'Custo de Energia sobe proporcionalmente com a evolução.' },
+    { tipo: 'Ativa',     max: 5,  custo: '1 PEH / nível', restricao: 'Energia e dano escalam com retornos decrescentes (PEH^0.65 / PEH^0.70).' },
     { tipo: 'Ultimate',  max: 3,  custo: '1 PEH / nível', restricao: '1º ponto: N15+ | 2º ponto: N25+ | 3º ponto: N30' },
     { tipo: 'Aum. Poder', max: 2, custo: 'Módulo (até 2×)', restricao: 'Cada compra concede 1 PEH bônus, marcado separadamente.' },
   ]
@@ -3279,7 +3279,7 @@ function BalanceProtocolSection() {
       <TableCard title="PEH — Pontos de Evolução de Habilidade" color="amber">
         <div className="px-4 py-3 space-y-3">
           <p className="text-xs text-txt-dim">
-            PEH são distribuídos pela progressão de classe e pelo módulo <strong className="text-amber-300">Aumento de Poder</strong>. Investir pontos em uma habilidade escala todos os seus efeitos (dano, duração, bônus, CDs) proporcionalmente ao bracket de custo de Energia.
+            PEH são distribuídos pela progressão de classe e pelo módulo <strong className="text-amber-300">Aumento de Poder</strong>. Investir pontos em uma habilidade escala seus efeitos usando <strong className="text-gold">retornos decrescentes</strong>: energia escala como <span className="font-mono text-amber-300">PEH^0.65</span> e dano/cura como <span className="font-mono text-amber-300">PEH^0.70</span>. Isso garante que habilidades evoluídas sejam mais poderosas, mas evita explosão matemática de custos e valores.
           </p>
           <table className="w-full text-xs mt-2">
             <thead>
@@ -3320,12 +3320,13 @@ function BalanceProtocolSection() {
       </TableCard>
 
       <div className="bg-void rounded-xl border border-sep p-4 text-xs text-txt-dim space-y-1.5">
-        <p className="text-gold font-cinzel font-bold text-sm mb-2">Notas de Design</p>
+        <p className="text-gold font-cinzel font-bold text-sm mb-2">Notas de Design (v3.0)</p>
+        <p>• <span className="text-amber-300 font-semibold">Regra dos 45%:</span> Nenhuma habilidade pode custar mais de <span className="text-txt-main">45% da Energia total</span> do personagem. O poder deve sempre justificar o custo.</p>
         <p>• CDs de resistência recomendados: <span className="text-txt-main">N1-10 → 14-16 | N11-20 → 18-22 | N21-30 → 22-28</span></p>
         <p>• Cura via habilidade: <span className="text-txt-main">máx 30% da vida máxima por uso individual; máx 20% em área</span></p>
         <p>• Habilidades de controle sem dano: calculadas puramente em PP — evite ultrapassar o teto de PP da faixa</p>
         <p>• Amplificadores de Triagem e Módulo contam para o poder real do personagem, não para o dano da habilidade isolada</p>
-        <p>• Um personagem N30 com dano base alto <em>pode</em> ter uma habilidade com 14d12+60 de dano extra — os valores são cumulativos, não substitutos</p>
+        <p>• <span className="text-amber-300 font-semibold">Escalonamento PEH v3.0:</span> Energia usa base × PEH^0.65, Dano usa base × PEH^0.70. DELTAS base reduzidos ~60% vs v2.0. Isso previne habilidades de 600E — o teto prático para Ultimate com 5 PEH fica em ~55E (vs 300+ no v2.0).</p>
       </div>
     </div>
   )

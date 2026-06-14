@@ -11,10 +11,17 @@ import { WEAPONS, WEAPON_RANKS } from '../data/weapons'
 import { RANK_COLORS } from '../data/colors'
 import { getRaceProfile } from '../data/raceProfiles'
 import { MODULES_PASSIVE, MODULES_ACTIVE } from '../data/modules'
+import { getRaceTree } from '../data/raceTrees'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcReacoes, calcPercepcaoPassiva, calcDanoBase, calcPARTotal, calcRaceTreePARSpent, calcCarryCapacity, calcCarriedLoad, getAttrValue } from '../utils/calculator'
 import { calculateRaceBonus, getRaceLabel, getSelectedSubrace } from '../utils/raceCalculator'
 import { normalizeSkillTags, getSkillTagChips, calcEvolucaoDelta, getSkillBracket } from '../utils/skillEvolution'
 import { getLevelBand } from '../utils/skillEvolution'
+import ResidentInventorySection from './ResidentInventorySection'
+import RaceSkillTree from './RaceSkillTree'
+import AlchemyLibrarySection from './AlchemyLibrarySection'
+import SpellLibrarySection from './SpellLibrarySection'
+import RuneLibrarySection from './RuneLibrarySection'
+import MagicLibrarySection from './MagicLibrarySection'
 
 const RESOURCE_COLORS = {
   vida: '#3dff92',
@@ -204,20 +211,17 @@ function CombatStat({ label, value, icon, accent }) {
   )
 }
 
-function AbilityCard({ habilidade, index }) {
-  const [expanded, setExpanded] = useState(false)
-  const tipo = habilidade.tipo || 'Ativa'
+function AbilityCard({ habilidade, index, onExpand }) {
   const tags = normalizeSkillTags(habilidade)
   const chips = getSkillTagChips(habilidade)
   const evoNivel = habilidade.evolucaoNivel || 0
-  const bracket = getSkillBracket(habilidade.custoEnergia || 0, tipo)
-  const delta = evoNivel > 0 ? calcEvolucaoDelta(habilidade, evoNivel) : null
 
   const tipoStyle = {
     Passiva: { border: '1px solid rgba(0,255,174,0.3)', glow: 'rgba(0,255,174,0.1)', icon: 'shield', color: '#00ffae' },
     Ativa: { border: '1px solid rgba(74,163,255,0.3)', glow: 'rgba(74,163,255,0.1)', icon: 'flash_on', color: '#4aa3ff' },
     Ultimate: { border: '1px solid rgba(247,189,72,0.4)', glow: 'rgba(247,189,72,0.15)', icon: 'stars', color: '#f7bd48' },
   }
+  const tipo = habilidade.tipo || 'Ativa'
   const style = tipoStyle[tipo] || tipoStyle.Ativa
 
   return (
@@ -228,7 +232,7 @@ function AbilityCard({ habilidade, index }) {
         borderColor: style.border,
         boxShadow: `0 0 24px ${style.glow}`,
       }}
-      onClick={() => setExpanded(!expanded)}
+      onClick={() => onExpand && onExpand(habilidade)}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="material-symbols-outlined text-lg" style={{ color: style.color, fontVariationSettings: "'FILL' 1" }}>{style.icon}</span>
@@ -241,26 +245,73 @@ function AbilityCard({ habilidade, index }) {
       {habilidade.custoEnergia > 0 && (
         <div className="cc-ability-cost">{habilidade.custoEnergia}E</div>
       )}
-      {chips.length > 0 && !expanded && (
+      {chips.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {chips.slice(0, 3).map((chip, i) => (
+          {chips.slice(0, 4).map((chip, i) => (
             <span key={i} className="cc-tag-chip">{chip.label}{chip.value ? ` ${chip.value}` : ''}</span>
           ))}
-          {chips.length > 3 && <span className="cc-tag-chip">+{chips.length - 3}</span>}
+          {chips.length > 4 && <span className="cc-tag-chip">+{chips.length - 4}</span>}
         </div>
       )}
-      {expanded && (
-        <div className="cc-ability-expanded">
-          <p className="text-xs text-txt-dim leading-relaxed mb-2">
+      <div className="cc-ability-hint">Clique para detalhes</div>
+    </div>
+  )
+}
+
+function AbilityDetailModal({ habilidade, onClose }) {
+  if (!habilidade) return null
+  const tags = normalizeSkillTags(habilidade)
+  const chips = getSkillTagChips(habilidade)
+  const evoNivel = habilidade.evolucaoNivel || 0
+  const delta = evoNivel > 0 ? calcEvolucaoDelta(habilidade, evoNivel) : null
+  const tipo = habilidade.tipo || 'Ativa'
+
+  const tipoStyle = {
+    Passiva: { color: '#00ffae', icon: 'shield' },
+    Ativa: { color: '#4aa3ff', icon: 'flash_on' },
+    Ultimate: { color: '#f7bd48', icon: 'stars' },
+  }
+  const style = tipoStyle[tipo] || tipoStyle.Ativa
+
+  return (
+    <div className="cc-modal-overlay" onClick={onClose}>
+      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()}>
+        <button className="cc-modal-close" onClick={onClose}>
+          <span className="material-symbols-outlined">close</span>
+        </button>
+        <div className="cc-modal-header">
+          <span className="material-symbols-outlined" style={{ color: style.color, fontSize: 32, fontVariationSettings: "'FILL' 1" }}>{style.icon}</span>
+          <div>
+            <span className="cc-ability-type" style={{ color: style.color }}>{tipo.toUpperCase()}</span>
+            <h3 className="font-cinzel text-xl text-txt-main mt-1">{habilidade.nome || 'Habilidade'}</h3>
+          </div>
+        </div>
+        <div className="cc-modal-body">
+          <p className="text-sm text-txt-main leading-relaxed mb-3">
             {habilidade.descricaoBalanceada || habilidade.descricao || '—'}
           </p>
-          {habilidade.dano && <div className="cc-ability-stat"><span>Dano</span><span className="font-mono text-tomato">{habilidade.dano}</span></div>}
-          {habilidade.dt && <div className="cc-ability-stat"><span>DT</span><span className="font-mono">{habilidade.dt}</span></div>}
-          {habilidade.duracao && <div className="cc-ability-stat"><span>Duração</span><span>{habilidade.duracao}</span></div>}
+          <div className="cc-modal-stats">
+            {habilidade.custoEnergia > 0 && <div className="cc-modal-stat"><span className="text-txt-dim">Energia</span><span className="font-mono text-tomato">{habilidade.custoEnergia}</span></div>}
+            {habilidade.dano && <div className="cc-modal-stat"><span className="text-txt-dim">Dano</span><span className="font-mono text-tomato">{habilidade.dano}</span></div>}
+            {habilidade.dt && <div className="cc-modal-stat"><span className="text-txt-dim">DT</span><span className="font-mono">{habilidade.dt}</span></div>}
+            {habilidade.duracao && <div className="cc-modal-stat"><span className="text-txt-dim">Duração</span><span>{habilidade.duracao}</span></div>}
+            {habilidade.alcance && <div className="cc-modal-stat"><span className="text-txt-dim">Alcance</span><span>{habilidade.alcance}</span></div>}
+            {habilidade.cooldown && <div className="cc-modal-stat"><span className="text-txt-dim">Recarga</span><span>{habilidade.cooldown}</span></div>}
+          </div>
+          {chips.length > 0 && (
+            <div className="mt-3">
+              <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Tags</div>
+              <div className="flex flex-wrap gap-1.5">
+                {chips.map((chip, i) => (
+                  <span key={i} className="cc-tag-chip cc-tag-chip--lg">{chip.label}{chip.value ? ` ${chip.value}` : ''}</span>
+                ))}
+              </div>
+            </div>
+          )}
           {delta && delta.tagBonuses.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-sep/50">
-              <div className="text-[10px] text-gold/70 mb-1">Bônus de Evolução (PEH {evoNivel})</div>
-              <div className="flex flex-wrap gap-1">
+            <div className="mt-3 pt-3 border-t border-sep/50">
+              <div className="text-[10px] text-gold/70 mb-1.5 uppercase tracking-wider">Bônus de Evolução (PEH {evoNivel})</div>
+              <div className="flex flex-wrap gap-1.5">
                 {delta.tagBonuses.map((b, i) => (
                   <span key={i} className="cc-evo-bonus">{b.label} {b.value}</span>
                 ))}
@@ -268,7 +319,7 @@ function AbilityCard({ habilidade, index }) {
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -324,8 +375,17 @@ function AttributesRadar({ attrValues }) {
   return <canvas ref={canvasRef} />
 }
 
-export default function CharacterCenter({ char, update, onShowSheet, onShowBoard, onShowRaceTree, onLevelUp, onRaceEvolve }) {
+const SIDEBAR_ITEMS = [
+  { key: 'personagem', label: 'Personagem', icon: 'person' },
+  { key: 'raca', label: 'Raça', icon: 'account_tree' },
+  { key: 'conhecimentos', label: 'Conhecimentos', icon: 'auto_stories' },
+  { key: 'inventario', label: 'Inventário', icon: 'inventory_2' },
+]
+
+export default function CharacterCenter({ char, update, onShowSheet, onShowBoard, onShowRaceTree, onLevelUp, onRaceEvolve, characterId, canEdit, onTransferItem }) {
   const containerRef = useRef(null)
+  const [activeTab, setActiveTab] = useState('personagem')
+  const [abilityModal, setAbilityModal] = useState(null)
   const stats = useMemo(() => computeStats(char), [char])
   const tier = getTierInfo(stats.nivel)
   const raceProfile = getRaceProfile(char.raca)
@@ -343,10 +403,9 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
       { opacity: 0, y: 24 },
       { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, ease: 'power2.out' }
     )
-  }, [char])
+  }, [char, activeTab])
 
   const habilidades = char.habilidades || []
-  const inventario = char.inventario || []
   const modulos = char.modulosAdquiridos || []
   const pericias = Object.entries(char.pericias || {}).filter(([, v]) => v > 0)
 
@@ -360,261 +419,375 @@ export default function CharacterCenter({ char, update, onShowSheet, onShowBoard
     return m
   }, [])
 
+  const racialActiveAbilities = useMemo(() => {
+    const tree = getRaceTree(char.raca)
+    if (!tree) return []
+    const unlocked = char.raceTreeUnlocked || []
+    return tree.nodes
+      .filter(n => unlocked.includes(n.id))
+      .flatMap(n => (n.effects || []).filter(e => e.type === 'habilidade' && e.tipo === 'ativa'))
+  }, [char.raca, char.raceTreeUnlocked])
+
   return (
     <div ref={containerRef} className="character-center">
       <ParticleBackdrop />
 
-      <div className="cc-container">
-        {/* ACTION BAR */}
-        <div className="cc-action-bar">
-          <button onClick={onShowSheet} className="cc-mode-btn">
-            <span className="material-symbols-outlined">description</span> Ficha Detalhada
-          </button>
-          <button onClick={onShowBoard} className="cc-mode-btn">
-            <span className="material-symbols-outlined">dashboard</span> Quadro
-          </button>
-          <button onClick={onShowRaceTree} className="cc-mode-btn cc-mode-btn--gold">
-            <span className="material-symbols-outlined">account_tree</span> Árvore Racial
-          </button>
-          {stats.nivel < 50 && (
-            <button onClick={onLevelUp} className="cc-mode-btn cc-mode-btn--accent">
-              <span className="material-symbols-outlined">arrow_upward</span> Subir Nível ({stats.nivel} → {stats.nivel + 1})
-            </button>
-          )}
-          <button onClick={onRaceEvolve} className="cc-mode-btn cc-mode-btn--purple">
-            <span className="material-symbols-outlined">auto_awesome</span> Evoluir Raça
-          </button>
-        </div>
-
-        {/* HERO SECTION */}
-        <div className="cc-hero">
-          {/* Character Avatar Card */}
-          <div className="cc-hero-avatar glass-panel" data-gsap>
-            <div className="cc-avatar-frame" style={{ borderColor: tier.color, boxShadow: `inset 0 0 40px ${tier.glow}` }}>
+      <div className="cc-layout">
+        {/* SIDEBAR */}
+        <aside className="cc-sidebar">
+          <div className="cc-sidebar-header">
+            <div className="cc-sidebar-avatar" style={{ borderColor: tier.color, boxShadow: `inset 0 0 20px ${tier.glow}` }}>
               {char.avatar ? (
-                <img src={char.avatar} alt={char.nome} className="cc-avatar-img" />
+                <img src={char.avatar} alt={char.nome} className="cc-sidebar-avatar-img" />
               ) : (
-                <div className="cc-avatar-placeholder">
-                  <span className="material-symbols-outlined" style={{ fontSize: 64, color: tier.color }}>
-                    {RACES[char.raca]?.icon ? 'person' : 'person'}
-                  </span>
-                </div>
-              )}
-              <div className="cc-level-badge" style={{ borderColor: tier.color, background: tier.glow }}>
-                <span className="font-cinzel font-bold text-lg" style={{ color: tier.color }}>{stats.nivel}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Character Info */}
-          <div className="cc-hero-info glass-panel" data-gsap>
-            <h1 className="cc-char-name font-cinzel">{char.nome || 'Sem Nome'}</h1>
-            <div className="cc-char-subtitle" style={{ color: 'var(--gold)' }}>
-              {className.toUpperCase()} · {stats.raceLabel.toUpperCase()}
-              {stats.subrace ? ` (${stats.subrace.name})` : ''} · {tier.name.toUpperCase()}
-            </div>
-            <div className="cc-secondary-info">
-              {char.idade && <div><span className="material-symbols-outlined">cake</span> {char.idade} anos</div>}
-              {char.altura && <div><span className="material-symbols-outlined">height</span> {char.altura}</div>}
-              {char.peso && <div><span className="material-symbols-outlined">monitor_weight</span> {char.peso}</div>}
-              {char.origem && <div><span className="material-symbols-outlined">location_on</span> {char.origem}</div>}
-            </div>
-
-            {/* Triagem badges */}
-            <div className="cc-triagem-row">
-              {triagemPrincipal && (
-                <div className="cc-triagem-badge">
-                  <span className="material-symbols-outlined text-sm">military_tech</span>
-                  {triagemPrincipal.name} {char.triagemPrincipalNivel}
-                </div>
-              )}
-              {subTriagem && (
-                <div className="cc-triagem-badge cc-triagem-badge--sub">
-                  <span className="material-symbols-outlined text-sm">stars</span>
-                  {subTriagem.name} {char.subTriagemNivel}
-                </div>
+                <span className="material-symbols-outlined" style={{ fontSize: 32, color: tier.color }}>person</span>
               )}
             </div>
-
-            {/* Weapon info */}
-            {stats.weapon && (
-              <div className="cc-weapon-info">
-                <span className="material-symbols-outlined text-gold text-sm">gavel</span>
-                <span className="text-sm text-txt-main">{char.armaNome || stats.weapon.name}</span>
-                <span className="cc-rank-badge" style={{ color: RANK_COLORS[stats.weaponRank] || '#aaa' }}>{stats.weaponRank}</span>
-              </div>
-            )}
+            <div className="cc-sidebar-name font-cinzel">{char.nome || 'Sem Nome'}</div>
+            <div className="cc-sidebar-tier" style={{ color: tier.color }}>{tier.name} · Nv {stats.nivel}</div>
           </div>
 
-          {/* Power Score */}
-          <div className="cc-hero-power glass-panel" data-gsap>
-            <div className="cc-power-label">PODER GERAL</div>
-            <div className="cc-power-score font-cinzel" style={{ color: tier.color, textShadow: `0 0 30px ${tier.glow}` }}>
-              {stats.powerScore.toLocaleString()}
-            </div>
-            <div className="cc-power-tier" style={{ color: tier.color }}>{tier.name}</div>
-          </div>
-        </div>
-
-        {/* RESOURCES */}
-        <div className="cc-resources-row">
-          <ResourceOrb label="VIDA" current={currentVida} max={stats.vidaTotal} type="vida" />
-          <ResourceOrb label="ENERGIA" current={currentEnergia} max={stats.energiaTotal} type="energia" />
-          <ResourceOrb label="PE" current={currentPe} max={stats.peTotal} type="pe" />
-        </div>
-
-        {/* COMBAT STATS */}
-        <div className="cc-combat-row">
-          <CombatStat label="CLASSE DE ARMADURA" value={stats.ca} icon="shield" />
-          <CombatStat label="REAÇÕES" value={stats.reacoes} icon="swap_horiz" accent="#4aa3ff" />
-          <CombatStat label="DANO BASE" value={stats.danoBase} icon="casino" accent="#f87171" />
-          <CombatStat label="PERCEPÇÃO" value={stats.percepcao} icon="visibility" accent="#c084fc" />
-          <CombatStat label="CARGA" value={`${stats.carriedLoad}/${stats.carryCap}kg`} icon="weight" accent="#34d399" />
-        </div>
-
-        {/* ATTRIBUTES + PERICIAS */}
-        <div className="cc-attrs-skills-grid">
-          <div className="glass-panel cc-attrs-panel" data-gsap>
-            <h2 className="cc-section-title">
-              <span className="material-symbols-outlined">radar</span> ATRIBUTOS
-            </h2>
-            <div style={{ height: 280, padding: '8px' }}>
-              <AttributesRadar attrValues={stats.attrValues} />
-            </div>
-            <div className="cc-attr-grid">
-              {['FOR', 'DES', 'CON', 'INT', 'APA', 'AM'].map(attr => (
-                <div key={attr} className="cc-attr-chip">
-                  <span className="material-symbols-outlined text-sm" style={{ color: 'var(--gold)' }}>{ATTR_ICONS[attr]}</span>
-                  <span className="font-mono text-sm font-bold text-txt-main">{stats.attrValues[attr]}</span>
-                  <span className="cc-attr-mod">Mod {stats.modValues[attr] >= 0 ? '+' : ''}{stats.modValues[attr]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass-panel cc-pericias-panel" data-gsap>
-            <h2 className="cc-section-title">
-              <span className="material-symbols-outlined">school</span> PERÍCIAS
-            </h2>
-            {pericias.length > 0 ? (
-              <div className="cc-pericias-list">
-                {pericias.map(([nome, grau]) => {
-                  const bonus = getGrauBonus(grau)
-                  const maxBonus = 20
-                  const percent = Math.min(100, (bonus / maxBonus) * 100)
-                  return (
-                    <div key={nome} className="cc-pericia-item">
-                      <div className="cc-pericia-header">
-                        <span className="cc-pericia-name">{nome}</span>
-                        <span className="cc-pericia-grau" style={{ color: 'var(--gold)' }}>
-                          {GRAU_NAMES[grau] || `Grau ${grau}`} · +{bonus}
-                        </span>
-                      </div>
-                      <div className="cc-bar">
-                        <span style={{ width: `${percent}%` }} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-txt-dim text-sm">Nenhuma perícia treinada.</p>
-            )}
-          </div>
-        </div>
-
-        {/* ABILITIES */}
-        <div className="glass-panel cc-abilities-panel" data-gsap>
-          <h2 className="cc-section-title">
-            <span className="material-symbols-outlined">auto_awesome</span> HABILIDADES
-          </h2>
-          <div className="cc-abilities-grid">
-            {habilidades.map((hab, i) => (
-              <AbilityCard key={i} habilidade={hab} index={i} />
+          <nav className="cc-sidebar-nav">
+            {SIDEBAR_ITEMS.map(item => (
+              <button
+                key={item.key}
+                className={`cc-sidebar-btn ${activeTab === item.key ? 'cc-sidebar-btn--active' : ''}`}
+                onClick={() => setActiveTab(item.key)}
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span className="cc-sidebar-btn-label">{item.label}</span>
+                {item.key === 'conhecimentos' && racialActiveAbilities.length === 0 && (char.spells?.length || char.runes?.length || char.magics?.length || char.alchemyRituals?.length) > 0 && (
+                  <span className="cc-sidebar-badge" />
+                )}
+              </button>
             ))}
-            {habilidades.length === 0 && (
-              <p className="text-txt-dim text-sm col-span-full">Nenhuma habilidade definida.</p>
-            )}
-          </div>
-        </div>
+          </nav>
 
-        {/* MODULES (Soft-Skills) */}
-        {modulos.length > 0 && (
-          <div className="glass-panel cc-modules-panel" data-gsap>
-            <h2 className="cc-section-title">
-              <span className="material-symbols-outlined">extension</span> SOFT-SKILLS
-            </h2>
-            <div className="cc-modules-grid">
-              {modulos.map((mod, i) => {
-                const def = allModuleMap[mod.id]
-                const isActive = def?.pe != null
-                return (
-                  <div key={i} className={`cc-module-chip ${isActive ? 'cc-module-chip--active' : ''}`}>
-                    <span className="material-symbols-outlined text-sm">
-                      {isActive ? 'flash_on' : 'shield'}
-                    </span>
-                    <span className="cc-module-name">{mod.name || def?.name || mod.id}</span>
-                    {(mod.boughtCount || 1) > 1 && (
-                      <span className="cc-module-count">×{mod.boughtCount}</span>
+          <div className="cc-sidebar-actions">
+            <button onClick={onShowSheet} className="cc-sidebar-action">
+              <span className="material-symbols-outlined">history</span> Modelo Legado
+            </button>
+            <button onClick={onShowBoard} className="cc-sidebar-action">
+              <span className="material-symbols-outlined">dashboard</span> Quadro
+            </button>
+            {stats.nivel < 50 && (
+              <button onClick={onLevelUp} className="cc-sidebar-action cc-sidebar-action--accent">
+                <span className="material-symbols-outlined">arrow_upward</span> Subir Nível
+              </button>
+            )}
+            <button onClick={onRaceEvolve} className="cc-sidebar-action cc-sidebar-action--purple">
+              <span className="material-symbols-outlined">auto_awesome</span> Evoluir Raça
+            </button>
+          </div>
+        </aside>
+
+        {/* CONTENT */}
+        <div className="cc-content">
+          {activeTab === 'personagem' && (
+            <div className="cc-container">
+              {/* HERO SECTION */}
+              <div className="cc-hero">
+                <div className="cc-hero-avatar glass-panel" data-gsap>
+                  <div className="cc-avatar-frame" style={{ borderColor: tier.color, boxShadow: `inset 0 0 40px ${tier.glow}` }}>
+                    {char.avatar ? (
+                      <img src={char.avatar} alt={char.nome} className="cc-avatar-img" />
+                    ) : (
+                      <div className="cc-avatar-placeholder">
+                        <span className="material-symbols-outlined" style={{ fontSize: 64, color: tier.color }}>person</span>
+                      </div>
                     )}
-                    {isActive && def?.pe && <span className="cc-module-pe">{def.pe}PE</span>}
+                    <div className="cc-level-badge" style={{ borderColor: tier.color, background: tier.glow }}>
+                      <span className="font-cinzel font-bold text-lg" style={{ color: tier.color }}>{stats.nivel}</span>
+                    </div>
                   </div>
-                )
-              })}
+                </div>
+
+                <div className="cc-hero-info glass-panel" data-gsap>
+                  <h1 className="cc-char-name font-cinzel">{char.nome || 'Sem Nome'}</h1>
+                  <div className="cc-char-subtitle" style={{ color: 'var(--gold)' }}>
+                    {className.toUpperCase()} · {stats.raceLabel.toUpperCase()}
+                    {stats.subrace ? ` (${stats.subrace.name})` : ''} · {tier.name.toUpperCase()}
+                  </div>
+                  <div className="cc-secondary-info">
+                    {char.idade && <div><span className="material-symbols-outlined">cake</span> {char.idade} anos</div>}
+                    {char.altura && <div><span className="material-symbols-outlined">height</span> {char.altura}</div>}
+                    {char.peso && <div><span className="material-symbols-outlined">monitor_weight</span> {char.peso}</div>}
+                    {char.origem && <div><span className="material-symbols-outlined">location_on</span> {char.origem}</div>}
+                  </div>
+
+                  <div className="cc-triagem-row">
+                    {triagemPrincipal && (
+                      <div className="cc-triagem-badge">
+                        <span className="material-symbols-outlined text-sm">military_tech</span>
+                        {triagemPrincipal.name} {char.triagemPrincipalNivel}
+                      </div>
+                    )}
+                    {subTriagem && (
+                      <div className="cc-triagem-badge cc-triagem-badge--sub">
+                        <span className="material-symbols-outlined text-sm">stars</span>
+                        {subTriagem.name} {char.subTriagemNivel}
+                      </div>
+                    )}
+                  </div>
+
+                  {stats.weapon && (
+                    <div className="cc-weapon-info">
+                      <span className="material-symbols-outlined text-gold text-sm">gavel</span>
+                      <span className="text-sm text-txt-main">{char.armaNome || stats.weapon.name}</span>
+                      <span className="cc-rank-badge" style={{ color: RANK_COLORS[stats.weaponRank] || '#aaa' }}>{stats.weaponRank}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="cc-hero-power glass-panel" data-gsap>
+                  <div className="cc-power-label">PODER GERAL</div>
+                  <div className="cc-power-score font-cinzel" style={{ color: tier.color, textShadow: `0 0 30px ${tier.glow}` }}>
+                    {stats.powerScore.toLocaleString()}
+                  </div>
+                  <div className="cc-power-tier" style={{ color: tier.color }}>{tier.name}</div>
+                </div>
+              </div>
+
+              {/* RESOURCES */}
+              <div className="cc-resources-row">
+                <ResourceOrb label="VIDA" current={currentVida} max={stats.vidaTotal} type="vida" />
+                <ResourceOrb label="ENERGIA" current={currentEnergia} max={stats.energiaTotal} type="energia" />
+                <ResourceOrb label="PE" current={currentPe} max={stats.peTotal} type="pe" />
+              </div>
+
+              {/* COMBAT STATS */}
+              <div className="cc-combat-row">
+                <CombatStat label="CLASSE DE ARMADURA" value={stats.ca} icon="shield" />
+                <CombatStat label="REAÇÕES" value={stats.reacoes} icon="swap_horiz" accent="#4aa3ff" />
+                <CombatStat label="DANO BASE" value={stats.danoBase} icon="casino" accent="#f87171" />
+                <CombatStat label="PERCEPÇÃO" value={stats.percepcao} icon="visibility" accent="#c084fc" />
+                <CombatStat label="CARGA" value={`${stats.carriedLoad}/${stats.carryCap}kg`} icon="weight" accent="#34d399" />
+              </div>
+
+              {/* ATTRIBUTES + PERICIAS */}
+              <div className="cc-attrs-skills-grid">
+                <div className="glass-panel cc-attrs-panel" data-gsap>
+                  <h2 className="cc-section-title">
+                    <span className="material-symbols-outlined">radar</span> ATRIBUTOS
+                  </h2>
+                  <div style={{ height: 280, padding: '8px' }}>
+                    <AttributesRadar attrValues={stats.attrValues} />
+                  </div>
+                  <div className="cc-attr-grid">
+                    {['FOR', 'DES', 'CON', 'INT', 'APA', 'AM'].map(attr => (
+                      <div key={attr} className="cc-attr-chip">
+                        <span className="material-symbols-outlined text-sm" style={{ color: 'var(--gold)' }}>{ATTR_ICONS[attr]}</span>
+                        <span className="font-mono text-sm font-bold text-txt-main">{stats.attrValues[attr]}</span>
+                        <span className="cc-attr-mod">Mod {stats.modValues[attr] >= 0 ? '+' : ''}{stats.modValues[attr]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="glass-panel cc-pericias-panel" data-gsap>
+                  <h2 className="cc-section-title">
+                    <span className="material-symbols-outlined">school</span> PERÍCIAS
+                  </h2>
+                  {pericias.length > 0 ? (
+                    <div className="cc-pericias-list">
+                      {pericias.map(([nome, grau]) => {
+                        const bonus = getGrauBonus(grau)
+                        const maxBonus = 20
+                        const percent = Math.min(100, (bonus / maxBonus) * 100)
+                        return (
+                          <div key={nome} className="cc-pericia-item">
+                            <div className="cc-pericia-header">
+                              <span className="cc-pericia-name">{nome}</span>
+                              <span className="cc-pericia-grau" style={{ color: 'var(--gold)' }}>
+                                {GRAU_NAMES[grau] || `Grau ${grau}`} · +{bonus}
+                              </span>
+                            </div>
+                            <div className="cc-bar">
+                              <span style={{ width: `${percent}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-txt-dim text-sm">Nenhuma perícia treinada.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* RACIAL ACTIVE ABILITIES */}
+              {racialActiveAbilities.length > 0 && (
+                <div className="glass-panel cc-abilities-panel" data-gsap>
+                  <h2 className="cc-section-title">
+                    <span className="material-symbols-outlined">spa</span> HABILIDADES RACIAIS ATIVAS
+                  </h2>
+                  <div className="cc-abilities-grid cc-abilities-grid--racial">
+                    {racialActiveAbilities.map((hab, i) => (
+                      <div key={i} className="cc-ability-card cc-ability-card--racial glass-panel"
+                        data-gsap
+                        style={{ borderColor: '1px solid rgba(52,211,153,0.3)', boxShadow: '0 0 24px rgba(52,211,153,0.1)' }}
+                        onClick={() => setAbilityModal(hab)}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="material-symbols-outlined text-lg" style={{ color: '#34d399', fontVariationSettings: "'FILL' 1" }}>spa</span>
+                          <span className="cc-ability-type" style={{ color: '#34d399' }}>RACIAL</span>
+                        </div>
+                        <h4 className="cc-ability-name font-cinzel">{hab.nome}</h4>
+                        {hab.custoEnergia && <div className="cc-ability-cost">{hab.custoEnergia}</div>}
+                        <p className="text-xs text-txt-dim mt-2 leading-relaxed line-clamp-2">{hab.descricao}</p>
+                        <div className="cc-ability-hint">Clique para detalhes</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ABILITIES */}
+              <div className="glass-panel cc-abilities-panel" data-gsap>
+                <h2 className="cc-section-title">
+                  <span className="material-symbols-outlined">auto_awesome</span> HABILIDADES
+                </h2>
+                <div className="cc-abilities-grid">
+                  {habilidades.map((hab, i) => (
+                    <AbilityCard key={i} habilidade={hab} index={i} onExpand={setAbilityModal} />
+                  ))}
+                  {habilidades.length === 0 && (
+                    <p className="text-txt-dim text-sm col-span-full">Nenhuma habilidade definida.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* SOFT-SKILLS with hover tooltips */}
+              {modulos.length > 0 && (
+                <div className="glass-panel cc-modules-panel" data-gsap>
+                  <h2 className="cc-section-title">
+                    <span className="material-symbols-outlined">extension</span> SOFT-SKILLS
+                  </h2>
+                  <div className="cc-modules-grid">
+                    {modulos.map((mod, i) => {
+                      const def = allModuleMap[mod.id]
+                      const isActive = def?.pe != null
+                      const descText = def?.desc || mod.desc || ''
+                      return (
+                        <div
+                          key={i}
+                          className={`cc-module-chip ${isActive ? 'cc-module-chip--active' : ''} cc-module-tooltip-trigger`}
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            {isActive ? 'flash_on' : 'shield'}
+                          </span>
+                          <span className="cc-module-name">{mod.name || def?.name || mod.id}</span>
+                          {(mod.boughtCount || 1) > 1 && (
+                            <span className="cc-module-count">x{mod.boughtCount}</span>
+                          )}
+                          {isActive && def?.pe && <span className="cc-module-pe">{def.pe}PE</span>}
+                          {descText && (
+                            <div className="cc-module-tooltip">
+                              <p>{descText}</p>
+                              {def?.req && <span className="cc-module-tooltip-req">Requisito: {def.req}</span>}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* INVENTORY */}
-        <div className="glass-panel cc-inventory-panel" data-gsap>
-          <h2 className="cc-section-title">
-            <span className="material-symbols-outlined">inventory_2</span> INVENTÁRIO
-            <span className="cc-inventory-count">{inventario.length} itens</span>
-          </h2>
-          <div className="cc-inventory-grid">
-            {inventario.slice(0, 60).map((item, i) => (
-              <div key={i} className="cc-inv-slot" title={`${item.nome}${item.quantidade > 1 ? ` ×${item.quantidade}` : ''}`}>
-                {item.nome?.charAt(0).toUpperCase() || '?'}
+          {activeTab === 'raca' && (
+            <div className="cc-container">
+              {/* Race info header */}
+              <div className="glass-panel cc-race-header" data-gsap>
+                <h2 className="cc-section-title">
+                  <span className="material-symbols-outlined">account_tree</span> HERANÇA RACIAL
+                </h2>
+                <div className="cc-race-info">
+                  <h3 className="font-cinzel text-xl text-gold">{stats.raceLabel}{stats.subrace ? ` — ${stats.subrace.name}` : ''}</h3>
+                  <div className="cc-par-display">
+                    <span className="text-txt-dim text-sm">Pontos de Ancestralidade (PAR):</span>
+                    <span className="font-mono text-gold">{stats.parTotal - stats.parSpent}</span>
+                    <span className="text-txt-dim text-xs">disponíveis</span>
+                    <span className="text-txt-dim/50 text-xs">({stats.parSpent}/{stats.parTotal} usados)</span>
+                  </div>
+                </div>
               </div>
-            ))}
-            {Array.from({ length: Math.max(0, 24 - inventario.length) }).map((_, i) => (
-              <div key={`empty-${i}`} className="cc-inv-slot cc-inv-slot--empty" />
-            ))}
-          </div>
+
+              {/* Racial Powers */}
+              {raceProfile && raceProfile.poderesBase?.length > 0 && (
+                <div className="glass-panel cc-racial-panel" data-gsap>
+                  <h3 className="cc-section-title cc-section-title--sm">
+                    <span className="material-symbols-outlined text-success">add_circle</span> PODERES RACIAIS
+                  </h3>
+                  {raceProfile.poderesBase.map((p, i) => (
+                    <div key={i} className="cc-racial-item cc-racial-item--power">
+                      <span className="cc-racial-name">{p.nome}</span>
+                      <span className="cc-racial-desc">{p.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Weaknesses */}
+              {raceProfile && raceProfile.fraquezas?.length > 0 && (
+                <div className="glass-panel cc-racial-panel" data-gsap>
+                  <h3 className="cc-section-title cc-section-title--sm">
+                    <span className="material-symbols-outlined text-err">remove_circle</span> FRAQUEZAS
+                  </h3>
+                  {raceProfile.fraquezas.map((f, i) => (
+                    <div key={i} className="cc-racial-item cc-racial-item--weak">
+                      <span className="cc-racial-name">{f.nome}</span>
+                      <span className="cc-racial-desc">{f.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Race tree */}
+              <div className="cc-race-tree-container" data-gsap>
+                <RaceSkillTree char={char} update={update} />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'conhecimentos' && (
+            <div className="cc-container">
+              <div className="glass-panel cc-knowledge-header" data-gsap>
+                <h2 className="cc-section-title">
+                  <span className="material-symbols-outlined">auto_stories</span> CONHECIMENTOS
+                </h2>
+                <p className="text-txt-dim text-sm">Grimórios, rituais, runas, magias e feitiços do personagem.</p>
+              </div>
+
+              <div className="cc-knowledge-grid">
+                <AlchemyLibrarySection char={char} update={canEdit ? update : null} wide />
+                <SpellLibrarySection char={char} update={canEdit ? update : null} wide />
+                <RuneLibrarySection char={char} update={canEdit ? update : null} wide />
+                <MagicLibrarySection char={char} update={canEdit ? update : null} wide />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'inventario' && (
+            <div className="cc-container">
+              <ResidentInventorySection
+                char={char}
+                characterId={characterId}
+                canEdit={canEdit}
+                update={update}
+                onTransferItem={onTransferItem}
+                maxCarry={stats.carryCap}
+                totalCarryWeight={stats.carriedLoad}
+              />
+            </div>
+          )}
         </div>
-
-        {/* RACIAL ABILITIES SUMMARY */}
-        {raceProfile && (raceProfile.poderesBase?.length > 0 || raceProfile.fraquezas?.length > 0) && (
-          <div className="cc-racial-row">
-            {raceProfile.poderesBase?.length > 0 && (
-              <div className="glass-panel cc-racial-panel" data-gsap>
-                <h3 className="cc-section-title cc-section-title--sm">
-                  <span className="material-symbols-outlined text-success">add_circle</span> PODERES RACIAIS
-                </h3>
-                {raceProfile.poderesBase.map((p, i) => (
-                  <div key={i} className="cc-racial-item cc-racial-item--power">
-                    <span className="cc-racial-name">{p.nome}</span>
-                    <span className="cc-racial-desc">{p.desc}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {raceProfile.fraquezas?.length > 0 && (
-              <div className="glass-panel cc-racial-panel" data-gsap>
-                <h3 className="cc-section-title cc-section-title--sm">
-                  <span className="material-symbols-outlined text-err">remove_circle</span> FRAQUEZAS
-                </h3>
-                {raceProfile.fraquezas.map((f, i) => (
-                  <div key={i} className="cc-racial-item cc-racial-item--weak">
-                    <span className="cc-racial-name">{f.nome}</span>
-                    <span className="cc-racial-desc">{f.desc}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {abilityModal && (
+        <AbilityDetailModal habilidade={abilityModal} onClose={() => setAbilityModal(null)} />
+      )}
     </div>
   )
 }

@@ -713,7 +713,7 @@ Depois do JSON, escreva no maximo 3 linhas de explicacao.`
     addMessage({ role: 'user', content: 'Explique as regras de balanceamento' })
     addMessage({
       role: 'assistant',
-      content: `O Sistema Olympo 2.0 usa as seguintes regras:\n\n✦ SCP — Camadas de Poder (14.1)\nBase (ilimitada) + Tático (limitada por faixa) + Épico (limitada por faixa).\n\n✦ TDH — Teto de Dano por Habilidade (14.4)\nLimites de dano por faixa de nível e tipo (Fraca/Média/Forte/Ultimate).\n\n✦ IPL — Índice de Pontos de Poder (14.5)\nCada efeito tem custo em PP. Total não excede o limite do tipo na faixa.\n\n✦ LCP — Limite Cumulativo de Poder (14.6)\nBônus de TODAS as habilidades somados não excedem limites globais por faixa.\n\n✦ PEH — Pontos de Evolução\nHabilidades evoluídas recebem valores escalados ao investimento.\n\nUse o botao Oraculo no card de uma habilidade para analisar uma por vez.`,
+      content: `O Sistema Olympo 3.0 usa as seguintes regras:\n\n✦ SCP — Camadas de Poder (14.1)\nBase (ilimitada) + Tático (limitada por faixa) + Épico (limitada por faixa).\n\n✦ TDH — Teto de Dano por Habilidade (14.4)\nLimites de dano por faixa de nível e tipo (Fraca/Média/Forte/Ultimate).\n\n✦ IPL — Índice de Pontos de Poder (14.5)\nCada efeito tem custo em PP. Total não excede o limite do tipo na faixa.\n\n✦ LCP — Limite Cumulativo de Poder (14.6)\nBônus de TODAS as habilidades somados não excedem limites globais por faixa.\n\n✦ PEH v3.0 — Pontos de Evolução com Retornos Decrescentes\nEnergia escala como PEH^0.65, Dano/cura como PEH^0.70. DELTAS base reduzidos 60% vs v2.0. Regra dos 45%: nenhuma habilidade custa mais de 45% da energia total.\n\nUse o botao Oraculo no card de uma habilidade para analisar uma por vez.`,
     })
   }
 
