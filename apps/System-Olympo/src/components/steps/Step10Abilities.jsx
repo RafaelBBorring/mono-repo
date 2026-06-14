@@ -8,6 +8,8 @@ import {
   calcEvolucaoDelta, calcPassivaAutoEvolucao,
   canEvolveSkill, getMaxEvolucao, calcPEHSpent,
   getSkillTagChips, normalizeSkillTags,
+  SKILL_TAG_OPTIONS, buildSkillTagOverridePatch,
+  getNextEvolucaoCost, calcEvolucaoCost,
 } from '../../utils/skillEvolution'
 
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
@@ -30,6 +32,39 @@ const EVO_STARS = (n, max) =>
   Array.from({ length: max }, (_, i) => (
     <span key={i} className={i < n ? 'text-gold' : 'text-sep'}>★</span>
   ))
+
+function EffectCardControls({ hab, onChange }) {
+  const activeTags = normalizeSkillTags(hab)
+
+  return (
+    <div className="bg-void/35 border border-sep/25 rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-txt-dim uppercase tracking-wider font-semibold">Cards de efeito</span>
+        <span className="text-[10px] text-gold/60 font-mono">{activeTags.length} ativos</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {SKILL_TAG_OPTIONS.map(opt => {
+          const active = activeTags.includes(opt.tag)
+          return (
+            <button
+              key={opt.tag}
+              type="button"
+              onClick={() => onChange(buildSkillTagOverridePatch(hab, opt.tag))}
+              className={`text-[10px] px-2 py-1 rounded border font-mono transition-colors ${
+                active
+                  ? 'bg-gold/10 border-gold/35 text-gold'
+                  : 'bg-black/20 border-sep/25 text-txt-dim/45 hover:text-txt-dim hover:border-sep/60'
+              }`}
+              title={active ? 'Ocultar card' : 'Mostrar card'}
+            >
+              {active ? '✓' : '+'} {opt.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function makeEmpty(tipo) {
   return { tipo, nome: '', descricao: '', custoEnergia: 0, dano: '', duracao: '', dt: '', tags: [], valores: {}, camadaSCP: 2, ppEstimado: 0, status: 'Pendente', evolucaoNivel: 0 }
@@ -91,8 +126,9 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
     const next    = current + delta
     if (next < 0) return
     const { allowed, reason } = canEvolveSkill(hab, current, nivel)
+    const nextCost = getNextEvolucaoCost(hab, current)
     if (delta > 0 && !allowed) return
-    if (delta > 0 && pehLivre <= 0) return
+    if (delta > 0 && pehLivre < nextCost) return
     updateHabilidade(i, { evolucaoNivel: next })
   }
 
@@ -213,7 +249,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
             <div className="flex-1 flex gap-1.5 flex-wrap">
               {habilidades.filter(h => h.tipo !== 'Passiva' && (h.evolucaoNivel || 0) > 0).map((h, idx) => (
                 <span key={idx} className="bg-gold/10 text-gold px-2 py-0.5 rounded font-mono text-[10px]">
-                  {h.nome ? h.nome.substring(0, 12) + (h.nome.length > 12 ? '…' : '') : `Hab.${idx+1}`}: {h.evolucaoNivel}★
+                  {h.nome ? h.nome.substring(0, 12) + (h.nome.length > 12 ? '…' : '') : `Hab.${idx+1}`}: {h.evolucaoNivel}★ / {calcEvolucaoCost(h.tipo, h.evolucaoNivel || 0)} PEH
                 </span>
               ))}
               {pehSpent === 0 && <span className="text-txt-dim italic">Nenhum ponto distribuído ainda</span>}
@@ -230,7 +266,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
         <div className="text-xs text-txt-dim border-t border-sep/30 pt-2 space-y-0.5">
           <p><span className="text-ok">Passiva</span> evolui automaticamente nos níveis 10, 20 e 30 — sem custo.</p>
           <p><span className="text-amber-300">Ultimate</span>: 1º ponto requer N15 · 2º requer N25 · 3º requer N30.</p>
-          <p className="text-sep/70">Você pode redistribuir pontos até 2× por personagem.</p>
+          <p className="text-sep/70">Evoluções altas custam mais PEH: 1, 1, 2, 2, 3. Ultimate começa em 2 PEH.</p>
         </div>
       </div>
 
@@ -280,6 +316,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
           const { allowed: canAdd, reason: addReason } = isPassiva
             ? { allowed: false, reason: 'Auto' }
             : canEvolveSkill(hab, evoAtual, nivel)
+          const nextEvoCost = getNextEvolucaoCost(hab, evoAtual)
           const showPreview  = previewIdx === i && delta
 
           return (
@@ -307,9 +344,9 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
                         >−</button>
                         <button
                           onClick={() => handleEvoChange(i, hab, 1)}
-                          disabled={!canAdd || pehLivre <= 0}
+                          disabled={!canAdd || pehLivre < nextEvoCost}
                           className="w-5 h-5 flex items-center justify-center rounded bg-void border border-sep text-txt-dim text-xs hover:border-gold/60 hover:text-gold disabled:opacity-30 transition-colors"
-                          title={!canAdd ? addReason : pehLivre <= 0 ? 'Sem PEH disponível' : `+1 PEH (${pehLivre} restantes)`}
+                          title={!canAdd ? addReason : pehLivre < nextEvoCost ? `Requer ${nextEvoCost} PEH livre` : `+1 evolucao, custo ${nextEvoCost} PEH (${pehLivre} livres)`}
                         >+</button>
                       </>
                     )}
@@ -409,6 +446,7 @@ export default function Step10Abilities({ char, update, updateHabilidade }) {
                   />
                 </div>
               </div>
+              <EffectCardControls hab={hab} onChange={patch => updateHabilidade(i, patch)} />
               {tagChips.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {tagChips.map(chip => (

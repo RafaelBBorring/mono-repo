@@ -26,11 +26,48 @@ export function getMaxEvolucao(tipo, charNivel = 30) {
 }
 
 const DELTAS = {
-  FRACA:    { dadoExtra: '2d8',  flat: 8,  energia: 6 },
-  MEDIA:    { dadoExtra: '2d10', flat: 12, energia: 10 },
-  FORTE:    { dadoExtra: '3d12', flat: 18, energia: 16 },
-  ULTIMATE: { dadoExtra: '4d12', flat: 25, energia: 25 },
+  FRACA:    { dadoExtra: '2d8',  flat: 8,  energia: 10 },
+  MEDIA:    { dadoExtra: '2d10', flat: 12, energia: 16 },
+  FORTE:    { dadoExtra: '3d12', flat: 18, energia: 24 },
+  ULTIMATE: { dadoExtra: '4d12', flat: 25, energia: 35 },
   PASSIVA:  { dadoExtra: '',     flat: 0,  energia: 0 },
+}
+
+const HEAL_DELTAS = {
+  FRACA: 18,
+  MEDIA: 28,
+  FORTE: 42,
+  ULTIMATE: 60,
+  PASSIVA: 0,
+}
+
+const ENERGY_RECOVERY_DELTAS = {
+  FRACA: 10,
+  MEDIA: 16,
+  FORTE: 24,
+  ULTIMATE: 35,
+  PASSIVA: 0,
+}
+
+const DURATION_ENERGY_SURCHARGE = {
+  FRACA: 3,
+  MEDIA: 5,
+  FORTE: 7,
+  ULTIMATE: 10,
+  PASSIVA: 0,
+}
+
+const COMPLEXITY_ENERGY_SURCHARGE = {
+  FRACA: 1,
+  MEDIA: 2,
+  FORTE: 3,
+  ULTIMATE: 5,
+  PASSIVA: 0,
+}
+
+const EVOLUTION_LEVEL_COST = {
+  DEFAULT: [0, 1, 1, 2, 2, 3, 4, 5, 6],
+  ULTIMATE: [0, 2, 2, 3, 3, 4, 5, 6, 7],
 }
 
 const DURACAO_BONUS = {
@@ -69,6 +106,11 @@ const TAG_LABELS = {
   invisibilidade: 'Invisibilidade',
   invocacao: 'Invocacao',
 }
+
+export const SKILL_TAG_OPTIONS = TAG_ORDER.map(tag => ({
+  tag,
+  label: TAG_LABELS[tag] || tag,
+}))
 
 const TAG_ALIASES = {
   custo: 'custoEnergia',
@@ -199,6 +241,12 @@ function addTag(set, tag) {
   if (normalized) set.add(normalized)
 }
 
+function normalizeTagSet(input) {
+  const set = new Set()
+  tagList(input).forEach(tag => addTag(set, tag))
+  return set
+}
+
 function sourceText(skill = {}) {
   return stripAccents([
     skill.nome,
@@ -235,7 +283,7 @@ function inferSkillTags(skill = {}) {
   const values = skill.valores || {}
 
   if ((skill.tipo === 'Ativa' || skill.tipo === 'Ultimate' || Number(skill.custoEnergia) > 0 || /custo|energia/.test(text)) && skill.tipo !== 'Passiva') addTag(tags, 'custoEnergia')
-  if (skill.dano || values.dano || /\b\d+d\d+\b|\bdano\b/.test(text)) addTag(tags, 'dano')
+  if (skill.dano || values.dano || hasDamageText(text)) addTag(tags, 'dano')
   if (values.cura || hasLifeHealingText(text)) addTag(tags, 'cura')
   if (values.curaEnergia || hasEnergyRecoveryText(text)) addTag(tags, 'curaEnergia')
   if (hasMeaningfulDuration(skill)) addTag(tags, 'duracao')
@@ -257,12 +305,49 @@ function inferSkillTags(skill = {}) {
 }
 
 export function normalizeSkillTags(skill = {}) {
+  const inferred = new Set(inferSkillTags(skill))
+  const manualEnabled = normalizeTagSet(skill.tagsManuais || skill.manualTags || skill.tagOverrides?.enabled)
+  const hidden = normalizeTagSet(skill.tagsOcultas || skill.hiddenTags || skill.tagOverrides?.disabled)
   const tags = new Set()
-  tagList(skill.tags).forEach(tag => addTag(tags, tag))
-  inferSkillTags(skill).forEach(tag => addTag(tags, tag))
+  inferred.forEach(tag => tags.add(tag))
+  manualEnabled.forEach(tag => tags.add(tag))
+  tagList(skill.tags).forEach(raw => {
+    const tag = normalizeTagName(raw)
+    if (!tag || hidden.has(tag) || manualEnabled.has(tag)) return
+    if (inferred.has(tag) || getSkillTagValue(skill, tag)) tags.add(tag)
+  })
   if (!hasMeaningfulDuration(skill)) tags.delete('duracao')
   if (skill.tipo === 'Passiva') tags.delete('custoEnergia')
+  hidden.forEach(tag => tags.delete(tag))
   return TAG_ORDER.filter(tag => tags.has(tag))
+}
+
+export function buildSkillTagOverridePatch(skill = {}, tag) {
+  const normalized = normalizeTagName(tag)
+  if (!normalized) return {}
+  const active = normalizeSkillTags(skill).includes(normalized)
+  const tagsManuais = normalizeTagSet(skill.tagsManuais || skill.manualTags || skill.tagOverrides?.enabled)
+  const tagsOcultas = normalizeTagSet(skill.tagsOcultas || skill.hiddenTags || skill.tagOverrides?.disabled)
+
+  if (active) {
+    tagsOcultas.add(normalized)
+    tagsManuais.delete(normalized)
+  } else {
+    tagsOcultas.delete(normalized)
+    tagsManuais.add(normalized)
+  }
+
+  const draft = {
+    ...skill,
+    tagsManuais: [...tagsManuais],
+    tagsOcultas: [...tagsOcultas],
+  }
+
+  return {
+    tagsManuais: draft.tagsManuais,
+    tagsOcultas: draft.tagsOcultas,
+    tags: normalizeSkillTags(draft),
+  }
 }
 
 export function hasSkillTag(skill = {}, tag) {
@@ -280,6 +365,33 @@ function extractSignedValue(text, patterns) {
 
 function hasEnergyRecoveryText(text) {
   return /(?:regenera\w*|recupera\w*|restaura\w*|ganha\w*|recebe\w*)\s*\d+\s*(?:ponto|pontos)?\s*(?:de\s*)?(?:energia|pe)\b|\+\s*\d+\s*(?:energia|pe)\s*(?:por|\/)\s*(?:rodada|turno)|(?:energia|pe).{0,24}(?:por|\/)\s*(?:rodada|turno)/.test(text)
+}
+
+function hasDamageText(text) {
+  const normalized = stripAccents(text).toLowerCase()
+  const offensiveDamage = /\b(?:causa|causam|causar|sofre|sofrem|inflige|infligem|provoca|provocam|aplica|aplicam|recebe|recebem)\b.{0,50}\b(?:\d+d\d+|[+-]?\d+).{0,24}\bdano\b/.test(normalized)
+  const damageValue = /\b(?:\d+d\d+(?:[+-]\d+)?|[+-]?\d+)\s*(?:de\s*)?dano\b/.test(normalized)
+  const damageField = /\bdano\b.{0,24}(?:\d+d\d+|[+-]?\d+)/.test(normalized)
+  const rawOffense = normalized.match(/\b(?:causa|causam|causar|sofre|sofrem|inflige|infligem|provoca|provocam|aplica|aplicam)\b.{0,35}\b(?:\d+d\d+|[+-]?\d+)/)
+  if (rawOffense && !/\b(cura|curar|recupera|regenera|restaura|vida|pv|hp|energia|pe|ca|armadura)\b/.test(rawOffense[0])) return true
+  if (offensiveDamage || damageValue || damageField) return true
+  if (/\b(?:reduz|reduzir|reducao|resistencia|resiste|absorve|imune|ignora)\b.{0,28}\bdano\b/.test(normalized)) return false
+  return /\bdano\b/.test(normalized) && /\b(?:ataque|golpe|atinge|alvo|inimigo)\b/.test(normalized)
+}
+
+function extractDamageValue(text) {
+  const normalized = normalizeSpaces(stripAccents(text))
+  const patterns = [
+    /\b((?:\d+d\d+(?:[+-]\d+)?|[+-]?\d+)\s*(?:de\s*)?dano(?:\s+[A-Za-z]+)?)/i,
+    /\b(?:causa|causam|sofre|sofrem|inflige|provoca|aplica|recebe)\D{0,24}((?:\d+d\d+(?:[+-]\d+)?|[+-]?\d+))(?=.{0,24}\bdano\b)/i,
+    /\b(?:causa|causam|causar|sofre|sofrem|inflige|infligem|provoca|provocam|aplica|aplicam)\D{0,24}((?:\d+d\d+(?:[+-]\d+)?|[+-]?\d+)(?!\s*(?:de\s*)?(?:vida|pv|hp|energia|pe|ca|armadura)))/i,
+    /\bdano\D{0,12}((?:\d+d\d+(?:[+-]\d+)?|[+-]?\d+))/i,
+  ]
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern)
+    if (match) return normalizeSpaces(match[1])
+  }
+  return ''
 }
 
 function hasLifeHealingText(text) {
@@ -345,7 +457,7 @@ export function getSkillTagValue(skill = {}, tag) {
     return raw
   }
   if (tag === 'custoEnergia' && Number(skill.custoEnergia) > 0) return String(skill.custoEnergia)
-  if (tag === 'dano' && skill.dano) return skill.dano
+  if (tag === 'dano') return skill.dano || extractDamageValue(text)
   if (tag === 'cura' && values.cura) return String(values.cura)
   if (tag === 'curaEnergia') return extractEnergyRecoveryValue(text)
   if (tag === 'duracao' && skill.duracao) return skill.duracao
@@ -401,14 +513,20 @@ export function calcEvolucaoDelta(skill, evolNivel) {
   const delta = DELTAS[bracket]
   const duracaoBonusArr = DURACAO_BONUS[bracket] || [0,0,0,0,0,0]
   const tags = normalizeSkillTags(skill)
+  const powerCount = tags.filter(tag => POWER_TAGS.has(tag)).length
   const damageMultiplier = splitBudgetByTags(tags)
+  const supportMultiplier = Math.max(0.75, damageMultiplier)
 
   const duracaoExtra = tags.includes('duracao') ? sumProgression(duracaoBonusArr, evolNivel) : 0
   const flatExtra    = tags.includes('dano') ? scaleNumber(delta.flat * evolNivel, damageMultiplier) : 0
-  const energiaExtra = tags.includes('custoEnergia') ? delta.energia * evolNivel : 0
+  const energiaExtra = tags.includes('custoEnergia')
+    ? (delta.energia * evolNivel)
+      + (duracaoExtra * (DURATION_ENERGY_SURCHARGE[bracket] || 0))
+      + (Math.max(0, powerCount - 2) * evolNivel * (COMPLEXITY_ENERGY_SURCHARGE[bracket] || 0))
+    : 0
   const dtExtra      = tags.includes('dt') ? sumProgression(DT_BONUS, evolNivel) : 0
-  const curaExtra    = tags.includes('cura') ? scaleNumber(delta.flat * evolNivel, splitBudgetByTags(tags)) : 0
-  const curaEnergiaExtra = tags.includes('curaEnergia') ? scaleNumber(delta.flat * evolNivel, splitBudgetByTags(tags)) : 0
+  const curaExtra    = tags.includes('cura') ? scaleNumber((HEAL_DELTAS[bracket] || 0) * evolNivel, supportMultiplier) : 0
+  const curaEnergiaExtra = tags.includes('curaEnergia') ? scaleNumber((ENERGY_RECOVERY_DELTAS[bracket] || 0) * evolNivel, supportMultiplier) : 0
   const caExtra      = tags.includes('bonusCA') ? Math.ceil(evolNivel / 2) : 0
   const ataqueExtra  = tags.includes('bonusAtaque') ? Math.ceil(evolNivel / 2) : 0
   const resultadoBase = getSkillTagValue(skill, 'bonusResultado')
@@ -505,7 +623,25 @@ export function calcPassivaAutoEvolucao(charNivel) {
 export function calcPEHSpent(habilidades) {
   return (habilidades || [])
     .filter(h => h.tipo !== 'Passiva')
-    .reduce((sum, h) => sum + (h.evolucaoNivel || 0), 0)
+    .reduce((sum, h) => sum + calcEvolucaoCost(h.tipo, h.evolucaoNivel || 0), 0)
+}
+
+export function getEvolucaoLevelCost(tipo, level) {
+  if (!level || level <= 0) return 0
+  const table = tipo === 'Ultimate' ? EVOLUTION_LEVEL_COST.ULTIMATE : EVOLUTION_LEVEL_COST.DEFAULT
+  return table[level] ?? table[table.length - 1] ?? 1
+}
+
+export function calcEvolucaoCost(tipo, evolNivel = 0) {
+  let total = 0
+  for (let level = 1; level <= evolNivel; level++) {
+    total += getEvolucaoLevelCost(tipo, level)
+  }
+  return total
+}
+
+export function getNextEvolucaoCost(skill = {}, currentEvolNivel = 0) {
+  return getEvolucaoLevelCost(skill.tipo, currentEvolNivel + 1)
 }
 
 const BRACKET_TIERS = ['FRACA', 'MEDIA', 'FORTE', 'ULTIMATE']
@@ -526,6 +662,7 @@ export function buildEvolucaoContext(habilidades, charNivel) {
     const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
     const tdhEfetivo = getEffectiveBracket(bracket, evoNivel, h.tipo)
     const maxEvo = getMaxEvolucao(h.tipo, charNivel)
+    const pehCost = h.tipo === 'Passiva' ? 0 : calcEvolucaoCost(h.tipo, evoNivel)
     const evoDelta = calcEvolucaoDelta(h, evoNivel)
     const tags = normalizeSkillTags(h)
     const bonusText = evoDelta?.tagBonuses?.length
@@ -534,7 +671,7 @@ export function buildEvolucaoContext(habilidades, charNivel) {
 
     const instrucaoIA = evoNivel === 0
       ? `PEH investido: 0. Use valores BASE (${bracket}). NAO escale por nivel do personagem. Tags reconhecidas: ${tags.join(', ') || 'nenhuma'}.`
-      : `PEH investido: ${evoNivel}/${maxEvo}. Escale SOMENTE as tags reconhecidas nesta habilidade: ${tags.join(', ') || 'nenhuma'}. Incrementos sugeridos: ${bonusText}. TDH efetivo: ${tdhEfetivo}. Se a tag duracao estiver ausente, NAO crie nem aumente duracao. Se a tag dano estiver ausente, NAO adicione dano novo. Custo de energia aumenta apenas em Ativas/Ultimates.`
+      : `Nivel de evolucao: ${evoNivel}/${maxEvo}. Custo acumulado: ${pehCost} PEH. Escale SOMENTE as tags reconhecidas nesta habilidade: ${tags.join(', ') || 'nenhuma'}. Incrementos sugeridos: ${bonusText}. TDH efetivo: ${tdhEfetivo}. Se a tag duracao estiver ausente, NAO crie nem aumente duracao. Se a tag dano estiver ausente, NAO adicione dano novo. Custo de energia aumenta apenas em Ativas/Ultimates.`
     return {
       index: i,
       nome: h.nome || `Habilidade ${i + 1}`,

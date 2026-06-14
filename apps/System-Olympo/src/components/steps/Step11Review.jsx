@@ -8,7 +8,7 @@ import { MARTIAL_ARTS, GRAU_LABELS } from '../../data/martialArts'
 import { WEAPONS, WEAPON_RANKS, WEAPON_ABILITY_COST, RANK_LEVEL_BAND, getWeaponLimitForLevel, getMartialArtsLimitForLevel, canEquipRank, getRankIndex, LEGENDARY_WEAPONS } from '../../data/weapons'
 import { RANK_COLORS } from '../../data/colors'
 import { calcPEHTotal, calcPericiasAvailable } from '../../utils/calculator'
-import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, getSkillDtDisplay, hasSkillDtType, normalizeSkillTags } from '../../utils/skillEvolution'
+import { calcPEHSpent, getMaxEvolucao, canEvolveSkill, calcEvolucaoDelta, getSkillBracket, getSkillTagChips, getSkillDtDisplay, hasSkillDtType, normalizeSkillTags, SKILL_TAG_OPTIONS, buildSkillTagOverridePatch, getNextEvolucaoCost, calcEvolucaoCost } from '../../utils/skillEvolution'
 import { PERICIAS, GRAU_NAMES, getGrauBonus, getMaxGrauForLevel } from '../../data/pericias'
 import { TRIAGES } from '../../data/triages'
 import { MODULES_PASSIVE, MODULES_ACTIVE, MODULES_SPECIAL } from '../../data/modules'
@@ -43,20 +43,37 @@ import { SPECIAL_MATERIALS, getAvailableForgeMaterials, getMaterialIcon } from '
 const STATUS_COLORS = { Pendente: 'text-warn', Aprovada: 'text-ok', 'Revisão necessária': 'text-err' }
 const STATUS_OPTIONS = ['Pendente', 'Aprovada', 'Revisão necessária']
 
+function normalizeEffectText(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
 function parseActiveBonuses(source) {
   const text = `${source?.name || source?.nome || ''} ${source?.desc || ''} ${source?.descricao || ''} ${source?.efeito || ''}`
+  const normalized = normalizeEffectText(text)
+  const isAbilitySource = source?.sourceLabel === 'Habilidade'
+  const tags = isAbilitySource ? new Set(normalizeSkillTags(source)) : new Set()
+  const values = source?.valores || {}
   const bonuses = { ataque: 0, ca: 0, vida: 0, energia: 0, dano: 0 }
   const signedNumbers = [...text.matchAll(/([+-]\s*\d+)(?:\s*(?:em|no|na|de|para|ao|a))?\s*([a-zA-ZÀ-ÿ ]{0,28})/g)]
+
+  if (isAbilitySource && values.bonusVida) bonuses.vida += Number(values.bonusVida) || 0
+  if (isAbilitySource && values.bonusEnergia) bonuses.energia += Number(values.bonusEnergia) || 0
 
   signedNumbers.forEach((match) => {
     const value = Number(match[1].replace(/\s+/g, ''))
     const target = (match[2] || '').toLowerCase()
     if (!Number.isFinite(value)) return
-    if (/ataque|acerto|pontaria|golpe/.test(target)) bonuses.ataque += value
-    else if (/ca|defesa|armadura|bloqueio|esquiva/.test(target)) bonuses.ca += value
-    else if (/vida|hp/.test(target)) bonuses.vida += value
-    else if (/energia/.test(target)) bonuses.energia += value
-    else if (/dano/.test(target)) bonuses.dano += value
+    if (/ataque|acerto|pontaria|golpe/.test(target)) {
+      if (!isAbilitySource || tags.has('bonusAtaque')) bonuses.ataque += value
+    } else if (/ca|defesa|armadura|bloqueio|esquiva/.test(target)) {
+      if (!isAbilitySource || tags.has('bonusCA')) bonuses.ca += value
+    } else if (/vida|hp/.test(target)) {
+      if (!isAbilitySource && !/\b(cura|curar|recupera|regenera|restaura)\b/.test(normalized)) bonuses.vida += value
+    } else if (/energia/.test(target)) {
+      if (!isAbilitySource && !/\b(custo|gasta|paga|consome)\b/.test(normalized)) bonuses.energia += value
+    } else if (/dano/.test(target)) {
+      if (!isAbilitySource || (tags.has('dano') && /\b(ataque|ataques|golpe|golpes|arma|proximo ataque|proximo golpe)\b/.test(normalized))) bonuses.dano += value
+    }
   })
 
   return bonuses
@@ -2457,14 +2474,52 @@ function RichTextToolbar({ editorRef }) {
   )
 }
 
+function EffectCardControls({ hab, onToggle }) {
+  const activeTags = normalizeSkillTags(hab)
+
+  return (
+    <div className="bg-void/35 border border-sep/25 rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-txt-dim uppercase tracking-wider font-semibold">Cards de efeito</span>
+        <span className="text-[10px] text-gold/60 font-mono">{activeTags.length} ativos</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {SKILL_TAG_OPTIONS.map(opt => {
+          const active = activeTags.includes(opt.tag)
+          return (
+            <button
+              key={opt.tag}
+              type="button"
+              onClick={() => onToggle(opt.tag)}
+              className={`text-[10px] px-2 py-1 rounded border font-mono transition-colors ${
+                active
+                  ? 'bg-gold/10 border-gold/35 text-gold'
+                  : 'bg-black/20 border-sep/25 text-txt-dim/45 hover:text-txt-dim hover:border-sep/60'
+              }`}
+              title={active ? 'Ocultar card' : 'Mostrar card'}
+            >
+              {active ? '✓' : '+'} {opt.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
   const [form, setForm] = useState({
+    tipo: h.tipo || 'Ativa',
     nome: h.nome || '',
     descricao: h.descricao || '',
     custoEnergia: h.custoEnergia || 0,
     dano: h.dano || '',
     duracao: h.duracao || '',
     dt: h.dt || '',
+    valores: h.valores || {},
+    tags: normalizeSkillTags(h),
+    tagsManuais: h.tagsManuais || [],
+    tagsOcultas: h.tagsOcultas || [],
     status: h.status || 'Pendente',
   })
   const editorRef = useRef(null)
@@ -2484,6 +2539,13 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
     if (editorRef.current) {
       handleChange('descricao', editorRef.current.innerHTML)
     }
+  }
+
+  function handleEffectCardToggle(tag) {
+    setForm(prev => ({
+      ...prev,
+      ...buildSkillTagOverridePatch(prev, tag),
+    }))
   }
 
   function handleSave() {
@@ -2564,6 +2626,7 @@ function AbilityEditModal({ h, i, canEdit, updateHabilidade, onClose }) {
                 className="w-full bg-void border border-sep/30 rounded-lg px-3 py-2 text-sm text-txt-main font-mono focus:border-gold/40 focus:outline-none transition-colors" />
             </div>
           </div>
+          <EffectCardControls hab={form} onToggle={handleEffectCardToggle} />
         </div>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-sep/20 bg-void/40">
@@ -2733,6 +2796,8 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
   const bracket = getSkillBracket(h.custoEnergia || 0, h.tipo)
   const { allowed: canUp, reason: upReason } = canEvolveSkill(h, evoNivel, charNivel)
   const canDown = evoNivel > 0 && h.tipo !== 'Passiva'
+  const nextEvoCost = getNextEvolucaoCost(h, evoNivel)
+  const evoCost = calcEvolucaoCost(h.tipo, evoNivel)
 
   const typeStyle = h.tipo === 'Ultimate'
     ? { border: 'border-amber-400/30', bg: '', badge: 'text-amber-300 border-amber-400/30', badgeBg: 'rgba(251,191,36,0.12)', icon: '★', label: 'Ultimate', accentGrad: 'linear-gradient(135deg, rgba(251,191,36,0.08), transparent)' }
@@ -2745,7 +2810,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
     : { border: 'border-indigo-400/15', bg: '', badge: 'text-indigo-400 border-indigo-400/30', badgeBg: 'rgba(129,140,248,0.10)', icon: `#${i + 1}`, label: 'Ativa', accentGrad: 'linear-gradient(135deg, rgba(129,140,248,0.05), transparent)' }
 
   function handleEvoUp() {
-    if (!canUp || pehRemaining <= 0) return
+    if (!canUp || pehRemaining < nextEvoCost) return
     updateHabilidade(i, { evolucaoNivel: evoNivel + 1 })
   }
 
@@ -2780,9 +2845,9 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-3">
-          {canEdit && h.tipo !== 'Passiva' && canUp && pehRemaining > 0 && (
+          {canEdit && h.tipo !== 'Passiva' && canUp && pehRemaining >= nextEvoCost && (
             <button type="button" onClick={e => { e.stopPropagation(); handleEvoUp() }}
-              title={`Evoluir habilidade (${evoNivel}/${maxEvo}) — ${pehRemaining} PEH disponível`}
+              title={`Evoluir habilidade (${evoNivel}/${maxEvo}) - custo ${nextEvoCost} PEH, ${pehRemaining} livre(s)`}
               className="w-6 h-6 rounded border border-indigo-400/30 text-indigo-400/70 hover:text-indigo-400 hover:border-indigo-400/60 inline-flex items-center justify-center transition-colors text-[11px] font-bold" style={{ background: 'rgba(129,140,248,0.06)' }}>
               +
             </button>
@@ -2810,7 +2875,7 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
         <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <div className="flex flex-wrap items-center gap-2 pt-3">
             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[h.status] === 'text-ok' ? 'border-emerald-400/20 text-emerald-300' : STATUS_COLORS[h.status] === 'text-warn' ? 'border-yellow-400/20 text-yellow-300' : STATUS_COLORS[h.status] === 'text-err' ? 'border-red-400/20 text-red-300' : 'border-sep/20 text-txt-dim'}`} style={{ background: STATUS_COLORS[h.status] === 'text-ok' ? 'rgba(52,211,153,0.06)' : STATUS_COLORS[h.status] === 'text-warn' ? 'rgba(250,204,21,0.06)' : STATUS_COLORS[h.status] === 'text-err' ? 'rgba(248,113,113,0.06)' : 'rgba(255,255,255,0.02)' }}>{h.status}</span>
-            {evoNivel > 0 && <span className="text-indigo-400 text-[10px] font-mono">Evo {evoNivel}/{maxEvo} ({bracket})</span>}
+            {evoNivel > 0 && <span className="text-indigo-400 text-[10px] font-mono">Evo {evoNivel}/{maxEvo} ({bracket}) - {evoCost} PEH</span>}
             {canEdit && h.tipo !== 'Passiva' && (
               <div className="flex items-center gap-1">
                 <button type="button" onClick={() => handleEvoDown()}
@@ -2820,9 +2885,9 @@ function HabilidadeCard({ h, i, canEdit, updateHabilidade, charNivel, pehRemaini
                 </button>
                 <span className={`text-[10px] font-mono w-4 text-center ${evoNivel > 0 ? 'text-indigo-400' : 'text-txt-dim/40'}`}>{evoNivel}</span>
                 <button type="button" onClick={() => handleEvoUp()}
-                  disabled={!canUp || pehRemaining <= 0}
-                  title={upReason || (pehRemaining <= 0 ? 'Sem PEH disponível' : '')}
-                  className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canUp && pehRemaining > 0 ? 'bg-void border border-sep/50 text-txt-dim hover:border-indigo-400 hover:text-indigo-400' : 'opacity-20 cursor-not-allowed'}`}>
+                  disabled={!canUp || pehRemaining < nextEvoCost}
+                  title={upReason || (pehRemaining < nextEvoCost ? `Requer ${nextEvoCost} PEH livre` : '')}
+                  className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${canUp && pehRemaining >= nextEvoCost ? 'bg-void border border-sep/50 text-txt-dim hover:border-indigo-400 hover:text-indigo-400' : 'opacity-20 cursor-not-allowed'}`}>
                   +
                 </button>
               </div>
