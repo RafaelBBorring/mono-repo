@@ -18,6 +18,7 @@ import { normalizeSkillTags, getSkillTagChips, calcEvolucaoDelta, getSkillBracke
 import { getLevelBand } from '../utils/skillEvolution'
 import ResidentInventorySection from './ResidentInventorySection'
 import SkillTreeView from './SkillTreeView'
+import { chatAboutAbility } from '../services/aiService'
 
 const RESOURCE_COLORS = {
   vida: '#3dff92',
@@ -254,11 +255,42 @@ function AbilityCard({ habilidade, index, onExpand }) {
   )
 }
 
+function extractOracleJson(resp) {
+  const jsonBlock = resp.match(/```json\s*\n?([\s\S]*?)\n?\s*```/)
+  if (jsonBlock) {
+    try {
+      const parsed = JSON.parse(jsonBlock[1].trim())
+      if (parsed.habilidade) return parsed.habilidade
+      if (Array.isArray(parsed.habilidades)) return parsed.habilidades[0] || null
+      return parsed
+    } catch {}
+  }
+  try {
+    const parsed = JSON.parse(resp.trim())
+    if (parsed.habilidade) return parsed.habilidade
+    if (Array.isArray(parsed.habilidades)) return parsed.habilidades[0] || null
+    return parsed
+  } catch {}
+  const looseJson = resp.match(/\{[\s\S]*"custoEnergia"[\s\S]*\}/)
+  if (looseJson) {
+    try { return JSON.parse(looseJson[0]) } catch {}
+  }
+  return null
+}
+
+function extractOracleText(resp) {
+  const before = resp.match(/^([\s\S]*?)(?=```json|\{[\s\S]*"custoEnergia")/)
+  return before ? before[1].trim() : ''
+}
+
 function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
   const [editMode, setEditMode] = useState(false)
   const [draft, setDraft] = useState(habilidade)
+  const [oracleLoading, setOracleLoading] = useState(false)
+  const [oracleResult, setOracleResult] = useState(null)
+  const [oracleError, setOracleError] = useState('')
 
-  useEffect(() => { setDraft(habilidade); setEditMode(false) }, [habilidade])
+  useEffect(() => { setDraft(habilidade); setEditMode(false); setOracleResult(null); setOracleError('') }, [habilidade])
 
   if (!habilidade) return null
   const chips = getSkillTagChips(draft)
@@ -266,6 +298,7 @@ function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
   const delta = evoNivel > 0 ? calcEvolucaoDelta(draft, evoNivel) : null
   const tipo = draft.tipo || 'Ativa'
   const canEdit = onEdit && index != null
+  const canOracle = canEdit && char
 
   const tipoStyle = {
     Passiva: { color: '#00ffae', icon: 'shield' },
@@ -281,6 +314,54 @@ function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
 
   function patch(p) {
     setDraft(prev => ({ ...prev, ...p }))
+  }
+
+  async function handleOracle() {
+    if (!char) return
+    setOracleLoading(true)
+    setOracleError('')
+    setOracleResult(null)
+    try {
+      const prompt = `Analise e balancie a seguinte habilidade do personagem. Aplique as regras do Sistema Olympo 3.0 (PEH v3.0, TDH, IPL, LCP).
+
+Habilidade: "${draft.nome || '—'}" (tipo: ${tipo})
+Energia atual: ${draft.custoEnergia || 0} | Dano atual: ${draft.dano || '—'} | Duração: ${draft.duracao || '—'} | DT: ${draft.dt || '—'}
+Descrição: ${draft.descricaoBalanceada || draft.descricao || '—'}
+Tags: ${normalizeSkillTags(draft).join(', ') || 'nenhuma'}
+
+Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
+      const resp = await chatAboutAbility(char, prompt, [])
+      const parsed = extractOracleJson(resp)
+      const feedback = extractOracleText(resp)
+      if (!parsed) {
+        setOracleError('O Oráculo não conseguiu retornar valores. Tente novamente.')
+        return
+      }
+      setOracleResult({ parsed, feedback: feedback || parsed.feedback || 'Balanceamento concluído.' })
+    } catch (err) {
+      setOracleError(err.message || 'Erro ao contatar o Oráculo.')
+    } finally {
+      setOracleLoading(false)
+    }
+  }
+
+  function applyOracle() {
+    if (!oracleResult?.parsed) return
+    const p = oracleResult.parsed
+    const merged = {
+      ...draft,
+      custoEnergia: p.custoEnergia ?? draft.custoEnergia,
+      dano: p.dano ?? draft.dano,
+      dt: p.dt ?? draft.dt,
+      duracao: p.duracao ?? draft.duracao,
+      ...(p.descricaoBalanceada ? { descricaoBalanceada: p.descricaoBalanceada, descricao: p.descricaoBalanceada } : {}),
+      ...(p.tags ? { tags: p.tags } : {}),
+      ...(p.valores ? { valores: p.valores } : {}),
+      status: 'Balanceado',
+    }
+    setDraft(merged)
+    onEdit(index, merged)
+    setOracleResult(null)
   }
 
   return (
@@ -384,6 +465,81 @@ function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
                     {delta.tagBonuses.map((b, i) => (
                       <span key={i} className="cc-evo-bonus">{b.label} {b.value}</span>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {canOracle && !oracleLoading && !oracleResult && (
+                <div className="mt-4 pt-3 border-t border-sep/50">
+                  <button className="cc-oracle-btn" onClick={handleOracle}>
+                    <span className="text-sm">✦</span> Balanciar com Oráculo
+                  </button>
+                  {oracleError && <p className="text-err text-xs mt-2">{oracleError}</p>}
+                </div>
+              )}
+
+              {oracleLoading && (
+                <div className="mt-4 pt-3 border-t border-sep/50 flex items-center gap-2 text-gold/80 text-sm">
+                  <span className="cc-oracle-spinner" />
+                  Oráculo analisando…
+                </div>
+              )}
+
+              {oracleResult && (
+                <div className="cc-oracle-result mt-4 pt-3 border-t border-sep/50">
+                  <div className="cc-oracle-result-header">
+                    <span className="text-gold font-cinzel text-sm">✦ Sugestão do Oráculo</span>
+                  </div>
+                  {oracleResult.feedback && (
+                    <p className="text-xs text-txt-dim leading-relaxed mt-2 mb-3">{oracleResult.feedback}</p>
+                  )}
+                  <div className="cc-oracle-diff">
+                    {oracleResult.parsed.custoEnergia != null && oracleResult.parsed.custoEnergia !== draft.custoEnergia && (
+                      <div className="cc-oracle-diff-row">
+                        <span className="text-txt-dim">Energia</span>
+                        <span className="font-mono text-txt-dim line-through">{draft.custoEnergia || 0}</span>
+                        <span className="text-gold">→</span>
+                        <span className="font-mono text-tomato">{oracleResult.parsed.custoEnergia}</span>
+                      </div>
+                    )}
+                    {oracleResult.parsed.dano != null && oracleResult.parsed.dano !== draft.dano && (
+                      <div className="cc-oracle-diff-row">
+                        <span className="text-txt-dim">Dano</span>
+                        <span className="font-mono text-txt-dim line-through">{draft.dano || '—'}</span>
+                        <span className="text-gold">→</span>
+                        <span className="font-mono text-tomato">{oracleResult.parsed.dano}</span>
+                      </div>
+                    )}
+                    {oracleResult.parsed.dt != null && oracleResult.parsed.dt !== draft.dt && (
+                      <div className="cc-oracle-diff-row">
+                        <span className="text-txt-dim">DT</span>
+                        <span className="font-mono text-txt-dim line-through">{draft.dt || '—'}</span>
+                        <span className="text-gold">→</span>
+                        <span className="font-mono">{oracleResult.parsed.dt}</span>
+                      </div>
+                    )}
+                    {oracleResult.parsed.duracao != null && oracleResult.parsed.duracao !== draft.duracao && (
+                      <div className="cc-oracle-diff-row">
+                        <span className="text-txt-dim">Duração</span>
+                        <span className="font-mono text-txt-dim line-through">{draft.duracao || '—'}</span>
+                        <span className="text-gold">→</span>
+                        <span>{oracleResult.parsed.duracao || 'instantânea'}</span>
+                      </div>
+                    )}
+                  </div>
+                  {oracleResult.parsed.descricaoBalanceada && (
+                    <div className="mt-2">
+                      <div className="text-[10px] text-gold/70 mb-1 uppercase tracking-wider">Descrição sugerida</div>
+                      <p className="text-xs text-txt-main leading-relaxed cc-oracle-desc">{oracleResult.parsed.descricaoBalanceada}</p>
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-3">
+                    <button className="cc-oracle-apply" onClick={applyOracle}>
+                      <span className="material-symbols-outlined text-sm">check_circle</span> Aplicar
+                    </button>
+                    <button className="cc-oracle-discard" onClick={() => setOracleResult(null)}>
+                      Descartar
+                    </button>
                   </div>
                 </div>
               )}

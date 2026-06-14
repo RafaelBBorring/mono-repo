@@ -9771,3 +9771,121 @@ body {
 .cc-modules-panel::before {
   border-radius: 20px;
 }
+
+/* === ORACLE BUTTON & RESULT IN ABILITY MODAL === */
+.cc-oracle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(247,189,72,0.12), rgba(245,158,11,0.06));
+  border: 1px solid rgba(247,189,72,0.3);
+  color: rgba(247,189,72,0.9);
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-oracle-btn:hover {
+  background: linear-gradient(135deg, rgba(247,189,72,0.2), rgba(245,158,11,0.1));
+  border-color: rgba(247,189,72,0.5);
+  box-shadow: 0 4px 12px rgba(247,189,72,0.1);
+}
+
+.cc-oracle-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(247,189,72,0.2);
+  border-top-color: rgba(247,189,72,0.9);
+  border-radius: 50%;
+  display: inline-block;
+  animation: cc-spin 0.7s linear infinite;
+}
+
+@keyframes cc-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cc-oracle-result {
+  background: rgba(247,189,72,0.04);
+  border: 1px solid rgba(247,189,72,0.15);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.cc-oracle-result-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-oracle-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-oracle-diff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  padding: 2px 0;
+}
+
+.cc-oracle-diff-row > span:first-child {
+  min-width: 70px;
+  color: rgba(231,229,228,0.4);
+}
+
+.cc-oracle-diff-row .line-through {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.cc-oracle-desc {
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.cc-oracle-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(52,211,153,0.12);
+  border: 1px solid rgba(52,211,153,0.3);
+  color: #34d399;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-oracle-apply:hover {
+  background: rgba(52,211,153,0.2);
+  border-color: rgba(52,211,153,0.5);
+}
+
+.cc-oracle-discard {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(231,229,228,0.5);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-oracle-discard:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(231,229,228,0.8);
+}
