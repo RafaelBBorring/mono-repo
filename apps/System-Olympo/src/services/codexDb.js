@@ -5,7 +5,7 @@ const FOLDERS_STORE = 'folders'
 const ASSIGNMENTS_STORE = 'assignments'
 
 const SEED_VERSION_KEY = 'codex-seed-version'
-const CURRENT_SEED_VERSION = '2026-06-13-rebalance-v2'
+const CURRENT_SEED_VERSION = '2026-06-13-rebalance-v3'
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -253,7 +253,14 @@ export async function migrateCodexIfNeeded() {
   let needsMigrator = false
   const updated = npcs.map(npc => {
     if (seedMap.has(npc.id)) {
-      return { ...seedMap.get(npc.id), updated_at: npc.updated_at }
+      const seed = seedMap.get(npc.id)
+      return {
+        ...seed,
+        avatar: npc.avatar || seed.avatar || '',
+        avatarTransform: npc.avatarTransform || seed.avatarTransform || null,
+        updated_at: npc.updated_at,
+        _rebalanced: true,
+      }
     }
     if (!npc._rebalanced) {
       needsMigrator = true
