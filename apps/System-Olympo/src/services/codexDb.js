@@ -5,7 +5,7 @@ const FOLDERS_STORE = 'folders'
 const ASSIGNMENTS_STORE = 'assignments'
 
 const SEED_VERSION_KEY = 'codex-seed-version'
-const CURRENT_SEED_VERSION = '2026-06-13-rebalance-v1'
+const CURRENT_SEED_VERSION = '2026-06-13-rebalance-v2'
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -245,17 +245,33 @@ export async function importNpcs(npcs, folders = [], assignments = {}) {
 export async function migrateCodexIfNeeded() {
   const stored = localStorage.getItem(SEED_VERSION_KEY)
   if (stored === CURRENT_SEED_VERSION) return { migrated: false, count: 0 }
-  const { rebalanceNpc } = await import('../utils/codexMigrator')
   const npcs = await getAllNpcs()
   if (!npcs.length) { localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION); return { migrated: false, count: 0 } }
-  let count = 0
+  const seedModule = await import('../data/codex-import-ready.codex.json')
+  const seedData = seedModule.default || seedModule
+  const seedMap = new Map((seedData.npcs || []).map(n => [n.id, n]))
+  let needsMigrator = false
   const updated = npcs.map(npc => {
-    if (npc._rebalanced) return npc
-    const rebalanced = rebalanceNpc(npc)
-    if (rebalanced !== npc) count++
-    return rebalanced
+    if (seedMap.has(npc.id)) {
+      return { ...seedMap.get(npc.id), updated_at: npc.updated_at }
+    }
+    if (!npc._rebalanced) {
+      needsMigrator = true
+      return npc
+    }
+    return npc
   })
-  if (count > 0) {
+  if (needsMigrator) {
+    const { rebalanceNpc } = await import('../utils/codexMigrator')
+    for (let i = 0; i < updated.length; i++) {
+      if (seedMap.has(updated[i].id)) continue
+      if (!updated[i]._rebalanced) {
+        updated[i] = rebalanceNpc(updated[i])
+      }
+    }
+  }
+  const changed = updated.some((n, i) => n !== npcs[i])
+  if (changed) {
     await new Promise((resolve, reject) => {
       openDB().then(db => {
         const transaction = db.transaction(STORE_NAME, 'readwrite')
@@ -267,6 +283,7 @@ export async function migrateCodexIfNeeded() {
     })
   }
   localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION)
+  const count = updated.filter((n, i) => n !== npcs[i]).length
   return { migrated: count > 0, count }
 }
 

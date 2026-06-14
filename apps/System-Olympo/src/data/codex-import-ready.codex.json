@@ -6141,43 +6141,43 @@
             "avatar": "",
             "profile": "especialista",
             "na": "8",
-            "nivel": 40,
+            "nivel": 46,
             "abilities": [
                 {
                     "name": "Mente do Patriarca",
                     "type": "passiva",
-                    "description": "Jacob coordenou caca por decadas. Aliados em 20m: +15 Resultado em todos os testes. Detecta mentiras e ilusoes automaticamente (DT WILL 46 para engana-lo). Regenera 178 PV/round. Uma vez por combate: pode cancelar 1 acao inimiga como Acao Livre (ele previu).",
+                    "description": "Jacob coordenou caca por decadas. Aliados em 20m: +17 Resultado em todos os testes. Detecta mentiras e ilusoes automaticamente (DT WILL 53 para engana-lo). Regenera 234 PV/round. Uma vez por combate: pode cancelar 1 acao inimiga como Acao Livre (ele previu).",
                     "stats": [
-                        "Aliados 20m: +15 Resultado | Detecta mentiras/ilusoes (DT WILL 46)",
-                        "Regeneracao: 178 PV/round | 1x/combate: cancela 1 acao inimiga (Acao Livre)"
+                        "Aliados 20m: +17 Resultado | Detecta mentiras/ilusoes (DT WILL 53)",
+                        "Regeneracao: 234 PV/round | 1x/combate: cancela 1 acao inimiga (Acao Livre)"
                     ]
                 },
                 {
                     "name": "Balas Paralisantes",
                     "type": "ativa",
-                    "description": "Jacob dispara balas carregadas com quimica propria. 3 ataques: 11d8+73 Dano Verdadeiro cada. DT FORT 52 - Falha em qualquer: paralisado 1 round + -15 Resultado 2 rounds. Se todos 3 acertam: alvo completamente imobilizado 2 rounds (sem DT).",
+                    "description": "Jacob dispara balas carregadas com quimica propria. 3 ataques: 13d8+83 Dano Verdadeiro cada. DT FORT 59 - Falha em qualquer: paralisado 1 round + -17 Resultado 2 rounds. Se todos 3 acertam: alvo completamente imobilizado 2 rounds (sem DT).",
                     "stats": [
-                        "3 ataques: 11d8+73 Dano Verdadeiro | DT FORT 52",
-                        "Falha: paralisado 1 round + -15 Resultado 2 rounds",
+                        "3 ataques: 13d8+83 Dano Verdadeiro | DT FORT 59",
+                        "Falha: paralisado 1 round + -17 Resultado 2 rounds",
                         "3 acertos: imobilizado 2 rounds (sem DT)"
                     ]
                 },
                 {
                     "name": "Arsenal Quimico",
                     "type": "ativa",
-                    "description": "Jacob lanca granada quimica em area de 12m. Escolhe: (a) Gas venenoso - 9d8+61 dano + veneno 76/round x3, (b) Gas alucinogeno - DT WILL 55 ou alvos lutam entre si 2 rounds, (c) Gas curativo - aliados curam 445 PV + remove debuffs. Cada tipo: CD 3 rounds independente.",
+                    "description": "Jacob lanca granada quimica em area de 12m. Escolhe: (a) Gas venenoso - 10d8+70 dano + veneno 87/round x3, (b) Gas alucinogeno - DT WILL 63 ou alvos lutam entre si 2 rounds, (c) Gas curativo - aliados curam 585 PV + remove debuffs. Cada tipo: CD 3 rounds independente.",
                     "stats": [
-                        "Area 12m | Escolhe: (a) veneno 9d8+61 + 76/round x3",
-                        "(b) alucinogeno: DT WILL 55 ou lutam entre si 2 rounds",
-                        "(c) curativo: aliados curam 445 PV + remove debuffs"
+                        "Area 12m | Escolhe: (a) veneno 10d8+70 + 87/round x3",
+                        "(b) alucinogeno: DT WILL 63 ou lutam entre si 2 rounds",
+                        "(c) curativo: aliados curam 585 PV + remove debuffs"
                     ]
                 },
                 {
                     "name": "Frequencia Sonica",
                     "type": "ativa",
-                    "description": "Jacob ativa dispositivo sonico. Todos em 15m: DT FORT 55 - Falha: atordoados 2 rounds + sangramento auditivo 91/round x2. Sobrenaturais com audicao aguçada (lobisomens, vampiros): DT +8 mais dificil. Aparelho dura 3 rounds - inimigos que entrarem na area tambem testam.",
+                    "description": "Jacob ativa dispositivo sonico. Todos em 15m: DT FORT 63 - Falha: atordoados 2 rounds + sangramento auditivo 104/round x2. Sobrenaturais com audicao aguçada (lobisomens, vampiros): DT +8 mais dificil. Aparelho dura 3 rounds - inimigos que entrarem na area tambem testam.",
                     "stats": [
-                        "Raio 15m | DT FORT 55 - Falha: atordoado 2 rounds + sangramento 91/round x2",
+                        "Raio 15m | DT FORT 63 - Falha: atordoado 2 rounds + sangramento 104/round x2",
                         "Sobrenaturais com audicao: DT +8 mais dificil",
                         "Dura 3 rounds | Inimigos que entram: tambem testam"
                     ]
@@ -6185,47 +6185,48 @@
                 {
                     "name": "Protocolo Exterminio",
                     "type": "ultimate",
-                    "description": "Por 3 rounds: Jacob ativa protocolo maximo. Age 3x/turn. Cada acao: atira com arma diferente (bala paralisante, granada quimica, frequencia sonica) sem gastar CD. Todos aliados Dwayne em 20m: +30 Resultado + imunes a controle mental. Jacob revela armadura balistica: +30 ARM e imune a dano que nao supere DT 35. CD: 15 rounds.",
+                    "description": "Por 3 rounds: Jacob ativa protocolo maximo. Age 3x/turn. Cada acao: atira com arma diferente (bala paralisante, granada quimica, frequencia sonica) sem gastar CD. Todos aliados Dwayne em 20m: +34 Resultado + imunes a controle mental. Jacob revela armadura balistica: +34 ARM e imune a dano que nao supere DT 35. CD: 17 rounds.",
                     "stats": [
                         "3 rounds | Age 3x/turn | Cada acao: usa habilidade diferente sem CD",
-                        "Aliados Dwayne 20m: +30 Resultado + imunes a controle mental",
-                        "Armadura: +30 ARM + imune a dano abaixo DT 35",
-                        "CD: 15 rounds"
+                        "Aliados Dwayne 20m: +34 Resultado + imunes a controle mental",
+                        "Armadura: +34 ARM + imune a dano abaixo DT 35",
+                        "CD: 17 rounds"
                     ]
                 }
             ],
             "stats": {
-                "vida": 5066,
-                "arm": 64,
-                "ba": 46,
-                "bd": 43,
-                "ca": 53,
-                "reac": 14,
-                "dano": "15d8+50",
+                "vida": 6664,
+                "arm": 71,
+                "ba": 51,
+                "bd": 48,
+                "ca": 58,
+                "reac": 15,
+                "dano": "18d8+58",
                 "danoExtra": "+5d12",
                 "tag": "vs 8 PCs + AL(3)"
             },
             "nome": "Jacob Dwayne - O Patriarca",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                21,
+                24,
+                42,
+                24,
+                34,
                 36,
-                21,
-                29,
-                31,
-                19
+                22
             ],
             "id": "1fbd6db2-ee0f-445e-9ce6-3eb5a0d106d7",
             "avatar": "",
             "profile": "especialista",
             "na": "4",
-            "nivel": 29,
+            "nivel": 38,
             "abilities": [
                 {
-                    "description": "Marcus passou 22 anos atirando em alvos que se movem mais rápido do que qualquer humano deveria. Seus ataques à distância nunca sofrem penalidade por movimento do alvo — sobrenatural se move 3× mais rápido que humano? Não importa para Marcus. Inimigos invisíveis sofrem apenas -5 no Resultado (não -∞). A cada rodada que passa sem se mover: +5 no Resultado de ataques à distância (máx +20). Imune a Medo e Encantamento durante o combate — atira melhor sob pressão.",
+                    "description": "Marcus passou 31 anos atirando em alvos que se movem mais rápido do que qualquer humano deveria. Seus ataques à distância nunca sofrem penalidade por movimento do alvo — sobrenatural se move 3× mais rápido que humano? Não importa para Marcus. Inimigos invisíveis sofrem apenas -5 no Resultado (não -∞). A cada rodada que passa sem se mover: +5 no Resultado de ataques à distância (máx +20). Imune a Medo e Encantamento durante o combate — atira melhor sob pressão.",
                     "name": "Olho de Falcão Treinado",
                     "stats": [
                         "Sem penalidade de ataque vs alvos em movimento (incluindo supernaturais)",
@@ -6236,81 +6237,82 @@
                     "type": "passiva"
                 },
                 {
-                    "description": "Marcus identifica um ponto vital e puxa o gatilho uma única vez. 1 disparo: ignora ARM e CA completamente. +12d8+76 Dano Verdadeiro. DT Constituição 44 — Falha: o alvo perde 3 Reações e fica com -22 no Resultado por 2 Rodadas (ferimento grave em ponto vital). Contra vampiros ou lobisomens: adiciona automaticamente Munição Especializada (prata benta — suprime regeneração por 3 Rod). Se Marcus tiver +22 no Resultado acumulado pela passiva: o tiro não pode ser esquivado.",
+                    "description": "Marcus identifica um ponto vital e puxa o gatilho uma única vez. 1 disparo: ignora ARM e CA completamente. +17d8+107 Dano Verdadeiro. DT Constituição 62 — Falha: o alvo perde 3 Reações e fica com -31 no Resultado por 2 Rodadas (ferimento grave em ponto vital). Contra vampiros ou lobisomens: adiciona automaticamente Munição Especializada (prata benta — suprime regeneração por 3 Rod). Se Marcus tiver +31 no Resultado acumulado pela passiva: o tiro não pode ser esquivado.",
                     "name": "Tiro de Precisão Cirúrgica",
                     "stats": [
-                        "1 disparo | Ignora ARM e CA | +12d8+76 Verdadeiro",
-                        "DT Constituição 44 — Falha: -3 Reações + -15 ações 2 Rod",
+                        "1 disparo | Ignora ARM e CA | +17d8+107 Verdadeiro",
+                        "DT Constituição 62 — Falha: -3 Reações + -15 ações 2 Rod",
                         "Vampiro/Lobisomem: suprime regeneração 3 Rod automático",
-                        "+22 passiva acumulado: impossível de esquivar"
+                        "+31 passiva acumulado: impossível de esquivar"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Marcus commuta para modo automático — não para matar, para controlar. 6 projéteis em área de 8m: cada alvo na área testa DT Destreza 38 — Falha: 4d8+29 Dano + fica suprimido (reduzido a 0 movimentos e -22 no Resultado por 1 Rod — não pode avançar sem se expor). Aliados na mesma área recebem +8 no Resultado de tudo (Marcus controla o campo de visão deles). CD: 3 Rodadas.",
+                    "description": "Marcus commuta para modo automático — não para matar, para controlar. 6 projéteis em área de 8m: cada alvo na área testa DT Destreza 54 — Falha: 6d8+41 Dano + fica suprimido (reduzido a 0 movimentos e -31 no Resultado por 1 Rod — não pode avançar sem se expor). Aliados na mesma área recebem +8 no Resultado de tudo (Marcus controla o campo de visão deles). CD: 3 Rodadas.",
                     "name": "Rajada de Supressão",
                     "stats": [
-                        "6 projéteis em área 8m | DT Destreza 38 — Falha: 4d8+20 + suprimido 1 Rod (-15 Resultado, 0 movimento)",
+                        "6 projéteis em área 8m | DT Destreza 54 — Falha: 6d8+20 + suprimido 1 Rod (-15 Resultado, 0 movimento)",
                         "Aliados na área: +8 Resultado | CD: 3 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Marcus atira uma bala rastreadora em um alvo. Por 4 Rodadas: o alvo não pode se tornar invisível ou usar habilidades de teletransporte (a bala rastreia). Marcus e todos os aliados recebem +18 no Resultado contra aquele alvo. Se o alvo tentar fugir do combate: Marcus realiza automaticamente 1 tiro de oportunidade de +9d8+59 Dano Verdadeiro — impossível de esquivar.",
+                    "description": "Marcus atira uma bala rastreadora em um alvo. Por 4 Rodadas: o alvo não pode se tornar invisível ou usar habilidades de teletransporte (a bala rastreia). Marcus e todos os aliados recebem +25 no Resultado contra aquele alvo. Se o alvo tentar fugir do combate: Marcus realiza automaticamente 1 tiro de oportunidade de +13d8+83 Dano Verdadeiro — impossível de esquivar.",
                     "name": "Bala Marcada",
                     "stats": [
                         "Bala rastreadora | 4 Rod: alvo não pode ficar invisível ou teleportar",
-                        "Marcus + aliados: +18 Resultado vs alvo",
-                        "Tentativa de fuga: 1 tiro automático +9d8+59 Verdadeiro (impossível de esquivar)"
+                        "Marcus + aliados: +25 Resultado vs alvo",
+                        "Tentativa de fuga: 1 tiro automático +13d8+83 Verdadeiro (impossível de esquivar)"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Marcus carregou o projétil ele mesmo — anos de refinamento em um único disparo. Por 2 Rodadas: cada tiro de Marcus acerta automaticamente (sem rolagem) e ignora qualquer imunidade física, ARM, CA ou regeneração. Cada disparo causa +15d8+95 Dano Verdadeiro e aplica Bala Marcada automaticamente. Se o alvo cair abaixo de 39% PV durante a Ultimate: Marcus realiza imediatamente 1 tiro de execução gratuito (+18d8+117 Dano Verdadeiro, impossível de resistir).",
+                    "description": "Marcus carregou o projétil ele mesmo — anos de refinamento em um único disparo. Por 2 Rodadas: cada tiro de Marcus acerta automaticamente (sem rolagem) e ignora qualquer imunidade física, ARM, CA ou regeneração. Cada disparo causa +21d8+134 Dano Verdadeiro e aplica Bala Marcada automaticamente. Se o alvo cair abaixo de 63% PV durante a Ultimate: Marcus realiza imediatamente 1 tiro de execução gratuito (+25d8+165 Dano Verdadeiro, impossível de resistir).",
                     "name": "Tiro Fatal — Sem Segunda Chance",
                     "stats": [
                         "2 Rod | Todos os tiros automáticos (sem rolagem) | Ignoram qualquer imunidade/ARM/CA/regeneração",
-                        "Por disparo: +15d8+95 Verdadeiro + Bala Marcada automática",
-                        "<39% PV: tiro de execução gratuito +18d8+117 Verdadeiro (sem resistência) | CD: 8 Rod"
+                        "Por disparo: +21d8+134 Verdadeiro + Bala Marcada automática",
+                        "<63% PV: tiro de execução gratuito +25d8+165 Verdadeiro (sem resistência) | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 1861,
-                "arm": 47,
-                "ba": 33,
-                "bd": 30,
-                "ca": 40,
-                "reac": 10,
-                "dano": "10d8+35",
+                "vida": 2992,
+                "arm": 58,
+                "ba": 40,
+                "bd": 37,
+                "ca": 47,
+                "reac": 12,
+                "dano": "15d8+50",
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
             "nome": "Marcus Dwayne — O Franco-Atirador",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                24,
-                31,
-                21,
-                31,
-                29,
-                26
+                32,
+                41,
+                28,
+                41,
+                38,
+                34
             ],
             "id": "7fd54207-b82a-4faf-92b7-99fd78871be2",
             "avatar": "",
             "profile": "especialista",
-            "na": "4",
-            "nivel": 30,
+            "na": "6",
+            "nivel": 40,
             "abilities": [
                 {
-                    "description": "Diana dedicou a vida inteira ao estudo de vampiros — não existe truque, habilidade ou tática que ela não tenha catalogado. Todos os seus ataques contra vampiros causam Dano Verdadeiro automaticamente. Habilidades de vampiros têm DT de resistência aumentada em +8 quando aplicadas nela. Qualquer vampiro que tente usar Subjugação, Encantamento ou manipulação mental contra Diana falha automaticamente — ela anulou esses caminhos mentalmente. +15 no Resultado de tudo contra vampiros. Imune a mordida vampírica.",
+                    "description": "Diana dedicou a vida inteira ao estudo de vampiros — não existe truque, habilidade ou tática que ela não tenha catalogado. Todos os seus ataques contra vampiros causam Dano Verdadeiro automaticamente. Habilidades de vampiros têm DT de resistência aumentada em +8 quando aplicadas nela. Qualquer vampiro que tente usar Subjugação, Encantamento ou manipulação mental contra Diana falha automaticamente — ela anulou esses caminhos mentalmente. +23 no Resultado de tudo contra vampiros. Imune a mordida vampírica.",
                     "name": "Enciclopédia do Não-Morto",
                     "stats": [
-                        "Vs vampiros: ataques = Dano Verdadeiro automático + +15 Resultado",
+                        "Vs vampiros: ataques = Dano Verdadeiro automático + +23 Resultado",
                         "Habilidades de vampiros em Diana: DT +8 para resistir",
                         "Subjugação/Encantamento/mental vampírico: falha automática",
                         "Imune a mordida vampírica"
@@ -6318,41 +6320,41 @@
                     "type": "passiva"
                 },
                 {
-                    "description": "Diana desdobra seu kit especializado — cada item desenvolvido especificamente para anular as forças vampíricas. Escolhe 1 aplicação por uso: Água Benta Concentrada (área de 8m — vampiros testam DT 28 ou recebem 9d8+62 Dano Verdadeiro e ficam com -15 Resultado por 2 Rod), Estaca de Carvalho Bento (1 alvo — ignora ARM/CA, +10d8+66 Dano Verdadeiro, suprime regeneração 4 Rod), ou Pó de Alho Sagrado (área de 6m — vampiros não podem usar habilidades de movimento ou teleporte por 2 Rod e sofrem -20 Resultado de tudo).",
+                    "description": "Diana desdobra seu kit especializado — cada item desenvolvido especificamente para anular as forças vampíricas. Escolhe 1 aplicação por uso: Água Benta Concentrada (área de 8m — vampiros testam DT 28 ou recebem 14d8+95 Dano Verdadeiro e ficam com -15 Resultado por 2 Rod), Estaca de Carvalho Bento (1 alvo — ignora ARM/CA, +15d8+101 Dano Verdadeiro, suprime regeneração 4 Rod), ou Pó de Alho Sagrado (área de 6m — vampiros não podem usar habilidades de movimento ou teleporte por 2 Rod e sofrem -20 Resultado de tudo).",
                     "name": "Kit de Extinção",
                     "stats": [
                         "Escolhe 1 por uso:",
-                        "Água Benta: área 8m — DT 28 ou 9d8+62 Verdadeiro + -15 Resultado 2 Rod",
-                        "Estaca Benta: ignora ARM/CA | +10d8+66 Verdadeiro | suprime regeneração 4 Rod",
+                        "Água Benta: área 8m — DT 28 ou 14d8+95 Verdadeiro + -15 Resultado 2 Rod",
+                        "Estaca Benta: ignora ARM/CA | +15d8+101 Verdadeiro | suprime regeneração 4 Rod",
                         "Pó de Alho: área 6m — sem movimento/teleporte 2 Rod + -20 Resultado"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Diana treinou combate corpo-a-corpo especificamente contra vampiros — cada movimento compensa as vantagens sobrenaturais deles. 3 golpes em sequência: +6d8+38 Dano Verdadeiro cada. O 2º golpe aplica prata líquida injetável — vampiros testam DT Constituição 41 ou ficam com Queimadura Interna (50 Dano Verdadeiro/Rod × 3, sem regeneração durante). O 3º golpe: Diana aplica uma chave que explora a anatomia vampírica — DT Força 44 — Falha: perde 4 Reações.",
+                    "description": "Diana treinou combate corpo-a-corpo especificamente contra vampiros — cada movimento compensa as vantagens sobrenaturais deles. 3 golpes em sequência: +9d8+58 Dano Verdadeiro cada. O 2º golpe aplica prata líquida injetável — vampiros testam DT Constituição 63 ou ficam com Queimadura Interna (50 Dano Verdadeiro/Rod × 3, sem regeneração durante). O 3º golpe: Diana aplica uma chave que explora a anatomia vampírica — DT Força 67 — Falha: perde 4 Reações.",
                     "name": "Dançar com o Morto",
                     "stats": [
-                        "3 golpes: +6d8+38 Verdadeiro cada",
+                        "3 golpes: +9d8+58 Verdadeiro cada",
                         "2º: prata líquida — DT 28 ou Queimadura Interna 50/Rod × 3 (sem regeneração)",
-                        "3º: DT Força 44 — Falha: -4 Reações"
+                        "3º: DT Força 67 — Falha: -4 Reações"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Diana desenvolveu um dispositivo que comprime e amplifica espectro UV — luz solar portátil. Área de 10m: vampiros testam DT Constituição 47 — Falha: 12d8+81 Dano Verdadeiro, Queimadura Contínua de 80/Rod por 3 Rod, e -20 no Resultado de tudo enquanto a queimadura durar. Sucesso: metade do dano. Não-vampiros são imunes. CD: 4 Rodadas.",
+                    "description": "Diana desenvolveu um dispositivo que comprime e amplifica espectro UV — luz solar portátil. Área de 10m: vampiros testam DT Constituição 72 — Falha: 18d8+124 Dano Verdadeiro, Queimadura Contínua de 80/Rod por 3 Rod, e -20 no Resultado de tudo enquanto a queimadura durar. Sucesso: metade do dano. Não-vampiros são imunes. CD: 4 Rodadas.",
                     "name": "Luz Solar Concentrada",
                     "stats": [
-                        "Área 10m | DT Constituição 47 (apenas vampiros) — Falha: 12d8+55 Verdadeiro + 80/Rod × 3 + -20 Resultado",
+                        "Área 10m | DT Constituição 72 (apenas vampiros) — Falha: 18d8+55 Verdadeiro + 80/Rod × 3 + -20 Resultado",
                         "Sucesso: metade | Não-vampiros: imunes | CD: 4 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Diana ativa o protocolo que passou anos preparando para este momento exato. Por 3 Rodadas: todo vampiro em 15m sofre os efeitos de todas as ferramentas do Kit de Extinção simultaneamente (sem ação, apenas presença). Diana realiza 3 ataques por turno de +12d8+52 Dano Verdadeiro, todos causando Queimadura Interna automática. Qualquer habilidade vampírica ativada na área testa DT 36 ou é completamente bloqueada. Se um vampiro cair a 0 PV durante a Ultimate: Diana pode gastar 1 Reação para garantir a Verdadeira Morte (sem possibilidade de regeneração ou ressurreição).",
+                    "description": "Diana ativa o protocolo que passou anos preparando para este momento exato. Por 3 Rodadas: todo vampiro em 15m sofre os efeitos de todas as ferramentas do Kit de Extinção simultaneamente (sem ação, apenas presença). Diana realiza 3 ataques por turno de +18d8+52 Dano Verdadeiro, todos causando Queimadura Interna automática. Qualquer habilidade vampírica ativada na área testa DT 36 ou é completamente bloqueada. Se um vampiro cair a 0 PV durante a Ultimate: Diana pode gastar 1 Reação para garantir a Verdadeira Morte (sem possibilidade de regeneração ou ressurreição).",
                     "name": "Protocolo de Extinção Vampírica",
                     "stats": [
                         "3 Rod | Raio 15m: todos os efeitos do Kit simultaneamente (só presença)",
-                        "3 ataques/turno: +12d8+52 Verdadeiro + Queimadura Interna automática",
+                        "3 ataques/turno: +18d8+52 Verdadeiro + Queimadura Interna automática",
                         "Habilidades vampíricas: DT 36 ou bloqueadas",
                         "0 PV de vampiro: Reação para garantir Morte Verdadeira | CD: 8 Rod"
                     ],
@@ -6360,50 +6362,51 @@
                 }
             ],
             "stats": {
-                "vida": 1958,
-                "arm": 48,
-                "ba": 34,
-                "bd": 31,
-                "ca": 41,
-                "reac": 10,
-                "dano": "10d8+35",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
+                "vida": 4172,
+                "arm": 62,
+                "ba": 44,
+                "bd": 41,
+                "ca": 51,
+                "reac": 13,
+                "dano": "15d8+50",
+                "danoExtra": "+4d10",
+                "tag": "vs 6 PCs + AL(2)"
             },
             "nome": "Diana Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                31,
-                29,
-                29,
-                21,
-                21,
-                19
+                36,
+                34,
+                34,
+                24,
+                24,
+                22
             ],
             "id": "d6a0fbbf-0384-4e25-ace7-36b1b54e226b",
             "avatar": "",
             "profile": "guerreiro",
             "na": "4",
-            "nivel": 27,
+            "nivel": 38,
             "abilities": [
                 {
-                    "description": "Caine passou 30 anos levando e devolvendo pancada de criaturas que deveriam matá-lo. O resultado: um corpo humano que absorve dano de forma quase sobrenatural. Redução natural de 30% em todo dano físico recebido. Quando atingido por um ser sobrenatural: acumula 1 Carga de Adrenalina Antisobrenatural (máx 5). 2 Cargas: +3d15+22 em todos os ataques. 5 Cargas: próximo ataque causa Dano Verdadeiro e acerta automaticamente — reseta para 2. Imune a venenos, poções e efeitos de status físicos de origem sobrenatural.",
+                    "description": "Caine passou 51 anos levando e devolvendo pancada de criaturas que deveriam matá-lo. O resultado: um corpo humano que absorve dano de forma quase sobrenatural. Redução natural de 51% em todo dano físico recebido. Quando atingido por um ser sobrenatural: acumula 1 Carga de Adrenalina Antisobrenatural (máx 5). 2 Cargas: +5d25+37 em todos os ataques. 5 Cargas: próximo ataque causa Dano Verdadeiro e acerta automaticamente — reseta para 2. Imune a venenos, poções e efeitos de status físicos de origem sobrenatural.",
                     "name": "Corpo Forjado contra o Sobrenatural",
                     "stats": [
-                        "Redução física: 30% de todo dano físico recebido",
-                        "Dano sobrenatural: +1 Adrenalina (máx 5) | 2 Cargas: +3d15+22 | 5 Cargas: acerto auto + Verdadeiro → reseta 2",
+                        "Redução física: 51% de todo dano físico recebido",
+                        "Dano sobrenatural: +1 Adrenalina (máx 5) | 2 Cargas: +5d25+37 | 5 Cargas: acerto auto + Verdadeiro → reseta 2",
                         "Imune a venenos, poções e efeitos físicos de origem sobrenatural"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "Caine veste as luvas de combate de liga de prata desenvolvidas pela família. Sequência de 4 golpes de combate misto: +6d15+35 Dano Verdadeiro cada. O impacto da liga de prata nos supernaturais: Lobisomens testam DT Constituição 38 ou ficam com Envenenamento de Prata (50 Dano/Rod × 3). Vampiros testam DT Fortitude 38 ou perdem 2 Reações e -15 no Resultado por 2 Rod. Se os 4 acertarem: o alvo é derrubado.",
+                    "description": "Caine veste as luvas de combate de liga de prata desenvolvidas pela família. Sequência de 4 golpes de combate misto: +10d25+59 Dano Verdadeiro cada. O impacto da liga de prata nos supernaturais: Lobisomens testam DT Constituição 64 ou ficam com Envenenamento de Prata (50 Dano/Rod × 3). Vampiros testam DT Fortitude 64 ou perdem 2 Reações e -25 no Resultado por 2 Rod. Se os 4 acertarem: o alvo é derrubado.",
                     "name": "Nocaute com Luva de Prata",
                     "stats": [
-                        "4 golpes: +6d15+35 Verdadeiro",
+                        "4 golpes: +10d25+59 Verdadeiro",
                         "Lobisomem: DT 26 ou Envenenamento Prata 50/Rod × 3",
                         "Vampiro: DT 26 ou -2 Reações + -10 Resultado 2 Rod",
                         "4 acertos: derrubado"
@@ -6411,63 +6414,64 @@
                     "type": "ativa"
                 },
                 {
-                    "description": "Reação. Qualquer ataque que deveria derrubar, aturdir ou incapacitar Caine: ele absorve e responde. Nega o efeito de controle completamente. Contra-ataca com +9d15+56 Dano Verdadeiro. Acumula +2 Cargas de Adrenalina. Pode usar 2× por rodada. Depois do 2º uso na mesma rodada: o próximo ataque de Caine causa Dano Verdadeiro automaticamente.",
+                    "description": "Reação. Qualquer ataque que deveria derrubar, aturdir ou incapacitar Caine: ele absorve e responde. Nega o efeito de controle completamente. Contra-ataca com +15d25+95 Dano Verdadeiro. Acumula +2 Cargas de Adrenalina. Pode usar 2× por rodada. Depois do 2º uso na mesma rodada: o próximo ataque de Caine causa Dano Verdadeiro automaticamente.",
                     "name": "Não Cai",
                     "stats": [
-                        "Reação | Nega efeito de controle (derrubar/aturdir/incapacitar) | Contra-ataque: +9d15+56 Verdadeiro",
+                        "Reação | Nega efeito de controle (derrubar/aturdir/incapacitar) | Contra-ataque: +15d25+95 Verdadeiro",
                         "+2 Adrenalina | 2× por Rod | Após 2º uso/Rod: próximo ataque = Dano Verdadeiro"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Por 2 Rodadas: Caine para de esquivar e começa a absorver. ARM sobe +45, redução de dano sobe para 59%, e qualquer ataque físico recebido gera contra-impacto de 4d15+30 no atacante. Imune a qualquer efeito que requeira esquiva ou mobilidade para anular. Cada ataque recebido acumula +1 Carga de Adrenalina.",
+                    "description": "Por 2 Rodadas: Caine para de esquivar e começa a absorver. ARM sobe +79, redução de dano sobe para 100%, e qualquer ataque físico recebido gera contra-impacto de 7d25+51 no atacante. Imune a qualquer efeito que requeira esquiva ou mobilidade para anular. Cada ataque recebido acumula +1 Carga de Adrenalina.",
                     "name": "Modo Tanque",
                     "stats": [
-                        "2 Rod | +25 ARM | Redução física: 59% | Contra-impacto físico: 4d15+30/acerto",
+                        "2 Rod | +25 ARM | Redução física: 100% | Contra-impacto físico: 7d25+51/acerto",
                         "Imune a efeitos que requeiram esquiva | Ataque recebido: +1 Adrenalina"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Caine entra no estado que seus instrutores chamavam de 'impossível para um humano'. Por 3 Rodadas: redução de dano sobe para 89%, ARM +44, e qualquer ataque que o reduziria a 0 PV o deixa em 1 PV (1× por Ultimate). Realiza 3 ataques por turno de +10d10+44 Dano Verdadeiro. Cada acerto acumula +1 Carga. Com 5 Cargas durante a Ultimate: libera automaticamente 1 explosão de +15d15+96 Dano Verdadeiro em todos em 8m. Ao final: Caine cura 628 PV (adrenalina se transforma em recuperação).",
+                    "description": "Caine entra no estado que seus instrutores chamavam de 'impossível para um humano'. Por 3 Rodadas: redução de dano sobe para 150%, ARM +74, e qualquer ataque que o reduziria a 0 PV o deixa em 1 PV (1× por Ultimate). Realiza 3 ataques por turno de +17d10+44 Dano Verdadeiro. Cada acerto acumula +1 Carga. Com 5 Cargas durante a Ultimate: libera automaticamente 1 explosão de +25d25+162 Dano Verdadeiro em todos em 8m. Ao final: Caine cura 1104 PV (adrenalina se transforma em recuperação).",
                     "name": "O Homem que não Tomba",
                     "stats": [
-                        "3 Rod | Redução: 108% | +54 ARM | 1 PV mínimo (1×) | 3 ataques/turno: +10d10+44 Verdadeiro",
-                        "5 Cargas durante Ultimate: explosão automática 15d15+96 em 8m",
-                        "Final: cura 628 PV | CD: 8 Rod"
+                        "3 Rod | Redução: 190% | +95 ARM | 1 PV mínimo (1×) | 3 ataques/turno: +17d10+44 Verdadeiro",
+                        "5 Cargas durante Ultimate: explosão automática 25d25+162 em 8m",
+                        "Final: cura 1104 PV | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 2064,
-                "arm": 47,
-                "ba": 32,
-                "bd": 29,
-                "ca": 39,
-                "reac": 8,
-                "dano": "8d10+30",
+                "vida": 3630,
+                "arm": 60,
+                "ba": 40,
+                "bd": 37,
+                "ca": 47,
+                "reac": 11,
+                "dano": "15d10+50",
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
             "nome": "Caine Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                19,
-                31,
-                19,
-                33,
-                26,
-                24
+                22,
+                36,
+                22,
+                38,
+                30,
+                28
             ],
             "id": "b436ce3e-6310-40f4-bd6f-f169f1560ed3",
             "avatar": "",
             "profile": "especialista",
             "na": "4",
-            "nivel": 26,
+            "nivel": 35,
             "abilities": [
                 {
                     "description": "Elena sempre chega primeiro ao campo e sai por último — cada centímetro é uma armadilha potencial. No início de cada combate: pode posicionar 2 armadilhas pré-ativas de forma gratuita (o mestre registra em segredo). Cada armadilha ativada durante o combate gera 1 Ficha de Controle (máx 6). 3 Fichas: +10 no Resultado de tudo. 6 Fichas: pode ativar qualquer armadilha restante como Ação Livre. Imune a armadilhas, sejam sobrenaturais ou não.",
@@ -6480,170 +6484,172 @@
                     "type": "passiva"
                 },
                 {
-                    "description": "Elena lança uma combinação de armadilhas em área de 10m. Escolhe 1 combinação: Rede de Prata + Flash Bang (lobisomens e vampiros na área testam DT Destreza 41 — Falha: imobilizados 2 Rod + cegos 1 Rod + 6d8+26 Dano), ou Armadilha de Pressão + Granada de Água Benta (DT Fortitude 41 — Falha: 9d8+56 Dano Verdadeiro + Sangramento 60/Rod × 2 + vampiros recebem +73% de dano). CD: 3 Rod.",
+                    "description": "Elena lança uma combinação de armadilhas em área de 10m. Escolhe 1 combinação: Rede de Prata + Flash Bang (lobisomens e vampiros na área testam DT Destreza 57 — Falha: imobilizados 2 Rod + cegos 1 Rod + 8d8+26 Dano), ou Armadilha de Pressão + Granada de Água Benta (DT Fortitude 57 — Falha: 13d8+78 Dano Verdadeiro + Sangramento 60/Rod × 2 + vampiros recebem +101% de dano). CD: 3 Rod.",
                     "name": "Arsenal de Contenção",
                     "stats": [
                         "Área 10m | Escolhe combinação:",
-                        "Rede de Prata + Flash Bang: DT 28 — Falha: imobilizado 2 Rod + cego 1 Rod + 6d8+26",
-                        "Pressão + Água Benta: DT 28 — Falha: 9d8+56 Verdadeiro + Sangramento 60/Rod × 2 + vampiro +50% dano"
+                        "Rede de Prata + Flash Bang: DT 28 — Falha: imobilizado 2 Rod + cego 1 Rod + 8d8+26",
+                        "Pressão + Água Benta: DT 28 — Falha: 13d8+78 Verdadeiro + Sangramento 60/Rod × 2 + vampiro +50% dano"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Elena designa uma área de 12m como zona proibida. Por 3 Rodadas: qualquer inimigo que entre na área ativa automaticamente 1 armadilha pré-calculada (3d8+26 Dano + DT Destreza 35 — Falha: derrubado ou preso por 1 Rod). Aliados na área recebem +8 no Resultado e ignoram penalidades de terreno. Elena acumula 1 Ficha de Controle por ativação.",
+                    "description": "Elena designa uma área de 12m como zona proibida. Por 3 Rodadas: qualquer inimigo que entre na área ativa automaticamente 1 armadilha pré-calculada (4d8+36 Dano + DT Destreza 49 — Falha: derrubado ou preso por 1 Rod). Aliados na área recebem +8 no Resultado e ignoram penalidades de terreno. Elena acumula 1 Ficha de Controle por ativação.",
                     "name": "Zona Negada",
                     "stats": [
-                        "Área 12m por 3 Rod | Entrada inimiga: armadilha automática 3d8+26 + DT 24 — Falha: derrubado/preso 1 Rod",
+                        "Área 12m por 3 Rod | Entrada inimiga: armadilha automática 4d8+36 + DT 24 — Falha: derrubado/preso 1 Rod",
                         "Aliados: +8 Resultado + sem penalidades de terreno | +1 Controle por ativação"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Elena inverte a dinâmica — o predador sobrenatural entra no território dela. 1 alvo: Elena planta 3 armadilhas sequenciais no trajeto previsto. Nas próximas 2 Rodadas: qualquer movimento do alvo ativa 1 armadilha (automático, sem teste). Cada armadilha: 7d8+47 Dano Verdadeiro + efeito específico (prata, água benta ou imobilização — Elena escolhe ao plantar). +1 Ficha de Controle por armadilha ativada.",
+                    "description": "Elena inverte a dinâmica — o predador sobrenatural entra no território dela. 1 alvo: Elena planta 3 armadilhas sequenciais no trajeto previsto. Nas próximas 2 Rodadas: qualquer movimento do alvo ativa 1 armadilha (automático, sem teste). Cada armadilha: 10d8+65 Dano Verdadeiro + efeito específico (prata, água benta ou imobilização — Elena escolhe ao plantar). +1 Ficha de Controle por armadilha ativada.",
                     "name": "Caçada Reversa",
                     "stats": [
                         "1 alvo | 3 armadilhas sequenciais no trajeto | 2 Rod: movimento = 1 armadilha ativada (automático)",
-                        "Cada armadilha: 7d8+47 Verdadeiro + efeito (prata/água benta/imobilização)",
+                        "Cada armadilha: 10d8+65 Verdadeiro + efeito (prata/água benta/imobilização)",
                         "+1 Controle/armadilha ativada"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Por 3 Rodadas, Elena transforma o campo em pesadelo logístico. Imediatamente: planta 6 armadilhas pesadas em posições estratégicas (mestre registra). Qualquer inimigo que se mover: 73% de ativar 1 armadilha (12d8+73 Dano Verdadeiro + efeito completo). Inimigos que não se moverem sofrem 4d8+20 por rodada (bombas de pressão ativas ao redor). Elena pode detonar qualquer armadilha como Ação Livre. Aliados Dwayne são imunes a todas as armadilhas.",
+                    "description": "Por 3 Rodadas, Elena transforma o campo em pesadelo logístico. Imediatamente: planta 6 armadilhas pesadas em posições estratégicas (mestre registra). Qualquer inimigo que se mover: 101% de ativar 1 armadilha (17d8+101 Dano Verdadeiro + efeito completo). Inimigos que não se moverem sofrem 6d8+20 por rodada (bombas de pressão ativas ao redor). Elena pode detonar qualquer armadilha como Ação Livre. Aliados Dwayne são imunes a todas as armadilhas.",
                     "name": "Campo Minado",
                     "stats": [
                         "3 Rod | 6 armadilhas pesadas posicionadas (secretas)",
-                        "Movimento inimigo: 73% de ativação — 12d8+73 Verdadeiro + efeito completo",
-                        "Sem movimento: 4d8+20/Rod (pressão passiva)",
+                        "Movimento inimigo: 101% de ativação — 17d8+101 Verdadeiro + efeito completo",
+                        "Sem movimento: 6d8+20/Rod (pressão passiva)",
                         "Detonação manual: Ação Livre | Aliados Dwayne: imunes | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 1571,
-                "arm": 44,
-                "ba": 31,
-                "bd": 28,
-                "ca": 38,
-                "reac": 9,
-                "dano": "8d8+30",
+                "vida": 2563,
+                "arm": 54,
+                "ba": 38,
+                "bd": 35,
+                "ca": 45,
+                "reac": 11,
+                "dano": "12d8+42",
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
             "nome": "Elena Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                21,
-                26,
-                21,
-                33,
-                29,
-                21
+                24,
+                30,
+                24,
+                38,
+                34,
+                24
             ],
             "id": "22bc25db-1c4e-4961-abab-ca94c07e1da0",
             "avatar": "",
             "profile": "especialista",
             "na": "4",
-            "nivel": 29,
+            "nivel": 38,
             "abilities": [
                 {
-                    "description": "Victor sintetiza compostos que fazem o que nenhuma empresa farmacêutica jamais tentaria. No início de cada combate: distribui 1 poção bônus para cada aliado Dwayne em campo (escolhe do arsenal). Seus projéteis são sempre revestidos de algum composto ativo — o dano base dele já inclui o efeito inicial. A cada criatura sobrenatural que identificar no combate: acumula 1 Dose Sintetizada (máx 4) — pode gastar Doses para potencializar qualquer habilidade em +3d8+22 de dano adicional.",
+                    "description": "Victor sintetiza compostos que fazem o que nenhuma empresa farmacêutica jamais tentaria. No início de cada combate: distribui 1 poção bônus para cada aliado Dwayne em campo (escolhe do arsenal). Seus projéteis são sempre revestidos de algum composto ativo — o dano base dele já inclui o efeito inicial. A cada criatura sobrenatural que identificar no combate: acumula 1 Dose Sintetizada (máx 4) — pode gastar Doses para potencializar qualquer habilidade em +4d8+31 de dano adicional.",
                     "name": "Farmacêutico do Apocalipse",
                     "stats": [
                         "Início do combate: 1 poção bônus por aliado Dwayne (arsenal do Victor)",
                         "Dano base já inclui composto ativo | Identificação sobrenatural: +1 Dose (máx 4)",
-                        "Gasta Dose: +3d8+22 em qualquer habilidade"
+                        "Gasta Dose: +4d8+31 em qualquer habilidade"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "Victor lança uma mistura explosiva desenvolvida especificamente para criaturas sobrenaturais. Área de 8m: todos testam DT Constituição 41. Falha: 9d8+59 Dano Verdadeiro + efeito de composto (vampiro: queima de prata líquida — 70/Rod × 3; lobisomem: aconito concentrado — -23 Resultado e regeneração suprimida por 3 Rod; bruxa: inibidor arcano — bloqueiam 1 habilidade por 2 Rod). Sucesso: metade + efeito reduzido 1 Rod.",
+                    "description": "Victor lança uma mistura explosiva desenvolvida especificamente para criaturas sobrenaturais. Área de 8m: todos testam DT Constituição 58. Falha: 13d8+83 Dano Verdadeiro + efeito de composto (vampiro: queima de prata líquida — 70/Rod × 3; lobisomem: aconito concentrado — -37 Resultado e regeneração suprimida por 3 Rod; bruxa: inibidor arcano — bloqueiam 1 habilidade por 2 Rod). Sucesso: metade + efeito reduzido 1 Rod.",
                     "name": "Coquetel Anti-Sobrenatural",
                     "stats": [
-                        "Área 8m | DT Constituição 41 | Falha: 9d8+59 Verdadeiro + efeito por espécie",
-                        "Vampiro: prata líquida 70/Rod × 3 | Lobisomem: aconito -18 Resultado + sem regeneração 3 Rod",
+                        "Área 8m | DT Constituição 58 | Falha: 13d8+83 Verdadeiro + efeito por espécie",
+                        "Vampiro: prata líquida 70/Rod × 3 | Lobisomem: aconito -25 Resultado + sem regeneração 3 Rod",
                         "Bruxa: inibidor arcano — bloqueia 1 habilidade 2 Rod | Sucesso: metade + efeito reduzido"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Victor injeta um composto de emergência em 1 aliado — efeito imediato e poderoso. Aliado: cura 674 PV imediatos, +29 no Resultado por 2 Rod, imune a venenos e efeitos de estado por 2 Rod. Versão ofensiva: Victor injeta o composto em si mesmo — por 2 Rod, seus ataques causam +4d8+29 Dano Verdadeiro adicional de ácido sobrenatural, e o alvo atingido perde 1 nível de eficiência de qualquer regeneração ativa.",
+                    "description": "Victor injeta um composto de emergência em 1 aliado — efeito imediato e poderoso. Aliado: cura 1084 PV imediatos, +47 no Resultado por 2 Rod, imune a venenos e efeitos de estado por 2 Rod. Versão ofensiva: Victor injeta o composto em si mesmo — por 2 Rod, seus ataques causam +6d8+41 Dano Verdadeiro adicional de ácido sobrenatural, e o alvo atingido perde 1 nível de eficiência de qualquer regeneração ativa.",
                     "name": "Seringa de Emergência",
                     "stats": [
-                        "Suporte: 1 aliado — cura 674 PV + +29 Resultado 2 Rod + imune a venenos/estados 2 Rod",
-                        "Ofensiva (em si mesmo): 2 Rod — +4d8+20 Verdadeiro de ácido + suprime 1 nível de regeneração do alvo"
+                        "Suporte: 1 aliado — cura 1084 PV + +47 Resultado 2 Rod + imune a venenos/estados 2 Rod",
+                        "Ofensiva (em si mesmo): 2 Rod — +6d8+20 Verdadeiro de ácido + suprime 1 nível de regeneração do alvo"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Victor detona uma bomba que libera névoa de incenso sagrado e prata em partículas. Área de 15m por 2 Rodadas: vampiros e lobisomens na área sofrem 6d8+26 Dano Verdadeiro/Rod automaticamente e -15 Resultado de tudo. Aliados Dwayne na névoa recebem +15 ARM e são invisíveis para seres sobrenaturais (DT Percepção 47 para detectá-los). CD: 4 Rod.",
+                    "description": "Victor detona uma bomba que libera névoa de incenso sagrado e prata em partículas. Área de 15m por 2 Rodadas: vampiros e lobisomens na área sofrem 8d8+26 Dano Verdadeiro/Rod automaticamente e -21 Resultado de tudo. Aliados Dwayne na névoa recebem +21 ARM e são invisíveis para seres sobrenaturais (DT Percepção 66 para detectá-los). CD: 4 Rod.",
                     "name": "Bomba de Fumaça Sagrada",
                     "stats": [
-                        "Névoa 15m por 2 Rod | Sobrenatural na névoa: 6d8+26 Verdadeiro/Rod + -10 Resultado",
-                        "Aliados Dwayne na névoa: +15 ARM + invisíveis para sobrenaturais (DT Percepção 32) | CD: 4 Rod"
+                        "Névoa 15m por 2 Rod | Sobrenatural na névoa: 8d8+26 Verdadeiro/Rod + -10 Resultado",
+                        "Aliados Dwayne na névoa: +21 ARM + invisíveis para sobrenaturais (DT Percepção 32) | CD: 4 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Victor detonova a fórmula que passou anos desenvolvendo — destinada a um único momento crítico. Área de 20m: todos os sobrenaturais testam DT Constituição 53. Falha: 18d8+117 Dano Verdadeiro imediato + todos os efeitos de espécie do Coquetel simultaneamente + supressão de regeneração e habilidades sobrenaturais por 4 Rod. Humanos aliados na área são curados em 578 PV. Victor não pode usar a Fórmula novamente até descansar. CD: 1 vez por encontro.",
+                    "description": "Victor detonova a fórmula que passou anos desenvolvendo — destinada a um único momento crítico. Área de 20m: todos os sobrenaturais testam DT Constituição 75. Falha: 25d8+165 Dano Verdadeiro imediato + todos os efeitos de espécie do Coquetel simultaneamente + supressão de regeneração e habilidades sobrenaturais por 4 Rod. Humanos aliados na área são curados em 929 PV. Victor não pode usar a Fórmula novamente até descansar. CD: 1 vez por encontro.",
                     "name": "Fórmula do Fim",
                     "stats": [
-                        "Área 20m | DT Constituição 53 | Falha: 18d8+117 Verdadeiro + todos os efeitos de espécie simultâneos",
+                        "Área 20m | DT Constituição 75 | Falha: 25d8+165 Verdadeiro + todos os efeitos de espécie simultâneos",
                         "Supressão: regeneração + habilidades sobrenaturais por 4 Rod",
-                        "Aliados humanos: cura 578 PV | CD: 1× por encontro (não por rodada)"
+                        "Aliados humanos: cura 929 PV | CD: 1× por encontro (não por rodada)"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 1861,
-                "arm": 47,
-                "ba": 33,
-                "bd": 30,
-                "ca": 40,
-                "reac": 10,
-                "dano": "10d8+35",
+                "vida": 2992,
+                "arm": 58,
+                "ba": 40,
+                "bd": 37,
+                "ca": 47,
+                "reac": 12,
+                "dano": "15d8+50",
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
             "nome": "Victor Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                21,
-                33,
-                19,
-                29,
-                26,
-                26
+                24,
+                38,
+                22,
+                34,
+                30,
+                30
             ],
             "id": "29ae77e8-7bc5-4770-ab6e-1402af608933",
             "avatar": "",
             "profile": "especialista",
             "na": "4",
-            "nivel": 24,
+            "nivel": 32,
             "abilities": [
                 {
-                    "description": "Remy não existe quando não quer existir. DT Percepção 53 para detectá-lo quando está infiltrado. Primeiro ataque de cada combate: automático + conta como furtivo (+7d8+47 adicional de Dano Verdadeiro). Imune a Auras de Detecção sobrenatural (vampiros não o sentem, lobisomens não o farejam). Em ambientes urbanos ou interiores: pode usar qualquer civil ou elemento do cenário como cobertura sem custo de ação.",
+                    "description": "Remy não existe quando não quer existir. DT Percepção 63 para detectá-lo quando está infiltrado. Primeiro ataque de cada combate: automático + conta como furtivo (+8d8+56 adicional de Dano Verdadeiro). Imune a Auras de Detecção sobrenatural (vampiros não o sentem, lobisomens não o farejam). Em ambientes urbanos ou interiores: pode usar qualquer civil ou elemento do cenário como cobertura sem custo de ação.",
                     "name": "Fantasma Treinado",
                     "stats": [
-                        "DT Percepção 53 para detectar | Primeiro ataque: automático + furtivo (+7d8+47 Verdadeiro)",
+                        "DT Percepção 63 para detectar | Primeiro ataque: automático + furtivo (+8d8+56 Verdadeiro)",
                         "Imune a Auras de Detecção sobrenatural (não sentido/farejado)",
                         "Ambiente urbano/interior: cobertura gratuita"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "3 ataques silenciosos em posições vitais: +6d8+35 Dano Verdadeiro cada. O 2º aplica veneno de ação rápida — DT Constituição 38 — Falha: 50 Dano/Rod × 3 + -8 Resultado. O 3º atinge ponto crítico: DT Fortitude 41 — Falha: -3 Reações e o alvo não pode usar habilidades de detecção por 2 Rod (Remy cortou os sentidos sobrenaturais). Após os 3 ataques: Remy pode se reposicionar 12m como Ação Livre.",
+                    "description": "3 ataques silenciosos em posições vitais: +7d8+41 Dano Verdadeiro cada. O 2º aplica veneno de ação rápida — DT Constituição 45 — Falha: 50 Dano/Rod × 3 + -8 Resultado. O 3º atinge ponto crítico: DT Fortitude 48 — Falha: -3 Reações e o alvo não pode usar habilidades de detecção por 2 Rod (Remy cortou os sentidos sobrenaturais). Após os 3 ataques: Remy pode se reposicionar 12m como Ação Livre.",
                     "name": "Dois Punhais, Zero Barulho",
                     "stats": [
-                        "3 ataques: +6d8+35 Verdadeiro | 2º: veneno DT 26 — Falha: 50/Rod × 3 + -8 Resultado",
+                        "3 ataques: +7d8+41 Verdadeiro | 2º: veneno DT 26 — Falha: 50/Rod × 3 + -8 Resultado",
                         "3º: DT 28 — Falha: -3 Reações + sem habilidades de detecção 2 Rod",
                         "Pós-ataques: reposicionamento 12m (Ação Livre)"
                     ],
@@ -6659,7 +6665,7 @@
                     "type": "ativa"
                 },
                 {
-                    "description": "Remy já infiltrou o grupo inimigo antes do combate — ou faz isso agora. Revela a posição e intenção de 1 inimigo: por 3 Rod, todos os aliados recebem +18 no Resultado contra aquele alvo e qualquer Reação do alvo pode ser negada por 1 aliado por rodada (Remy já comunicou a sequência de reação). O alvo não pode usar habilidades de invisibilidade ou evasão.",
+                    "description": "Remy já infiltrou o grupo inimigo antes do combate — ou faz isso agora. Revela a posição e intenção de 1 inimigo: por 3 Rod, todos os aliados recebem +21 no Resultado contra aquele alvo e qualquer Reação do alvo pode ser negada por 1 aliado por rodada (Remy já comunicou a sequência de reação). O alvo não pode usar habilidades de invisibilidade ou evasão.",
                     "name": "Informação é Munição",
                     "stats": [
                         "1 alvo | 3 Rod | Aliados: +12 Resultado vs alvo | 1 Reação do alvo pode ser negada/Rod",
@@ -6668,251 +6674,12 @@
                     "type": "ativa"
                 },
                 {
-                    "description": "Por 3 Rodadas Remy entra no estado que a família chama de 'quando você vê, já é tarde'. Permanentemente invisível (incluindo meios mágicos). Age 3× por turno, cada ação com 2 ataques automáticos furtivos de +9d8+56 Dano Verdadeiro cada. Qualquer inimigo que tentar localizá-lo gasta a ação e ainda assim falha. Ao final da Ultimate: Remy pode optar por eliminar 1 alvo em 34% PV ou menos instantaneamente (Morte Silenciosa — impossível de resistir).",
+                    "description": "Por 3 Rodadas Remy entra no estado que a família chama de 'quando você vê, já é tarde'. Permanentemente invisível (incluindo meios mágicos). Age 3× por turno, cada ação com 2 ataques automáticos furtivos de +11d8+66 Dano Verdadeiro cada. Qualquer inimigo que tentar localizá-lo gasta a ação e ainda assim falha. Ao final da Ultimate: Remy pode optar por eliminar 1 alvo em 54% PV ou menos instantaneamente (Morte Silenciosa — impossível de resistir).",
                     "name": "Protocolo Fantasma",
                     "stats": [
-                        "3 Rod | Invisível (incluindo mágico) | 3 ações/turno × 2 ataques automáticos furtivos: +9d8+56 Verdadeiro",
+                        "3 Rod | Invisível (incluindo mágico) | 3 ações/turno × 2 ataques automáticos furtivos: +11d8+66 Verdadeiro",
                         "Localização: ação desperdiçada automaticamente",
-                        "Final: Morte Silenciosa em alvo ≤34% PV (impossível de resistir) | CD: 8 Rod"
-                    ],
-                    "type": "ultimate"
-                }
-            ],
-            "stats": {
-                "vida": 1393,
-                "arm": 42,
-                "ba": 29,
-                "bd": 26,
-                "ca": 36,
-                "reac": 9,
-                "dano": "8d8+30",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
-            },
-            "nome": "Remy Dwayne",
-            "raca": "Humano Cacador"
-        },
-        {
-            "description": "",
-            "attrs": [
-                19,
-                26,
-                19,
-                33,
-                31,
-                24
-            ],
-            "id": "ccc10344-eb39-4166-8ff3-3a99d32122cf",
-            "avatar": "",
-            "profile": "especialista",
-            "na": "4",
-            "nivel": 26,
-            "abilities": [
-                {
-                    "description": "Brenna estudou magia não para praticá-la, mas para destruí-la. Identifica qualquer habilidade mágica ativa em 15m (tipo, duração, fonte). Habilidades mágicas aplicadas nela têm DT de resistência +15 e 29% de serem simplesmente anuladas pela tecnologia anti-magia que porta. Magia que a afete e falhe: Brenna acumula 1 Ficha de Contra-Magia (máx 4) — pode gastar como +3d8+22 de dano ou +8 no Resultado.",
-                    "name": "Anuladora de Magia",
-                    "stats": [
-                        "Identifica qualquer magia ativa em 15m | Magia em Brenna: DT +15 + 29% de anulação",
-                        "Magia que falhe: +1 Contra-Magia (máx 4) | Gasta: +3d8+22 dano ou +8 Resultado"
-                    ],
-                    "type": "passiva"
-                },
-                {
-                    "description": "Brenna ativa o dispositivo que levou 3 anos para construir. Por 2 Rodadas, área de 10m: nenhuma habilidade mágica pode ser ativada na área (tentativas falham automaticamente). Já existentes podem durar, mas não são renovadas. Contra bruxas: elas testam DT Arcana 30 a cada rodada de tentativa de magia — Falha: recebem 6d8+38 de dano de feedback mágico. CD: 5 Rod.",
-                    "name": "Supressor Arcano",
-                    "stats": [
-                        "Área 10m por 2 Rod | Nenhuma nova magia pode ser ativada (falha automática)",
-                        "Existentes: duram, mas não se renovam",
-                        "Bruxas tentando magia: DT 30/Rod — Falha: 6d8+26 feedback | CD: 5 Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Brenna dispara projéteis feitos de Rowan (madeira de sorva) — material sagrado contra magia negra. 2 tiros: +6d8+38 Dano Verdadeiro cada, ignoram qualquer escudo ou barreira mágica. Contra bruxas: o impacto interrompe imediatamente qualquer ritual ou canalização ativa. DT Arcana 41 — Falha: perde 3 Reações e -12 Resultado por 2 Rod (colapso de concentração).",
-                    "name": "Projétil de Rowan Abençoado",
-                    "stats": [
-                        "2 tiros: +6d8+38 Verdadeiro | Ignoram escudos e barreiras mágicas",
-                        "Vs bruxa: interrompe ritual/canalização imediatamente",
-                        "DT Arcana 41 — Falha: -3 Reações + -12 Resultado 2 Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Reação. Brenna usa o dispositivo de redirecionamento quando uma magia a atinge: absorve o feitiço e o reenvia ao caster original. O caster sofre 147% do efeito que tentou aplicar em Brenna (sem nova DT). Acumula +2 Fichas de Contra-Magia. Pode usar 2× por Rod.",
-                    "name": "Redirecionar Feitiço",
-                    "stats": [
-                        "Reação | Absorve 1 magia e reenvia ao caster (147% do efeito, sem nova DT)",
-                        "+2 Contra-Magia | 2× por Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Brenna ativa o protocolo de emergência — desenvolvido para o pior cenário possível. Por 3 Rodadas: área de 25m em silêncio mágico completo (nenhuma magia nova pode ser ativada, existentes colapsam em 1 Rod). Bruxas na área testam DT Arcana 34 por rodada — Falha: 12d8+73 de feedback mágico + perda de 1 habilidade aleatória por 2 Rod. Aliados Dwayne na área são imunes ao silêncio mágico e recebem +18 no Resultado.",
-                    "name": "Apagão Mágico",
-                    "stats": [
-                        "3 Rod | Área 25m: silêncio mágico (sem novas magias, existentes colapsam em 1 Rod)",
-                        "Bruxas/Rod: DT 34 — Falha: 12d8+73 feedback + perde 1 habilidade aleatória 2 Rod",
-                        "Aliados Dwayne: imunes ao silêncio + +18 Resultado | CD: 9 Rod"
-                    ],
-                    "type": "ultimate"
-                }
-            ],
-            "stats": {
-                "vida": 1571,
-                "arm": 44,
-                "ba": 31,
-                "bd": 28,
-                "ca": 38,
-                "reac": 9,
-                "dano": "8d8+30",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
-            },
-            "nome": "Brenna Dwayne",
-            "raca": "Humano Cacador"
-        },
-        {
-            "description": "",
-            "attrs": [
-                18,
-                26,
-                16,
-                22,
-                20,
-                18
-            ],
-            "id": "b41196e0-9104-4be7-8840-affd7cacc273",
-            "avatar": "",
-            "profile": "especialista",
-            "na": "4",
-            "nivel": 22,
-            "abilities": [
-                {
-                    "description": "Theo cresceu treinando — e aprendeu mais rápido do que qualquer membro da família jamais aprendeu. A cada ataque que recebe de um sobrenatural, analisa e adapta: acumula 1 Ficha de Aprendizado (máx 4). 2 Fichas: +8 no Resultado contra aquele tipo específico de criatura. 4 Fichas: próximo ataque é automático e causa Dano Verdadeiro. Nunca pode ser surpreendido — reflexos de jovem treinado ao limite. Imune a Medo.",
-                    "name": "Instinto Bruto de Sobrevivência",
-                    "stats": [
-                        "Dano de sobrenatural: +1 Aprendizado (máx 4) | 2 Fichas: +8 vs aquele tipo",
-                        "4 Fichas: próximo ataque automático + Dano Verdadeiro",
-                        "Imune a Surpresa e Medo"
-                    ],
-                    "type": "passiva"
-                },
-                {
-                    "description": "Theo usa 2 pistolas semi-automáticas customizadas — ele as recarrega mais rápido do que a maioria saca. 5 tiros rápidos: +4d8+21 Dano Verdadeiro cada. O 3º e o 5º tiro são com munição especial (prata benta) — +2d8+14 adicional e suprimem regeneração por 2 Rod. Se todos os 5 acertarem: acumula 2 Fichas de Aprendizado adicionais.",
-                    "name": "Dual Guns — Velocidade Jovem",
-                    "stats": [
-                        "5 tiros: +4d8+21 Verdadeiro | 3º e 5º: prata benta +2d8+19 + suprime regeneração 2 Rod",
-                        "5 acertos: +2 Aprendizado adicional"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Reação. Theo esquiva de qualquer ataque sobrenatural com reflexos absurdos para a idade. Nega 1 ataque completamente. Contra-ataque imediato: +6d8+35 Dano Verdadeiro. Acumula +1 Ficha de Aprendizado. Se tiver 3+ Fichas: pode negar 2 ataques consecutivos com 1 Reação.",
-                    "name": "Desvio Instintivo",
-                    "stats": [
-                        "Reação | Nega 1 ataque completamente | Contra-ataque: +6d8+35 Verdadeiro",
-                        "+1 Aprendizado | 3+ Fichas: nega 2 ataques com 1 Reação"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Theo surpreende todo mundo — inclusive a si mesmo. Por 2 Rodadas: +15 no Resultado de tudo, velocidade dobrada, 2 ataques por turno adicionais de +4d8+24 cada. Acumula Fichas de Aprendizado pelo dobro da taxa. Ao final: Theo exaure — -5 Resultado por 1 Rod (mas ainda funciona perfeitamente).",
-                    "name": "Adrenalina do Novato",
-                    "stats": [
-                        "2 Rod | +15 Resultado | Velocidade dobrada | +2 ataques/turno: +4d8+20 cada",
-                        "Aprendizado: taxa ×2 | Final: -5 Resultado por 1 Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Theo vai além do que qualquer instrutor esperaria. Por 2 Rodadas: age 3× por turno com 2 ataques por ação de +6d8+38 Dano Verdadeiro. Todas as Fichas de Aprendizado são aplicadas simultaneamente a todos os inimigos em campo (não só ao tipo específico). Ao final: Theo cai na exaustão — 0 Reações por 1 Rod, mas cura 319 PV (o corpo responde ao extremo). A experiência o transforma: após o combate, começa o próximo com 2 Fichas de Aprendizado sobre qualquer tipo de sobrenatural enfrentado.",
-                    "name": "Além do Limite",
-                    "stats": [
-                        "2 Rod | 3 ações/turno × 2 ataques: +6d8+38 Verdadeiro | Fichas aplicadas em TODOS os inimigos",
-                        "Final: 0 Reações 1 Rod + cura 319 PV",
-                        "Pós-combate: começa próximo com 2 Fichas sobre sobrenaturais enfrentados | CD: 7 Rod"
-                    ],
-                    "type": "ultimate"
-                }
-            ],
-            "stats": {
-                "vida": 1230,
-                "arm": 39,
-                "ba": 28,
-                "bd": 25,
-                "ca": 35,
-                "reac": 8,
-                "dano": "6d8+24",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
-            },
-            "nome": "Theo Dwayne",
-            "raca": "Humano Cacador"
-        },
-        {
-            "description": "",
-            "attrs": [
-                25,
-                33,
-                25,
-                36,
-                36,
-                36
-            ],
-            "id": "c9a0cc56-08a5-42ef-9fc8-44676ff49348",
-            "avatar": "",
-            "profile": "especialista",
-            "na": "4",
-            "nivel": 32,
-            "abilities": [
-                {
-                    "description": "Ada não é a mais forte nem a mais rápida — ela é o motivo pelo qual todos os outros são mais fortes e rápidos. Cada membro Dwayne em campo com ela recebe +8 no Resultado de tudo e regenera 82 PV/Rodada. Ada nunca pode ser surpreendida e age sempre imediatamente após o membro da família mais lento (garantindo cobertura da cadeia completa). Se ela cair: todos os aliados Dwayne recebem +22 no Resultado por 2 Rod (raiva calculada).",
-                    "name": "A Família Funciona",
-                    "stats": [
-                        "Cada Dwayne em campo: +8 Resultado + regeneração 82 PV/Rod",
-                        "Imune a Surpresa | Age imediatamente após o membro Dwayne mais lento (cobertura)",
-                        "Se Ada cair: aliados Dwayne: +15 Resultado por 2 Rod"
-                    ],
-                    "type": "passiva"
-                },
-                {
-                    "description": "Ação Livre. Ada coordena em tempo real. Escolhe 1: Fogo Concentrado (todos os aliados Dwayne agem contra o mesmo alvo com +22 no Resultado e +3d8+22 de dano adicional nessa rodada), Reposicionamento Tático (move até 3 aliados sem custo de ação, cada um recebe +15 ARM e +8 Resultado), ou Supressão Coletiva (todo ataque de aliado Dwayne nessa rodada aplica -2 Reações ao alvo, acumulando). CD: 2 Rod.",
-                    "name": "Chamada de Campo",
-                    "stats": [
-                        "Ação Livre | Escolhe 1 por uso (CD 2 Rod):",
-                        "Fogo Concentrado: aliados vs mesmo alvo — +22 Resultado + +3d8+22",
-                        "Reposicionamento: 3 aliados sem custo + +15 ARM + +8 Resultado cada",
-                        "Supressão: cada ataque aliado aplica -2 Reações ao alvo (acumula)"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Ada cobre 2 aliados Dwayne simultaneamente por 2 Rodadas. Qualquer ataque direcionado a eles que Ada consiga interceptar é redirecionado para ela com 44% de redução. Os 2 aliados cobertos recebem +18 no Resultado de tudo e 1 Reação extra por rodada. Ada pode redirecionar até 3 ataques por rodada.",
-                    "name": "Cobertura Total",
-                    "stats": [
-                        "2 aliados | 2 Rod | Ataques redirecionados para Ada: -44% dano",
-                        "Aliados cobertos: +18 Resultado + +1 Reação extra/Rod",
-                        "Redirecionamento máximo: 3 ataques/Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Reação de emergência. 1 aliado cai a 0 PV: Ada age instantaneamente — movimento de 18m para posição do aliado, aplica kit de trauma (cura 825 PV imediato), e reposiciona o aliado para posição segura (6m atrás). O aliado fica com +15 ARM por 2 Rod. Ada não sofre ataques de oportunidade durante o movimento de extração. 2× por combate.",
-                    "name": "Protocolo de Extração",
-                    "stats": [
-                        "Reação | Aliado a 0 PV: move 18m + kit de trauma (cura 825 PV) + reposiciona 6m",
-                        "+22 ARM para o aliado por 2 Rod | Sem ataques de oportunidade no movimento",
-                        "2× por combate"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Por 3 Rodadas, Ada sincroniza toda a família em um estado de operação perfeita. Todos os aliados Dwayne em campo recebem: +29 no Resultado de tudo, 2 ataques extras por turno, regeneração de 247 PV/Rod e imunidade a qualquer efeito sobrenatural de controle. Qualquer habilidade que um membro da família usar: Ada pode duplicar instantaneamente o efeito em outro aliado como Ação Livre. Ao final: Ada cura todos os aliados Dwayne em 619 PV.",
-                    "name": "Máquina da Família Dwayne",
-                    "stats": [
-                        "3 Rod | Aliados Dwayne: +29 Resultado + +2 ataques/turno + regeneração 247 PV/Rod + imune a controle sobrenatural",
-                        "Ação Livre: duplica efeito de habilidade de qualquer aliado em outro aliado",
-                        "Final: cura 619 PV em todos os aliados Dwayne | CD: 8 Rod"
+                        "Final: Morte Silenciosa em alvo ≤54% PV (impossível de resistir) | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
@@ -6928,8 +6695,251 @@
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
+            "nome": "Remy Dwayne",
+            "raca": "Humano Cacador",
+            "_rebalanced": true
+        },
+        {
+            "description": "",
+            "attrs": [
+                22,
+                30,
+                22,
+                38,
+                36,
+                28
+            ],
+            "id": "ccc10344-eb39-4166-8ff3-3a99d32122cf",
+            "avatar": "",
+            "profile": "especialista",
+            "na": "4",
+            "nivel": 35,
+            "abilities": [
+                {
+                    "description": "Brenna estudou magia não para praticá-la, mas para destruí-la. Identifica qualquer habilidade mágica ativa em 15m (tipo, duração, fonte). Habilidades mágicas aplicadas nela têm DT de resistência +21 e 40% de serem simplesmente anuladas pela tecnologia anti-magia que porta. Magia que a afete e falhe: Brenna acumula 1 Ficha de Contra-Magia (máx 4) — pode gastar como +4d8+31 de dano ou +8 no Resultado.",
+                    "name": "Anuladora de Magia",
+                    "stats": [
+                        "Identifica qualquer magia ativa em 15m | Magia em Brenna: DT +21 + 40% de anulação",
+                        "Magia que falhe: +1 Contra-Magia (máx 4) | Gasta: +4d8+31 dano ou +8 Resultado"
+                    ],
+                    "type": "passiva"
+                },
+                {
+                    "description": "Brenna ativa o dispositivo que levou 3 anos para construir. Por 2 Rodadas, área de 10m: nenhuma habilidade mágica pode ser ativada na área (tentativas falham automaticamente). Já existentes podem durar, mas não são renovadas. Contra bruxas: elas testam DT Arcana 30 a cada rodada de tentativa de magia — Falha: recebem 8d8+53 de dano de feedback mágico. CD: 5 Rod.",
+                    "name": "Supressor Arcano",
+                    "stats": [
+                        "Área 10m por 2 Rod | Nenhuma nova magia pode ser ativada (falha automática)",
+                        "Existentes: duram, mas não se renovam",
+                        "Bruxas tentando magia: DT 30/Rod — Falha: 8d8+26 feedback | CD: 5 Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Brenna dispara projéteis feitos de Rowan (madeira de sorva) — material sagrado contra magia negra. 2 tiros: +8d8+53 Dano Verdadeiro cada, ignoram qualquer escudo ou barreira mágica. Contra bruxas: o impacto interrompe imediatamente qualquer ritual ou canalização ativa. DT Arcana 57 — Falha: perde 3 Reações e -12 Resultado por 2 Rod (colapso de concentração).",
+                    "name": "Projétil de Rowan Abençoado",
+                    "stats": [
+                        "2 tiros: +8d8+53 Verdadeiro | Ignoram escudos e barreiras mágicas",
+                        "Vs bruxa: interrompe ritual/canalização imediatamente",
+                        "DT Arcana 57 — Falha: -3 Reações + -12 Resultado 2 Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Reação. Brenna usa o dispositivo de redirecionamento quando uma magia a atinge: absorve o feitiço e o reenvia ao caster original. O caster sofre 204% do efeito que tentou aplicar em Brenna (sem nova DT). Acumula +2 Fichas de Contra-Magia. Pode usar 2× por Rod.",
+                    "name": "Redirecionar Feitiço",
+                    "stats": [
+                        "Reação | Absorve 1 magia e reenvia ao caster (204% do efeito, sem nova DT)",
+                        "+2 Contra-Magia | 2× por Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Brenna ativa o protocolo de emergência — desenvolvido para o pior cenário possível. Por 3 Rodadas: área de 25m em silêncio mágico completo (nenhuma magia nova pode ser ativada, existentes colapsam em 1 Rod). Bruxas na área testam DT Arcana 34 por rodada — Falha: 17d8+101 de feedback mágico + perda de 1 habilidade aleatória por 2 Rod. Aliados Dwayne na área são imunes ao silêncio mágico e recebem +25 no Resultado.",
+                    "name": "Apagão Mágico",
+                    "stats": [
+                        "3 Rod | Área 25m: silêncio mágico (sem novas magias, existentes colapsam em 1 Rod)",
+                        "Bruxas/Rod: DT 34 — Falha: 17d8+101 feedback + perde 1 habilidade aleatória 2 Rod",
+                        "Aliados Dwayne: imunes ao silêncio + +25 Resultado | CD: 9 Rod"
+                    ],
+                    "type": "ultimate"
+                }
+            ],
+            "stats": {
+                "vida": 2563,
+                "arm": 54,
+                "ba": 38,
+                "bd": 35,
+                "ca": 45,
+                "reac": 11,
+                "dano": "12d8+42",
+                "danoExtra": "+2d10",
+                "tag": "vs 4 PCs"
+            },
+            "nome": "Brenna Dwayne",
+            "raca": "Humano Cacador",
+            "_rebalanced": true
+        },
+        {
+            "description": "",
+            "attrs": [
+                21,
+                31,
+                19,
+                26,
+                24,
+                21
+            ],
+            "id": "b41196e0-9104-4be7-8840-affd7cacc273",
+            "avatar": "",
+            "profile": "especialista",
+            "na": "4",
+            "nivel": 30,
+            "abilities": [
+                {
+                    "description": "Theo cresceu treinando — e aprendeu mais rápido do que qualquer membro da família jamais aprendeu. A cada ataque que recebe de um sobrenatural, analisa e adapta: acumula 1 Ficha de Aprendizado (máx 4). 2 Fichas: +8 no Resultado contra aquele tipo específico de criatura. 4 Fichas: próximo ataque é automático e causa Dano Verdadeiro. Nunca pode ser surpreendido — reflexos de jovem treinado ao limite. Imune a Medo.",
+                    "name": "Instinto Bruto de Sobrevivência",
+                    "stats": [
+                        "Dano de sobrenatural: +1 Aprendizado (máx 4) | 2 Fichas: +8 vs aquele tipo",
+                        "4 Fichas: próximo ataque automático + Dano Verdadeiro",
+                        "Imune a Surpresa e Medo"
+                    ],
+                    "type": "passiva"
+                },
+                {
+                    "description": "Theo usa 2 pistolas semi-automáticas customizadas — ele as recarrega mais rápido do que a maioria saca. 5 tiros rápidos: +6d8+31 Dano Verdadeiro cada. O 3º e o 5º tiro são com munição especial (prata benta) — +3d8+21 adicional e suprimem regeneração por 2 Rod. Se todos os 5 acertarem: acumula 2 Fichas de Aprendizado adicionais.",
+                    "name": "Dual Guns — Velocidade Jovem",
+                    "stats": [
+                        "5 tiros: +6d8+31 Verdadeiro | 3º e 5º: prata benta +3d8+30 + suprime regeneração 2 Rod",
+                        "5 acertos: +2 Aprendizado adicional"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Reação. Theo esquiva de qualquer ataque sobrenatural com reflexos absurdos para a idade. Nega 1 ataque completamente. Contra-ataque imediato: +9d8+51 Dano Verdadeiro. Acumula +1 Ficha de Aprendizado. Se tiver 3+ Fichas: pode negar 2 ataques consecutivos com 1 Reação.",
+                    "name": "Desvio Instintivo",
+                    "stats": [
+                        "Reação | Nega 1 ataque completamente | Contra-ataque: +9d8+51 Verdadeiro",
+                        "+1 Aprendizado | 3+ Fichas: nega 2 ataques com 1 Reação"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Theo surpreende todo mundo — inclusive a si mesmo. Por 2 Rodadas: +15 no Resultado de tudo, velocidade dobrada, 2 ataques por turno adicionais de +6d8+35 cada. Acumula Fichas de Aprendizado pelo dobro da taxa. Ao final: Theo exaure — -5 Resultado por 1 Rod (mas ainda funciona perfeitamente).",
+                    "name": "Adrenalina do Novato",
+                    "stats": [
+                        "2 Rod | +15 Resultado | Velocidade dobrada | +2 ataques/turno: +6d8+20 cada",
+                        "Aprendizado: taxa ×2 | Final: -5 Resultado por 1 Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Theo vai além do que qualquer instrutor esperaria. Por 2 Rodadas: age 3× por turno com 2 ataques por ação de +9d8+56 Dano Verdadeiro. Todas as Fichas de Aprendizado são aplicadas simultaneamente a todos os inimigos em campo (não só ao tipo específico). Ao final: Theo cai na exaustão — 0 Reações por 1 Rod, mas cura 508 PV (o corpo responde ao extremo). A experiência o transforma: após o combate, começa o próximo com 2 Fichas de Aprendizado sobre qualquer tipo de sobrenatural enfrentado.",
+                    "name": "Além do Limite",
+                    "stats": [
+                        "2 Rod | 3 ações/turno × 2 ataques: +9d8+56 Verdadeiro | Fichas aplicadas em TODOS os inimigos",
+                        "Final: 0 Reações 1 Rod + cura 508 PV",
+                        "Pós-combate: começa próximo com 2 Fichas sobre sobrenaturais enfrentados | CD: 7 Rod"
+                    ],
+                    "type": "ultimate"
+                }
+            ],
+            "stats": {
+                "vida": 1958,
+                "arm": 48,
+                "ba": 34,
+                "bd": 31,
+                "ca": 41,
+                "reac": 10,
+                "dano": "10d8+35",
+                "danoExtra": "+2d10",
+                "tag": "vs 4 PCs"
+            },
+            "nome": "Theo Dwayne",
+            "raca": "Humano Cacador",
+            "_rebalanced": true
+        },
+        {
+            "description": "",
+            "attrs": [
+                28,
+                38,
+                28,
+                41,
+                41,
+                41
+            ],
+            "id": "c9a0cc56-08a5-42ef-9fc8-44676ff49348",
+            "avatar": "",
+            "profile": "especialista",
+            "na": "6",
+            "nivel": 42,
+            "abilities": [
+                {
+                    "description": "Ada não é a mais forte nem a mais rápida — ela é o motivo pelo qual todos os outros são mais fortes e rápidos. Cada membro Dwayne em campo com ela recebe +8 no Resultado de tudo e regenera 172 PV/Rodada. Ada nunca pode ser surpreendida e age sempre imediatamente após o membro da família mais lento (garantindo cobertura da cadeia completa). Se ela cair: todos os aliados Dwayne recebem +34 no Resultado por 2 Rod (raiva calculada).",
+                    "name": "A Família Funciona",
+                    "stats": [
+                        "Cada Dwayne em campo: +8 Resultado + regeneração 172 PV/Rod",
+                        "Imune a Surpresa | Age imediatamente após o membro Dwayne mais lento (cobertura)",
+                        "Se Ada cair: aliados Dwayne: +15 Resultado por 2 Rod"
+                    ],
+                    "type": "passiva"
+                },
+                {
+                    "description": "Ação Livre. Ada coordena em tempo real. Escolhe 1: Fogo Concentrado (todos os aliados Dwayne agem contra o mesmo alvo com +34 no Resultado e +5d8+34 de dano adicional nessa rodada), Reposicionamento Tático (move até 3 aliados sem custo de ação, cada um recebe +23 ARM e +8 Resultado), ou Supressão Coletiva (todo ataque de aliado Dwayne nessa rodada aplica -2 Reações ao alvo, acumulando). CD: 2 Rod.",
+                    "name": "Chamada de Campo",
+                    "stats": [
+                        "Ação Livre | Escolhe 1 por uso (CD 2 Rod):",
+                        "Fogo Concentrado: aliados vs mesmo alvo — +34 Resultado + +5d8+34",
+                        "Reposicionamento: 3 aliados sem custo + +23 ARM + +8 Resultado cada",
+                        "Supressão: cada ataque aliado aplica -2 Reações ao alvo (acumula)"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Ada cobre 2 aliados Dwayne simultaneamente por 2 Rodadas. Qualquer ataque direcionado a eles que Ada consiga interceptar é redirecionado para ela com 67% de redução. Os 2 aliados cobertos recebem +28 no Resultado de tudo e 1 Reação extra por rodada. Ada pode redirecionar até 3 ataques por rodada.",
+                    "name": "Cobertura Total",
+                    "stats": [
+                        "2 aliados | 2 Rod | Ataques redirecionados para Ada: -67% dano",
+                        "Aliados cobertos: +28 Resultado + +1 Reação extra/Rod",
+                        "Redirecionamento máximo: 3 ataques/Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Reação de emergência. 1 aliado cai a 0 PV: Ada age instantaneamente — movimento de 18m para posição do aliado, aplica kit de trauma (cura 1726 PV imediato), e reposiciona o aliado para posição segura (6m atrás). O aliado fica com +15 ARM por 2 Rod. Ada não sofre ataques de oportunidade durante o movimento de extração. 2× por combate.",
+                    "name": "Protocolo de Extração",
+                    "stats": [
+                        "Reação | Aliado a 0 PV: move 18m + kit de trauma (cura 1726 PV) + reposiciona 6m",
+                        "+34 ARM para o aliado por 2 Rod | Sem ataques de oportunidade no movimento",
+                        "2× por combate"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Por 3 Rodadas, Ada sincroniza toda a família em um estado de operação perfeita. Todos os aliados Dwayne em campo recebem: +44 no Resultado de tudo, 2 ataques extras por turno, regeneração de 517 PV/Rod e imunidade a qualquer efeito sobrenatural de controle. Qualquer habilidade que um membro da família usar: Ada pode duplicar instantaneamente o efeito em outro aliado como Ação Livre. Ao final: Ada cura todos os aliados Dwayne em 1295 PV.",
+                    "name": "Máquina da Família Dwayne",
+                    "stats": [
+                        "3 Rod | Aliados Dwayne: +44 Resultado + +2 ataques/turno + regeneração 517 PV/Rod + imune a controle sobrenatural",
+                        "Ação Livre: duplica efeito de habilidade de qualquer aliado em outro aliado",
+                        "Final: cura 1295 PV em todos os aliados Dwayne | CD: 8 Rod"
+                    ],
+                    "type": "ultimate"
+                }
+            ],
+            "stats": {
+                "vida": 4603,
+                "arm": 64,
+                "ba": 46,
+                "bd": 43,
+                "ca": 53,
+                "reac": 13,
+                "dano": "15d8+50",
+                "danoExtra": "+4d10",
+                "tag": "vs 6 PCs + AL(2)"
+            },
             "nome": "Ada Dwayne — Coordenadora de Campo",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
@@ -7814,24 +7824,24 @@
             "avatar": "",
             "profile": "especialista",
             "na": "8",
-            "nivel": 40,
+            "nivel": 46,
             "abilities": [
                 {
                     "name": "Comandante de Campo",
                     "type": "passiva",
-                    "description": "Alistair comanda o campo de batalha com precisao militar. Aliados em 20m recebem +18 no Resultado e +5 ARM. Uma vez por rodada: pode dar 1 acao extra a qualquer aliado como Acao Livre. Regenera 178 PV/round. Inimigos que o atacarem diretamente: aliados ganham +1 Ataque de Oportunidade contra eles.",
+                    "description": "Alistair comanda o campo de batalha com precisao militar. Aliados em 20m recebem +21 no Resultado e +5 ARM. Uma vez por rodada: pode dar 1 acao extra a qualquer aliado como Acao Livre. Regenera 234 PV/round. Inimigos que o atacarem diretamente: aliados ganham +1 Ataque de Oportunidade contra eles.",
                     "stats": [
-                        "Aliados 20m: +18 Resultado + +5 ARM",
+                        "Aliados 20m: +21 Resultado + +5 ARM",
                         "1x/rodada: aliado ganha acao extra (Acao Livre)",
-                        "Regeneracao: 178 PV/round | Atacar Alistair: aliados ganham +1 Ataque de Oportunidade"
+                        "Regeneracao: 234 PV/round | Atacar Alistair: aliados ganham +1 Ataque de Oportunidade"
                     ]
                 },
                 {
                     "name": "Tiro de Supressao",
                     "type": "ativa",
-                    "description": "Alistair dispara tiro de supressao em area de 10m. Todos inimigos: DT DES 52 - Falha: pinados no local 1 round + 9d8+64 Dano. Sucesso: metade. Enquanto suprimidos: aliados ganham +8 Resultado contra eles. Alistair pode manter supressao gastando acao (inimigos continuam pinados).",
+                    "description": "Alistair dispara tiro de supressao em area de 10m. Todos inimigos: DT DES 59 - Falha: pinados no local 1 round + 10d8+73 Dano. Sucesso: metade. Enquanto suprimidos: aliados ganham +8 Resultado contra eles. Alistair pode manter supressao gastando acao (inimigos continuam pinados).",
                     "stats": [
-                        "Area 10m | DT DES 52 - Falha: pinado 1 round + 9d8+64 Dano",
+                        "Area 10m | DT DES 59 - Falha: pinado 1 round + 10d8+73 Dano",
                         "Suprimidos: aliados +8 Resultado contra eles",
                         "Manter supressao: gasta acao (continua pinados)"
                     ]
@@ -7839,9 +7849,9 @@
                 {
                     "name": "Flanqueio Tatico",
                     "type": "ativa",
-                    "description": "Alistair marca 2 posicoes no campo. Aliados que se moverem para essas posicoes: +23 Resultado + +5d8+30 dano adicional por 2 rounds. Se 2 aliados flanquearem o mesmo alvo: alvo perde 3 Reacoes e DTs caem -8. Alistair nao gasta acao para marcar.",
+                    "description": "Alistair marca 2 posicoes no campo. Aliados que se moverem para essas posicoes: +26 Resultado + +6d8+34 dano adicional por 2 rounds. Se 2 aliados flanquearem o mesmo alvo: alvo perde 3 Reacoes e DTs caem -8. Alistair nao gasta acao para marcar.",
                     "stats": [
-                        "Marca 2 posicoes | Aliados nas posicoes: +23 Resultado + +5d8+30 dano x2 rounds",
+                        "Marca 2 posicoes | Aliados nas posicoes: +26 Resultado + +6d8+34 dano x2 rounds",
                         "2 aliados flanqueando: alvo -3 Reacoes + DTs -8",
                         "Marcar: sem custo de acao"
                     ]
@@ -7849,234 +7859,237 @@
                 {
                     "name": "Granada de Concordancia",
                     "type": "ativa",
-                    "description": "Alistair lanca granada que sincroniza aliados. Area 12m: todos aliados ganham +15 ARM, +15 Resultado, e podem se comunicar telepaticamente entre si por 3 rounds. Qualquer aliado que receber dano: outros na area reduzem o dano em 30% (distribuem o impacto). Inimigos na area: DT FORT 49 ou desorientados (-8 Resultado).",
+                    "description": "Alistair lanca granada que sincroniza aliados. Area 12m: todos aliados ganham +17 ARM, +17 Resultado, e podem se comunicar telepaticamente entre si por 3 rounds. Qualquer aliado que receber dano: outros na area reduzem o dano em 34% (distribuem o impacto). Inimigos na area: DT FORT 56 ou desorientados (-8 Resultado).",
                     "stats": [
-                        "Area 12m | Aliados: +15 ARM + +15 Resultado + comunicacao telepatica x3 rounds",
-                        "Dano distribuido: -30% cada | Inimigos: DT FORT 49 ou -8 Resultado"
+                        "Area 12m | Aliados: +17 ARM + +17 Resultado + comunicacao telepatica x3 rounds",
+                        "Dano distribuido: -34% cada | Inimigos: DT FORT 56 ou -8 Resultado"
                     ]
                 },
                 {
                     "name": "Manobra Dwayne",
                     "type": "ultimate",
-                    "description": "Por 3 rounds: Alistair orquestra todos aliados como maquina de guerra. Escolhe ordem de acao de TODOS aliados (podem agir antes dos inimigos). Aliados Dwayne: +30 Resultado + imunes a surpresa + 1 acao extra/turn. Alistair pode cancelar 2 acoes inimigas/rodada como Reacao. Todos inimigos em 20m: DT WILL 38/rodada ou ficam confusos (acao aleatoria). CD: 15 rounds.",
+                    "description": "Por 3 rounds: Alistair orquestra todos aliados como maquina de guerra. Escolhe ordem de acao de TODOS aliados (podem agir antes dos inimigos). Aliados Dwayne: +34 Resultado + imunes a surpresa + 1 acao extra/turn. Alistair pode cancelar 2 acoes inimigas/rodada como Reacao. Todos inimigos em 20m: DT WILL 38/rodada ou ficam confusos (acao aleatoria). CD: 17 rounds.",
                     "stats": [
-                        "3 rounds | Escolhe ordem de acao dos aliados | Aliados Dwayne: +30 Resultado + imunes a surpresa + 1 acao extra",
+                        "3 rounds | Escolhe ordem de acao dos aliados | Aliados Dwayne: +34 Resultado + imunes a surpresa + 1 acao extra",
                         "Cancela 2 acoes inimigas/rodada (Reacao)",
                         "Inimigos 20m: DT WILL 38/rodada ou acao aleatoria",
-                        "CD: 15 rounds"
+                        "CD: 17 rounds"
                     ]
                 }
             ],
             "stats": {
-                "vida": 5066,
-                "arm": 64,
-                "ba": 46,
-                "bd": 43,
-                "ca": 53,
-                "reac": 14,
-                "dano": "15d8+50",
+                "vida": 6664,
+                "arm": 71,
+                "ba": 51,
+                "bd": 48,
+                "ca": 58,
+                "reac": 15,
+                "dano": "18d8+58",
                 "danoExtra": "+5d12",
                 "tag": "vs 8 PCs + AL(3)"
             },
             "nome": "Lorde Alistair Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                24,
-                29,
-                21,
-                33,
-                26,
-                24
+                32,
+                38,
+                28,
+                43,
+                34,
+                32
             ],
             "id": "546d3e12-8e2c-4423-8d4c-585bf29381fb",
             "avatar": "",
             "profile": "especialista",
-            "na": "4",
-            "nivel": 30,
+            "na": "6",
+            "nivel": 40,
             "abilities": [
                 {
-                    "description": "Liam não reage — ele já planejou. Antes de qualquer combate que ele saiba que virá, pode declarar 1 'Previsão Tática' (máx 3 preparadas). Cada Previsão ativa dá +8 no Resultado contra 1 tipo de sobrenatural específico e cancela 1 habilidade desse tipo por combate, quando ativada. Em campo: a cada rodada sem sofrer dano, acumula 1 Ponto de Controle (máx 5). 3 Controle: +15 no Resultado de tudo. 5 Controle: pode cancelar qualquer ação inimiga como Ação Livre (1× por combate).",
+                    "description": "Liam não reage — ele já planejou. Antes de qualquer combate que ele saiba que virá, pode declarar 1 'Previsão Tática' (máx 3 preparadas). Cada Previsão ativa dá +8 no Resultado contra 1 tipo de sobrenatural específico e cancela 1 habilidade desse tipo por combate, quando ativada. Em campo: a cada rodada sem sofrer dano, acumula 1 Ponto de Controle (máx 5). 3 Controle: +23 no Resultado de tudo. 5 Controle: pode cancelar qualquer ação inimiga como Ação Livre (1× por combate).",
                     "name": "Arquiteto da Caçada",
                     "stats": [
                         "Previsão Tática (preparada): +8 Resultado vs tipo + cancela 1 habilidade daquele tipo (por combate)",
-                        "Acúmulo: +1 Controle/Rod sem dano (máx 5) | 3 Controle: +15 Resultado",
+                        "Acúmulo: +1 Controle/Rod sem dano (máx 5) | 3 Controle: +23 Resultado",
                         "5 Controle: cancela ação inimiga como Ação Livre (1× por combate)"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "Liam não desperdicia munição. 2 disparos de precisão: o 1º com +7d8+44 Dano Verdadeiro (análise de ponto fraco — alvo sofre -18 no Resultado por 2 Rod) e o 2º com +9d8+53 Dano Verdadeiro (aproveitando a janela aberta). Se ambos acertarem: o alvo não pode usar habilidades passivas por 1 Rod (Liam interrompeu o fluxo).",
+                    "description": "Liam não desperdicia munição. 2 disparos de precisão: o 1º com +11d8+67 Dano Verdadeiro (análise de ponto fraco — alvo sofre -28 no Resultado por 2 Rod) e o 2º com +14d8+81 Dano Verdadeiro (aproveitando a janela aberta). Se ambos acertarem: o alvo não pode usar habilidades passivas por 1 Rod (Liam interrompeu o fluxo).",
                     "name": "Tiro Calculado",
                     "stats": [
-                        "2 disparos: +7d8+44 (alvo -12 Resultado 2 Rod) + +9d8+36",
+                        "2 disparos: +11d8+67 (alvo -12 Resultado 2 Rod) + +14d8+36",
                         "2 acertos: habilidades passivas do alvo desativadas por 1 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Ação Livre. Liam ativa um plano que já tinha preparado. Escolhe 1: Zona de Eliminação (área de 12m — todos os aliados recebem +22 Resultado e +3d8+22 dano adicional por 2 Rod), Rota de Extração (3 aliados se reposicionam como Ação Livre + imunes a ataques de oportunidade por 1 Rod), ou Sinal de Supressão (todo sobrenatural em 15m testa DT 30 ou fica -15 Resultado por 1 Rod). CD: 3 Rod por opção.",
+                    "description": "Ação Livre. Liam ativa um plano que já tinha preparado. Escolhe 1: Zona de Eliminação (área de 12m — todos os aliados recebem +34 Resultado e +5d8+34 dano adicional por 2 Rod), Rota de Extração (3 aliados se reposicionam como Ação Livre + imunes a ataques de oportunidade por 1 Rod), ou Sinal de Supressão (todo sobrenatural em 15m testa DT 30 ou fica -15 Resultado por 1 Rod). CD: 3 Rod por opção.",
                     "name": "Plano Contingencial",
                     "stats": [
                         "Ação Livre | Escolhe 1 (CD 3 Rod cada):",
-                        "Zona: 12m — aliados +22 Resultado + +3d8+15 por 2 Rod",
+                        "Zona: 12m — aliados +34 Resultado + +5d8+15 por 2 Rod",
                         "Extração: 3 aliados reposicionam (Ação Livre) + sem ataques de oportunidade 1 Rod",
                         "Supressão: raio 15m — DT 30 ou -15 Resultado 1 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Liam dedica 1 rodada a observar e decodifica o padrão de luta de 1 inimigo. A partir da próxima rodada, por 4 Rod: todos os aliados Dwayne recebem +22 no Resultado e +4d8+29 contra aquele alvo, e qualquer Reação do alvo pode ser negada por 1 aliado por rodada. O alvo não pode usar habilidades que dependam de imprevisibilidade (invisibilidade, teleporte, desvio) durante o efeito.",
+                    "description": "Liam dedica 1 rodada a observar e decodifica o padrão de luta de 1 inimigo. A partir da próxima rodada, por 4 Rod: todos os aliados Dwayne recebem +34 no Resultado e +6d8+44 contra aquele alvo, e qualquer Reação do alvo pode ser negada por 1 aliado por rodada. O alvo não pode usar habilidades que dependam de imprevisibilidade (invisibilidade, teleporte, desvio) durante o efeito.",
                     "name": "Identificar Padrão Fatal",
                     "stats": [
-                        "1 Rod de observação | Por 4 Rod: aliados Dwayne +22 Resultado + +4d8+29 vs alvo",
+                        "1 Rod de observação | Por 4 Rod: aliados Dwayne +34 Resultado + +6d8+44 vs alvo",
                         "1 Reação do alvo negada por aliado/Rod | Sem invisibilidade/teleporte/desvio durante"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Liam executa o plano final — o que ele foi construindo desde o início do combate. Por 3 Rod: age 2× por turno, cada ação dispara Tiro Calculado gratuitamente como Ação Livre. Todos os Pontos de Controle acumulados são transferidos aos aliados (+2 no Resultado por Controle para cada). Qualquer habilidade inimiga que tente alterar o ambiente ou o campo de batalha (teleporte em massa, mudança de dimensão, colapso de estrutura) é bloqueada automaticamente — Liam previu e contra-medidas estão em posição. Ao final: 1 disparo de execução em cada inimigo que estiver abaixo de 58% PV (+12d8+100 Dano Verdadeiro, automático).",
+                    "description": "Liam executa o plano final — o que ele foi construindo desde o início do combate. Por 3 Rod: age 2× por turno, cada ação dispara Tiro Calculado gratuitamente como Ação Livre. Todos os Pontos de Controle acumulados são transferidos aos aliados (+2 no Resultado por Controle para cada). Qualquer habilidade inimiga que tente alterar o ambiente ou o campo de batalha (teleporte em massa, mudança de dimensão, colapso de estrutura) é bloqueada automaticamente — Liam previu e contra-medidas estão em posição. Ao final: 1 disparo de execução em cada inimigo que estiver abaixo de 124% PV (+18d8+213 Dano Verdadeiro, automático).",
                     "name": "Checkmate",
                     "stats": [
                         "3 Rod | 2 ações/turno + Tiro Calculado gratuito/ação",
                         "Controles → aliados (+2 Resultado/Controle para cada)",
                         "Habilidades de alteração de campo: bloqueadas automaticamente",
-                        "Final: execução em todos abaixo de 58% PV (+12d8+100, automático) | CD: 8 Rod"
+                        "Final: execução em todos abaixo de 124% PV (+18d8+213, automático) | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 1958,
-                "arm": 48,
-                "ba": 34,
-                "bd": 31,
-                "ca": 41,
-                "reac": 10,
-                "dano": "10d8+35",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
+                "vida": 4172,
+                "arm": 62,
+                "ba": 44,
+                "bd": 41,
+                "ca": 51,
+                "reac": 13,
+                "dano": "15d8+50",
+                "danoExtra": "+4d10",
+                "tag": "vs 6 PCs + AL(2)"
             },
             "nome": "Liam Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                36,
-                30,
-                36,
-                25,
-                25,
-                22
+                41,
+                34,
+                41,
+                28,
+                28,
+                25
             ],
             "id": "7de1374f-9b6c-4ac0-823e-69e6c09e5564",
             "avatar": "",
             "profile": "guerreiro",
-            "na": "4",
-            "nivel": 32,
+            "na": "6",
+            "nivel": 42,
             "abilities": [
                 {
-                    "description": "Ronan construiu o corpo para uma finalidade específica: destruir o que não deveria existir. Redução de 37% em todo dano físico recebido de sobrenaturais. Ataques de artes marciais com equipamento de prata causam Dano Verdadeiro em qualquer sobrenatural. A cada 403 PV sofridos de fontes sobrenaturais: acumula 1 Carga de Raiva (máx 5). 2 Cargas: +3d15+27 em todos os ataques. 5 Cargas: próximo ataque quadruplica o dano base. Imune a veneno, sangramento e qualquer forma de transformação forçada.",
+                    "description": "Ronan construiu o corpo para uma finalidade específica: destruir o que não deveria existir. Redução de 57% em todo dano físico recebido de sobrenaturais. Ataques de artes marciais com equipamento de prata causam Dano Verdadeiro em qualquer sobrenatural. A cada 821 PV sofridos de fontes sobrenaturais: acumula 1 Carga de Raiva (máx 5). 2 Cargas: +5d23+41 em todos os ataques. 5 Cargas: próximo ataque quadruplica o dano base. Imune a veneno, sangramento e qualquer forma de transformação forçada.",
                     "name": "Máquina Anti-Sobrenatural",
                     "stats": [
-                        "Redução: 37% de físico sobrenatural | Artes marciais c/ prata = Dano Verdadeiro",
-                        "Acúmulo: +1 Raiva/403 PV sofridos (máx 5) | 2 Cargas: +3d15+27 | 5 Cargas: próximo ataque ×4 dano",
+                        "Redução: 57% de físico sobrenatural | Artes marciais c/ prata = Dano Verdadeiro",
+                        "Acúmulo: +1 Raiva/821 PV sofridos (máx 5) | 2 Cargas: +5d23+41 | 5 Cargas: próximo ataque ×4 dano",
                         "Imune a veneno, sangramento e transformação forçada"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "5 golpes de combate misto (socos, cotovelos, joelhos, agarradas): +6d15+39 Dano Verdadeiro cada. O 3º golpe aplica prata injetável — DT Constituição 28 — Falha: 70/Rod × 3 e -10 Resultado. O 5º golpe é uma quebra de estrutura física do alvo — DT Fortitude 45 — Falha: -4 Reações permanentes no combate.",
+                    "description": "5 golpes de combate misto (socos, cotovelos, joelhos, agarradas): +9d23+60 Dano Verdadeiro cada. O 3º golpe aplica prata injetável — DT Constituição 28 — Falha: 70/Rod × 3 e -10 Resultado. O 5º golpe é uma quebra de estrutura física do alvo — DT Fortitude 69 — Falha: -4 Reações permanentes no combate.",
                     "name": "Sequência do Demolidor",
                     "stats": [
-                        "5 golpes: +6d15+39 Verdadeiro | 3º: DT 28 — Falha: 70/Rod × 3 + -10 Resultado",
-                        "5º: DT Fortitude 45 — Falha: -4 Reações permanentes"
+                        "5 golpes: +9d23+60 Verdadeiro | 3º: DT 28 — Falha: 70/Rod × 3 + -10 Resultado",
+                        "5º: DT Fortitude 69 — Falha: -4 Reações permanentes"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Por 2 Rod: Ronan intercepta qualquer ataque físico direcionado a aliados em 5m — toma 74% do dano no lugar. Qualquer ataque interceptado concede +1 Carga de Raiva e um contra-ataque gratuito de +6d15+36. Imune a Atordoamento e Desequilíbrio durante o efeito.",
+                    "description": "Por 2 Rod: Ronan intercepta qualquer ataque físico direcionado a aliados em 5m — toma 113% do dano no lugar. Qualquer ataque interceptado concede +1 Carga de Raiva e um contra-ataque gratuito de +9d23+55. Imune a Atordoamento e Desequilíbrio durante o efeito.",
                     "name": "Escudo Humano Ativo",
                     "stats": [
-                        "2 Rod | Intercepta ataques físicos em aliados 5m: absorve 101% + +1 Raiva + contra-ataque +6d15+36",
+                        "2 Rod | Intercepta ataques físicos em aliados 5m: absorve 206% + +1 Raiva + contra-ataque +9d23+55",
                         "Imune a Atordoamento e Desequilíbrio durante"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Ronan move 16m em linha reta sem parar por nada. Cada ser no caminho: DT Fortitude 42 — Falha: 12d15+74 Dano + derrubado. Alvo no fim: dano dobrado (24d15+149). Cada derrubado: +1 Carga de Raiva. CD: 4 Rod.",
+                    "description": "Ronan move 16m em linha reta sem parar por nada. Cada ser no caminho: DT Fortitude 64 — Falha: 18d23+113 Dano + derrubado. Alvo no fim: dano dobrado (37d23+228). Cada derrubado: +1 Carga de Raiva. CD: 4 Rod.",
                     "name": "Investida do Canhão",
                     "stats": [
-                        "Linha 16m | Cada ser: DT 28 — Falha: 12d15+74 + derrubado (+1 Raiva)",
-                        "Alvo final: 24d10+100 | CD: 4 Rod"
+                        "Linha 16m | Cada ser: DT 28 — Falha: 18d23+113 + derrubado (+1 Raiva)",
+                        "Alvo final: 37d10+100 | CD: 4 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Por 3 Rod: Ronan libera tudo. 3 ataques por turno de +12d10+52 Dano Verdadeiro, ARM +45, redução de dano sobe para 74%. Qualquer sobrenatural atingido 2× na mesma rodada por Ronan testa Fortitude DT 34 ou é incapacitado por 1 Rod. Cargas de Raiva acumulam em dobro. Ao final: libera todas as Cargas em 1 golpe (+4d15+33/Carga) em 1 alvo.",
+                    "description": "Por 3 Rod: Ronan libera tudo. 3 ataques por turno de +18d10+52 Dano Verdadeiro, ARM +69, redução de dano sobe para 113%. Qualquer sobrenatural atingido 2× na mesma rodada por Ronan testa Fortitude DT 34 ou é incapacitado por 1 Rod. Cargas de Raiva acumulam em dobro. Ao final: libera todas as Cargas em 1 golpe (+6d23+50/Carga) em 1 alvo.",
                     "name": "Modo Extinção Corpo-a-Corpo",
                     "stats": [
-                        "3 Rod | 3 ataques/turno: +12d10+52 Verdadeiro | +45 ARM | Redução: 74%",
+                        "3 Rod | 3 ataques/turno: +18d10+52 Verdadeiro | +69 ARM | Redução: 113%",
                         "2 acertos/Rod no mesmo alvo: DT 34 ou incapacitado 1 Rod | Raiva ×2",
-                        "Final: +4d15+33/Carga em 1 alvo | CD: 8 Rod"
+                        "Final: +6d23+50/Carga em 1 alvo | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 2706,
-                "arm": 52,
-                "ba": 36,
-                "bd": 33,
-                "ca": 43,
-                "reac": 9,
-                "dano": "10d10+35",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
+                "vida": 5516,
+                "arm": 66,
+                "ba": 46,
+                "bd": 43,
+                "ca": 53,
+                "reac": 12,
+                "dano": "15d10+50",
+                "danoExtra": "+4d10",
+                "tag": "vs 6 PCs + AL(2)"
             },
             "nome": "Ronan Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                24,
-                33,
-                21,
-                29,
-                29,
-                24
+                32,
+                43,
+                28,
+                38,
+                38,
+                32
             ],
             "id": "6b3192bd-8599-4f6e-ba00-82440df1d3fe",
             "avatar": "",
             "profile": "especialista",
-            "na": "4",
-            "nivel": 30,
+            "na": "6",
+            "nivel": 40,
             "abilities": [
                 {
-                    "description": "Sterling não existe para os sentidos sobrenaturais — aura suprimida, pulso modulado, odor neutralizado. Vampiros não o sentem, lobisomens não o farejam, bruxas não detectam sua presença mágica. DT Percepção 56 para qualquer meio de detecção (natural ou sobrenatural). Primeiro ataque de cada combate: automático + furtivo (+9d8+56 Dano Verdadeiro adicional). Imune a Subjugação, Encantamento e qualquer efeito que requeira o alvo perceber Sterling primeiro.",
+                    "description": "Sterling não existe para os sentidos sobrenaturais — aura suprimida, pulso modulado, odor neutralizado. Vampiros não o sentem, lobisomens não o farejam, bruxas não detectam sua presença mágica. DT Percepção 86 para qualquer meio de detecção (natural ou sobrenatural). Primeiro ataque de cada combate: automático + furtivo (+14d8+86 Dano Verdadeiro adicional). Imune a Subjugação, Encantamento e qualquer efeito que requeira o alvo perceber Sterling primeiro.",
                     "name": "Inexistente Para o Sobrenatural",
                     "stats": [
                         "Invisível para sentidos sobrenaturais (DT 38 qualquer meio)",
-                        "Primeiro ataque: automático + furtivo (+9d8+56 Verdadeiro adicional)",
+                        "Primeiro ataque: automático + furtivo (+14d8+86 Verdadeiro adicional)",
                         "Imune a Subjugação, Encantamento e efeitos de percepção"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "Sterling atinge 3 pontos anatomicamente específicos em sequência: +6d8+38 Dano Verdadeiro cada. O 1º: -2 Reações. O 2º: suprime 1 sentido sobrenatural do alvo por 2 Rod (escolha: farejado, detecção de pulso, visão noturna). O 3º: ignora ARM e CA, DT Constituição 41 — Falha: o alvo não pode se comunicar (habilidades que dependam de vocalização bloqueadas por 2 Rod). Após os 3: reposiciona 14m (Ação Livre).",
+                    "description": "Sterling atinge 3 pontos anatomicamente específicos em sequência: +9d8+58 Dano Verdadeiro cada. O 1º: -2 Reações. O 2º: suprime 1 sentido sobrenatural do alvo por 2 Rod (escolha: farejado, detecção de pulso, visão noturna). O 3º: ignora ARM e CA, DT Constituição 63 — Falha: o alvo não pode se comunicar (habilidades que dependam de vocalização bloqueadas por 2 Rod). Após os 3: reposiciona 14m (Ação Livre).",
                     "name": "Três Pontos Vitais",
                     "stats": [
-                        "3 ataques: +6d8+38 Verdadeiro | 1º: -2 Reações | 2º: suprime 1 sentido 2 Rod",
+                        "3 ataques: +9d8+58 Verdadeiro | 1º: -2 Reações | 2º: suprime 1 sentido 2 Rod",
                         "3º: ignora ARM/CA + DT 28 — Falha: sem vocalização 2 Rod | Reposição 14m (Ação Livre)"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Sterling desaparece completamente por 3 Rod — invisível a todos os meios incluindo sobrenaturais. Cada ataque durante: automático + furtivo da passiva. Pode se teleportar para qualquer ponto em 20m como Ação Livre entre ataques. Ao sair: pode escolher aparecer como qualquer outra pessoa na cena (DT Percepção 53).",
+                    "description": "Sterling desaparece completamente por 3 Rod — invisível a todos os meios incluindo sobrenaturais. Cada ataque durante: automático + furtivo da passiva. Pode se teleportar para qualquer ponto em 20m como Ação Livre entre ataques. Ao sair: pode escolher aparecer como qualquer outra pessoa na cena (DT Percepção 81).",
                     "name": "Sombra Permanente",
                     "stats": [
                         "3 Rod | Invisível (inclui sobrenatural) | Ataques: automáticos + furtivo",
@@ -8085,180 +8098,415 @@
                     "type": "ativa"
                 },
                 {
-                    "description": "Sterling aplica veneno de síntese da família Dwayne. Próximo ataque: aplica veneno. DT Constituição 44 — Falha: 80 Dano Verdadeiro/Rod por 4 Rod + suprime regeneração sobrenatural completamente durante o efeito + -22 Resultado. O veneno é invisível e indetectável por meios sobrenaturais antes de agir.",
+                    "description": "Sterling aplica veneno de síntese da família Dwayne. Próximo ataque: aplica veneno. DT Constituição 67 — Falha: 80 Dano Verdadeiro/Rod por 4 Rod + suprime regeneração sobrenatural completamente durante o efeito + -34 Resultado. O veneno é invisível e indetectável por meios sobrenaturais antes de agir.",
                     "name": "Veneno Concentrado Anti-Sobrenatural",
                     "stats": [
-                        "Próximo ataque: veneno invisível | DT 30 — Falha: 80 Verdadeiro/Rod × 4 (sem regeneração) + -29 Resultado"
+                        "Próximo ataque: veneno invisível | DT 30 — Falha: 80 Verdadeiro/Rod × 4 (sem regeneração) + -62 Resultado"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Sterling entra no estado máximo de infiltração-eliminação. Por 2 Rod: completamente intangível a qualquer sentido (físico e sobrenatural), age 4× por turno com ataques automáticos de +10d8+68 Dano Verdadeiro + veneno automático. Qualquer inimigo que tente localizá-lo: ação desperdiçada. Ao final: escolhe 1 alvo com ≤48% PV — Morte Silenciosa (impossível de resistir, resistir ou sobreviver exceto Primordiais).",
+                    "description": "Sterling entra no estado máximo de infiltração-eliminação. Por 2 Rod: completamente intangível a qualquer sentido (físico e sobrenatural), age 4× por turno com ataques automáticos de +15d8+104 Dano Verdadeiro + veneno automático. Qualquer inimigo que tente localizá-lo: ação desperdiçada. Ao final: escolhe 1 alvo com ≤102% PV — Morte Silenciosa (impossível de resistir, resistir ou sobreviver exceto Primordiais).",
                     "name": "Nenhum Rastro, Nenhuma Sobrevivência",
                     "stats": [
-                        "2 Rod | Intangível a todo sentido | 4 ataques/turno: automáticos + +10d8+68 Verdadeiro + veneno",
+                        "2 Rod | Intangível a todo sentido | 4 ataques/turno: automáticos + +15d8+104 Verdadeiro + veneno",
                         "Localização: ação desperdiçada automaticamente",
-                        "Final: Morte Silenciosa em alvo ≤48% PV (exceto Primordiais) | CD: 8 Rod"
+                        "Final: Morte Silenciosa em alvo ≤102% PV (exceto Primordiais) | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 1958,
-                "arm": 48,
-                "ba": 34,
-                "bd": 31,
-                "ca": 41,
-                "reac": 10,
-                "dano": "10d8+35",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
+                "vida": 4172,
+                "arm": 62,
+                "ba": 44,
+                "bd": 41,
+                "ca": 51,
+                "reac": 13,
+                "dano": "15d8+50",
+                "danoExtra": "+4d10",
+                "tag": "vs 6 PCs + AL(2)"
             },
             "nome": "Sterling Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                26,
-                29,
-                24,
-                29,
-                29,
-                21
+                30,
+                34,
+                28,
+                34,
+                34,
+                24
             ],
             "id": "93952f83-46bb-42ac-aacd-c2c542aae31d",
             "avatar": "",
             "profile": "especialista",
             "na": "4",
-            "nivel": 29,
+            "nivel": 38,
             "abilities": [
                 {
-                    "description": "Cassian estudou lobisomens por toda a vida adulta — sabe como se movem, como pensam, como matam. Vs lobisomens: Dano Verdadeiro automático, +18 Resultado, e habilidades deles têm DT +8 quando aplicadas nele. Detecta transformações lycântrópicas antes de acontecerem (anuncia a forma exata). Imune a mordida licantrópica e à Maldição da Licantropia. Qualquer Fúria ou estado descontrolado de lobisomem em 15m: Cassian pode suprimir como Reação (DT 24 — Falha: frenesi controlado).",
+                    "description": "Cassian estudou lobisomens por toda a vida adulta — sabe como se movem, como pensam, como matam. Vs lobisomens: Dano Verdadeiro automático, +25 Resultado, e habilidades deles têm DT +8 quando aplicadas nele. Detecta transformações lycântrópicas antes de acontecerem (anuncia a forma exata). Imune a mordida licantrópica e à Maldição da Licantropia. Qualquer Fúria ou estado descontrolado de lobisomem em 15m: Cassian pode suprimir como Reação (DT 24 — Falha: frenesi controlado).",
                     "name": "Manualeto dos Licantrópicos",
                     "stats": [
-                        "Vs lobisomens: Dano Verdadeiro + +18 Resultado + DTs +8",
+                        "Vs lobisomens: Dano Verdadeiro + +25 Resultado + DTs +8",
                         "Detecta transformações antes de ocorrerem | Imune a mordida e Maldição Licantrópica",
                         "Supressão de Fúria como Reação (DT 24)"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "Cassian usa projéteis de liga de prata aquecida a 1174°C — prata e fogo simultâneos. 3 disparos: +6d8+38 Dano Verdadeiro cada. Vs lobisomens: cada projétil aplica Envenenamento por Prata E Queimadura Interna simultaneamente (60/Rod × 3 cada = 120/Rod × 3 combinados). DT Constituição 41 — Falha (lobisomens): regeneração suprimida por 4 Rod.",
+                    "description": "Cassian usa projéteis de liga de prata aquecida a 1658°C — prata e fogo simultâneos. 3 disparos: +8d8+54 Dano Verdadeiro cada. Vs lobisomens: cada projétil aplica Envenenamento por Prata E Queimadura Interna simultaneamente (60/Rod × 3 cada = 120/Rod × 3 combinados). DT Constituição 58 — Falha (lobisomens): regeneração suprimida por 4 Rod.",
                     "name": "Projéteis de Prata Cineticotermal",
                     "stats": [
-                        "3 disparos: +6d8+38 Verdadeiro | Vs lobisomem: Prata 60/Rod × 3 + Queimadura 60/Rod × 3",
+                        "3 disparos: +8d8+54 Verdadeiro | Vs lobisomem: Prata 60/Rod × 3 + Queimadura 60/Rod × 3",
                         "DT 28 (lobisomens) — Falha: regeneração suprimida 4 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Cassian injeta inibidor lícantropo concentrado. DT Constituição 41 — Falha: lobisomem perde acesso à forma de lobo por 3 Rod (reduzido a atributos humanos), -22 Resultado, e sofre 50 Dano Verdadeiro/Rod de rejeição do sistema. Sucesso: apenas -10 Resultado por 1 Rod e incapaz de transformar por 1 Rod. Funciona contra qualquer lycântropo independente do nível.",
+                    "description": "Cassian injeta inibidor lícantropo concentrado. DT Constituição 58 — Falha: lobisomem perde acesso à forma de lobo por 3 Rod (reduzido a atributos humanos), -31 Resultado, e sofre 50 Dano Verdadeiro/Rod de rejeição do sistema. Sucesso: apenas -10 Resultado por 1 Rod e incapaz de transformar por 1 Rod. Funciona contra qualquer lycântropo independente do nível.",
                     "name": "Suprimir a Besta",
                     "stats": [
-                        "DT Constituição 41 | Falha: sem forma de lobo 3 Rod (stats humanos) + -15 Resultado + 50/Rod",
+                        "DT Constituição 58 | Falha: sem forma de lobo 3 Rod (stats humanos) + -15 Resultado + 50/Rod",
                         "Sucesso: -10 Resultado 1 Rod + sem transformação 1 Rod | Funciona em qualquer nível licantrópico"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Cassian lança uma estrutura de prata líquida que solidifica ao contato. 1 alvo licantropo: DT Força 44 — Falha: imobilizado por 2 Rod (prata solidificada — sofrendo Envenenamento de 80/Rod) e não pode transformar. Sucesso: imóvel por 1 Rod sem veneno. Qualquer licântropo que force a saída da gaiola sofre 147 Dano Verdadeiro adicional.",
+                    "description": "Cassian lança uma estrutura de prata líquida que solidifica ao contato. 1 alvo licantropo: DT Força 62 — Falha: imobilizado por 2 Rod (prata solidificada — sofrendo Envenenamento de 80/Rod) e não pode transformar. Sucesso: imóvel por 1 Rod sem veneno. Qualquer licântropo que force a saída da gaiola sofre 208 Dano Verdadeiro adicional.",
                     "name": "Gaiola de Prata",
                     "stats": [
-                        "1 alvo licantropo | DT Força 44 — Falha: imobilizado 2 Rod + Envenenamento 80/Rod + sem transformação",
-                        "Sucesso: imóvel 1 Rod | Força da gaiola: +147 Dano Verdadeiro"
+                        "1 alvo licantropo | DT Força 62 — Falha: imobilizado 2 Rod + Envenenamento 80/Rod + sem transformação",
+                        "Sucesso: imóvel 1 Rod | Força da gaiola: +208 Dano Verdadeiro"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Por 3 Rod, Cassian implementa o protocolo desenvolvido para alfas e primordiais. Todos os licântropos em 20m: DT Constituição 53 — Falha: perdem forma de lobo, regeneração e qualquer habilidade licantrópica por 3 Rod. Cassian realiza 3 ataques por turno de +10d8+46 Dano Verdadeiro, todos com Envenenamento de Prata + Queimadura automáticos. Qualquer licântropo que tentar regenerar durante a Ultimate: a regeneração é revertida em dano adicional de 73% do valor que teria curado.",
+                    "description": "Por 3 Rod, Cassian implementa o protocolo desenvolvido para alfas e primordiais. Todos os licântropos em 20m: DT Constituição 75 — Falha: perdem forma de lobo, regeneração e qualquer habilidade licantrópica por 3 Rod. Cassian realiza 3 ataques por turno de +14d8+46 Dano Verdadeiro, todos com Envenenamento de Prata + Queimadura automáticos. Qualquer licântropo que tentar regenerar durante a Ultimate: a regeneração é revertida em dano adicional de 103% do valor que teria curado.",
                     "name": "Protocolo Lobo Extinto",
                     "stats": [
                         "3 Rod | Raio 20m (licântropos): DT 36 — Falha: sem forma de lobo + sem regeneração + sem habilidades licantrópicas",
-                        "3 ataques/turno: +10d8+46 Verdadeiro + Prata + Queimadura automáticos",
-                        "Regeneração durante a Ultimate: revertida em dano (+73% do valor) | CD: 8 Rod"
+                        "3 ataques/turno: +14d8+46 Verdadeiro + Prata + Queimadura automáticos",
+                        "Regeneração durante a Ultimate: revertida em dano (+103% do valor) | CD: 8 Rod"
                     ],
                     "type": "ultimate"
                 }
             ],
             "stats": {
-                "vida": 1861,
-                "arm": 47,
-                "ba": 33,
-                "bd": 30,
-                "ca": 40,
-                "reac": 10,
-                "dano": "10d8+35",
+                "vida": 2992,
+                "arm": 58,
+                "ba": 40,
+                "bd": 37,
+                "ca": 47,
+                "reac": 12,
+                "dano": "15d8+50",
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
             "nome": "Cassian Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
             "attrs": [
-                30,
-                39,
-                28,
-                39,
-                36,
-                30
+                34,
+                44,
+                32,
+                44,
+                41,
+                34
             ],
             "id": "0a9b876a-1d61-4463-b9d0-ae15ed4987b9",
             "avatar": "",
             "profile": "especialista",
-            "na": "4",
-            "nivel": 32,
+            "na": "6",
+            "nivel": 42,
             "abilities": [
                 {
-                    "description": "Elliot aprendeu o que adultos levam décadas para aprender em anos — e foi além. Carrega DOIS sistemas simultâneos: a Marca do Caçador (parcialmente desperta como em Onfroy — +22 Resultado vs sobrenaturais, Dano Verdadeiro em ataques, imune a controle sobrenatural) E análise tática em tempo real que supera a maioria dos veteranos. A cada 2 habilidades sobrenaturais diferentes que vê em combate: acumula 1 Ficha de Síntese (máx 5). 2 Fichas: as Fichas potencializam tanto a Marca quanto a análise — +4d8+29 em todos os ataques. 5 Fichas: próxima habilidade que Elliot usar tem EFEITO DUPLO (como se usasse 2×). Imune a Surpresa, Medo e qualquer manipulação.",
+                    "description": "Elliot aprendeu o que adultos levam décadas para aprender em anos — e foi além. Carrega DOIS sistemas simultâneos: a Marca do Caçador (parcialmente desperta como em Onfroy — +34 Resultado vs sobrenaturais, Dano Verdadeiro em ataques, imune a controle sobrenatural) E análise tática em tempo real que supera a maioria dos veteranos. A cada 2 habilidades sobrenaturais diferentes que vê em combate: acumula 1 Ficha de Síntese (máx 5). 2 Fichas: as Fichas potencializam tanto a Marca quanto a análise — +6d8+44 em todos os ataques. 5 Fichas: próxima habilidade que Elliot usar tem EFEITO DUPLO (como se usasse 2×). Imune a Surpresa, Medo e qualquer manipulação.",
                     "name": "Além do Compreensível",
                     "stats": [
-                        "Marca do Caçador: +22 Resultado vs sobrenaturais + Dano Verdadeiro + imune a controle sobrenatural",
-                        "Acúmulo: +1 Síntese/2 habilidades diferentes vistas (máx 5) | 2 Fichas: +4d8+29 em ataques",
+                        "Marca do Caçador: +34 Resultado vs sobrenaturais + Dano Verdadeiro + imune a controle sobrenatural",
+                        "Acúmulo: +1 Síntese/2 habilidades diferentes vistas (máx 5) | 2 Fichas: +6d8+44 em ataques",
                         "5 Fichas: próxima habilidade com efeito duplo",
                         "Imune a Surpresa, Medo e manipulação"
                     ],
                     "type": "passiva"
                 },
                 {
-                    "description": "Elliot não apenas atira ou luta — ele processa e destrói. 4 ataques combinados (arma + artes marciais + a Marca ativa): +7d8+47 Dano Verdadeiro cada. O 2º ignora ARM e CA (Marca identificou o ponto exato). O 4º: DT Fortitude 44 — Falha: o alvo perde 3 Reações e sofre -15 Resultado por 2 Rod (a Marca explora a falha estrutural). Cada ataque: +1 Síntese se o alvo for sobrenatural.",
+                    "description": "Elliot não apenas atira ou luta — ele processa e destrói. 4 ataques combinados (arma + artes marciais + a Marca ativa): +11d8+72 Dano Verdadeiro cada. O 2º ignora ARM e CA (Marca identificou o ponto exato). O 4º: DT Fortitude 67 — Falha: o alvo perde 3 Reações e sofre -15 Resultado por 2 Rod (a Marca explora a falha estrutural). Cada ataque: +1 Síntese se o alvo for sobrenatural.",
                     "name": "Sistema Dual — Marca e Mente",
                     "stats": [
-                        "4 ataques: +7d8+47 Verdadeiro | 2º: ignora ARM e CA",
+                        "4 ataques: +11d8+72 Verdadeiro | 2º: ignora ARM e CA",
                         "4º: DT 30 — Falha: -3 Reações + -15 Resultado 2 Rod",
                         "Por ataque vs sobrenatural: +1 Síntese"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Elliot realiza o que adultos da família nunca fariam sozinhos. Reação: nega QUALQUER habilidade sobrenatural (física ou mágica) completamente. Contra-ataca com +12d8+76 Dano Verdadeiro. A habilidade negada é analisada instantaneamente — Elliot recebe +2 Fichas de Síntese. Se tiver 3+ Fichas: pode negar 2 habilidades com 1 única Reação.",
+                    "description": "Elliot realiza o que adultos da família nunca fariam sozinhos. Reação: nega QUALQUER habilidade sobrenatural (física ou mágica) completamente. Contra-ataca com +18d8+117 Dano Verdadeiro. A habilidade negada é analisada instantaneamente — Elliot recebe +2 Fichas de Síntese. Se tiver 3+ Fichas: pode negar 2 habilidades com 1 única Reação.",
                     "name": "Sobrepor o Impossível",
                     "stats": [
-                        "Reação | Nega qualquer habilidade sobrenatural (física ou mágica) | Contra-ataque: +12d8+76 Verdadeiro",
+                        "Reação | Nega qualquer habilidade sobrenatural (física ou mágica) | Contra-ataque: +18d8+117 Verdadeiro",
                         "+2 Síntese por negação | 3+ Fichas: nega 2 habilidades com 1 Reação"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Elliot pegou as ferramentas da família e as refinou. Munição de síntese própria: 3 disparos de +7d8+50 Dano Verdadeiro. Vs vampiro: Queimadura UV interna + supressão de regeneração 4 Rod. Vs lobisomem: prata + aconito combinados (suprime forma de lobo 2 Rod + 90/Rod × 3). Vs demônio ou entidade infernal: projétil sagrado-primordial (+117 Dano Sagrado adicional + -15 Resultado por 2 Rod). Pode usar efeitos múltiplos numa mesma rajada se o alvo se qualificar.",
+                    "description": "Elliot pegou as ferramentas da família e as refinou. Munição de síntese própria: 3 disparos de +11d8+77 Dano Verdadeiro. Vs vampiro: Queimadura UV interna + supressão de regeneração 4 Rod. Vs lobisomem: prata + aconito combinados (suprime forma de lobo 2 Rod + 90/Rod × 3). Vs demônio ou entidade infernal: projétil sagrado-primordial (+179 Dano Sagrado adicional + -15 Resultado por 2 Rod). Pode usar efeitos múltiplos numa mesma rajada se o alvo se qualificar.",
                     "name": "Arsenal Geracional Melhorado",
                     "stats": [
-                        "3 disparos: +7d8+50 Verdadeiro | Vs vampiro: UV interna + suprime regeneração 4 Rod",
+                        "3 disparos: +11d8+77 Verdadeiro | Vs vampiro: UV interna + suprime regeneração 4 Rod",
                         "Vs lobisomem: prata+aconito — sem forma de lobo 2 Rod + 90/Rod × 3",
-                        "Vs demônio/infernal: +117 Sagrado + -15 Resultado 2 Rod"
+                        "Vs demônio/infernal: +179 Sagrado + -15 Resultado 2 Rod"
                     ],
                     "type": "ativa"
                 },
                 {
-                    "description": "Elliot libera o que a família nunca viu em alguém tão jovem. Por 3 Rodadas: a Marca do Caçador desperta parcialmente (como Onfroy em estado de combate máximo) — ARM +41, regeneração de 309 PV/Rod, 3 ataques por turno de +13d8+58 Dano Verdadeiro. Todos os efeitos da passiva e das habilidades activas são potencializados pelo Efeito Duplo das 5 Fichas automaticamente (como se sempre tivesse 5 Fichas). Qualquer sobrenatural de Lv32 ou menos que sofrer 2 ataques de Elliot na mesma rodada testa Fortitude DT 36 ou é incapacitado por 1 Rod. Ao final: as Fichas explodem — +3d8+22/Ficha em todos os inimigos.",
+                    "description": "Elliot libera o que a família nunca viu em alguém tão jovem. Por 3 Rodadas: a Marca do Caçador desperta parcialmente (como Onfroy em estado de combate máximo) — ARM +86, regeneração de 647 PV/Rod, 3 ataques por turno de +20d8+58 Dano Verdadeiro. Todos os efeitos da passiva e das habilidades activas são potencializados pelo Efeito Duplo das 5 Fichas automaticamente (como se sempre tivesse 5 Fichas). Qualquer sobrenatural de Lv49 ou menos que sofrer 2 ataques de Elliot na mesma rodada testa Fortitude DT 36 ou é incapacitado por 1 Rod. Ao final: as Fichas explodem — +5d8+34/Ficha em todos os inimigos.",
                     "name": "Catalisador Primordial",
                     "stats": [
-                        "3 Rod | Marca Desperta: +41 ARM + regeneração 309 PV/Rod | 3 ataques/turno: +13d8+58 Verdadeiro",
+                        "3 Rod | Marca Desperta: +86 ARM + regeneração 647 PV/Rod | 3 ataques/turno: +20d8+58 Verdadeiro",
                         "Efeito Duplo permanente (como 5 Fichas sempre)",
                         "Lv≤22: 2 acertos/Rod → DT 36 ou incapacitado 1 Rod",
-                        "Final: +3d8+22/Ficha em todos os inimigos | CD: 8 Rod"
+                        "Final: +5d8+34/Ficha em todos os inimigos | CD: 8 Rod"
+                    ],
+                    "type": "ultimate"
+                }
+            ],
+            "stats": {
+                "vida": 4603,
+                "arm": 64,
+                "ba": 46,
+                "bd": 43,
+                "ca": 53,
+                "reac": 13,
+                "dano": "15d8+50",
+                "danoExtra": "+4d10",
+                "tag": "vs 6 PCs + AL(2)"
+            },
+            "nome": "Elliot Dwayne — O Prodígio",
+            "raca": "Humano Cacador",
+            "_rebalanced": true
+        },
+        {
+            "description": "",
+            "attrs": [
+                24,
+                34,
+                22,
+                38,
+                34,
+                30
+            ],
+            "id": "2e6d5710-6174-4ca6-ab96-08ea6985e9e8",
+            "avatar": "",
+            "profile": "especialista",
+            "na": "4",
+            "nivel": 35,
+            "abilities": [
+                {
+                    "description": "Harper tem um QI tático que envergonha adultos — ela processa situações de combate em camadas. Identifica padrões de ataque em 1 Rod de observação (sem custo). Acumula 1 Ficha de Previsão (máx 4) por habilidade ou padrão identificado. 2 Fichas: aliados Dwayne em 12m recebem +8 Resultado. 4 Fichas: pode cancelar 1 ação inimiga como Ação Livre. Imune a Surpresa e ilusões — mente analítica demais para ser enganada.",
+                    "name": "Mente Jovem, Planejamento Antigo",
+                    "stats": [
+                        "Identifica padrão em 1 Rod (sem custo) | Acúmulo: +1 Previsão/padrão (máx 4)",
+                        "2 Fichas: aliados Dwayne 12m +8 Resultado | 4 Fichas: cancela ação inimiga (Ação Livre)",
+                        "Imune a Surpresa e ilusões"
+                    ],
+                    "type": "passiva"
+                },
+                {
+                    "description": "Harper não atira por atirar — atira quando a matemática diz para atirar. 2 disparos de alta precisão: +10d8+65 Dano Verdadeiro cada, ambos ignoram ARM. DT Constituição 53 — Falha: -10 Resultado por 2 Rod. Se o alvo tiver uma fraqueza identificada: +6d8+40 adicional em cada disparo.",
+                    "name": "Tiro de Oportunidade Calculado",
+                    "stats": [
+                        "2 disparos: +10d8+65 Verdadeiro, ignoram ARM | DT 26 — Falha: -10 Resultado 2 Rod",
+                        "Fraqueza identificada: +6d8+40 adicional/disparo"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Ação Livre. Harper reposiciona o grupo em tempo real. 3 aliados Dwayne se movem sem custo de ação para posições indicadas por Harper. Cada reposicionado: +25 Resultado e imune a ataques de oportunidade por 1 Rod. Se o reposicionamento cria flanqueio: +6d8+40 de dano adicional para o grupo contra o alvo flanqueado. +1 Ficha de Previsão. CD: 3 Rod.",
+                    "name": "Redistribuição Tática",
+                    "stats": [
+                        "Ação Livre | 3 aliados Dwayne: movimento gratuito + +25 Resultado + sem ataques de oportunidade 1 Rod",
+                        "Flanqueio: +6d8+40 adicional para o grupo | +1 Previsão | CD: 3 Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Harper revela a estrutura completa de 1 inimigo em 1 ação. Por 3 Rod: todos os aliados Dwayne recebem +29 Resultado e +6d8+36 de dano extra contra aquele alvo. As DTs de resistência do alvo caem -21. Cada vez que o alvo usar uma habilidade durante o efeito: +1 Ficha de Previsão para Harper.",
+                    "name": "Análise de Ameaça em Tempo Real",
+                    "stats": [
+                        "1 alvo | 3 Rod | Aliados Dwayne: +29 Resultado + +6d8+36 vs alvo | DTs -21",
+                        "Habilidade usada pelo alvo durante: +1 Previsão"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Por 2 Rod: Harper revela o plano completo que foi calculando desde o início. Todos os aliados Dwayne em campo recebem +40 Resultado de tudo, imunidade a qualquer efeito sobrenatural e 2 ataques extras por turno. Harper age 3× por turno com Tiro de Oportunidade gratuito por ação. Qualquer habilidade inimiga é antecipada — DTs de resistência dos aliados aumentam em +21 durante a Ultimate. Ao final: Harper pode cancelar 2 ações inimigas simultaneamente como Ação Livre.",
+                    "name": "Plano Mestre Jovem",
+                    "stats": [
+                        "2 Rod | Aliados Dwayne: +40 Resultado + imunes sobrenaturais + +2 ataques/turno",
+                        "Harper: 3 ações/turno + Tiro de Oportunidade gratuito/ação | DTs aliados +21",
+                        "Final: cancela 2 ações inimigas simultâneas (Ação Livre) | CD: 7 Rod"
+                    ],
+                    "type": "ultimate"
+                }
+            ],
+            "stats": {
+                "vida": 2563,
+                "arm": 54,
+                "ba": 38,
+                "bd": 35,
+                "ca": 45,
+                "reac": 11,
+                "dano": "12d8+42",
+                "danoExtra": "+2d10",
+                "tag": "vs 4 PCs"
+            },
+            "nome": "Harper Dwayne",
+            "raca": "Humano Cacador",
+            "_rebalanced": true
+        },
+        {
+            "description": "",
+            "attrs": [
+                22,
+                30,
+                22,
+                38,
+                36,
+                30
+            ],
+            "id": "a918dacb-9dd6-4e9d-aa20-9e1e171fb7b9",
+            "avatar": "",
+            "profile": "mistico",
+            "na": "4",
+            "nivel": 35,
+            "abilities": [
+                {
+                    "description": "Nova dedicou a adolescência inteira ao estudo de demônios — não existe família que saiba mais sobre eles. Vs demônios: Dano Verdadeiro automático, +21 Resultado e habilidades demoníacas têm DT +8 quando aplicadas nela. Identifica a classe e fraqueza de qualquer demônio em 1 Rod. Imune a possessão, corrupção demoníaca e qualquer efeito infernal de controle. Imune a medo sobrenatural de qualquer fonte.",
+                    "name": "Grimório Anti-Demônio",
+                    "stats": [
+                        "Vs demônios: Dano Verdadeiro + +21 Resultado + DTs demoníacas +8",
+                        "Identifica classe/fraqueza em 1 Rod | Imune a possessão, corrupção e controle infernal | Imune a medo"
+                    ],
+                    "type": "passiva"
+                },
+                {
+                    "description": "Nova traça sigis de contenção em tempo de combate. Área de 8m por 2 Rod: demônios testam DT Arcana 28 por rodada — Falha: 8d8+26 Dano Sagrado e ficam suprimidos (sem habilidades ofensivas por 1 Rod). Qualquer demônio que entrar na área ativa o sigilo automaticamente. Aliados: +21 ARM e imunes à possessão enquanto dentro.",
+                    "name": "Sigilo Sagrado",
+                    "stats": [
+                        "Área 8m por 2 Rod | Demônios/Rod: DT 28 — Falha: 8d8+52 Sagrado + sem ofensivas 1 Rod",
+                        "Entrada: ativação automática | Aliados: +21 ARM + imunes à possessão"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Nova combina prata e bênção — eficaz contra qualquer sobrenatural, devastador contra demônios. 3 disparos: +8d8+48 Dano Verdadeiro cada. Vs demônio: +4d8+30 Sagrado adicional + DT Constituição 52 — Falha: supressão de 1 habilidade por 2 Rod. Vs vampiro: Queimadura UV. Vs lobisomem: Envenenamento por Prata.",
+                    "name": "Projéteis de Prata Sagrada",
+                    "stats": [
+                        "3 disparos: +8d8+48 Verdadeiro | Vs demônio: +4d8+30 Sagrado + DT 26 — Falha: 1 habilidade suprimida 2 Rod",
+                        "Vs vampiro: Queimadura UV | Vs lobisomem: Envenenamento Prata"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Nova ativa o protocolo de banimento que estudou por anos. 1 demônio: DT Arcana 65 — Falha: o demônio é banido para o Plano Dimensional por 2 Rod (completamente removido do combate). Sucesso: -15 Resultado por 2 Rod e o demônio não pode usar habilidades de invocação. Vs demônios Primordiais: DT cai para 56 mas o efeito é apenas -15 Resultado por 1 Rod.",
+                    "name": "Banimento Menor",
+                    "stats": [
+                        "1 demônio | DT Arcana 65 — Falha: banido 2 Rod (removido do combate)",
+                        "Sucesso: -15 Resultado 2 Rod + sem invocação | Vs Primordial: DT 28, apenas -15 Resultado 1 Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Por 3 Rod: Nova implementa o sistema completo. Todos os demônios em 18m sofrem os efeitos do Sigilo Sagrado automaticamente (sem ação). Nova realiza 3 ataques por turno de +14d8+46 Dano Sagrado Verdadeiro. Qualquer habilidade demoníaca ativada na área: DT 34 ou bloqueada completamente. Ao final: tenta Banimento em TODOS os demônios em campo simultaneamente (DT individual).",
+                    "name": "Protocolo de Extinção Demoníaca",
+                    "stats": [
+                        "3 Rod | Raio 18m: Sigilo Sagrado automático em todos demônios | 3 ataques/turno: +14d8+46 Sagrado Verdadeiro",
+                        "Habilidade demoníaca: DT 34 ou bloqueada",
+                        "Final: Banimento simultâneo em todos os demônios (DT individual) | CD: 8 Rod"
+                    ],
+                    "type": "ultimate"
+                }
+            ],
+            "stats": {
+                "vida": 2068,
+                "arm": 52,
+                "ba": 38,
+                "bd": 35,
+                "ca": 45,
+                "reac": 9,
+                "dano": "16d6+48",
+                "danoExtra": "+2d10",
+                "tag": "vs 4 PCs"
+            },
+            "nome": "Nova Dwayne",
+            "raca": "Humano Cacador",
+            "_rebalanced": true
+        },
+        {
+            "description": "",
+            "attrs": [
+                24,
+                38,
+                22,
+                30,
+                30,
+                24
+            ],
+            "id": "0619f816-9cbd-406f-a8f3-578a32e80a73",
+            "avatar": "",
+            "profile": "especialista",
+            "na": "4",
+            "nivel": 32,
+            "abilities": [
+                {
+                    "description": "Felix aprendeu a atirar antes de aprender a somar. O resultado é um nível de precisão instintivo que treinamento formal raramente alcança. +18 Resultado em todos os ataques à distância. Sem penalidade por movimento do alvo. Acumula 1 Ficha de Mira (máx 4) por rodada sem se mover. 2 Fichas: ataques ignoram ARM. 4 Fichas: próximo disparo acerta automaticamente e causa Dano Verdadeiro quadruplicado.",
+                    "name": "Olho Precoce",
+                    "stats": [
+                        "Vs alvo em movimento: sem penalidade | +18 Resultado em ataques à distância",
+                        "Acúmulo: +1 Mira/Rod parado (máx 4) | 2 Fichas: ignora ARM | 4 Fichas: disparo auto + Dano Verdadeiro ×4"
+                    ],
+                    "type": "passiva"
+                },
+                {
+                    "description": "4 disparos em sequência: +5d8+34 Dano Verdadeiro cada. O 2º usa munição especializada — aplica efeito por tipo (vampiro: UV, lobisomem: prata, demônio: sagrado). O 4º: DT Fortitude 45 — Falha: -2 Reações e -10 Resultado por 2 Rod. Acumula +1 Ficha de Mira.",
+                    "name": "Precisão Juvenil",
+                    "stats": [
+                        "4 disparos: +5d8+34 Verdadeiro | 2º: munição especializada por tipo",
+                        "4º: DT 26 — Falha: -2 Reações + -10 Resultado 2 Rod | +1 Ficha de Mira"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Felix se move para posição de vantagem sem perder o ritmo. Move 12m como Ação Livre + 1 disparo gratuito de +7d8+41 Dano Verdadeiro (conta como furtivo — alvo não esperava o reposicionamento). +1 Ficha de Mira.",
+                    "name": "Reposição Rápida",
+                    "stats": [
+                        "Move 12m (Ação Livre) + disparo gratuito: +7d8+41 Verdadeiro (furtivo) | +1 Ficha"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Área de 6m: 4 projéteis rápidos. Cada alvo: DT Destreza 38 — Falha: 4d8+27 Dano + suprimido por 1 Rod (-12 Resultado, 0 movimento). Aliados: +6 Resultado. CD: 3 Rod.",
+                    "name": "Tiro de Supressão Jovem",
+                    "stats": [
+                        "Área 6m | DT 22 — Falha: 4d8+16 + suprimido 1 Rod (-12 Resultado, 0 movimento)",
+                        "Aliados: +6 Resultado | CD: 3 Rod"
+                    ],
+                    "type": "ativa"
+                },
+                {
+                    "description": "Por 2 Rod: Felix mostra o que tem de melhor — acima da expectativa de qualquer adulto. Age 3× por turno com 2 disparos por ação de +8d8+56 Dano Verdadeiro (todos automáticos se tiver 3+ Fichas de Mira). Fichas acumulam em dobro. Ao final: 1 disparo de execução em cada alvo abaixo de 68% PV (+11d8+107 Dano Verdadeiro, impossível de esquivar).",
+                    "name": "Além da Idade",
+                    "stats": [
+                        "2 Rod | 3 ações/turno × 2 disparos: +8d8+56 Verdadeiro (auto com 3+ Fichas) | Fichas ×2",
+                        "Final: execução em todos ≤68% PV (+11d8+107, impossível de esquivar) | CD: 7 Rod"
                     ],
                     "type": "ultimate"
                 }
@@ -8274,238 +8522,9 @@
                 "danoExtra": "+2d10",
                 "tag": "vs 4 PCs"
             },
-            "nome": "Elliot Dwayne — O Prodígio",
-            "raca": "Humano Cacador"
-        },
-        {
-            "description": "",
-            "attrs": [
-                21,
-                29,
-                19,
-                33,
-                29,
-                26
-            ],
-            "id": "2e6d5710-6174-4ca6-ab96-08ea6985e9e8",
-            "avatar": "",
-            "profile": "especialista",
-            "na": "4",
-            "nivel": 27,
-            "abilities": [
-                {
-                    "description": "Harper tem um QI tático que envergonha adultos — ela processa situações de combate em camadas. Identifica padrões de ataque em 1 Rod de observação (sem custo). Acumula 1 Ficha de Previsão (máx 4) por habilidade ou padrão identificado. 2 Fichas: aliados Dwayne em 12m recebem +8 Resultado. 4 Fichas: pode cancelar 1 ação inimiga como Ação Livre. Imune a Surpresa e ilusões — mente analítica demais para ser enganada.",
-                    "name": "Mente Jovem, Planejamento Antigo",
-                    "stats": [
-                        "Identifica padrão em 1 Rod (sem custo) | Acúmulo: +1 Previsão/padrão (máx 4)",
-                        "2 Fichas: aliados Dwayne 12m +8 Resultado | 4 Fichas: cancela ação inimiga (Ação Livre)",
-                        "Imune a Surpresa e ilusões"
-                    ],
-                    "type": "passiva"
-                },
-                {
-                    "description": "Harper não atira por atirar — atira quando a matemática diz para atirar. 2 disparos de alta precisão: +7d8+47 Dano Verdadeiro cada, ambos ignoram ARM. DT Constituição 38 — Falha: -10 Resultado por 2 Rod. Se o alvo tiver uma fraqueza identificada: +4d8+29 adicional em cada disparo.",
-                    "name": "Tiro de Oportunidade Calculado",
-                    "stats": [
-                        "2 disparos: +7d8+47 Verdadeiro, ignoram ARM | DT 26 — Falha: -10 Resultado 2 Rod",
-                        "Fraqueza identificada: +4d8+29 adicional/disparo"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Ação Livre. Harper reposiciona o grupo em tempo real. 3 aliados Dwayne se movem sem custo de ação para posições indicadas por Harper. Cada reposicionado: +18 Resultado e imune a ataques de oportunidade por 1 Rod. Se o reposicionamento cria flanqueio: +4d8+29 de dano adicional para o grupo contra o alvo flanqueado. +1 Ficha de Previsão. CD: 3 Rod.",
-                    "name": "Redistribuição Tática",
-                    "stats": [
-                        "Ação Livre | 3 aliados Dwayne: movimento gratuito + +18 Resultado + sem ataques de oportunidade 1 Rod",
-                        "Flanqueio: +4d8+29 adicional para o grupo | +1 Previsão | CD: 3 Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Harper revela a estrutura completa de 1 inimigo em 1 ação. Por 3 Rod: todos os aliados Dwayne recebem +21 Resultado e +4d8+26 de dano extra contra aquele alvo. As DTs de resistência do alvo caem -15. Cada vez que o alvo usar uma habilidade durante o efeito: +1 Ficha de Previsão para Harper.",
-                    "name": "Análise de Ameaça em Tempo Real",
-                    "stats": [
-                        "1 alvo | 3 Rod | Aliados Dwayne: +21 Resultado + +4d8+26 vs alvo | DTs -15",
-                        "Habilidade usada pelo alvo durante: +1 Previsão"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Por 2 Rod: Harper revela o plano completo que foi calculando desde o início. Todos os aliados Dwayne em campo recebem +29 Resultado de tudo, imunidade a qualquer efeito sobrenatural e 2 ataques extras por turno. Harper age 3× por turno com Tiro de Oportunidade gratuito por ação. Qualquer habilidade inimiga é antecipada — DTs de resistência dos aliados aumentam em +15 durante a Ultimate. Ao final: Harper pode cancelar 2 ações inimigas simultaneamente como Ação Livre.",
-                    "name": "Plano Mestre Jovem",
-                    "stats": [
-                        "2 Rod | Aliados Dwayne: +29 Resultado + imunes sobrenaturais + +2 ataques/turno",
-                        "Harper: 3 ações/turno + Tiro de Oportunidade gratuito/ação | DTs aliados +15",
-                        "Final: cancela 2 ações inimigas simultâneas (Ação Livre) | CD: 7 Rod"
-                    ],
-                    "type": "ultimate"
-                }
-            ],
-            "stats": {
-                "vida": 1668,
-                "arm": 45,
-                "ba": 32,
-                "bd": 29,
-                "ca": 39,
-                "reac": 9,
-                "dano": "8d8+30",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
-            },
-            "nome": "Harper Dwayne",
-            "raca": "Humano Cacador"
-        },
-        {
-            "description": "",
-            "attrs": [
-                19,
-                26,
-                19,
-                33,
-                31,
-                26
-            ],
-            "id": "a918dacb-9dd6-4e9d-aa20-9e1e171fb7b9",
-            "avatar": "",
-            "profile": "mistico",
-            "na": "4",
-            "nivel": 26,
-            "abilities": [
-                {
-                    "description": "Nova dedicou a adolescência inteira ao estudo de demônios — não existe família que saiba mais sobre eles. Vs demônios: Dano Verdadeiro automático, +15 Resultado e habilidades demoníacas têm DT +8 quando aplicadas nela. Identifica a classe e fraqueza de qualquer demônio em 1 Rod. Imune a possessão, corrupção demoníaca e qualquer efeito infernal de controle. Imune a medo sobrenatural de qualquer fonte.",
-                    "name": "Grimório Anti-Demônio",
-                    "stats": [
-                        "Vs demônios: Dano Verdadeiro + +15 Resultado + DTs demoníacas +8",
-                        "Identifica classe/fraqueza em 1 Rod | Imune a possessão, corrupção e controle infernal | Imune a medo"
-                    ],
-                    "type": "passiva"
-                },
-                {
-                    "description": "Nova traça sigis de contenção em tempo de combate. Área de 8m por 2 Rod: demônios testam DT Arcana 28 por rodada — Falha: 6d8+26 Dano Sagrado e ficam suprimidos (sem habilidades ofensivas por 1 Rod). Qualquer demônio que entrar na área ativa o sigilo automaticamente. Aliados: +15 ARM e imunes à possessão enquanto dentro.",
-                    "name": "Sigilo Sagrado",
-                    "stats": [
-                        "Área 8m por 2 Rod | Demônios/Rod: DT 28 — Falha: 6d8+38 Sagrado + sem ofensivas 1 Rod",
-                        "Entrada: ativação automática | Aliados: +15 ARM + imunes à possessão"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Nova combina prata e bênção — eficaz contra qualquer sobrenatural, devastador contra demônios. 3 disparos: +6d8+35 Dano Verdadeiro cada. Vs demônio: +3d8+22 Sagrado adicional + DT Constituição 38 — Falha: supressão de 1 habilidade por 2 Rod. Vs vampiro: Queimadura UV. Vs lobisomem: Envenenamento por Prata.",
-                    "name": "Projéteis de Prata Sagrada",
-                    "stats": [
-                        "3 disparos: +6d8+35 Verdadeiro | Vs demônio: +3d8+22 Sagrado + DT 26 — Falha: 1 habilidade suprimida 2 Rod",
-                        "Vs vampiro: Queimadura UV | Vs lobisomem: Envenenamento Prata"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Nova ativa o protocolo de banimento que estudou por anos. 1 demônio: DT Arcana 47 — Falha: o demônio é banido para o Plano Dimensional por 2 Rod (completamente removido do combate). Sucesso: -15 Resultado por 2 Rod e o demônio não pode usar habilidades de invocação. Vs demônios Primordiais: DT cai para 41 mas o efeito é apenas -15 Resultado por 1 Rod.",
-                    "name": "Banimento Menor",
-                    "stats": [
-                        "1 demônio | DT Arcana 47 — Falha: banido 2 Rod (removido do combate)",
-                        "Sucesso: -15 Resultado 2 Rod + sem invocação | Vs Primordial: DT 28, apenas -15 Resultado 1 Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Por 3 Rod: Nova implementa o sistema completo. Todos os demônios em 18m sofrem os efeitos do Sigilo Sagrado automaticamente (sem ação). Nova realiza 3 ataques por turno de +10d8+46 Dano Sagrado Verdadeiro. Qualquer habilidade demoníaca ativada na área: DT 34 ou bloqueada completamente. Ao final: tenta Banimento em TODOS os demônios em campo simultaneamente (DT individual).",
-                    "name": "Protocolo de Extinção Demoníaca",
-                    "stats": [
-                        "3 Rod | Raio 18m: Sigilo Sagrado automático em todos demônios | 3 ataques/turno: +10d8+46 Sagrado Verdadeiro",
-                        "Habilidade demoníaca: DT 34 ou bloqueada",
-                        "Final: Banimento simultâneo em todos os demônios (DT individual) | CD: 8 Rod"
-                    ],
-                    "type": "ultimate"
-                }
-            ],
-            "stats": {
-                "vida": 1267,
-                "arm": 42,
-                "ba": 31,
-                "bd": 28,
-                "ca": 38,
-                "reac": 7,
-                "dano": "11d6+34",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
-            },
-            "nome": "Nova Dwayne",
-            "raca": "Humano Cacador"
-        },
-        {
-            "description": "",
-            "attrs": [
-                21,
-                33,
-                19,
-                26,
-                26,
-                21
-            ],
-            "id": "0619f816-9cbd-406f-a8f3-578a32e80a73",
-            "avatar": "",
-            "profile": "especialista",
-            "na": "4",
-            "nivel": 24,
-            "abilities": [
-                {
-                    "description": "Felix aprendeu a atirar antes de aprender a somar. O resultado é um nível de precisão instintivo que treinamento formal raramente alcança. +15 Resultado em todos os ataques à distância. Sem penalidade por movimento do alvo. Acumula 1 Ficha de Mira (máx 4) por rodada sem se mover. 2 Fichas: ataques ignoram ARM. 4 Fichas: próximo disparo acerta automaticamente e causa Dano Verdadeiro quadruplicado.",
-                    "name": "Olho Precoce",
-                    "stats": [
-                        "Vs alvo em movimento: sem penalidade | +15 Resultado em ataques à distância",
-                        "Acúmulo: +1 Mira/Rod parado (máx 4) | 2 Fichas: ignora ARM | 4 Fichas: disparo auto + Dano Verdadeiro ×4"
-                    ],
-                    "type": "passiva"
-                },
-                {
-                    "description": "4 disparos em sequência: +4d8+29 Dano Verdadeiro cada. O 2º usa munição especializada — aplica efeito por tipo (vampiro: UV, lobisomem: prata, demônio: sagrado). O 4º: DT Fortitude 38 — Falha: -2 Reações e -10 Resultado por 2 Rod. Acumula +1 Ficha de Mira.",
-                    "name": "Precisão Juvenil",
-                    "stats": [
-                        "4 disparos: +4d8+29 Verdadeiro | 2º: munição especializada por tipo",
-                        "4º: DT 26 — Falha: -2 Reações + -10 Resultado 2 Rod | +1 Ficha de Mira"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Felix se move para posição de vantagem sem perder o ritmo. Move 12m como Ação Livre + 1 disparo gratuito de +6d8+35 Dano Verdadeiro (conta como furtivo — alvo não esperava o reposicionamento). +1 Ficha de Mira.",
-                    "name": "Reposição Rápida",
-                    "stats": [
-                        "Move 12m (Ação Livre) + disparo gratuito: +6d8+35 Verdadeiro (furtivo) | +1 Ficha"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Área de 6m: 4 projéteis rápidos. Cada alvo: DT Destreza 32 — Falha: 3d8+23 Dano + suprimido por 1 Rod (-12 Resultado, 0 movimento). Aliados: +6 Resultado. CD: 3 Rod.",
-                    "name": "Tiro de Supressão Jovem",
-                    "stats": [
-                        "Área 6m | DT 22 — Falha: 3d8+16 + suprimido 1 Rod (-12 Resultado, 0 movimento)",
-                        "Aliados: +6 Resultado | CD: 3 Rod"
-                    ],
-                    "type": "ativa"
-                },
-                {
-                    "description": "Por 2 Rod: Felix mostra o que tem de melhor — acima da expectativa de qualquer adulto. Age 3× por turno com 2 disparos por ação de +7d8+47 Dano Verdadeiro (todos automáticos se tiver 3+ Fichas de Mira). Fichas acumulam em dobro. Ao final: 1 disparo de execução em cada alvo abaixo de 43% PV (+9d8+68 Dano Verdadeiro, impossível de esquivar).",
-                    "name": "Além da Idade",
-                    "stats": [
-                        "2 Rod | 3 ações/turno × 2 disparos: +7d8+47 Verdadeiro (auto com 3+ Fichas) | Fichas ×2",
-                        "Final: execução em todos ≤43% PV (+9d8+68, impossível de esquivar) | CD: 7 Rod"
-                    ],
-                    "type": "ultimate"
-                }
-            ],
-            "stats": {
-                "vida": 1393,
-                "arm": 42,
-                "ba": 29,
-                "bd": 26,
-                "ca": 36,
-                "reac": 9,
-                "dano": "8d8+30",
-                "danoExtra": "+2d10",
-                "tag": "vs 4 PCs"
-            },
             "nome": "Felix Dwayne",
-            "raca": "Humano Cacador"
+            "raca": "Humano Cacador",
+            "_rebalanced": true
         },
         {
             "description": "",
