@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE } from '../../data/modules'
+import { ALL_MODULES, MODULES_PASSIVE, MODULES_SPECIAL, MODULES_ACTIVE, MODULE_PRESETS } from '../../data/modules'
 import { calcModulesAvailable } from '../../utils/calculator'
 import { getRaceAdjustedAttrs } from '../../utils/raceCalculator'
+
+const ALL_MODULE_MAP = Object.fromEntries(
+  [...MODULES_PASSIVE, ...MODULES_SPECIAL, ...MODULES_ACTIVE].map(m => [m.id, m])
+)
 
 export default function Step7Modules({ char, update, updateNested }) {
   const classe = char.classe
@@ -80,6 +84,38 @@ export default function Step7Modules({ char, update, updateNested }) {
     update({ modulosAdquiridos: modulosAdquiridos.filter(m => m.id !== moduleId) })
   }
 
+  function getPresetEligible(preset) {
+    return preset.modules.filter(({ id, type }) => {
+      const mod = ALL_MODULE_MAP[id]
+      if (!mod) return false
+      if (!parseReq(mod.req)) return false
+      const current = getBoughtCount(id)
+      if (mod.maxBuy && current >= mod.maxBuy) return false
+      if (!mod.maxBuy && current > 0) return false
+      return { id, type, mod }
+    }).map(({ id, type }) => ({ id, type, mod: ALL_MODULE_MAP[id] }))
+  }
+
+  function applyPreset(preset) {
+    const eligible = getPresetEligible(preset)
+    if (!eligible.length) return
+    let currentMods = [...modulosAdquiridos]
+    let slotsLeft = remaining
+    for (const { id, type, mod } of eligible) {
+      if (slotsLeft <= 0) break
+      const existing = currentMods.find(m => m.id === id)
+      if (existing) {
+        currentMods = currentMods.map(m =>
+          m.id === id ? { ...m, boughtCount: (m.boughtCount || 1) + 1 } : m
+        )
+      } else {
+        currentMods = [...currentMods, { id, name: mod.name, type, boughtCount: 1 }]
+      }
+      slotsLeft--
+    }
+    update({ modulosAdquiridos: currentMods })
+  }
+
   const tabs = [
     { key: 'passivos', label: 'Passivos' },
     { key: 'especiais', label: 'Especiais' },
@@ -97,6 +133,47 @@ export default function Step7Modules({ char, update, updateNested }) {
         </div>
         <div className="text-sm text-on-surface-variant">
           Módulos: <span className={`font-mono ${remaining > 0 ? 'text-ok' : remaining === 0 ? 'text-on-surface-variant' : 'text-err'}`}>{remaining}</span>/{totalAvailable} disponíveis
+        </div>
+      </div>
+
+      <div>
+        <div className="text-txt-dim text-sm font-semibold mb-2">Presets (seleção rápida)</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {MODULE_PRESETS.map(preset => {
+            const eligible = getPresetEligible(preset)
+            const canApply = eligible.length > 0 && remaining > 0
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                disabled={!canApply}
+                onClick={() => applyPreset(preset)}
+                className={`text-left bg-deep border rounded-lg p-3 transition-colors ${
+                  canApply
+                    ? 'border-sep hover:border-gold/50 cursor-pointer'
+                    : 'border-sep/30 opacity-40 cursor-not-allowed'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="material-symbols-outlined text-gold" style={{ fontSize: '18px' }}>{preset.icon}</span>
+                  <span className="font-body text-sm font-semibold text-txt-main">{preset.name}</span>
+                </div>
+                <p className="text-txt-dim text-xs leading-snug mb-1.5">{preset.desc}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {preset.modules.map(({ id }) => (
+                    <span key={id} className="text-[10px] text-txt-dim/80 bg-void/50 rounded px-1.5 py-0.5">
+                      {ALL_MODULE_MAP[id]?.name || id}
+                    </span>
+                  ))}
+                </div>
+                {canApply && (
+                  <div className="text-[10px] text-gold/80 mt-1.5">
+                    +{Math.min(eligible.length, remaining)} módulo(s) · clique para aplicar
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 

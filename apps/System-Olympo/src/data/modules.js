@@ -60,3 +60,66 @@ export const ALL_MODULES = {
   especiais: MODULES_SPECIAL,
   ativos: MODULES_ACTIVE,
 }
+
+export const MODULE_PRESETS = [
+  {
+    id: 'combate',
+    name: 'Combate',
+    icon: 'swords',
+    desc: 'Foco em dano corpo-a-corpo e críticos.',
+    modules: [
+      { id: 'golpe_devastador', type: 'ativo' },
+      { id: 'critico_aprimorado', type: 'ativo' },
+      { id: 'treino_intensivo', type: 'especial' },
+      { id: 'postura_berserker', type: 'ativo' },
+    ],
+  },
+  {
+    id: 'arcano',
+    name: 'Arcano',
+    icon: 'auto_awesome',
+    desc: 'Amplificação mágica e evolução de habilidades.',
+    modules: [
+      { id: 'sobrecarga_arcana', type: 'ativo' },
+      { id: 'arcanismo', type: 'passivo' },
+      { id: 'aumento_poder', type: 'especial' },
+      { id: 'reserva_arcana', type: 'ativo' },
+    ],
+  },
+  {
+    id: 'tatico',
+    name: 'Tático',
+    icon: 'gps_fixed',
+    desc: 'Defesa, precisão e controle de campo.',
+    modules: [
+      { id: 'postura_bastiao', type: 'ativo' },
+      { id: 'mira_letal', type: 'ativo' },
+      { id: 'portador_nato', type: 'especial' },
+      { id: 'reflexos_apurados', type: 'ativo' },
+    ],
+  },
+  {
+    id: 'estudioso',
+    name: 'Estudioso',
+    icon: 'school',
+    desc: 'Desbloqueia Runas, Alquimia e conhecimento.',
+    modules: [
+      { id: 'vinculo_runico', type: 'passivo' },
+      { id: 'estudos_alquimia', type: 'passivo' },
+      { id: 'conhecimento_amplificado', type: 'especial' },
+      { id: 'informativo', type: 'passivo' },
+    ],
+  },
+  {
+    id: 'sobrevivente',
+    name: 'Sobrevivente',
+    icon: 'shield',
+    desc: 'Sustentação, percepção e recursos.',
+    modules: [
+      { id: 'recuperacao_acelerada', type: 'passivo' },
+      { id: 'corpo_resiliente', type: 'ativo' },
+      { id: 'sentidos_agucados', type: 'passivo' },
+      { id: 'fortuna_inicial', type: 'passivo' },
+    ],
+  },
+]
