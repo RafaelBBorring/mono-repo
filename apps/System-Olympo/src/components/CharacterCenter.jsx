@@ -308,14 +308,130 @@ function extractOracleText(resp) {
   return before ? before[1].trim() : ''
 }
 
+const RT_COLORS = [
+  { label: 'Branco', value: '#e2e8f0', cls: 'bg-slate-200' },
+  { label: 'Vermelho', value: '#f87171', cls: 'bg-red-400' },
+  { label: 'Laranja', value: '#fb923c', cls: 'bg-orange-400' },
+  { label: 'Amarelo', value: '#facc15', cls: 'bg-yellow-400' },
+  { label: 'Verde', value: '#4ade80', cls: 'bg-green-400' },
+  { label: 'Azul', value: '#60a5fa', cls: 'bg-blue-400' },
+  { label: 'Roxo', value: '#c084fc', cls: 'bg-purple-400' },
+  { label: 'Dourado', value: '#fbbf24', cls: 'bg-amber-400' },
+]
+
+const RT_BG_COLORS = [
+  { label: 'Nenhum', value: '', cls: 'bg-void border border-sep/30' },
+  { label: 'Vermelho', value: '#7f1d1d', cls: 'bg-red-900' },
+  { label: 'Laranja', value: '#7c2d12', cls: 'bg-orange-900' },
+  { label: 'Amarelo', value: '#713f12', cls: 'bg-yellow-900' },
+  { label: 'Verde', value: '#14532d', cls: 'bg-green-900' },
+  { label: 'Azul', value: '#1e3a5f', cls: 'bg-blue-900' },
+  { label: 'Roxo', value: '#3b0764', cls: 'bg-purple-900' },
+  { label: 'Cinza', value: '#1f2937', cls: 'bg-gray-800' },
+]
+
+const RT_FONTS = [
+  { label: 'Padrão', value: 'inherit' },
+  { label: 'Cinzel', value: "'Cinzel', serif" },
+  { label: 'Newsreader', value: "'Newsreader', serif" },
+  { label: 'JetBrains Mono', value: "'JetBrains Mono', monospace" },
+  { label: 'Sans', value: 'sans-serif' },
+  { label: 'Serif', value: 'serif' },
+]
+
+function RichTextToolbar({ editorRef }) {
+  const [showTextColor, setShowTextColor] = useState(false)
+  const [showBgColor, setShowBgColor] = useState(false)
+  const [showFont, setShowFont] = useState(false)
+
+  function exec(command, value) {
+    editorRef.current?.focus()
+    document.execCommand(command, false, value || null)
+    editorRef.current?.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+
+  return (
+    <div className="cc-rt-toolbar">
+      <button type="button" onClick={() => exec('bold')} title="Negrito"
+        className="cc-rt-btn font-bold">B</button>
+      <button type="button" onClick={() => exec('italic')} title="Itálico"
+        className="cc-rt-btn italic">I</button>
+      <button type="button" onClick={() => exec('underline')} title="Sublinhado"
+        className="cc-rt-btn underline">U</button>
+      <button type="button" onClick={() => exec('strikeThrough')} title="Tachado"
+        className="cc-rt-btn line-through">S</button>
+      <div className="cc-rt-divider" />
+      <div className="relative">
+        <button type="button" onClick={() => { setShowFont(v => !v); setShowTextColor(false); setShowBgColor(false) }} title="Fonte"
+          className="cc-rt-btn cc-rt-btn--wide">
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>text_fields</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>expand_more</span>
+        </button>
+        {showFont && (
+          <div className="cc-rt-dropdown">
+            {RT_FONTS.map(f => (
+              <button type="button" key={f.value} onClick={() => { exec('fontName', f.value); setShowFont(false) }}
+                className="cc-rt-dropdown-item" style={{ fontFamily: f.value }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="relative">
+        <button type="button" onClick={() => { setShowTextColor(v => !v); setShowBgColor(false); setShowFont(false) }} title="Cor do texto"
+          className="cc-rt-btn">
+          <span className="border-b-2 border-current" style={{ color: '#f87171' }}>A</span>
+        </button>
+        {showTextColor && (
+          <div className="cc-rt-color-grid">
+            {RT_COLORS.map(c => (
+              <button type="button" key={c.value} onClick={() => { exec('foreColor', c.value); setShowTextColor(false) }} title={c.label}
+                className={`cc-rt-swatch ${c.cls}`} />
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="relative">
+        <button type="button" onClick={() => { setShowBgColor(v => !v); setShowTextColor(false); setShowFont(false) }} title="Cor de fundo"
+          className="cc-rt-btn">
+          <span className="bg-amber-900/60 px-0.5 rounded text-[10px]">A</span>
+        </button>
+        {showBgColor && (
+          <div className="cc-rt-color-grid">
+            {RT_BG_COLORS.map(c => (
+              <button type="button" key={c.value || 'none'} onClick={() => { exec('hiliteColor', c.value || 'transparent'); setShowBgColor(false) }} title={c.label}
+                className={`cc-rt-swatch ${c.cls}`} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function isRichHtml(text) {
+  if (!text) return false
+  return /<[a-z][\s\S]*>/i.test(text)
+}
+
 function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
   const [editMode, setEditMode] = useState(false)
   const [draft, setDraft] = useState(habilidade)
   const [oracleLoading, setOracleLoading] = useState(false)
   const [oracleResult, setOracleResult] = useState(null)
   const [oracleError, setOracleError] = useState('')
+  const editorRef = useRef(null)
 
   useEffect(() => { setDraft(habilidade); setEditMode(false); setOracleResult(null); setOracleError('') }, [habilidade])
+
+  useEffect(() => {
+    if (editMode && editorRef.current) {
+      const desc = draft.descricaoBalanceada || draft.descricao || ''
+      editorRef.current.innerHTML = isRichHtml(desc) ? desc : ''
+      if (!isRichHtml(desc) && desc) editorRef.current.textContent = desc
+    }
+  }, [editMode])
 
   if (!habilidade) return null
   const chips = getSkillTagChips(draft)
@@ -426,13 +542,23 @@ Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
         <div className="cc-modal-body">
           {editMode ? (
             <div className="space-y-3">
-              <textarea
-                className="cc-edit-textarea"
-                value={draft.descricaoBalanceada || draft.descricao || ''}
-                onChange={e => patch({ descricaoBalanceada: e.target.value, descricao: e.target.value })}
-                rows={4}
-                placeholder="Descrição da habilidade"
-              />
+              <div className="cc-rt-editor">
+                <RichTextToolbar editorRef={editorRef} />
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={() => {
+                    if (editorRef.current) {
+                      const html = editorRef.current.innerHTML
+                      patch({ descricaoBalanceada: html, descricao: html })
+                    }
+                  }}
+                  className="cc-rt-editarea"
+                  data-placeholder="Descrição da habilidade"
+                />
+              </div>
+              <p className="text-[10px] text-txt-dim/40">Selecione o texto e use a barra para aplicar negrito, itálico, fonte ou cores.</p>
               <div className="cc-edit-grid">
                 <label className="cc-edit-field">
                   <span>Energia</span>
@@ -462,9 +588,13 @@ Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
             </div>
           ) : (
             <>
-              <p className="text-sm text-txt-main leading-relaxed mb-3">
-                {draft.descricaoBalanceada || draft.descricao || '—'}
-              </p>
+              {isRichHtml(draft.descricaoBalanceada || draft.descricao) ? (
+                <div className="text-sm text-txt-main leading-relaxed mb-3 cc-rt-render" dangerouslySetInnerHTML={{ __html: draft.descricaoBalanceada || draft.descricao }} />
+              ) : (
+                <p className="text-sm text-txt-main leading-relaxed mb-3">
+                  {draft.descricaoBalanceada || draft.descricao || '—'}
+                </p>
+              )}
               <div className="cc-modal-stats">
                 {draft.custoEnergia > 0 && <div className="cc-modal-stat"><span className="text-txt-dim">Energia</span><span className="font-mono text-tomato">{draft.custoEnergia}</span></div>}
                 {draft.dano && <div className="cc-modal-stat"><span className="text-txt-dim">Dano</span><span className="font-mono text-tomato">{draft.dano}</span></div>}
@@ -661,7 +791,7 @@ export default function CharacterCenter({ char, update, updateHabilidade, onShow
       { opacity: 0, y: 24 },
       { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, ease: 'power2.out' }
     )
-  }, [char, activeTab])
+  }, [activeTab])
 
   const habilidades = char.habilidades || []
   const modulos = char.modulosAdquiridos || []
