@@ -7214,7 +7214,7 @@
           "type": "ultimate",
           "description": "Gatilho: <57% PV ou ativação manual. Por 2 Rod: dano ×2, +10 Resultado, imune a dor e atordoamento. Sem controle — ataca o mais próximo (aliado ou inimigo).",
           "stats": [
-            "Gatilho: <57% PV | 2 Rod | Dano ×2 | +10 Resultado | Imune a dor/atordoamento | Sem controle (ataca mais próximo)"
+            "Gatilho: <57% PV | 2 Rod | Dano ×2 | +10 Resultado | Imune a dor/atordoamento | Sem controle (ataca mais próximo) | CD: 5 Rod"
           ]
         }
       ],
@@ -9966,14 +9966,14 @@
         }
       ],
       "stats": {
-        "vida": 5000,
-        "arm": 80,
-        "ba": 60,
-        "bd": 57,
-        "ca": 67,
-        "dano": "25d6+100+15d12",
+        "vida": 12950,
+        "arm": 85,
+        "ba": 64,
+        "bd": 61,
+        "ca": 71,
+        "dano": "25d6+72",
         "danoExtra": "+15d12",
-        "reac": 20,
+        "reac": 19,
         "tag": "vs 20 PCs + AL(8) - IMPOSSIVEL"
       },
       "nome": "Nyx - A Entidade Impossivel",

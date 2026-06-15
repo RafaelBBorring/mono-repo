@@ -112,8 +112,8 @@ export function rebalanceNpc(npc) {
     return { ...ab, description: desc, stats }
   })
 
-  const cap = newLevel <= 7 ? 20 : newLevel <= 13 ? 26 : newLevel <= 22 ? 32 : newLevel <= 30 ? 38 : newLevel <= 38 ? 44 : 50
-  const oldCap = oldLevel <= 7 ? 20 : oldLevel <= 13 ? 26 : oldLevel <= 22 ? 32 : oldLevel <= 30 ? 38 : oldLevel <= 38 ? 44 : 50
+  const cap = newLevel <= 7 ? 20 : newLevel <= 13 ? 26 : newLevel <= 22 ? 32 : newLevel <= 30 ? 38 : newLevel <= 38 ? 44 : newLevel <= 44 ? 50 : 55
+  const oldCap = oldLevel <= 7 ? 20 : oldLevel <= 13 ? 26 : oldLevel <= 22 ? 32 : oldLevel <= 30 ? 38 : oldLevel <= 38 ? 44 : oldLevel <= 44 ? 50 : 55
   const attrRatio = cap / (oldCap || 1)
   const newAttrs = (npc.attrs || [18, 14, 14, 12, 10, 10]).map(v => Math.min(cap, Math.max(8, Math.round(v * attrRatio))))
 
