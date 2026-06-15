@@ -5,7 +5,17 @@ const FOLDERS_STORE = 'folders'
 const ASSIGNMENTS_STORE = 'assignments'
 
 const SEED_VERSION_KEY = 'codex-seed-version'
-const CURRENT_SEED_VERSION = '2026-06-13-rebalance-v3'
+const CURRENT_SEED_VERSION = '2026-06-15-avatar-restore'
+
+export function resolveAvatarUrl(avatar) {
+  if (!avatar) return ''
+  if (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('blob:')) return avatar
+  if (avatar.startsWith('codex-avatars/')) {
+    const base = import.meta.env.BASE_URL || '/'
+    return `${base}${avatar}`
+  }
+  return avatar
+}
 
 function openDB() {
   return new Promise((resolve, reject) => {

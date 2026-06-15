@@ -10,6 +10,7 @@ import {
   assignToFolder,
   removeFromFolder,
   migrateCodexIfNeeded,
+  resolveAvatarUrl,
 } from '../../services/codexDb'
 
 const PROFILE_COLORS = {
@@ -499,7 +500,7 @@ export default function CodexDashboard({ onNewNpc, onOpenNpc, onImportExport }) 
                   <div className="flex items-start gap-4 mb-3">
                     <div className="w-14 h-14 rounded-xl border border-sep bg-surface-container flex items-center justify-center text-2xl font-cinzel text-primary shrink-0 overflow-hidden">
                       {npc.avatar ? (
-                        <img src={npc.avatar} alt="" className="w-full h-full object-cover" />
+                        <img src={resolveAvatarUrl(npc.avatar)} alt="" className="w-full h-full object-cover" />
                       ) : (
                         (npc.nome || '?').charAt(0).toUpperCase()
                       )}

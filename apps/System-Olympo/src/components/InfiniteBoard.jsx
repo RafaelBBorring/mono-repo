@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { getAllNpcs } from '../services/codexDb'
+import { getAllNpcs, resolveAvatarUrl } from '../services/codexDb'
 import { calcVidaTotal, calcEnergiaTotal, calcPeTotal, calcCA, calcDanoBase, calcReacoes } from '../utils/calculator'
 
 const MIN_ZOOM = 0.25
@@ -98,7 +98,7 @@ function NpcCard({ card, isSelected, onSelect, onDrag, zoom }) {
             style={{ borderColor: profileColor.accent + '40', background: profileColor.accent + '15', color: profileColor.accent }}
           >
             {npc.avatar ? (
-              <img src={npc.avatar} alt="" className="w-full h-full object-cover" />
+              <img src={resolveAvatarUrl(npc.avatar)} alt="" className="w-full h-full object-cover" />
             ) : (
               (npc.nome || '?').charAt(0).toUpperCase()
             )}
@@ -781,7 +781,7 @@ export default function InfiniteBoard({ sheets = [] }) {
                 className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary/10 transition-colors text-left"
               >
                 <div className="w-7 h-7 rounded border flex items-center justify-center text-[10px] font-cinzel overflow-hidden shrink-0" style={{ borderColor: pc.accent + '30', background: pc.accent + '10', color: pc.accent }}>
-                  {npc.avatar ? <img src={npc.avatar} alt="" className="w-full h-full object-cover" /> : (npc.nome || '?').charAt(0).toUpperCase()}
+                  {npc.avatar ? <img src={resolveAvatarUrl(npc.avatar)} alt="" className="w-full h-full object-cover" /> : (npc.nome || '?').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs text-on-surface truncate">{npc.nome || 'NPC'}</p>

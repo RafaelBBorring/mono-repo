@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getNpc, saveNpc, deleteNpc } from '../../services/codexDb'
+import { getNpc, saveNpc, deleteNpc, resolveAvatarUrl } from '../../services/codexDb'
 import { CODEX_PROFILES } from '../../data/codexProfiles'
 import { CODEX_NA_MODS, NA_OPTIONS } from '../../data/codexNaMods'
 import { attrMod, calcCA, generateNpcStats, getAttrDist } from '../../utils/codexCalculator'
@@ -339,7 +339,7 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
   const profInfo = CODEX_PROFILES[npc.profile] || CODEX_PROFILES.guerreiro
   const naInfo = CODEX_NA_MODS[npc.na]
   const stats = npc.stats || {}
-  const avatarUrl = npc.avatar
+  const avatarUrl = resolveAvatarUrl(npc.avatar)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -650,7 +650,7 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
 
       {showAvatarEditor && npc.avatar && (
         <AvatarCropModal
-          originalUrl={npc.avatar}
+          originalUrl={avatarUrl}
           initialTransform={npc.avatarTransform || { x: 0, y: 0, scale: 1 }}
           onConfirm={(transform, croppedUrl) => {
             update({ avatar: croppedUrl, avatarTransform: transform })
