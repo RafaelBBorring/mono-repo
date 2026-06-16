@@ -10096,76 +10096,77 @@
       "nivel": 30,
       "na": "6",
       "raca": "Híbrido Vampiro/Lobisomem — Sangue Molecular",
-      "description": "A alquimista definitiva da linhagem Van Helsing. Rosa não apenas carrega o sangue híbrido — ela o compreende e manipula em nível molecular. O sangue vampírico e lupino em suas veias não coexistem em conflito; ela os reestrutura como um chemist trabalhando com elementos vivos. Cristalização, vaporização, reconstrução molecular — seu sangue é arma, armadura e ferramenta. Dizem que uma única gota de seu sangue pode curar ou matar um exército, dependendo de como ela rearranja suas moléculas.",
+      "description": "A maior alquimista sanguínea da linhagem Van Helsing. Rosa não manipula sangue — ela o APRIMORA em nível molecular. Cada molécula de seu sangue híbrido é otimizada: mais densa, mais reativa, mais potente que sangue comum. O sangue vampírico ganha densidade sobrenatural; o sangue lupino ganha vitalidade acelerada. Ela pode aprimorar o sangue de aliados (turbinando suas capacidades ao limite) ou o de inimigos (sobrecarregando suas moléculas até se tornarem tóxicas e explosivas). Seu sangue aprimorado é a substância mais poderosa da linhagem — uma única gota equivale a litros de sangue comum.",
       "avatar": "codex-avatars/rosa-vh-hybrid-0001.webp",
       "attrs": [
         24,
         26,
-        24,
+        26,
         28,
         24,
-        30
+        32
       ],
       "stats": {
         "vida": 2240,
-        "arm": 58,
+        "arm": 51,
         "ba": 36,
-        "bd": 33,
-        "ca": 43,
-        "reac": 9,
         "dano": "11d6+34",
         "danoExtra": "+4d10",
-        "tag": "vs 6 PCs + AL(2)"
+        "reac": 9,
+        "tag": "vs 6 PCs + AL(2)",
+        "bd": 33,
+        "ca": 43
       },
       "abilities": [
         {
-          "name": "Sangue Molecular",
+          "name": "Aprimoramento Molecular Perpétuo",
           "type": "passiva",
-          "description": "O sangue híbrido de Rosa existe em estado de fluxo molecular constante — ela o reestrutura à vontade como um alquimista manipulando elementos vivos. Rosa é imune a manipulação de sangue, veneno, doença e necrose. A cada rodada, ela absorve partículas de sangue ambientes (de ferimentos, ar, solo), regenerando 120 PV. Inimigos sangrando em 5m perdem 3d10 PV adicionais por rodada enquanto seu sangue é atraído magneticamente para Rosa. Rosa pode sentir a presença de sangue em 50m (detecta criaturas vivas, mortos-vivos e frescos de sangue).",
+          "description": "O sangue de Rosa é molecularmente superior — cada hemácia foi aprimorada para operar em eficiência máxima. A densidade molecular de seu sangue é 10x maior que o normal, concedendo regeneração de 150 PV/rodada e imunidade a veneno, doença e necrose. Seu sangue aprimorado é tóxico para não-híbridos: quem o tocar sofre 4d10 de dano cáustico. Sempre que Rosa causa dano que faz o alvo sangrar, ela absorve esse sangue e o aprimora — cada absorção concede +4 no Resultado de seus próximos ataques (acumulável, máx +20). A eficiência molecular também a torna imune a manipulação de sangue de outros.",
           "stats": [
-            "Imune a manipulação de sangue, veneno, doença, necrose",
-            "Regeneração: 120 PV/rodada + absorve sangue ambiente",
-            "Inimigos sangrando 5m: -3d10 PV/rodada | Sente sangue em 50m"
+            "Regeneração: 150 PV/rodada | Imune a veneno, doença, necrose, manipulação de sangue",
+            "Sangue aprimorado: cáustico a não-híbridos (4d10 ao tocar)",
+            "Absorve sangue inimigo: +4 Resultado por absorção (máx +20)"
           ]
         },
         {
-          "name": "Cristais Hemáticos",
+          "name": "Aprimoramento Ofensivo — Densidade Letal",
           "type": "ativa",
-          "description": "Rosa cristaliza seu sangue em armas de borda molecular — tão afiadas que cortam entre átomos, atravessando qualquer armadura como se fosse papel. Forma cristais de sangue no ar que se lançam contra 1 a 3 alvos. Cada cristal: 8d6+35 de Dano Verdadeiro. Os cristais se fixam no corpo do alvo e começam a cristalizar seu próprio sangue — DT Constituição 36. Falha: cristalização interna — 4d6 de dano por rodada por 2 rodadas, -8 em ações físicas (cristais limitam movimento). Se o alvo já estiver sangrando, o dano dos cristais é dobrado.",
+          "description": "Rosa concentra o aprimoramento molecular em suas próprias moléculas sanguíneas, aumentando a densidade e a reatividade ao extremo. Por 3 rodadas: todos os ataques de Rosa causam 50% de dano adicional (o sangue aprimorado amplifica cada golpe). Além disso, cada ataque injeta uma micro-dose de sangue aprimorado no inimigo — suas moléculas de sangue começam a entrar em ressonância com as de Rosa. Após 3 ataques no mesmo alvo, a ressonância se completa: o sangue do alvo é aprimorado FORÇADAMENTE além do que seu corpo suporta — detonação interna de 10d6+50 de Dano Verdadeiro.",
           "stats": [
-            "1-3 alvos | 8d6+35 Dano Verdadeiro por cristal (atravessa ARM)",
-            "DT Constituição 36 — Falha: cristalização interna 4d6/rodada + -8 físico (2 rodadas)",
-            "vs Sangrando: dano dobrado | CD: 3 Rodadas"
-          ]
-        },
-        {
-          "name": "Vapor Sanguíneo",
-          "type": "ativa",
-          "description": "Rosa vaporiza seu sangue em uma névoa fina e molecularmente carregada que preenche a área. A névoa é viva — procura ativamente o sangue dos inimigos, entrando por poros e ferimentos. Área 12m: 6d8+40 de dano necrótico a todos os inimigos. A nébow os Marca com a assinatura molecular do sangue de Rosa. Alvos Marcados: Rosa pode se teletransportar até eles como ação livre e causa +50% de dano contra eles por 3 rodadas. Rosa cura 100% de todo dano causado pela névoa.",
-          "stats": [
-            "Área 12m | 6d8+40 necrótico a inimigos | Rosa cura 100%",
-            "Alvos Marcados: teleporte grátis + Rosa +50% dano vs eles (3 rodadas)",
+            "3 Rodadas | Ataques +50% dano | Cada ataque injeta sangue aprimorado (ressonância)",
+            "3 ataques no mesmo alvo: Ressonância completa — detonação 10d6+50 Verdadeiro",
             "CD: 4 Rodadas"
           ]
         },
         {
-          "name": "Forja Molecular",
+          "name": "Aprimoramento Coletivo — Sintonia Sanguínea",
           "type": "ativa",
-          "description": "Rosa acelera a vibração molecular de seu sangue a um estado líquido-metal, tornando seu corpo semi-fluido e sobre-humano. Por 3 rodadas: Rosa se torna semi-fluida (imune a dano físico cortante/perfurante), +15 no Resultado de tudo, e qualquer inimigo que tocar sofre 8d6+40 de dano de disrupção molecular enquanto o sangue daquele inimigo vibra fora de controle. Rosa estende tentáculos de sangue (alcance 8m) que podem atacar múltiplos alvos simultaneamente ou agarrar/prender inimigos (DT Força 36).",
+          "description": "Rosa compartilha seu sangue aprimorado com aliados através de gotas micro-moleculares que penetram pela pele. O sangue de cada aliado é temporariamente aprimorado à altura do dela. 1d3+1 aliados em 15m: ganham Sintonia Sanguínea por 4 rodadas — atributos físicos +10, regeneração de 120 PV/rodada, ataques causam +4d6 de dano aprimorado, e tornam-se imunes a efeitos de sangue e veneno. Aliados com Sintonia podem gastar 1 Reação para transferir 100 PV entre si. Após o efeito, o sangue volta ao normal sem efeitos colaterais (o aprimoramento é limpo, não destrutivo).",
           "stats": [
-            "3 Rodadas | Semi-fluida: imune a cortante/perfurante | +15 Resultado",
-            "Toque: 8d6+40 disrupção molecular | Tentáculos de sangue 8m (agarra: DT For 36)",
+            "1d3+1 aliados 15m | Sintonia Sanguínea 4 rodadas: +10 físicos | regen 120/rodada",
+            "+4d6 aprimorado/ataque | imune a sangue e veneno | Transferência de 100 PV entre sintonizados",
             "CD: 5 Rodadas"
           ]
         },
         {
-          "name": "Gênese Sanguínea — Código Molecular Absoluto",
-          "type": "ultimate",
-          "description": "Rosa desbloqueia o potencial definitivo de seu sangue híbrido — a habilidade de reescrever o código molecular do sangue em si. Ela detona um pulso de energia molecular pura através do sangue de cada criatura viva em 30m. Todos os inimigos: DT Constituição 42. Falha: 15d6+60 de Dano Verdadeiro e seu sangue é reescrito — ficam Vulneráveis a TODO dano (x2) por 5 rodadas. Rosa absorve toda energia liberada: cura completa, +20 em todos os atributos por 3 rodadas. Se um inimigo morrer com esta habilidade, Rosa pode ressuscitar 1 aliado caído com a energia liberada (50% vida).",
+          "name": "Sobrecarga Molecular — Sangue Inimigo",
+          "type": "ativa",
+          "description": "Rosa inverte seu aprimoramento: em vez de otimizar, ela APRIMORA o sangue do inimigo além do limite suportável, causando uma sobrecarga molecular catastrófica. 1 alvo em 12m: DT Constituição 38. O sangue do alvo é forçado a uma densidade molecular insustentável. Falha: 8d6+45 de Dano Verdadeiro, o alvo perde 50 PV permanentes (não recuperáveis neste combate) e sofre Sobrecarga — a cada cura recebida, sofre 4d6 de dano (o sangue aprimorado rejeita cura externa). Sucesso: metade do dano, sem sobrecarga. Se o alvo tiver menos de 30% de vida, a sobrecarga é fatal — o sangue detona por dentro.",
           "stats": [
-            "Área 30m | DT Constituição 42 — Falha: 15d6+60 Verdadeiro + Vulnerável (x2 dano) 5 rodadas",
-            "Rosa: cura completa + +20 tudo (3 rodadas)",
-            "Inimigo morto: ressuscita 1 aliado (50% vida) | CD: 12 Rodadas"
+            "1 alvo 12m | DT Constituição 38 | Falha: 8d6+45 Verdadeiro + -50 PV permanentes",
+            "Sobrecarga: cura causa 4d6 dano | Sucesso: metade dano",
+            "Alvo <30% vida: Sobrecarga fatal (detonação interna) | CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Evolução Sanguínea — O Sangue Perfeito",
+          "type": "ultimate",
+          "description": "Rosa alcança o ápice de sua alquimia molecular: ela evolui TODO o sangue ao seu redor a um novo estado de perfeição. Área 30m: Rosa detona uma onda de aprimoramento molecular que afeta cada criatura. Aliados: sangue evolui — +16 em TODOS os atributos, regeneração de 200 PV/rodada, imunidade a TODO dano abaixo de 30 por golpe, e ataques causam Dano Verdadeiro por 5 rodadas. Inimigos: DT Constituição 42 — Falha: o sangue é aprimorado tão rápido que entra em colapso molecular — 15d6+70 de Dano Verdadeiro, e ficam Vulneráveis a TODO dano (x2) por 5 rodadas enquanto suas moléculas se desestruturam. Rosa自身: evolui ao máximo — cura completa, +20 em tudo, e pode aprimorar uma habilidade aliada (dobra duração e dano). Cada inimigo que morrer alimenta a evolução: +1 rodada de duração.",
+          "stats": [
+            "Área 30m | Aliados: +16 tudo | regen 200/rodada | imune a dano <30 | Dano Verdadeiro (5 rodadas)",
+            "Inimigos: DT Constituição 42 — Falha: 15d6+70 Verdadeiro + Vulnerável (x2 dano) 5 rodadas",
+            "Rosa: cura completa + +20 tudo + dobra 1 habilidade aliada | Abate inimigo: +1 rodada",
+            "CD: 12 Rodadas"
           ]
         }
       ]
