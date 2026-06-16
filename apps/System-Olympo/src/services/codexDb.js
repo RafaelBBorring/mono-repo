@@ -5,7 +5,7 @@ const FOLDERS_STORE = 'folders'
 const ASSIGNMENTS_STORE = 'assignments'
 
 const SEED_VERSION_KEY = 'codex-seed-version'
-const CURRENT_SEED_VERSION = '2026-06-16-hybrid-vh-fix2'
+const CURRENT_SEED_VERSION = '2026-06-16-silas-balance'
 
 export function resolveAvatarUrl(avatar) {
   if (!avatar) return ''

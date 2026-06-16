@@ -244,7 +244,8 @@
     "npc-nyx-001": "f-supremas",
     "npc-ancestrais-001": "f-conven-ancestrais",
     "36ec88f3-b9df-4b84-900f-26298d48b5d3": "f-carmesim",
-    "rosa-vh-hybrid-0001": "f-vanhelsing"
+    "rosa-vh-hybrid-0001": "f-vanhelsing",
+    "silas-npc-mystic-primordial": "f-supremas"
   },
   "npcs": [
     {
@@ -5691,9 +5692,9 @@
         {
           "name": "Lamina Carmesim",
           "type": "ativa",
-          "description": "Norman desfere golpe com sua lamina ancestral. 20d17+136 Dano Verdadeiro. DT FORT 65 - Falha: sangramento de 170/round x3 + vampirismo (Norman cura 114% do sangramento). Cada kill com esta habilidade: Norman ganha +2 ARM permanente no combate.",
+          "description": "Norman desfere golpe com sua lamina ancestral. 20d12+136 Dano Verdadeiro. DT FORT 65 - Falha: sangramento de 170/round x3 + vampirismo (Norman cura 114% do sangramento). Cada kill com esta habilidade: Norman ganha +2 ARM permanente no combate.",
           "stats": [
-            "20d17+136 Dano Verdadeiro | DT FORT 65",
+            "20d12+136 Dano Verdadeiro | DT FORT 65",
             "Falha: sangramento 170/round x3 + Norman cura 114%",
             "Kill: +2 ARM permanente no combate"
           ]
@@ -5711,19 +5712,19 @@
         {
           "name": "Forma de Neblina",
           "type": "ativa",
-          "description": "Norman se dissolve em neblina. Por 2 rounds: intangivel, invisivel, move-se em 20m. Qualquer ataque que passaria por onde ele esta causa 0 dano. Pode reformar em qualquer ponto e atacar: +14d17+94 Dano Verdadeiro automatico. Neblina e venenosa - inimigos em 5m: 68 dano verdadeiro/round.",
+          "description": "Norman se dissolve em neblina. Por 2 rounds: intangivel, invisivel, move-se em 20m. Qualquer ataque que passaria por onde ele esta causa 0 dano. Pode reformar em qualquer ponto e atacar: +14d12+94 Dano Verdadeiro automatico. Neblina e venenosa - inimigos em 5m: 68 dano verdadeiro/round.",
           "stats": [
             "2 rounds | Intangivel + invisivel + 20m movimento | Ataques: 0 dano",
-            "Reforma + ataca: +14d17+94 Dano Verdadeiro automatico",
+            "Reforma + ataca: +14d12+94 Dano Verdadeiro automatico",
             "Neblina venenosa 5m: 68 dano verdadeiro/round"
           ]
         },
         {
           "name": "O Marechal Se Levanta",
           "type": "ultimate",
-          "description": "Por 4 rounds: Norman canaliza milenios de existencia vampirica. 3 ataques/turn de +17d17+119 Dano Verdadeiro. Aura de 15m: vampiros aliados ficam imunes a fraquezas e ganham +26 Resultado. Inimigos em aura: DT WILL 75/round ou -17 Resultado por terror sobrenatural. Norman nao pode ser morto durante esta Ultimate (cai para 1 PV). CD: 9 rounds.",
+          "description": "Por 4 rounds: Norman canaliza milenios de existencia vampirica. 3 ataques/turn de +17d12+119 Dano Verdadeiro. Aura de 15m: vampiros aliados ficam imunes a fraquezas e ganham +26 Resultado. Inimigos em aura: DT WILL 75/round ou -17 Resultado por terror sobrenatural. Norman nao pode ser morto durante esta Ultimate (cai para 1 PV). CD: 9 rounds.",
           "stats": [
-            "4 rounds | 3 ataques/turn: +17d17+119 Dano Verdadeiro",
+            "4 rounds | 3 ataques/turn: +17d12+119 Dano Verdadeiro",
             "Aura 15m: vampiros aliados imunes a fraquezas + +26 Resultado",
             "Inimigos em aura: DT WILL 75/round ou -17 Resultado",
             "Imorreivel durante Ultimate | CD: 9 rounds"
@@ -10121,29 +10122,29 @@
         {
           "name": "Aprimoramento Molecular Perpétuo",
           "type": "passiva",
-          "description": "O sangue de Rosa é molecularmente superior — cada hemácia foi aprimorada para operar em eficiência máxima. A densidade molecular de seu sangue é 10x maior que o normal, concedendo regeneração de 150 PV/rodada e imunidade a veneno, doença e necrose. Seu sangue aprimorado é tóxico para não-híbridos: quem o tocar sofre 4d10 de dano cáustico. Sempre que Rosa causa dano que faz o alvo sangrar, ela absorve esse sangue e o aprimora — cada absorção concede +4 no Resultado de seus próximos ataques (acumulável, máx +20). A eficiência molecular também a torna imune a manipulação de sangue de outros.",
+          "description": "O sangue de Rosa é molecularmente superior — cada hemácia foi aprimorada para operar em eficiência máxima. A densidade molecular de seu sangue é 10x maior que o normal, concedendo regeneração de 220 PV/rodada e imunidade a veneno, doença e necrose. Seu sangue aprimorado é tóxico para não-híbridos: quem o tocar sofre 4d10 de dano cáustico. Sempre que Rosa causa dano que faz o alvo sangrar, ela absorve esse sangue e o aprimora — cada absorção concede +4 no Resultado de seus próximos ataques (acumulável, máx +24). A eficiência molecular também a torna imune a manipulação de sangue de outros.",
           "stats": [
-            "Regeneração: 150 PV/rodada | Imune a veneno, doença, necrose, manipulação de sangue",
+            "Regeneração: 220 PV/rodada | Imune a veneno, doença, necrose, manipulação de sangue",
             "Sangue aprimorado: cáustico a não-híbridos (4d10 ao tocar)",
-            "Absorve sangue inimigo: +4 Resultado por absorção (máx +20)"
+            "Absorve sangue inimigo: +4 Resultado por absorção (máx +24)"
           ]
         },
         {
           "name": "Aprimoramento Ofensivo — Densidade Letal",
           "type": "ativa",
-          "description": "Rosa concentra o aprimoramento molecular em suas próprias moléculas sanguíneas, aumentando a densidade e a reatividade ao extremo. Por 3 rodadas: todos os ataques de Rosa causam 50% de dano adicional (o sangue aprimorado amplifica cada golpe). Além disso, cada ataque injeta uma micro-dose de sangue aprimorado no inimigo — suas moléculas de sangue começam a entrar em ressonância com as de Rosa. Após 3 ataques no mesmo alvo, a ressonância se completa: o sangue do alvo é aprimorado FORÇADAMENTE além do que seu corpo suporta — detonação interna de 10d6+50 de Dano Verdadeiro.",
+          "description": "Rosa concentra o aprimoramento molecular em suas próprias moléculas sanguíneas, aumentando a densidade e a reatividade ao extremo. Por 3 rodadas: todos os ataques de Rosa causam 50% de dano adicional (o sangue aprimorado amplifica cada golpe). Além disso, cada ataque injeta uma micro-dose de sangue aprimorado no inimigo — suas moléculas de sangue começam a entrar em ressonância com as de Rosa. Após 3 ataques no mesmo alvo, a ressonância se completa: o sangue do alvo é aprimorado FORÇADAMENTE além do que seu corpo suporta — detonação interna de 12d6+55 de Dano Verdadeiro.",
           "stats": [
             "3 Rodadas | Ataques +50% dano | Cada ataque injeta sangue aprimorado (ressonância)",
-            "3 ataques no mesmo alvo: Ressonância completa — detonação 10d6+50 Verdadeiro",
+            "3 ataques no mesmo alvo: Ressonância completa — detonação 12d6+55 Verdadeiro",
             "CD: 4 Rodadas"
           ]
         },
         {
           "name": "Aprimoramento Coletivo — Sintonia Sanguínea",
           "type": "ativa",
-          "description": "Rosa compartilha seu sangue aprimorado com aliados através de gotas micro-moleculares que penetram pela pele. O sangue de cada aliado é temporariamente aprimorado à altura do dela. 1d3+1 aliados em 15m: ganham Sintonia Sanguínea por 4 rodadas — atributos físicos +10, regeneração de 120 PV/rodada, ataques causam +4d6 de dano aprimorado, e tornam-se imunes a efeitos de sangue e veneno. Aliados com Sintonia podem gastar 1 Reação para transferir 100 PV entre si. Após o efeito, o sangue volta ao normal sem efeitos colaterais (o aprimoramento é limpo, não destrutivo).",
+          "description": "Rosa compartilha seu sangue aprimorado com aliados através de gotas micro-moleculares que penetram pela pele. O sangue de cada aliado é temporariamente aprimorado à altura do dela. 1d3+1 aliados em 15m: ganham Sintonia Sanguínea por 4 rodadas — atributos físicos +12, regeneração de 150 PV/rodada, ataques causam +4d6 de dano aprimorado, e tornam-se imunes a efeitos de sangue e veneno. Aliados com Sintonia podem gastar 1 Reação para transferir 100 PV entre si. Após o efeito, o sangue volta ao normal sem efeitos colaterais (o aprimoramento é limpo, não destrutivo).",
           "stats": [
-            "1d3+1 aliados 15m | Sintonia Sanguínea 4 rodadas: +10 físicos | regen 120/rodada",
+            "1d3+1 aliados 15m | Sintonia Sanguínea 4 rodadas: +12 físicos | regen 150/rodada",
             "+4d6 aprimorado/ataque | imune a sangue e veneno | Transferência de 100 PV entre sintonizados",
             "CD: 5 Rodadas"
           ]
@@ -10151,9 +10152,9 @@
         {
           "name": "Sobrecarga Molecular — Sangue Inimigo",
           "type": "ativa",
-          "description": "Rosa inverte seu aprimoramento: em vez de otimizar, ela APRIMORA o sangue do inimigo além do limite suportável, causando uma sobrecarga molecular catastrófica. 1 alvo em 12m: DT Constituição 38. O sangue do alvo é forçado a uma densidade molecular insustentável. Falha: 8d6+45 de Dano Verdadeiro, o alvo perde 50 PV permanentes (não recuperáveis neste combate) e sofre Sobrecarga — a cada cura recebida, sofre 4d6 de dano (o sangue aprimorado rejeita cura externa). Sucesso: metade do dano, sem sobrecarga. Se o alvo tiver menos de 30% de vida, a sobrecarga é fatal — o sangue detona por dentro.",
+          "description": "Rosa inverte seu aprimoramento: em vez de otimizar, ela APRIMORA o sangue do inimigo além do limite suportável, causando uma sobrecarga molecular catastrófica. 1 alvo em 12m: DT Constituição 40. O sangue do alvo é forçado a uma densidade molecular insustentável. Falha: 12d6+55 de Dano Verdadeiro, o alvo perde 50 PV permanentes (não recuperáveis neste combate) e sofre Sobrecarga — a cada cura recebida, sofre 4d6 de dano (o sangue aprimorado rejeita cura externa). Sucesso: metade do dano, sem sobrecarga. Se o alvo tiver menos de 30% de vida, a sobrecarga é fatal — o sangue detona por dentro.",
           "stats": [
-            "1 alvo 12m | DT Constituição 38 | Falha: 8d6+45 Verdadeiro + -50 PV permanentes",
+            "1 alvo 12m | DT Constituição 40 | Falha: 12d6+55 Verdadeiro + -50 PV permanentes",
             "Sobrecarga: cura causa 4d6 dano | Sucesso: metade dano",
             "Alvo <30% vida: Sobrecarga fatal (detonação interna) | CD: 4 Rodadas"
           ]
@@ -10161,12 +10162,93 @@
         {
           "name": "Evolução Sanguínea — O Sangue Perfeito",
           "type": "ultimate",
-          "description": "Rosa alcança o ápice de sua alquimia molecular: ela evolui TODO o sangue ao seu redor a um novo estado de perfeição. Área 30m: Rosa detona uma onda de aprimoramento molecular que afeta cada criatura. Aliados: sangue evolui — +16 em TODOS os atributos, regeneração de 200 PV/rodada, imunidade a TODO dano abaixo de 30 por golpe, e ataques causam Dano Verdadeiro por 5 rodadas. Inimigos: DT Constituição 42 — Falha: o sangue é aprimorado tão rápido que entra em colapso molecular — 15d6+70 de Dano Verdadeiro, e ficam Vulneráveis a TODO dano (x2) por 5 rodadas enquanto suas moléculas se desestruturam. Rosa自身: evolui ao máximo — cura completa, +20 em tudo, e pode aprimorar uma habilidade aliada (dobra duração e dano). Cada inimigo que morrer alimenta a evolução: +1 rodada de duração.",
+          "description": "Rosa alcança o ápice de sua alquimia molecular: ela evolui TODO o sangue ao seu redor a um novo estado de perfeição. Área 30m: Rosa detona uma onda de aprimoramento molecular que afeta cada criatura. Aliados: sangue evolui — +16 em TODOS os atributos, regeneração de 220 PV/rodada, imunidade a TODO dano abaixo de 30 por golpe, e ataques causam Dano Verdadeiro por 5 rodadas. Inimigos: DT Constituição 44 — Falha: 18d6+80 de Dano Verdadeiro e seu sangue é reescrito — ficam Vulneráveis a TODO dano (x2) por 5 rodadas. Rosa: evolui ao máximo — cura completa, +20 em tudo, e pode aprimorar uma habilidade aliada (dobra duração e dano). Cada inimigo que morrer alimenta a evolução: +1 rodada de duração.",
           "stats": [
-            "Área 30m | Aliados: +16 tudo | regen 200/rodada | imune a dano <30 | Dano Verdadeiro (5 rodadas)",
-            "Inimigos: DT Constituição 42 — Falha: 15d6+70 Verdadeiro + Vulnerável (x2 dano) 5 rodadas",
+            "Área 30m | Aliados: +16 tudo | regen 220/rodada | imune a dano <30 | Dano Verdadeiro (5 rodadas)",
+            "Inimigos: DT Constituição 44 — Falha: 18d6+80 Verdadeiro + Vulnerável (x2 dano) 5 rodadas",
             "Rosa: cura completa + +20 tudo + dobra 1 habilidade aliada | Abate inimigo: +1 rodada",
             "CD: 12 Rodadas"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "silas-npc-mystic-primordial",
+      "nome": "Silas Laufeyson — O Deus das Mentiras",
+      "profile": "mistico",
+      "nivel": 44,
+      "na": "10",
+      "raca": "Humano Místico — Guardião Supremo",
+      "description": "Cinco mil anos de existência forjaram Silas Laufeyson em algo que transcende a humanidade. Mestre da ilusão, manipulação e da magia primordial, sua voz carrega fragmentos do idioma que existia antes das civilizações. Não controla mentes — ele reescreve a realidade ao redor delas. Cada mentira que conta se torna verdade, cada ilusão que cria se torna mais real que o mundo que a cerca. O Deus das Mentiras não luta com força bruta; ele vence fazendo seus inimigos duvidarem de tudo — inclusive de si mesmos.",
+      "avatar": "codex-avatars/silas-npc-mystic-primordial.webp",
+      "attrs": [
+        16,
+        28,
+        20,
+        30,
+        14,
+        38
+      ],
+      "stats": {
+        "vida": 6336,
+        "arm": 74,
+        "ba": 51,
+        "bd": 48,
+        "ca": 58,
+        "reac": 14,
+        "dano": "19d6+56",
+        "danoExtra": "+6d12",
+        "tag": "vs 10 PCs + AL(4)"
+      },
+      "abilities": [
+        {
+          "name": "Deus da Mentira & Feiticeiro Primordial",
+          "type": "passiva",
+          "description": "A essência de Silas é a negação da verdade. Até 3 vezes por combate, quando um inimigo declara uma ação, Silas pode simplesmente dizer 'Não.' — a ação é completamente anulada (todos os efeitos cancelados) e Silas ganha 1 ação adicional imediata. DT Vontade 46 — se o alvo resistir, a anulação falha mas o alvo sofre -5 no Resultado de todas as ações até o fim da rodada. Além disso, o refinamento de energia primordial de Silas permite que, até 5 vezes por combate, qualquer habilidade não-Ultimate custe apenas 40% da energia original. Regeneração passiva de 550 PV/rodada sustentada pela magia que flui em suas veias de Guardião Supremo.",
+          "stats": [
+            "3x/combate: Anula ação inimiga completamente + Silas ganha ação extra | DT Vontade 46",
+            "Resistência: alvo sofre -5 no Resultado (rodada) | 5x/combate: habilidades não-Ultimate custam 40% energia",
+            "Regeneração: 550 PV/rodada | Imune a ilusões e controle mental"
+          ]
+        },
+        {
+          "name": "Clonagem Absoluta",
+          "type": "ativa",
+          "description": "Silas fragmenta sua própria existência em cópias perfeitas, cada uma com uma fração de seu poder mas indistinguível do original. Invoca 1d3+1 Clones. Cada clone tem 800 PV, usa habilidades a 70% de eficácia, e causa 15d6+45 por ataque. Quando há clones ativos, todo inimigo que atacar deve escolher um número (1, 2 ou 3) — apenas um é o Silas real. Acertar: o clone atingido é destruído mas Silas ganha +10 no Resultado do próximo ataque. Errar: o inimigo desperdiça a ação. Clones duram 4 rodadas. Se todos os clones forem destruídos, Silas pode recriá-los pagando 40% de energia.",
+          "stats": [
+            "Invoca 1d3+1 Clones (800 PV | 15d6+45/ataque | habilidades a 70%)",
+            "Inimigos devem adivinhar o real (1, 2 ou 3) | Erro: ação desperdiçada",
+            "Clone destruído: Silas +10 Resultado | Duram 4 rodadas | CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Ilusionista Primordial — Marca da Dúvida",
+          "type": "ativa",
+          "description": "Silas tece uma ilusão tão perfeita que a realidade duvida de si mesma. Área 15m: todos os inimigos fazem DT Vontade 48 (Vontade vs Poder de Silas, que tem Vantagem). Falha: sofrem 18d6+75 de dano psíquico Verdadeiro e recebem 1 Marca de Dúvida. Marcas acumulam (resetam se o alvo resistir a uma ilusão): 1 Marca: -3 em Vontade/Percepção vs Silas (acumulável). 2 Marcas: Silas pode forçar um erro do alvo 1x (declara uma ação do alvo como falha automaticamente). 3 Marcas: Silas escolhe um efeito — golpe inevitável (ignora defesa), perda de ação, ou reroll obrigatório de uma jogada bem-sucedida. Ilusão persiste 3 rodadas.",
+          "stats": [
+            "Área 15m | DT Vontade 48 (Silas tem Vantagem) | Falha: 18d6+75 psíquico Verdadeiro",
+            "Marcas de Dúvida acumulam: 1=(-3 Vontade/Percep), 2=(força falha 1x), 3=(golpe inevitável/perde ação/reroll)",
+            "Ilusão persiste 3 rodadas | CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Vínculo Entrópico & Lâminas da Mentira",
+          "type": "ativa",
+          "description": "Silas lança 3 adagas de energia primordial que, ao acertar, criam um vínculo entrópico — uma ponte de decadência entre ele e o alvo. 3 ataques: 14d6+50 cada. Se todos os 3 acertarem, o vínculo se completa: o alvo sofre 10d6+35 de dano necrótico por rodada por 3 rodadas, Silas cura 25% do dano causado, e 1 habilidade do alvo é selada (não pode ser usada) por 2 rodadas. DT Constituição 44 — Falha: dano completo. Sucesso: metade do dano, vínculo cortado. Silas pode trocar a habilidade selada a cada rodada enquanto o vínculo persistir. Alcance do vínculo: 20m.",
+          "stats": [
+            "3 ataques: 14d6+50 cada | 3 acertos: Vínculo Entrópico ativa",
+            "Vínculo: 10d6+35 necrótico/rodada (3 rodadas) | Silas cura 25% | 1 habilidade selada (2 rodadas)",
+            "DT Constituição 44 | Alcance vínculo: 20m | CD: 3 Rodadas"
+          ]
+        },
+        {
+          "name": "Labirinto das Mil Verdades",
+          "type": "ultimate",
+          "description": "Silas sela até 3 inimigos em um domínio ilusório primordial — um labirinto onde cada verdade é uma mentira e cada mentira é absoluta. Por 5 rodadas: os alvos selados existem apenas dentro do labirinto. Silas escolhe a ordem de iniciativa e pode reescrever 1 ação de cada alvo por rodada (declara o que o alvo faz em vez do que ele queria). Ao fim de cada rodada, cada alvo faz DT Vontade 50. Falha: 28d6+130 de dano psíquico Verdadeiro e Silas pode alterar até 1d20 da próxima rolagem do alvo. Sucesso: metade do dano, mas o alvo permanece selado. Alvos selados não podem ser atingidos por aliados (estão em outra dimensão). A cada alvo que cair no labirinto, Silas recupera 300 PV e 1 uso de 'Deus da Mentira'.",
+          "stats": [
+            "5 Rodadas | Sela até 3 inimigos | Silas controla iniciativa + reescreve 1 ação/alvo/rodada",
+            "DT Vontade 50/rodada — Falha: 28d6+130 psíquico Verdadeiro + Silas altera 1d20 da próxima rolagem",
+            "Alvo cai: Silas cura 300 PV + 1 uso extra de Deus da Mentira | CD: 12 Rodadas"
           ]
         }
       ]
