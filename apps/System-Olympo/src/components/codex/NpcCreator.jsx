@@ -109,6 +109,8 @@ export default function NpcCreator({ onCreated, onBack }) {
         attrs: finalAttrs,
         abilities,
         distType,
+        attrCap: result.attrCap,
+        vidaAtual: result.stats.vida,
         description,
         created_at: new Date().toISOString(),
       }
@@ -251,13 +253,10 @@ export default function NpcCreator({ onCreated, onBack }) {
           <div className="flex gap-2">
             {DIST_TYPES.map(d => (
               <button key={d.key} onClick={() => setDistType(d.key)}
-                disabled={d.key === 'extrema' && nivel < 15}
                 className={`flex-1 px-3 py-2 rounded-lg text-xs font-mono tracking-wider transition-colors ${
                   distType === d.key
                     ? 'bg-primary/20 text-primary border border-primary/30'
-                    : d.key === 'extrema' && nivel < 15
-                      ? 'text-outline/30 border border-outline/10 cursor-not-allowed'
-                      : 'text-outline border border-outline/15 hover:border-primary/30'
+                    : 'text-outline border border-outline/15 hover:border-primary/30'
                 }`}>
                 {d.label}
                 <span className="block text-[10px] opacity-60 mt-0.5">{d.desc}</span>

@@ -1,6 +1,6 @@
 import { CODEX_PROFILES } from '../data/codexProfiles'
 import { CODEX_NA_MODS } from '../data/codexNaMods'
-import { CODEX_ATTR_DIST } from '../data/codexAttrDist'
+import { CODEX_ATTR_DIST, getAttrCapForLevel, getAttrPoolForLevel } from '../data/codexAttrDist'
 
 export function attrMod(v) {
   const m = Math.floor((v - 10) / 2)
@@ -74,13 +74,27 @@ export function getAttrDist(level, distType) {
   return pick(tbl) || pick(fallback)
 }
 
-export function generateNpcStats(profileKey, nivel, naStr, distType) {
+export function generateNpcStats(profileKey, nivel, naStr, distType, existingAttrs) {
   const base = interpolateProfile(profileKey, nivel)
   if (!base) return null
   const stats = applyNA(base, naStr)
+
+  if (distType === 'livre') {
+    const cap = getAttrCapForLevel(nivel)
+    if (existingAttrs && existingAttrs.length === 6) {
+      return { stats, attrs: existingAttrs.map(v => Math.max(1, Math.min(cap + 5, v))), profile: profileKey, nivel, na: naStr, distType: 'livre', attrCap: cap }
+    }
+    const pool = getAttrPoolForLevel(nivel)
+    const baseVal = Math.floor(pool / 6)
+    const remainder = pool - baseVal * 6
+    const attrs = Array(6).fill(baseVal)
+    for (let i = 0; i < remainder; i++) attrs[i]++
+    return { stats, attrs, profile: profileKey, nivel, na: naStr, distType: 'livre', attrCap: cap }
+  }
+
   const distArray = getAttrDist(nivel, distType)
   const attrs = [...distArray]
     .sort((a, b) => b - a)
     .map(v => Math.max(1, v + rand(-1, 1)))
-  return { stats, attrs, profile: profileKey, nivel, na: naStr }
+  return { stats, attrs, profile: profileKey, nivel, na: naStr, distType: distType || 'balanceada' }
 }
