@@ -287,20 +287,38 @@ export async function migrateCodexIfNeeded() {
       }
     }
   }
+  const existingIds = new Set(npcs.map(n => n.id))
+  const newNpcs = (seedData.npcs || []).filter(n => !existingIds.has(n.id)).map(n => ({
+    ...n,
+    _rebalanced: true,
+    updated_at: new Date().toISOString(),
+  }))
   const changed = updated.some((n, i) => n !== npcs[i])
-  if (changed) {
+  if (changed || newNpcs.length > 0) {
+    const stores = [STORE_NAME]
+    if (newNpcs.length > 0) stores.push(ASSIGNMENTS_STORE)
     await new Promise((resolve, reject) => {
       openDB().then(db => {
-        const transaction = db.transaction(STORE_NAME, 'readwrite')
+        const transaction = db.transaction(stores, 'readwrite')
         const store = transaction.objectStore(STORE_NAME)
         updated.forEach(npc => store.put({ ...npc, updated_at: new Date().toISOString() }))
+        newNpcs.forEach(npc => store.put(npc))
+        if (newNpcs.length > 0 && seedData.assignments) {
+          const assignStore = transaction.objectStore(ASSIGNMENTS_STORE)
+          newNpcs.forEach(npc => {
+            const folderId = seedData.assignments[npc.id]
+            if (folderId) {
+              assignStore.put({ npcId: npc.id, folderId, updated_at: new Date().toISOString() })
+            }
+          })
+        }
         transaction.oncomplete = () => resolve()
         transaction.onerror = () => reject(transaction.error)
       })
     })
   }
   localStorage.setItem(SEED_VERSION_KEY, CURRENT_SEED_VERSION)
-  const count = updated.filter((n, i) => n !== npcs[i]).length
+  const count = updated.filter((n, i) => n !== npcs[i]).length + newNpcs.length
   return { migrated: count > 0, count }
 }
 
