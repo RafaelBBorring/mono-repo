@@ -243,7 +243,8 @@
     "49511437-c188-4e0f-bf66-b7971912b7fb": "f-supremas",
     "npc-nyx-001": "f-supremas",
     "npc-ancestrais-001": "f-conven-ancestrais",
-    "36ec88f3-b9df-4b84-900f-26298d48b5d3": "f-carmesim"
+    "36ec88f3-b9df-4b84-900f-26298d48b5d3": "f-carmesim",
+    "rosa-vh-hybrid-0001": "f-vanhelsing"
   },
   "npcs": [
     {
@@ -718,232 +719,247 @@
     {
       "description": "",
       "attrs": [
-        29,
-        33,
         26,
-        19,
+        30,
         24,
-        17
+        24,
+        24,
+        24
       ],
       "id": "ea199993-0dff-49c7-aad9-53c76173ad87",
       "avatar": "codex-avatars/ea199993-0dff-49c7-aad9-53c76173ad87.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 29,
+      "na": "6",
+      "nivel": 37,
       "abilities": [
         {
-          "description": "Na forma de lobo permanente, Nessa desenvolveu instintos de caça que humanos não alcançariam em mil vidas. Rastreia qualquer ser que tenha ferido por cheiro em 50m. Ataques contra alvos que ainda não agiram na rodada: +6d10+28 adicional (caçada). Velocidade sempre dobrada. Regenera 193 PV/Rod.",
-          "name": "Predadora Permanente",
+          "name": "Caçadora da Lua de Sangue",
+          "type": "passiva",
+          "description": "Nessa carrega a energia da Lua de Sangue em suas veias híbridas — cada disparo é guiado pela fúria lupina e a sede vampírica. Ataques à distância de Nessa nunca falham o alvo (ignoram cobertura) e causam +4d8 de dano sanguíneo. A cada 3 ataques, o próximo é um Tiro de Sangue: causa Sangramento (4d8/rodada) e Nessa cura 60 PV. Inimigos Sangrando podem ser rastreados por Nessa em qualquer distância.",
           "stats": [
-            "Rastreamento por cheiro: 50m | Ataques contra alvos sem agir/Rod: +6d10+28",
-            "Velocidade dobrada | Regeneração 193 PV/Rod"
-          ],
-          "type": "passiva"
+            "Ataques à distância nunca falham | ignora cobertura | +4d8 sanguíneo",
+            "A cada 3 ataques: Tiro de Sangue (Sangramento 4d8/rodada + cura 60 PV)",
+            "Sangrando = rastreável em qualquer distância"
+          ]
         },
         {
-          "description": "Nessa some e reaparece. Invisível por 2 Rod (meios não mágicos). Cada ataque na invisibilidade: automático + caçada da passiva. Saída: 1 ataque de +15d15+95 Verdadeiro. Permanece irrastreável por 1 Rod adicional.",
-          "name": "Emboscada do Crepúsculo",
+          "name": "Flecha da Lua Carmesim",
+          "type": "ativa",
+          "description": "Nessa nocka uma flecha feita de pura energia da lua de sangue — vermelha, pulsante, viva. 1 alvo: 10d8+48 de dano perfurante + sanguíneo. DT Constituição 38. Falha: a flecha se reproduz dentro do alvo — 2d4 flechas explodem de seu corpo, cada uma atingindo um inimigo adjacente (8d8+24 cada). O alvo primário fica com Marca de Caça: Nessa causa +50% de dano contra ele até o fim do combate.",
           "stats": [
-            "2 Rod invisível (não mágico) | Ataques: automáticos + caçada",
-            "Saída: +15d15+65 Verdadeiro | +1 Rod irrastreável"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d8+48 perfurante + sanguíneo | DT Constituição 38",
+            "Falha: 2d4 flechas explodem (8d8+24 cada em adjacentes)",
+            "Marca de Caça: Nessa +50% dano vs alvo (permanente) | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "3 ataques precisos: +7d15+47 Verdadeiro cada. O 1º aplica -2 Reações. O 3º é sempre caçada (mesmo que o alvo tenha agido). Se todos acertarem: Sangramento de 90/Rod × 3.",
-          "name": "Tríade de Garras",
+          "name": "Chuva de Prata Sombria",
+          "type": "ativa",
+          "description": "Nessa salta ao ar (mistura de agilidade lupina e levitação vampírica) e chove flechas sobre a área inteira. Área 15m: 8d8+36 de dano a todos. Cada inimigo rola 1d4: 1-2 = uma flecha (dano normal), 3-4 = três flechas (dano triplo). Todas as flechas causam Sangramento (3d8/rodada). Nessa pousa onde quiser na área. Inimigos com 3+ flechas cravadas: -8 em todas as ações.",
           "stats": [
-            "3 ataques: +7d15+47 Verdadeiro | 1º: -2 Reações | 3º: caçada sempre",
-            "3 acertos: Sangramento 90/Rod × 3"
-          ],
-          "type": "ativa"
+            "Área 15m | 8d8+36 por flecha | 1d4 flechas/inimigo (3-4 = dano triplo)",
+            "Todas causam Sangramento (3d8/rodada) | 3+ flechas: -8 em tudo",
+            "Pousa em qualquer ponto da área | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Nessa marca 1 alvo como Presa. Por 3 Rod: todos seus ataques contra a Presa são automáticos, +4d15+29 adicional e o alvo não pode usar habilidades de evasão ou invisibilidade. Morte da Presa: regenera 674 PV + nova marca imediata.",
-          "name": "Faro da Morte",
+          "name": "Fera Arqueira",
+          "type": "ativa",
+          "description": "Nessa assume uma forma híbrida parcial — pernas lupinas para mobilidade, olhos de vampira para precisão sobre-humana. Por 3 rodadas: +14 no Resultado de todos os ataques à distância, 3 ataques por rodada, e cada flecha carrega maldição lupina (alvo DT Vontade 34 — Falha: não pode usar habilidades por 1 rodada). Nessa pode atirar enquanto se move e pula paredes. Seu arco se torna parte de seu corpo.",
           "stats": [
-            "1 alvo marcado | 3 Rod: ataques automáticos + +4d15+29 + bloqueia evasão/invisibilidade",
-            "Morte da Presa: 674 PV + nova marca imediata"
-          ],
-          "type": "ativa"
+            "3 Rodadas | +14 Resultado à distância | 3 ataques/rodada",
+            "Maldição lupina: DT Vontade 34 ou sem habilidades 1 rodada",
+            "Atira em movimento + escala paredes | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rod: 4 ataques/turno de +10d10+45 Verdadeiro, todos com caçada da passiva. Alternância invisibilidade/ataque como Ação Livre. Regenera 385 PV/Rod. Qualquer ser que morrer durante a caçada: Nessa absorve sua velocidade — ganha +5 no Resultado de tudo por morte (acumula).",
-          "name": "A Caçada Nunca Termina",
+          "name": "Eclipse Carmesim — A Caçada Final",
+          "type": "ultimate",
+          "description": "Nessa invoca a própria Lua de Sangue no céu — o campo de batalha fica vermelho, e cada inimigo se torna uma presa visível em vermelho vivo. Por 5 rodadas: Nessa tem visão perfeita de tudo (ignora toda cobertura, invisibilidade, ilusão). Cada ataque: 12d8+55 Verdadeiro, +1 ataque por rodada a cada abate (sem limite). Inimigos com Sangramento sofrem dano dobrado. No final, Nessa dispara a Flecha Apocalíptica: 20d8+90 em linha de 30m, perfurando TODOS em seu caminho.",
           "stats": [
-            "3 Rod | 4 ataques/turno: +10d10+45 Verdadeiro (todos caçada)",
-            "Invisibilidade/ataque: Ação Livre | Regeneração 385 PV/Rod",
-            "Morte inimiga: +5 Resultado permanente no combate (acumula) | CD: 8 Rod"
-          ],
-          "type": "ultimate"
+            "5 Rodadas | Visão total | 12d8+55 Verdadeiro | +1 ataque/abate",
+            "Sangrando sofre dano dobrado",
+            "Final: Flecha Apocalíptica 20d8+90 em linha 30m (perfura tudo)",
+            "CD: 12 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1861,
-        "arm": 47,
-        "ba": 33,
-        "bd": 30,
-        "ca": 40,
-        "reac": 10,
-        "dano": "10d8+35",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3976,
+        "arm": 65,
+        "ba": 42,
+        "bd": 39,
+        "ca": 49,
+        "reac": 12,
+        "dano": "12d8+42",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Nessa Crepúsculo",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        31,
-        26,
-        31,
-        14,
-        17,
-        14
+        30,
+        22,
+        32,
+        18,
+        18,
+        22
       ],
       "id": "5b662cfc-b41d-4f74-a034-ea4bc3a54c13",
       "avatar": "codex-avatars/5b662cfc-b41d-4f74-a034-ea4bc3a54c13.webp",
       "profile": "guerreiro",
-      "na": "4",
-      "nivel": 27,
+      "na": "6",
+      "nivel": 35,
       "abilities": [
         {
-          "description": "Bram nasceu na maldição — nunca soube o que é ser humano. Isso o torna mais lobo do que qualquer outro. Seu dano base aumenta em +1d10+6 por rodada de combate (máx +6d10+24). Imune a qualquer efeito psicológico (nunca teve os sistemas humanos para sofrer deles). Ataca 2× por turno naturalmente.",
-          "name": "Maldição Jovem",
+          "name": "Mandíbula de Ferro",
+          "type": "passiva",
+          "description": "A densidade óssea lupina de Bram, reforçada por necrose vampírica, cria uma estrutura corporal literalmente inquebrável. +18 de ARM base. Imune a dano esmagador e a efeitos que tentem quebrar/deslocar ossos. A cada golpe recebido, a armadura necrótica se compacta ainda mais — cada 100 PV de dano sofrido concede +2 de ARM permanente até o fim do combate (máx +20). Bram pode morder armas inimigas e quebrá-las (DT Constituição da arma 35).",
           "stats": [
-            "Acúmulo: +1d10+6 dano/Rod (máx +6d10+24) | Imune a efeitos psicológicos",
-            "Ataca 2× por turno naturalmente"
-          ],
-          "type": "passiva"
+            "+18 ARM base | Imune a dano esmagador e fratura",
+            "A cada 100 PV sofridos: +2 ARM permanente (máx +20)",
+            "Pode quebrar armas com a mordida (DT Const 35)"
+          ]
         },
         {
-          "description": "4 ataques: +6d15+38 Dano Verdadeiro cada. Se todos acertarem: DT Fortitude 44 — Falha: incapacitado 1 Rod.",
-          "name": "Fúria Bruta",
+          "name": "Mordida Esmagadora",
+          "type": "ativa",
+          "description": "Bram agarra o inimigo com as duas mãos e crava as presas no pescoço, esmagando osso e drenando sangue simultaneamente. 1 alvo: 10d10+50 de dano. DT Constituição 38. Falha: o alvo tem um osso quebrado (escolha do mestre: braço = -8 ataques, perna = -8 movimento, costela = +25% dano recebido) por 3 rodadas. Bram cura 100% do dano causado.",
           "stats": [
-            "4 ataques: +6d15+38 Verdadeiro | 4 acertos: DT 30 — Falha: incapacitado 1 Rod"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d10+50 | DT Constituição 38",
+            "Falha: Osso quebrado (-8 ataques/movimento OU +25% dano recebido) 3 rodadas",
+            "Bram cura 100% do dano | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Move 14m em linha reta + 1 golpe devastador: DT Fortitude 44 — Falha: 15d15+96 Verdadeiro + derrubado + -3 Reações. Acumula +1d15+6 passiva.",
-          "name": "Investida Feroz",
+          "name": "Muralha de Ossos",
+          "type": "ativa",
+          "description": "Bram cospe ossos necróticos de sua boca que crescem em uma muralha de 8m de comprimento e 3m de altura. A muralha tem 600 PV, 30 de ARM, e é imune a dano perfurante. Inimigos que tentarem escalar/cruzar: 6d10 de dano e DT Força 36. A muralha existe até ser destruída ou Bram a dissolver (ação livre, cura 150 PV). Bram pode criar 2 muralhas simultâneas.",
           "stats": [
-            "Move 14m + golpe | DT 30 — Falha: 15d15+96 Verdadeiro + derrubado + -3 Reações",
-            "+1d15+6 passiva"
-          ],
-          "type": "ativa"
+            "Muralha 8m x 3m | 600 PV | 30 ARM | imune a perfurante",
+            "Cruzar: 6d10 + DT Força 36 | Dissolver: cura 150 PV",
+            "Máx 2 muralhas simultâneas | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Por 2 Rod: +25 ARM, imune a Sangramento, cada ataque recebido regenera 143 PV, e qualquer imobilização simplesmente não funciona.",
-          "name": "Resistência Maldita",
+          "name": "Ossada Animada",
+          "type": "ativa",
+          "description": "Bram arranca ossos de seu próprio corpo (regeneram instantaneamente) e os lança como projéteis que crescem em esqueletos lupinos. Área 12m: 8d10+35 de dano perfurante a todos. 1d3 dos ossos atingidos se transformam em Esqueletos Lobo (cada um: 200 PV, 6d10+20, 12 ARM) que servem Bram por 4 rodadas. Os esqueletos podem se fundir com inimigos, prendendo-os (DT Força 34 para escapar).",
           "stats": [
-            "2 Rod | +25 ARM | Imune a Sangramento | Imobilização falha automaticamente",
-            "Ataque recebido: regenera 143 PV"
-          ],
-          "type": "ativa"
+            "Área 12m | 8d10+35 perfurante | Invoca 1d3 Esqueletos Lobo (200 PV cada)",
+            "Esqueletos: 6d10+20 | 12 ARM | 4 rodadas | podem prender inimigos (DT For 34)",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rod: dano ×3, 3 ataques/turno de +12d10+50 Verdadeiro, ARM +54, regenera 448 PV/Rod. Qualquer ser que tente imobilizá-lo sofre 6d15+41 de contra-impacto.",
-          "name": "Besta da Maldição",
+          "name": "Colosso Ósseo — A Fortaleza Viva",
+          "type": "ultimate",
+          "description": "Bram absorve todos os ossos da área (muralhas, esqueletos, restos) e cresce até 6 metros — um colosso de osso e necrose que obscurece o sol. Por 4 rodadas: ARM triplicada, 400 PV/rodada de regeneração, imune a TODO dano cortante e perfurante. Cada ataque: 14d10+60 em cone de 6m. Uma vez por rodada, Bram pode pisar: todos em 5m sofrem 8d10 de dano sísmico e são Derrubados. A cada 2 inimigos Derrubados, Bram ganha +1 ataque na rodada seguinte.",
           "stats": [
-            "3 Rod | Dano ×3 | 3 ataques/turno: +12d10+50 Verdadeiro | +54 ARM | Regeneração 448 PV/Rod",
-            "Imobilização: 6d15+41 contra-impacto | CD: 8 Rod"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | ARM triplicada | Regen 400/rodada | imune a cortante/perfurante",
+            "Ataques: 14d10+60 cone 6m | Pisão: 8d10 sísmico + Derrubada em 5m (1x/rodada)",
+            "A cada 2 Derrubados: +1 ataque na próxima rodada | CD: 11 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 2064,
-        "arm": 47,
-        "ba": 32,
-        "bd": 29,
-        "ca": 39,
-        "reac": 8,
-        "dano": "8d10+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 4340,
+        "arm": 68,
+        "ba": 40,
+        "bd": 37,
+        "ca": 47,
+        "reac": 11,
+        "dano": "10d10+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Bram Crepúsculo",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        26,
-        29,
-        26,
+        24,
+        28,
+        24,
         26,
         24,
-        17
+        26
       ],
       "id": "987bebd9-7c7b-4bfd-beeb-4dc925e04d9e",
       "avatar": "codex-avatars/987bebd9-7c7b-4bfd-beeb-4dc925e04d9e.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 26,
+      "na": "6",
+      "nivel": 34,
       "abilities": [
         {
-          "description": "Oryn é a exceção — um membro do Crepúsculo que pensa. Seus ataques contra alvos que já usaram habilidades nessa rodada: +8 no Resultado. Acumula Ficha de Combate: +1 por habilidade inimiga vista. 4 fichas: +15 Resultado de tudo. Regenera 163 PV/Rod.",
-          "name": "Cabeça Fria, Pele de Lobo",
+          "name": "Filho do Crepúsculo",
+          "type": "passiva",
+          "description": "Oryn existe no momento exato entre dia e noite — o crepúsculo. Ele canaliza tanto a sombra vampírica quanto o luar lupino, criando uma energia única. Oryn alterna entre Modo Sombra (+12 Esquiva, ataques causam +30% dano nas sombras) e Modo Luar (+12 Defesas, regeneração 80 PV/rodada ao luar) como ação livre a cada rodada. Inimigos em 10m fazem DT Vontade 34 — Falha: ficam Presos no Crepúsculo, vendo o mundo em câmera lenta (-6 em tudo).",
           "stats": [
-            "Ataques vs alvos que já agiram/Rod: +8 Resultado",
-            "Acúmulo: +1 Ficha/habilidade inimiga vista | 4 Fichas: +15 Resultado",
-            "Regeneração: 163 PV/Rod"
-          ],
-          "type": "passiva"
+            "Alterna: Modo Sombra (+12 Esquiva, +30% dano) ou Modo Luar (+12 Def, regen 80/rodada)",
+            "Inimigos 10m: DT Vontade 34 — Falha: Presos no Crepúsculo (-6 tudo)",
+            "Imune a efeitos de luz e escuridão"
+          ]
         },
         {
-          "description": "Oryn não luta por impulso. 2 ataques de posição: +7d15+44 Dano Verdadeiro, ambos ignoram ARM. Se ambos acertarem: +1 Ficha de Combate e alvo perde 2 Reações.",
-          "name": "Golpe Calculado",
+          "name": "Lâmina Crepuscular",
+          "type": "ativa",
+          "description": "Oryn forja uma lâmina de pura luz crepuscular — parte sombra, parte luar — que corta através de realidade e armadura. 1 alvo: 10d8+45 de dano. A lâmina alterna entre física e etérea a cada golpe, tornando impossível de bloquear. DT Vontade 36. Falha: o alvo fica Entre Mundos — 50% de chance de qualquer habilidade falhar, regeneração cortada pela metade por 3 rodadas.",
           "stats": [
-            "2 ataques: +7d15+44 Verdadeiro, ignoram ARM",
-            "2 acertos: +1 Ficha + -2 Reações no alvo"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d8+45 | Alterna físico/etéreo (impossível bloquear)",
+            "DT Vontade 36 — Falha: Entre Mundos (50% falha habilidades, regen -50%) 3 rodadas",
+            "CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Ação Livre. Move 10m sem ataques de oportunidade e reposiciona 2 aliados do Crepúsculo (Ação Livre para eles). Aliados reposicionados: +15 Resultado + 1 ataque extra gratuito nessa rodada. +1 Ficha de Combate.",
-          "name": "Reposicionamento de Combate",
+          "name": "Chuva Crepuscular",
+          "type": "ativa",
+          "description": "Oryn dissipa seu corpo em milhares de fragmentos de sombra e luar que chovem sobre a área. Teleporte 15m. Área 10m na chegada: 8d8+38 de dano crepuscular a todos. Os fragmentos se grudam aos inimigos, criando marcas luminescentes: Oryn pode rastreá-los em qualquer distância e causa +4d8 contra eles por 3 rodadas. Aliados na área são curados em 60 PV.",
           "stats": [
-            "Ação Livre | Move 10m + reposiciona 2 aliados (sem custo deles)",
-            "Aliados: +15 Resultado + 1 ataque extra gratuito | +1 Ficha"
-          ],
-          "type": "ativa"
+            "Teleporte 15m | Área 10m: 8d8+38 crepuscular a todos",
+            "Marcas luminescentes: rastreável + Oryn +4d8 contra marcados (3 rodadas)",
+            "Aliados na área: +60 PV | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "1 alvo: Oryn expõe sua maior vulnerabilidade. Por 2 Rod: todos os aliados Crepúsculo recebem +18 Resultado e +3d15+22 vs aquele alvo. DTs do alvo caem -8. +2 Fichas de Combate.",
-          "name": "Identificar Fraqueza",
+          "name": "Reflexo do Crepúsculo",
+          "type": "ativa",
+          "description": "Oryn cria um espelho de crepúsculo que reflete a realidade. Por 3 rodadas: qualquer ataque direcionado a Oryn tem 50% de chance de ser refletido de volta ao atacante com dano dobrado. Oryn pode trocar de lugar com o reflexo (teleporte 10m) como ação livre uma vez por rodada. Inimigos que olharem para o espelho fazem DT Vontade 36 — Falha: ficam Presos olhando para o próprio reflexo (Paralisados 1 rodada).",
           "stats": [
-            "1 alvo | 2 Rod | Aliados Crepúsculo: +18 Resultado + +3d15+22 vs alvo | DTs -8",
-            "+2 Fichas de Combate"
-          ],
-          "type": "ativa"
+            "3 Rodadas | 50% reflexo de ataques (dano dobrado)",
+            "Troca de lugar com o reflexo (teleporte 10m) 1x/rodada grátis",
+            "Olhar para o espelho: DT Vontade 36 ou Paralisado 1 rodada | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rod: Oryn une o que tem de melhor. Age 2×/turno, todos os ataques causam +7d15+47 Verdadeiro adicional. Se tiver 4+ Fichas ao ativar: todos os aliados Crepúsculo recebem +22 Resultado e imunidade a efeitos de controle. Oryn pode gastar 2 Fichas para cancelar 1 habilidade inimiga como Ação Livre.",
-          "name": "Mente e Garras",
+          "name": "Eclipse Crepuscular — O Fim do Dia e da Noite",
+          "type": "ultimate",
+          "description": "Oryn detona o equilíbrio entre luz e trevas, criando um eclipse permanente no campo de batalha. Área 30m por 5 rodadas: nem dia, nem noite, apenas Crepúsculo Eterno. Inimigos na área: 8d8+40 de dano por rodada, todas as habilidades baseadas em luz OU escuridão são seladas, e DT Vontade 40 — Falha: ficam lentos (metade das ações). Oryn fica Onipotente na área: +16 no Resultado, 3 ataques/rodada (12d8+55 cada), teleporte livre, e ignora ARM/CA. No final, 16d8+70 a todos na área.",
           "stats": [
-            "3 Rod | 2 ações/turno | +7d10+32 Verdadeiro adicional",
-            "4+ Fichas: aliados +22 Resultado + imunes a controle",
-            "Gasta 2 Fichas: cancela 1 habilidade inimiga (Ação Livre) | CD: 8 Rod"
-          ],
-          "type": "ultimate"
+            "5 Rodadas | Área 30m | Inimigos: 8d8+40/rodada | luz e trevas seladas",
+            "Inimigos: DT Vontade 40/rodada ou ações pela metade",
+            "Oryn: +16 Resultado | 3 ataques: 12d8+55 | teleporte livre | ignora ARM/CA",
+            "Final: 16d8+70 a todos | CD: 12 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1571,
-        "arm": 44,
-        "ba": 31,
-        "bd": 28,
-        "ca": 38,
-        "reac": 9,
-        "dano": "8d8+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3416,
+        "arm": 63,
+        "ba": 39,
+        "bd": 36,
+        "ca": 46,
+        "reac": 12,
+        "dano": "10d8+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Oryn Crepúsculo",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
@@ -2786,394 +2802,408 @@
     {
       "description": "",
       "attrs": [
-        39,
+        34,
+        24,
         28,
-        39,
-        17,
-        19,
-        17
+        18,
+        18,
+        24
       ],
       "id": "ecc16a51-a953-4d46-84cd-6c4833eef73a",
       "avatar": "codex-avatars/ecc16a51-a953-4d46-84cd-6c4833eef73a.webp",
       "profile": "guerreiro",
-      "na": "4",
-      "nivel": 32,
-      "abilities": [
-        {
-          "description": "Rork não evita dano — ele o absorve e continua. Cada 504 PV sofridos: ARM sobe +8 (acumula sem limite no combate). Imune a Sangramento e veneno. Qualquer ser de tamanho normal que tente derrubá-lo ou empurrá-lo falha automaticamente. Se atingido por crítico: converte em acerto normal e contra-ataca com 4d15+33.",
-          "name": "Muralha de Carne e Maldição",
-          "stats": [
-            "ARM: +8 por 504 PV sofridos (sem limite) | Imune a Sangramento e veneno",
-            "Derrubadas/empurrões normais: falham automaticamente",
-            "Crítico recebido: vira acerto normal + contra-ataque 4d15+33"
-          ],
-          "type": "passiva"
-        },
-        {
-          "description": "DT Fortitude 48 — Falha: 16d15+104 Dano Verdadeiro + derrubado + -3 Reações. Sucesso: metade. Onda de 6m: DT 26 ou 6d15+42.",
-          "name": "Impacto Irresistível",
-          "stats": [
-            "DT Fortitude 48 — Falha: 16d15+104 Verdadeiro + derrubado + -3 Reações",
-            "Onda 6m: DT 26 ou 6d15+42 | Sucesso: metade"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "3 ataques brutais: +7d15+48 cada. O 2º aplica Sangramento de 70/Rod × 3. O 3º DT Fortitude 42 — Falha: perde 2 Reações permanentes no combate.",
-          "name": "Mordida e Arranca",
-          "stats": [
-            "3 ataques: +7d15+48 | 2º: Sangramento 70/Rod × 3",
-            "3º: DT Fortitude 42 — Falha: -2 Reações permanentes no combate"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 2 Rod: ARM +28, qualquer ataque recebido abaixo de 30% PV máximo é ignorado (bounced off), regenera 242 PV/Rod. Inimigos que se aproximem em 4m testam Fortitude DT 26 ou são repelidos.",
-          "name": "Fortaleza Viva",
-          "stats": [
-            "2 Rod | +28 ARM | Ataques <30% PV máximo: ignorados | Regeneração 242 PV/Rod",
-            "Aproximação 4m: DT 26 ou repelido"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 3 Rod: torna-se 2× maior, ARM +71, regenera 605 PV/Rod, 3 ataques/turno de +13d10+58 Verdadeiro. Cada acerto: -2 Reações ao alvo. Qualquer ser Lv<25 que tentar atacar Rork testa Fortitude DT 34 ou é esmagado pela pressão (3d15+30 e derrubado sem ação ofensiva).",
-          "name": "Coloso da Maldição",
-          "stats": [
-            "3 Rod | Tamanho ×2 | +71 ARM | Regeneração 605 PV/Rod | 3 ataques/turno: +13d10+58 Verdadeiro",
-            "Acerto: -2 Reações | Lv<25 atacando: DT 34 ou 3d15+30 + derrubado | CD: 8 Rod"
-          ],
-          "type": "ultimate"
-        }
-      ],
-      "stats": {
-        "vida": 2706,
-        "arm": 52,
-        "ba": 36,
-        "bd": 33,
-        "ca": 43,
-        "reac": 9,
-        "dano": "10d10+35",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
-      },
-      "nome": "Rork Crepúsculo",
-      "raca": "Lobisomem"
-    },
-    {
-      "description": "",
-      "attrs": [
-        31,
-        33,
-        29,
-        19,
-        21,
-        19
-      ],
-      "id": "273d6753-9e76-4cca-9aef-3e4b87363825",
-      "avatar": "codex-avatars/273d6753-9e76-4cca-9aef-3e4b87363825.webp",
-      "profile": "guerreiro",
-      "na": "6",
-      "nivel": 30,
-      "abilities": [
-        {
-          "description": "Lyra nasceu maldita — e herdou algo que nenhum outro membro tem: a velocidade do pai com a força da família. Velocidade sempre dobrada. Ataques que causam Sangramento: o Sangramento é 95% maior. Regenera 246 PV/Rod. Quando seu pai (Caelan) está em combate, Lyra recebe +14 no Resultado de tudo e +1 Reação extra.",
-          "name": "Sangue do Alfa",
-          "stats": [
-            "Velocidade sempre dobrada | Sangramento aplicado: +71% automático",
-            "Regeneração: 246 PV/Rod",
-            "Caelan em combate: +14 Resultado + +1 Reação extra"
-          ],
-          "type": "passiva"
-        },
-        {
-          "description": "Lyra combina velocidade e garras em uma sequência impossível de rastrear. 4 ataques: +6d14+37 cada, com +21 no Resultado. Se todos os 4 acertarem: o alvo sangra em cascata (Sangramento de 120/Rod por 4 Rod). Após os ataques, se move 15m sem provocar ataques de oportunidade.",
-          "name": "Dança do Predador",
-          "stats": [
-            "4 ataques: +6d14+37 Verdadeiro, +21 Resultado",
-            "4 acertos: Sangramento cascata 120/Rod × 4",
-            "Pós-ataques: movimento 15m sem ataques de oportunidade"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Mordida que carrega a maldição do pai. DT Constituição 45 — Falha: 11d14+74 Dano Verdadeiro + Maldição Menor por 2 Rod (sem cura, -23 Resultado). Sucesso: metade. Sangramento de 80/Rod por 2 Rod em qualquer caso.",
-          "name": "Presa da Filha do Alfa",
-          "stats": [
-            "DT Constituição 45 — Falha: 11d14+74 Verdadeiro + Maldição Menor 2 Rod",
-            "Qualquer caso: Sangramento 80/Rod × 2 | Sucesso: metade"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 2 Rod: velocidade quadruplicada, 3 ataques/turno de +7d10+30 Dano Verdadeiro, todos com +21 no Resultado. Todos os ataques são considerados furtivos (impossível de rastrear). Ao final do estado: 1 ataque gratuito adicional de +11d14+71.",
-          "name": "Velocidade da Maldição",
-          "stats": [
-            "2 Rod | Velocidade ×4 | 3 ataques/turno: +7d10+30 Verdadeiro, +21 Resultado (todos furtivos)",
-            "Final: +1 ataque gratuito +11d14+71"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 3 Rod Lyra libera o que herdou do pai — não a versão suavizada que acha que tem, mas o poder real do sangue do Alfa. 3 ataques/turno de +13d10+58 Dano Verdadeiro, Sangramento de 100/Rod em cada acerto, ARM +53, regenera 473 PV/Rod. Se Caelan estiver em combate: o dano sobe para +16d19+133 e regeneração para 663 PV/Rod (o sangue do pai potencializa o dela).",
-          "name": "Herdeira da Maldição",
-          "stats": [
-            "3 Rod | 3 ataques/turno: +13d10+58 Verdadeiro + Sangramento 100/Rod | +53 ARM | Regeneração 473 PV/Rod",
-            "Caelan em combate: dano +16d19+133, regeneração 663 PV/Rod",
-            "CD: 8 Rodadas"
-          ],
-          "type": "ultimate"
-        }
-      ],
-      "stats": {
-        "vida": 3080,
-        "arm": 52,
-        "ba": 36,
-        "bd": 33,
-        "ca": 43,
-        "reac": 10,
-        "dano": "10d10+35",
-        "danoExtra": "+4d10",
-        "tag": "vs 6 PCs + AL(2)"
-      },
-      "nome": "Lyra Crepúsculo — Filha da Maldição",
-      "raca": "Lobisomem"
-    },
-    {
-      "description": "",
-      "attrs": [
-        36,
-        36,
-        36,
-        25,
-        28,
-        22
-      ],
-      "id": "4d89e133-7415-4c7d-b366-f264d9c59a00",
-      "avatar": "codex-avatars/4d89e133-7415-4c7d-b366-f264d9c59a00.webp",
-      "profile": "guerreiro",
-      "na": "6",
-      "nivel": 34,
-      "abilities": [
-        {
-          "description": "Vael existe para implementar a vontade de Caelan — com precisão, com velocidade, com letalidade. Na presença de Caelan: +20 no Resultado de tudo. Velocidade superior à maioria: age sempre no segundo lugar da iniciativa (logo após Caelan). Recupera 312 PV/Rodada. Seus ataques contra seres que atacaram Caelan nessa rodada causam Dano Verdadeiro automaticamente.",
-          "name": "Executor da Alcateia",
-          "stats": [
-            "Presença de Caelan: +20 Resultado | Age sempre segundo na iniciativa",
-            "Regeneração: 312 PV/Rod",
-            "Ataques vs seres que atacaram Caelan nessa Rod: Dano Verdadeiro automático"
-          ],
-          "type": "passiva"
-        },
-        {
-          "description": "5 ataques extremamente rápidos: +7d16+43 Dano Verdadeiro cada. Se todos os 5 acertarem o mesmo alvo: -5 Reações permanentes no combate e Sangramento de 100/Rod por 3 Rod. Cada acerto aplica -1 Reação ao alvo.",
-          "name": "Garra e Velocidade",
-          "stats": [
-            "5 ataques: +7d16+43 Verdadeiro | Acerto: -1 Reação",
-            "5 acertos mesmo alvo: -5 Reações permanentes + Sangramento 100/Rod × 3"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Reação: qualquer habilidade que tenha como alvo Caelan — Vael se interpõe. Absorve 104% do dano e responde com um ataque de 15d16+99 Dano Verdadeiro no agressor. Se Caelan for reduzido a menos de 62% PV: Vael entra em modo de frenesi protetor (Fúria do Executor) automaticamente.",
-          "name": "Defesa do Alfa",
-          "stats": [
-            "Reação | Interpõe-se entre qualquer ataque e Caelan: absorve 104% + contra-ataque 15d16+99 Verdadeiro",
-            "Caelan <62% PV: Fúria do Executor automática"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 3 Rod: 3 ataques/turno de +10d10+38 Dano Verdadeiro, ARM +46, regenera 250 PV/Rod. Imune a qualquer efeito psicológico (medo, subjugação, encantamento). Cada ataque bem-sucedido acumula +2d16+8 de dano permanente no combate.",
-          "name": "Fúria do Executor",
-          "stats": [
-            "3 Rod | 3 ataques/turno: +10d10+38 Verdadeiro | +46 ARM | Regeneração 250 PV/Rod",
-            "Imune a medo/subjugação/encantamento | Acerto: +2d16+8 permanente no combate"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 3 Rod, Vael torna-se a extensão perfeita de Caelan. Age 2×/turno com 3 ataques por ação (6 total) de +13d16+86 Dano Verdadeiro. Qualquer dano sofrido por Caelan durante a Ultimate: Vael absorve 62% automaticamente. Inimigos que tentarem atingir Caelan enquanto Vael estiver ativo testam Fortitude DT 36 ou são interceptados (Vael ataca antes deles chegarem).",
-          "name": "Lança do Alfa",
-          "stats": [
-            "3 Rod | 2 ações/turno × 3 ataques: +13d16+86 Verdadeiro",
-            "Dano em Caelan: Vael absorve 62% automaticamente",
-            "Tentativa de atingir Caelan: DT 36 ou interceptado por Vael | CD: 9 Rodadas"
-          ],
-          "type": "ultimate"
-        }
-      ],
-      "stats": {
-        "vida": 3808,
-        "arm": 57,
-        "ba": 39,
-        "bd": 36,
-        "ca": 46,
-        "reac": 11,
-        "dano": "12d10+42",
-        "danoExtra": "+4d10",
-        "tag": "vs 6 PCs + AL(2)"
-      },
-      "nome": "Vael Crepúsculo — Braço do Alfa",
-      "raca": "Lobisomem"
-    },
-    {
-      "description": "",
-      "attrs": [
-        35,
-        23,
-        35,
-        14,
-        19,
-        16
-      ],
-      "id": "3db72f79-e33d-40cf-add5-386af2f9b9c3",
-      "avatar": "codex-avatars/3db72f79-e33d-40cf-add5-386af2f9b9c3.webp",
-      "profile": "guerreiro",
       "na": "8",
-      "nivel": 37,
+      "nivel": 40,
       "abilities": [
         {
-          "description": "Gorek recebeu a parcela mais bruta da maldição — força que cresce sem parar. Acumula +1d13+8 no dano base por rodada de combate sem limite. Seus ataques físicos ignoram automaticamente 20 pontos de ARM. Se receber dano que ultrapasse 42% PV em uma instância: acumula +4d13+26 imediatamente (a dor vira raiva). Nunca pode ser derrubado por força física.",
-          "name": "Força Sem Limites",
+          "name": "Tempestade de Fúria",
+          "type": "passiva",
+          "description": "A fúria lupina de Rork, alimentada pela sede vampírica, cria um redemoinho constante de violência ao seu redor. Rork ganha +2 no Resultado de Força a cada rodada em combate (acumulável, sem máximo). Inimigos adjacentes a Rork sofrem 4d10 de dano por rodada (o redemoinho os corta). Sempre que Rork derrubar um inimigo, ele entra em Frenesi: ação extra imediata e cura 150 PV.",
           "stats": [
-            "Acúmulo: +1d10+8 dano base/Rod (sem limite máximo)",
-            "Ataques: ignora 32 ARM | Dano >42% PV numa instância: +4d13+26 imediato",
-            "Não pode ser derrubado por força física"
-          ],
-          "type": "passiva"
+            "+2 Força/rodada em combate (acumulável, sem máximo)",
+            "Inimigos adjacentes: 4d10/rodada automático",
+            "Abate: ação extra + cura 150 PV"
+          ]
         },
         {
-          "description": "Um único golpe com toda a força acumulada. DT Fortitude 50 — Falha: 21d13+132 Dano Verdadeiro + lançado 20m + incapacitado por 1 Rod. Sucesso: metade. Cratera de 10m. Gorek acumula +4d13+26 imediatamente (como se tivesse sofrido dano). Distância mínima do alvo: melee — mas o efeito de onda atinge todos em 8m (DT 30 ou 5d13+37).",
-          "name": "Soco do Fim do Mundo",
+          "name": "Redemoinho de Garras",
+          "type": "ativa",
+          "description": "Rork gira como um ciclone de garras lupinas e presas vampíricas, atingindo tudo ao redor com velocidade impossível. Área 8m centrada em Rork: 10d10+45 de dano a todos os inimigos. Rork pode se mover 5m durante o redemoinho (arrastando inimigos presos). DT Força 38. Falha: o inimigo é Arremessado 6m e fica Tonto (-8 em tudo) por 1 rodada. Cada inimigo atingido concede +4 no Resultado do próximo ataque de Rork.",
           "stats": [
-            "DT Fortitude 50 | Falha: 21d13+132 Verdadeiro + lançado 20m + incapacitado 1 Rod",
-            "Cratera 10m | Onda 8m: DT 30 ou 5d13+37 | Gorek: +4d13+26 imediato"
-          ],
-          "type": "ativa"
+            "Área 8m | 10d10+45 a todos | Move 5m durante",
+            "DT Força 38 — Falha: Arremessado 6m + Tonto (-8 tudo) 1 rodada",
+            "+4 Resultado no próximo ataque por inimigo atingido | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Move até 18m em linha reta — irresistível. Cada ser no caminho: 11d13+69 Dano + DT Fortitude 45 ou lançado 12m. Alvo no fim da linha: dano dobrado (21d13+137) + parede duplica novamente se houver obstáculo. Cada ser derrubado: Gorek acumula +1d13+8.",
-          "name": "Carga Devastadora",
+          "name": "Investida Bestial",
+          "type": "ativa",
+          "description": "Rork corre em quatro patas (forma parcial lupina) com velocidade de vampiro, atravessando o campo de batalha como um projétil vivo. Linha reta 20m: 8d10+40 de dano a cada criatura no caminho + Derrubada. Rork pode mudar de direção uma vez. Ao parar, causa uma onda de choque: 6d10+30 em 5m. Rork ganha +10 no Resultado do próximo ataque após a investida e converte toda a Fúria acumulada em +2 de ARM.",
           "stats": [
-            "Linha 18m | Cada ser: 11d13+69 + DT 34 ou lançado 12m",
-            "Alvo final: dano dobrado | Parede: dobra novamente",
-            "Cada derrubado: +1d13+8 acumulado"
-          ],
-          "type": "ativa"
+            "Linha 20m (1 mudança de direção) | 8d10+40 + Derrubada no caminho",
+            "Onda de choque na parada: 6d10+30 em 5m | +10 Resultado no próximo ataque",
+            "Fúria → +2 ARM | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Por 2 Rod: ARM +30, qualquer ataque físico recebido gera contra-impacto de 5d13+40, e cada golpe de Gorek causa Sangramento de 90/Rod por 2 Rod automaticamente. Imune a Atordoamento e Desequilíbrio durante o estado.",
-          "name": "Corpo como Arma Total",
+          "name": "Fome Coletiva",
+          "type": "ativa",
+          "description": "Rork entra em um estado de fúria vampiresca compartilhada, contaminando aliados próximos com sua sede de sangue. Rork e todos os aliados em 10m: +12 no Resultado, ataques causam +4d10 de dano de drenagem (curam o atacante em 50% do dano), e ganham Regeneração de 100 PV/rodada. Dura 3 rodadas. Inimigos atacados por alguém sob este efeito ficam com Sede (DT Vontade 34 — Falha: perdem 2 Reações).",
           "stats": [
-            "2 Rod | +30 ARM | Contra-impacto físico: 5d13+40/acerto recebido",
-            "Golpes: Sangramento 90/Rod × 2 automático | Imune a Atordoamento e Desequilíbrio"
-          ],
-          "type": "ativa"
+            "Rork + aliados 10m: +12 Resultado | +4d10 drenagem | regen 100/rodada (3 rodadas)",
+            "Drenagem cura atacante em 50% | Inimigos: DT Vontade 34 ou -2 Reações",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 4 Rod, Gorek atinge o pico da maldição — mais força do que qualquer ser deveria ter. 4 ataques/turno de +16d10+75 Dano Verdadeiro, ARM +85, regenera 743 PV/Rod. Qualquer ser com menos de Lv26 que receba 1 ataque de Gorek testa Fortitude DT 40 ou morre (exceto Primordiais). Acúmulo da passiva ×3 durante a Ultimate.",
-          "name": "Tempestade de Carne",
+          "name": "Fúria Apocalíptica — O Redemoinho que Consome Mundo",
+          "type": "ultimate",
+          "description": "Rork libera cada grama de fúria acumulada em uma transformação cataclísmica — ele se torna um redemoinho de garras, presas, e sangue que devora tudo. Por 4 rodadas: Rork vira um ciclone de 10m de raio. Qualquer criatura na área sofre 8d10+45 por rodada automaticamente. Rork faz 4 ataques por rodada: 12d10+55 cada, +2d10 por ponto de Fúria acumulado. A cada abate, Rork cresce (+1m raio, +50 PV regen/rodada). Inimigos Derrubados na área não podem se levantar. No final: explosão 18d10+80 em 15m.",
           "stats": [
-            "4 Rod | 4 ataques/turno: +16d10+75 Verdadeiro | +85 ARM | Regeneração 743 PV/Rod",
-            "Lv<26 + 1 ataque: DT 40 ou morte (exceto Primordiais)",
-            "Acúmulo passiva ×3 | CD: 10 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | Ciclone 10m raio | 8d10+45/rodada automático a todos dentro",
+            "4 ataques/rodada: 12d10+55 + 2d10/ponto de Fúria | Abate: +1m raio + regen",
+            "Derrubados não se levantam | Final: 18d10+80 em 15m | CD: 13 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 5355,
-        "arm": 62,
-        "ba": 44,
-        "bd": 41,
-        "ca": 51,
-        "reac": 12,
+        "vida": 6630,
+        "arm": 77,
+        "ba": 46,
+        "bd": 43,
+        "ca": 53,
+        "reac": 13,
         "dano": "12d10+42",
         "danoExtra": "+5d12",
         "tag": "vs 8 PCs + AL(3)"
       },
-      "nome": "Gorek Crepúsculo — A Tempestade",
-      "raca": "Lobisomem"
+      "nome": "Rork Crepúsculo",
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        35,
+        30,
         28,
-        35,
-        21,
-        25,
-        23
+        26,
+        24,
+        24,
+        28
       ],
-      "id": "539e011a-5661-41fd-b13d-46e48d9b7610",
-      "avatar": "codex-avatars/539e011a-5661-41fd-b13d-46e48d9b7610.webp",
+      "id": "273d6753-9e76-4cca-9aef-3e4b87363825",
+      "avatar": "codex-avatars/273d6753-9e76-4cca-9aef-3e4b87363825.webp",
       "profile": "guerreiro",
       "na": "8",
       "nivel": 38,
       "abilities": [
         {
-          "description": "Caelan e sua alcateia foram amaldiçoados a permanecer na forma de lobo — mas o que deveria ser punição tornou-se poder. Em forma permanente de lobo: seus sentidos transcendem qualquer limite. Detecta qualquer ser vivo em 40m. Regenera 525 PV/Rodada. Sua força e velocidade base são amplificadas pela maldição — ARM física já inclui o bônus permanente. Qualquer tentativa de forçar transformação contra ele falha automaticamente. Na Lua Cheia (forma humana): ganha Forma Humana Transcendida em vez de maldição — mas isso é outra história.",
-          "name": "A Maldição como Dom",
+          "name": "A Maldição Encarnada",
+          "type": "passiva",
+          "description": "Lyra não contraiu a maldição híbrida — ela NASCEU dela. Sua existência é a expressão mais pura da fusão entre besta e morto-vivo. A Maldição a protege: Lyra reflete 20% de todo dano sofrido como dano necrótico ao atacante. Aliados Crepúsculo em 15m ganham +8 em tudo (a Maldição reconhece a alcateia). Inimigos que tocarem o sangue de Lyra fazem DT Constituição 36 — Falha: contraem a Maldição (-4 em tudo, -50% cura, regeneração cortada) por 3 rodadas.",
           "stats": [
-            "Forma permanente de lobo | Detecção de seres em 40m",
-            "Regeneração: 525 PV/Rodada | Qualquer forçamento de transformação: falha automática",
-            "Lua Cheia: Forma Humana Transcendida (regra especial)"
-          ],
-          "type": "passiva"
+            "Reflete 20% do dano como necrótico | Aliados Crepúsculo 15m: +8 tudo",
+            "Sangue de Lyra: DT Constituição 36 — Falha: Maldição (-4 tudo, -50% cura) 3 rodadas",
+            "Imune a Maldição, praga, doença"
+          ]
         },
         {
-          "description": "A mordida de Caelan não é simplesmente licantropa — carrega a maldição. DT Constituição 56 — Falha: 19d15+124 Dano Verdadeiro + o alvo fica com Maldição Menor por 3 Rod (não pode ser curado, -31 Resultado de tudo). Sucesso: metade + -8 Resultado por 1 Rod. Contra Alfas de outras alcateias: DT sobe para 62.",
-          "name": "Mordida do Alfa Maldito",
+          "name": "Abraço da Maldição",
+          "type": "ativa",
+          "description": "Lyra agarra o inimigo e injeta a Maldição híbrida diretamente em suas veias através de garras e presas. 1 alvo: 10d10+48 de dano necrótico. DT Constituição 40. Falha: o alvo começa a se transformar — membro aleatório se torna lupino (perde funcionalidade, -8 em ações), e sangra internamente (6d10/rodada por 3 rodadas). Se o alvo morrer sob este efeito, se levanta como servo lobisomem-vampiro de Lyra por 2 rodadas.",
           "stats": [
-            "DT Constituição 56 (62 vs Alfas) — Falha: 19d15+124 Verdadeiro + Maldição Menor 3 Rod",
-            "Maldição Menor: sem cura + -31 Resultado | Sucesso: metade + -8 Rod"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d10+48 necrótico | DT Constituição 40",
+            "Falha: transformação parcial (-8 ações) + sangramento interno 6d10/rodada (3 rodadas)",
+            "Morte sob efeito: ressuscita como servo de Lyra 2 rodadas | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "O uivo de Caelan carrega séculos de maldição — todos em 25m testam Fortitude DT 38. Falha: 15d15+101 Dano Verdadeiro, -4 Reações e -15 Resultado por 2 Rod. Sucesso: metade + -2 Reações. Membros do Crepúsculo em 25m: cura 420 PV, +31 Resultado e regeneração de 210 PV/Rod por 2 Rod.",
-          "name": "Uivo da Maldição",
+          "name": "Uivo da Mãe Maldita",
+          "type": "ativa",
+          "description": "Lyra emite o uivo que deu origem à alcateia — um som que carrega a própria essência da Maldição. Área 20m: 8d10+40 de dano a todos os inimigos. Aliados Crepúsculo na área: removem TODOS os efeitos negativos, curam 150 PV, e ganham +10 no Resultado por 3 rodadas. Inimigos: DT Vontade 38. Falha: a Maldição se espalha — cada inimigo que falhar infecta aliados em 5m (DT Const 34 ou Maldição).",
           "stats": [
-            "Raio 25m | DT Fortitude 59 — Falha: 15d15+101 Verdadeiro + -4 Reações + -15 ações 2 Rod",
-            "Sucesso: metade + -2 Reações",
-            "Crepúsculo no raio: cura 420 PV + +31 Resultado + regeneração 210/Rod × 2"
-          ],
-          "type": "ativa"
+            "Área 20m | 8d10+40 a inimigos | Aliados Crepúsculo: limpa efeitos + cura 150 + +10/3 rodadas",
+            "Inimigos: DT Vontade 38 — Falha: Maldição contagiosa (espalha em 5m)",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rod: Caelan entra no estado que a maldição reservou para o momento de maior perigo. Dano base dobra, ARM +31, 3 ataques por turno de +9d10+40 Dano Verdadeiro. Cada acerto aplica automaticamente Maldição Menor. Regenera 315 PV adicional por acerto.",
-          "name": "Fúria do Alfa Eterno",
+          "name": "Forma da Maldição Perfeita",
+          "type": "ativa",
+          "description": "Lyra atinge a forma que a Maldição sempre pretendeu — não lobo, não vampiro, mas algo além de ambos. Uma criatura de pesadelo, com beleza hipnótica e fúria animal. Por 4 rodadas: TODOS os atributos +10, +18 ARM, regeneração 200 PV/rodada. Ataques causam 10d10+50 + Maldição automática. Lyra pode criar ilusões de si mesma (1d3 cópias) que causam 50% do dano e absorvem ataques. Inimigos olhando para Lyra: DT Vontade 36 — Falha: encantados (atacam aliados).",
           "stats": [
-            "3 Rod | Dano ×2 | +20 ARM | 3 ataques/turno: +9d10+40 Verdadeiro",
-            "Acerto: Maldição Menor automática + regeneração 315 PV"
-          ],
-          "type": "ativa"
+            "4 Rodadas | Tudo +10 | +18 ARM | regen 200/rodada",
+            "Ataques: 10d10+50 + Maldição | Cria 1d3 ilusões (50% dano, absorvem ataques)",
+            "Olhar: DT Vontade 36 ou Encantado (ataca aliados) | CD: 6 Rodadas"
+          ]
         },
         {
-          "description": "Caelan libera a maldição original — não mais em si, mas em campo. Por 4 Rod: área de 20m ao redor fica sob efeito da Maldição Primordial. Inimigos na área sofrem 9d15+42 Dano Verdadeiro/Rod automaticamente, não podem ser curados e suas regenerações são suprimidas completamente. Caelan quadruplica seu dano base e realiza 4 ataques/turno. Membros do Crepúsculo na área são imunes e recebem +39 Resultado.",
-          "name": "A Maldição Primordial",
+          "name": "Mãe da Maldição — O Nascimento de um Novo Mundo",
+          "type": "ultimate",
+          "description": "Lyra se torna o epicentro da Maldição — seu corpo irradia a energia que cria lobisomens e vampiros. Por 5 rodadas: Lyra é o coração da Maldição. Área 30m: todos os inimigos sofrem 6d10+35/rodada de dano da Maldição. A cada rodada, 1d3 inimigos aleatórios contraem a Maldição Plena (se transformam parcialmente: -12 em tudo, 4d10/rodada de dano interno, 50% de chance de atacar aliados). Aliados Crepúsculo na área: +16 em tudo, regen 150/rodada, imune a TODO dano por 2 rodadas. Lyra: 14d10+60 de Dano Verdadeiro por ataque, 3 ataques/rodada. Cada inimigo que morreexplode em Maldição (8d10 em 5m).",
           "stats": [
-            "4 Rod | Raio 20m: Maldição Primordial | Inimigos: 9d10+42 Verdadeiro/Rod + sem cura + sem regeneração",
-            "Caelan: dano ×4 | 4 ataques/turno",
-            "Crepúsculo na área: imunes + +39 Resultado | CD: 10 Rodadas"
-          ],
-          "type": "ultimate"
+            "5 Rodadas | 30m | Inimigos: 6d10+35/rodada + 1d3 contraem Maldição Plena/rodada",
+            "Maldição Plena: -12 tudo | 4d10/rodada | 50% ataque aliados | Abate explode 8d10 em 5m",
+            "Aliados Crepúsculo: +16 tudo + regen 150 + 2 rodadas IMUNE | Lyra: 3x 14d10+60 Verdadeiro",
+            "CD: 14 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 5610,
-        "arm": 64,
+        "vida": 6086,
+        "arm": 71,
         "ba": 44,
         "bd": 41,
         "ca": 51,
+        "reac": 13,
+        "dano": "12d10+42",
+        "danoExtra": "+5d12",
+        "tag": "vs 8 PCs + AL(3)"
+      },
+      "nome": "Lyra Crepúsculo — Filha da Maldição",
+      "raca": "Híbrido Vampiro/Lobisomem — Filha da Maldição"
+    },
+    {
+      "description": "",
+      "attrs": [
+        32,
+        28,
+        28,
+        20,
+        20,
+        26
+      ],
+      "id": "4d89e133-7415-4c7d-b366-f264d9c59a00",
+      "avatar": "codex-avatars/4d89e133-7415-4c7d-b366-f264d9c59a00.webp",
+      "profile": "guerreiro",
+      "na": "8",
+      "nivel": 42,
+      "abilities": [
+        {
+          "name": "Vontade do Alfa",
+          "type": "passiva",
+          "description": "Vael é a extensão perfeita da vontade de Caelan — lealdade lupina amplificada por devoção de thrall vampírico. Quando Caelan (ou outro Alfa) está em 30m, Vael ganha +12 em TUDO. Vael não pode ser dominado, encantado, ou ter sua lealdade alterada por qualquer meio. Sempre que o Alfa ordena (ação livre do Alfa), Vael ganha 1 ação extra naquela rodada. Dano que Vael causaria ao Alfa é reduzido a 0 (a Maldição o impede de ferir seu mestre).",
+          "stats": [
+            "Alfa em 30m: +12 em TUDO | Imune a Domínio/Encanto",
+            "Ordem do Alfa (ação livre): Vael ganha 1 ação extra",
+            "Não pode ferir o Alfa (dano reduzido a 0)"
+          ]
+        },
+        {
+          "name": "Execução do Alfa",
+          "type": "ativa",
+          "description": "Vael recebe uma ordem de morte do Alfa e a cumpre com precisão sobre-humana — velocidade lupina + teleporte vampírico. 1 alvo designado: Vael teletransporta até 20m e ataca: 12d10+55 de dano. Se o alvo for o designado pelo Alfa, +6d10 e ignora ARM. DT Constituição 38. Falha: o alvo fica Imobilizado por 2 rodadas (Vael o segura com força sobrenatural). Após o ataque, Vael volta à posição original.",
+          "stats": [
+            "Teleporte 20m | 12d10+55 | Alvo designado: +6d10 + ignora ARM",
+            "DT Constituição 38 — Falha: Imobilizado 2 rodadas",
+            "Retorna à posição original | CD: 3 Rodadas"
+          ]
+        },
+        {
+          "name": "Escudo do Alfa",
+          "type": "ativa",
+          "description": "Vael se joga na frente de um ataque destinado ao Alfa (ou aliado designado), usando seu corpo híbrido como escudo vivo. Reação: teleporta até 15m para interceptar. Absorve TODO o dano do ataque (aplica sua ARM e reduções). Metade do dano absorvido é convertida em Fúria Protetora: Vael cura 50% do dano absorvido e seu próximo ataque causa dano adicional igual ao dano absorvido (máx 100).",
+          "stats": [
+            "Reação | Teleporte 15m para interceptar ataque dirigido ao Alfa/aliado",
+            "Absorve TODO o dano (aplica ARM/reduções)",
+            "Converte: cura 50% + próximo ataque +dano absorvido (máx 100) | CD: 3 Rodadas"
+          ]
+        },
+        {
+          "name": "Matilha do Braço",
+          "type": "ativa",
+          "description": "Vael canaliza a autoridade do Alfa através de si mesmo, ativando a conexão de alcateia em todos os aliados próximos. Aliados em 15m: entram em Sincronia de Alcateia — compartilham regeneração (150 PV/rodada), cada aliado pode gastar 1 Reação para teleportar 5m, e seus ataques causam +4d10 de dano cooperativo (dano extra se 2+ aliados atacarem o mesmo alvo na mesma rodada). Dura 4 rodadas. Inimigos em 15m: DT Vontade 36 — Falha: -8 em tudo pela pressão da alcateia.",
+          "stats": [
+            "Aliados 15m: Sincronia de Alcateia 4 rodadas | regen 150/rodada",
+            "Teleporte 5m por Reação | +4d10 cooperativo vs mesmo alvo",
+            "Inimigos: DT Vontade 36 — Falha: -8 tudo | CD: 5 Rodadas"
+          ]
+        },
+        {
+          "name": "Arma Absoluta — O Braço que Nunca Falha",
+          "type": "ultimate",
+          "description": "Vael se torna a encarnação da arma perfeita do Alfa — sem vontade própria, sem hesitação, sem falha. Por 5 rodadas: Vael executa as ordens do Alfa com eficiência máxima. +16 em TUDO, 4 ataques por rodada (12d10+55 cada, Dano Verdadeiro contra o alvo designado pelo Alfa). Vael é imune a TODO efeito de controle e dano abaixo de 50 por golpe (ignora completely). Cada vez que o Alfa dá uma ordem (ação livre), Vael ganha +1 ataque naquela rodada. Se o Alfa cair, Vael entra em Vingança: dobra todos os ataques e dano até o fim do efeito.",
+          "stats": [
+            "5 Rodadas | +16 TUDO | 4 ataques: 12d10+55 | Verdadeiro vs designado",
+            "Imune a CC | ignora dano <50/golpe | Ordem do Alfa: +1 ataque",
+            "Alfa cai: Vingança — dobra ataques e dano | CD: 12 Rodadas"
+          ]
+        }
+      ],
+      "stats": {
+        "vida": 7242,
+        "arm": 76,
+        "ba": 48,
+        "bd": 45,
+        "ca": 55,
         "reac": 13,
         "dano": "15d10+50",
         "danoExtra": "+5d12",
         "tag": "vs 8 PCs + AL(3)"
       },
+      "nome": "Vael Crepúsculo — Braço do Alfa",
+      "raca": "Híbrido Vampiro/Lobisomem — Braço do Alfa"
+    },
+    {
+      "description": "",
+      "attrs": [
+        34,
+        26,
+        30,
+        20,
+        18,
+        28
+      ],
+      "id": "3db72f79-e33d-40cf-add5-386af2f9b9c3",
+      "avatar": "codex-avatars/3db72f79-e33d-40cf-add5-386af2f9b9c3.webp",
+      "profile": "guerreiro",
+      "na": "10",
+      "nivel": 45,
+      "abilities": [
+        {
+          "name": "Tempestade Interior",
+          "type": "passiva",
+          "description": "Gorek carrega uma tempestade dentro de si — o uivo lupino convoca raios, o sangue vampírico os torna mortais. A cada rodada em combate, 1 raio atinge um inimigo aleatório em 20m: 6d10+25 de dano elétrico + necrótico. Chuva começa a cair após 3 rodadas (area 30m): inimigos na chuva sofrem 3d10/rodada (chuva ácida de sangue) e -4 em Defesas. Gorek é imune a dano elétrico e a chuva o cura 50 PV/rodada.",
+          "stats": [
+            "1 raio/rodada: 6d10+25 elétrico+necrótico em inimigo aleatório 20m",
+            "Após 3 rodadas: Chuva de Sangue 30m | inimigos: 3d10/rodada + -4 Def",
+            "Imune a elétrico | Chuva cura Gorek 50 PV/rodada"
+          ]
+        },
+        {
+          "name": "Trovão Lupino",
+          "type": "ativa",
+          "description": "Gorek solta um uivo tão potente que o som se transforma em trovão físico — uma onda de choque sônica que derruba tudo. Cone de 15m: 10d10+50 de dano sônico + elétrico. DT Constituição 40. Falha: Atordoado por 2 rodadas e Derrubado. Estruturas são destruídas. O trovão invoca 1d4 raios que atingem inimigos aleatórios na área: 8d10+30 cada. Inimigos em contato com a chuva sofrem +50% de dano.",
+          "stats": [
+            "Cone 15m | 10d10+50 sônico+elétrico | DT Constituição 40",
+            "Falha: Atordoado 2 rodadas + Derrubado | Estruturas destruídas",
+            "+1d4 raios: 8d10+30 cada | +50% dano se na chuva | CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Raio Necrótico",
+          "type": "ativa",
+          "description": "Gorek atrai um raio do céu e o infunde com seu sangue vampírico, criando um relâmpago negro que perfura a alma. 1 alvo: 12d10+55 de dano elétrico + necrótico (Dano Verdadeiro). DT Vontade 38. Falha: o alvo fica Eletrizado — 4d10 de dano por rodada até receber cura, e -8 em todas as ações. O raio salta para o inimigo mais próximo (alcance 8m), causando 75% do dano. Salta até 3 vezes.",
+          "stats": [
+            "1 alvo | 12d10+55 elétrico+necrótico Verdadeiro",
+            "DT Vontade 38 — Falha: Eletrizado (4d10/rodada + -8 tudo)",
+            "Salta até 3 vezes (8m, -25% dano por salto) | CD: 3 Rodadas"
+          ]
+        },
+        {
+          "name": "Fúria da Tempestade",
+          "type": "ativa",
+          "description": "Gorek absorve a tempestade em seu corpo, transformando-se em um condutor vivo de energia elétrica e necrose. Por 3 rodadas: aura de tempestade em 5m — 6d10+30 de dano automático por rodada a todos os inimigos na aura. +16 no Resultado, ataques causam +4d10 elétrico. Gorek voa (levitado por eletromagnetismo) e pode se teletransportar 10m entre raios. A chuva fica intensa: dano dobrado.",
+          "stats": [
+            "3 Rodadas | Aura tempestade 5m: 6d10+30/rodada automático",
+            "+16 Resultado | +4d10 elétrico/ataque | Voa + teleporte 10m entre raios",
+            "Chuva intensa: dano dobrado | CD: 5 Rodadas"
+          ]
+        },
+        {
+          "name": "Apocalipse Carmesim — A Tempestade que Destrói Céus",
+          "type": "ultimate",
+          "description": "Gorek convoca a tempestade máxima — céus se rasgam, raios negros e vermelhos caem sem parar, a chuva se torna ácida como sangue vampírico concentrado. Por 5 rodadas: área 50m sob tempestade apocalíptica. Todos os inimigos sofrem 8d10+45 de dano por rodada (chuva + raios). A cada rodada, 2d4 raios massivos atingem inimigos aleatórios: 10d10+40 cada (Dano Verdadeiro). Gorek pode redirecionar qualquer raio para um alvo específico. Inimigos DT Constituição 42 — Falha: Paralisados pela tempestade (1 rodada). Voo impossível. Visão impossível (exceto para Gorek).",
+          "stats": [
+            "5 Rodadas | Área 50m | Inimigos: 8d10+45/rodada + 2d4 raios: 10d10+40 cada",
+            "Raios: Dano Verdadeiro | Gorek redireciona | DT Const 42 ou Paralisado 1 rodada",
+            "Voo impossível | Visão impossível (só Gorek enxerga) | CD: 15 Rodadas"
+          ]
+        }
+      ],
+      "stats": {
+        "vida": 9600,
+        "arm": 86,
+        "ba": 52,
+        "bd": 49,
+        "ca": 59,
+        "reac": 15,
+        "dano": "15d10+50",
+        "danoExtra": "+6d12",
+        "tag": "vs 10 PCs + AL(4)"
+      },
+      "nome": "Gorek Crepúsculo — A Tempestade",
+      "raca": "Híbrido Vampiro/Lobisomem — A Tempestade"
+    },
+    {
+      "description": "",
+      "attrs": [
+        34,
+        28,
+        30,
+        24,
+        24,
+        32
+      ],
+      "id": "539e011a-5661-41fd-b13d-46e48d9b7610",
+      "avatar": "codex-avatars/539e011a-5661-41fd-b13d-46e48d9b7610.webp",
+      "profile": "guerreiro",
+      "na": "10",
+      "nivel": 46,
+      "abilities": [
+        {
+          "name": "Alfa da Maldição",
+          "type": "passiva",
+          "description": "Caelan é o centro da Maldição — seu uivo comanda a matilha e seu sangue cria servos. A alcateia inteira responde a ele. Aliados Crepúsculo em 30m: +12 em TUDO, regeneração de 100 PV/rodada, e imune a Medo/Domínio. Inimigos em 30m: DT Vontade 38 ao tentar atacar Caelan — Falha: -10 no Resultado por respeito involuntário à autoridade do Alfa. Caelan pode sentir a localização de todos os membros da alcateia em qualquer distância. Cada membro da alcateia no campo de batalha concede +1 Carga de Alfa a Caelan (máx 10).",
+          "stats": [
+            "Aliados Crepúsculo 30m: +12 tudo | regen 100/rodada | imune a Medo/Domínio",
+            "Inimigos 30m: DT Vontade 38 para atacá-lo — Falha: -10 no ataque",
+            "Sente alcateia em qualquer distância | +1 Carga de Alfa por membro (máx 10)"
+          ]
+        },
+        {
+          "name": "Mordida Transformadora",
+          "type": "ativa",
+          "description": "Caelan morde o inimigo com presas que carregam a Maldição original — o veneno híbrido entra na corrente sanguínea e começa a transformação. 1 alvo: 10d10+50 de dano + DT Constituição 40. Falha: o alvo entra em Transformação Forçada — por 3 rodadas, sofre 6d10/rodada de dano enquanto seu corpo tenta se transformar, -12 em TUDO, e a cada rodada tem 25% de chance de atacar um aliado em confusão. Se o alvo sobreviver, fica permanentemente Vulnerável a Caelan (+50% dano).",
+          "stats": [
+            "1 alvo | 10d10+50 | DT Constituição 40",
+            "Falha: Transformação Forçada 3 rodadas | 6d10/rodada | -12 tudo | 25% ataque a aliado",
+            "Sobreviver: permanentemente +50% dano de Caelan | CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Uivo que Ressuscita",
+          "type": "ativa",
+          "description": "Caelan solta o uivo que comanda os mortos — cadáveres e restos se levantam como lobos-vampiros espectrais. Área 30m: invoca 2d4+2 Mortos da Alcateia (cada um: 350 PV, 10d10+30, 18 ARM, imune a dano mental e veneno). Os Mortos perseguem inimigos designados por Caelan e cada abate cura Caelan em 100 PV. Inimigos DT Vontade 38 — Falha: Aterrorizados (-8 tudo, fogem se possível) por 2 rodadas. Os Mortos persistem até serem destruídos ou Caelan os dissolver.",
+          "stats": [
+            "Invoca 2d4+2 Mortos da Alcateia (350 PV | 10d10+30 | 18 ARM)",
+            "Imunes a mental/veneno | Abate cura Caelan 100 PV | Persistem até dissolver",
+            "Inimigos: DT Vontade 38 — Falha: Aterrorizado (-8, foge) 2 rodadas | CD: 6 Rodadas"
+          ]
+        },
+        {
+          "name": "Selo do Alfa",
+          "type": "ativa",
+          "description": "Caelan marca um inimigo com o Selo do Alfa — sua aura domina a criatura, tornando-a presa da alcateia inteira. 1 alvo: DT Vontade 42. Falha: Selado — TODOS os aliados de Caelan ganham +10 no Resultado e +4d10 de dano contra o alvo, e o alvo não pode causar dano acima de 50 por golpe (a Maldição o enfraquece). Dura 3 rodadas. Gasta 3 Cargas de Alfa: o Selo se torna Marca de Morte — inimigos com Marca podem ser executados por qualquer membro da alcateia abaixo de 20% de vida (sem teste).",
+          "stats": [
+            "1 alvo | DT Vontade 42 — Falha: Selado (aliados +10 +4d10 vs alvo, alvo max 50/golpe) 3 rodadas",
+            "Gastar 3 Cargas: Marca de Morte — executável abaixo de 20% vida por qualquer aliado",
+            "CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Senhor da Maldição — O Alfa Absoluto",
+          "type": "ultimate",
+          "description": "Caelan revela por que é o Alfa — ele não apenas carrega a Maldição, ele É a Maldição. Seu corpo se expande, sua presença esmaga a vontade de todos ao redor. Por 5 rodadas: Caelan atinge a forma máxima do híbrido. +20 em TUDO, 300 PV/rodada de regeneração, 3 ataques por rodada (14d10+60 cada). Caelan pode gastar Cargas de Alfa para efeitos: 3 cargas = invoca 1d4+1 Mortos extras; 5 cargas = TODOS os inimigos em 30m fazem DT Vontade 44 — Falha: Dominados por 1 rodada; 7 cargas = Caelan cura 500 PV e remove todos os efeitos negativos da alcateia. A cada rodada, Caelan recupera 2 Cargas de Alfa.",
+          "stats": [
+            "5 Rodadas | +20 TUDO | regen 300/rodada | 3 ataques: 14d10+60",
+            "3 cargas: +1d4+1 Mortos | 5 cargas: DT Vontade 44 ou Dominados 1 rodada",
+            "7 cargas: cura 500 + limpa alcateia | +2 Cargas/rodada | CD: 14 Rodadas"
+          ]
+        }
+      ],
+      "stats": {
+        "vida": 10000,
+        "arm": 81,
+        "ba": 53,
+        "bd": 50,
+        "ca": 60,
+        "reac": 15,
+        "dano": "18d10+58",
+        "danoExtra": "+6d12",
+        "tag": "vs 10 PCs + AL(4)"
+      },
       "nome": "Caelan Crepúsculo — Alfa da Maldição",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem — Alfa da Maldição"
     },
     {
       "description": "",
@@ -3498,85 +3528,84 @@
     {
       "description": "",
       "attrs": [
-        20,
-        22,
-        18,
+        26,
         28,
         24,
-        22
+        30,
+        24,
+        26
       ],
       "id": "7d804ce0-1518-41e7-a3fb-4cad6c124793",
       "avatar": "codex-avatars/7d804ce0-1518-41e7-a3fb-4cad6c124793.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 22,
+      "na": "6",
+      "nivel": 30,
       "abilities": [
         {
-          "description": "O cérebro de Thomas processa o campo de batalha como um computador. Cada vez que um inimigo usa uma habilidade em sua presença, Thomas acumula 1 Ficha de Mapeamento (máx 5). Com 2 fichas: +12 no Resultado de suas Defesas e Contraataques contra aquele alvo. Com 4 fichas: o próximo ataque de Thomas ignora ARM e CA. Além disso, Thomas nunca pode ser surpreendido — age sempre antes de inimigos sem iniciativa própria.",
-          "name": "Intelecto Além do Tempo",
+          "name": "Predador Mental",
+          "type": "passiva",
+          "description": "A mente híbrida de Thomas funde a precognção lupina com a telepatia vampírica, processando o campo de batalha como um supercomputador vivo. Ele lê os pensamentos superficiais de todas as criaturas em 20m, prevendo ataques antes que aconteçam. Uma vez que um inimigo usa uma habilidade em sua presença, Thomas nunca mais pode ser pego desprevenido por ela — +14 em Defesas contra habilidades já observadas. Imune a Surpresa, Flanqueamento e qualquer efeito mental de origem inferior ao seu nível.",
           "stats": [
-            "Acúmulo: +1 Mapeamento por habilidade inimiga vista (máx 5 por alvo)",
-            "2 Mapeamentos: +12 em Defesas e Contraataques contra aquele alvo",
-            "4 Mapeamentos: próximo ataque ignora ARM e CA",
-            "Imune a Surpresa | Age antes de inimigos sem iniciativa própria"
-          ],
-          "type": "passiva"
+            "Telepatia 20m | +14 Iniciativa | Imune a Surpresa e Flanqueamento",
+            "Após ver uma habilidade: +14 em Defesas contra ela permanentemente no combate",
+            "Imune a efeitos mentais de inimigos de nível inferior"
+          ]
         },
         {
-          "description": "Thomas realiza uma transformação parcial de precisão cirúrgica — garras, reflexos e musculatura licantropa ativados sem perder o raciocínio. Por 2 Rodadas: +6 no Resultado de todos os ataques, os ataques causam +4d8+24 de Dano adicional e Thomas regenera 96 PV no início de cada rodada. Se ele possuir 3+ fichas de Mapeamento em algum alvo, a transformação libera um segundo ataque bônus automaticamente contra aquele alvo.",
-          "name": "Transformação Controlada",
+          "name": "Domínio Predatório",
+          "type": "ativa",
+          "description": "Thomas trava os olhos no alvo e inunda sua mente com o terror lupino e o comando absoluto do sangue vampírico. O alvo sente as garras e presas de uma fera imaginária rasgando sua consciência enquanto uma voz ancestral ordena submissão. DT Vontade 38. Falha: Dominado por 2 rodadas — ataca o aliado mais próximo com +12 no Resultado. Mesmo em caso de sucesso, sofre 8d8+45 de dano psíquico e perde 2 Reações.",
           "stats": [
-            "2 Rodadas | +6 no Resultado | +4d8+24 de Dano adicional por ataque",
-            "Regeneração: 96 PV/Rodada durante a transformação",
-            "3+ Mapeamentos em alvo: +1 ataque bônus automático contra aquele alvo"
-          ],
-          "type": "ativa"
+            "1 alvo | DT Vontade 38 — Falha: Dominado 2 rodadas (ataca aliado +12 Resultado)",
+            "Sucesso: 8d8+45 psíquico | -2 Reações",
+            "CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Thomas identifica o ponto exato de vulnerabilidade do alvo com base nas fichas acumuladas. 1 alvo: 6d8+41 de Dano Verdadeiro. DT Constituição 31 — Falha: o alvo perde 2 Reações e -8 no Resultado das ações por 2 Rodadas. Se o alvo possuir 3+ fichas de Mapeamento, o dano aumenta para 9d8+59 e a DT sobe para 35.",
-          "name": "Golpe Preciso",
+          "name": "Passo Etéreo Lupino",
+          "type": "ativa",
+          "description": "Thomas dissolve seu corpo em névoa vampírica e se reconstitui atrás do inimigo já em forma lupina parcial — garras estendidas, olhos brilhando na penumbra. Teleporta até 15m e ataca imediatamente: 10d8+45 de dano, ignora ARM e CA. Como ele leu a posição do alvo telepaticamente, o ataque sempre vem de um ponto cego — +6d8 de dano adicional de precisão sobrenatural.",
           "stats": [
-            "1 alvo | Dano: 6d8+41 Verdadeiro",
-            "DT Constituição 31 — Falha: -2 Reações | -8 nas ações por 2 Rodadas",
-            "3+ Mapeamentos: Dano 9d8+59 | DT 30"
-          ],
-          "type": "ativa"
+            "Teleporte 15m | Ataque imediato: 10d8+45 (ignora ARM e CA)",
+            "Ataque pelas costas (sempre): +6d8 adicional",
+            "CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Thomas libera brevemente o poder latente do Sangue Real, algo que evita explorar — mas que existe. Explosão de aura licantropa: todos em 8m testam Vontade DT 24. Falha: -14 no Resultado por 1 Rodada e recuam involuntariamente 5m. Thomas recebe +18 de ARM e +12 no Resultado por 2 Rodadas. Cada inimigo que falhar na DT concede imediatamente 1 ficha de Mapeamento.",
-          "name": "Sangue Real Desperto",
+          "name": "Uivo Sombrio",
+          "type": "ativa",
+          "description": "Thomas funde seu uivo lupino com necrose vampírica, criando uma onda de escuridão mental que sufoca a vontade de lutar. Área 12m. Todos os inimigos: DT Vontade 36. Falha: -16 no Resultado de todas as ações e não podem usar habilidades (apenas ataques básicos) por 2 rodadas. A escuridão persiste, curando Thomas e aliados em 100 PV por rodada durante 3 rodadas.",
           "stats": [
-            "Área: 8m | DT Vontade 28 — Falha: -14 nas ações + recuo forçado 5m",
-            "Thomas: +18 ARM | +12 no Resultado por 2 Rodadas",
-            "Cada falha dos inimigos = +1 Mapeamento automático sobre aquele alvo"
-          ],
-          "type": "ativa"
+            "Área 12m | DT Vontade 36 — Falha: -16 nas ações + sem habilidades por 2 rodadas",
+            "Escuridão persiste 3 rodadas: cura 100 PV/rodada a aliados",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Thomas une o que nunca permitiu a si mesmo: o poder absoluto do Sangue Real com o intelecto anos-luz. Por 3 Rodadas entra na Forma Convergente: regeneração de 192 PV/Rodada, todos os ataques ignoram ARM e CA, +18 no Resultado de tudo. Para cada alvo com 4+ fichas de Mapeamento, Thomas realiza 1 ataque extra gratuito nessa rodada. Ao final, as fichas são zeradas mas Thomas guarda a memória — na próxima vez que enfrentar esses inimigos, começa com 2 fichas de Mapeamento em cada.",
-          "name": "Lobo e Mente — Forma Convergente",
+          "name": "Mente Híbrida — Sincronia Absoluta",
+          "type": "ultimate",
+          "description": "Thomas atinge a sincronia perfeita entre instinto lupino e intelecto vampírico — por um momento, ele é onisciente no campo de batalha. Por 3 rodadas: 2 ações completas por rodada, todos os ataques causam Dano Verdadeiro, e cada inimigo em 20m faz DT Vontade 42 no início de cada rodada — Falha: atordoado (-8 em tudo, perde 1 ação). Ao final, libera uma onda de choque psíquica: 14d8+70 psíquico em todos em 15m. Cada inimigo derrotado restaura 1 uso desta habilidade.",
           "stats": [
-            "3 Rodadas | Regeneração: 192 PV/Rodada | +24 no Resultado | Ataques ignoram ARM e CA",
-            "+1 Ataque extra gratuito por alvo com 4+ Mapeamentos",
-            "Final: fichas zeradas, mas próximo encontro com mesmos inimigos começa com 2 Mapeamentos cada",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "3 Rodadas | 2 ações/rodada | Dano Verdadeiro em todos os ataques",
+            "Inimigos em 20m: DT Vontade 42/rodada — Falha: Atordoado (-8 tudo, -1 ação)",
+            "Final: Onda psíquica 14d8+70 em 15m",
+            "CD: 8 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1230,
-        "arm": 39,
-        "ba": 28,
-        "bd": 25,
-        "ca": 35,
-        "reac": 8,
-        "dano": "6d8+24",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 2744,
+        "arm": 60,
+        "ba": 36,
+        "bd": 33,
+        "ca": 43,
+        "reac": 11,
+        "dano": "8d8+30",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Thomas Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
@@ -3979,818 +4008,657 @@
     {
       "description": "",
       "attrs": [
-        39,
+        36,
         32,
-        37,
-        21,
-        24,
-        18
+        34,
+        28,
+        26,
+        32
       ],
       "id": "d4b38ad7-7686-46d1-9c32-21e79ccab9bc",
       "avatar": "codex-avatars/d4b38ad7-7686-46d1-9c32-21e79ccab9bc.webp",
       "profile": "guerreiro",
-      "na": "10",
-      "nivel": 48,
+      "na": "12",
+      "nivel": 50,
       "abilities": [
         {
-          "name": "Alfa Supremo",
+          "name": "O Progenitor",
           "type": "passiva",
-          "description": "Gabriel absorveu o poder de incontaveis Alfas. Sua presenca domina todos licantropos em 30m (sem DT para lobisomens de nivel inferior - obediencia absoluta). Regenera 570 PV/round. Cada lobisomem aliado em 15m: Gabriel ganha +5 ARM e +1 Reacao. Seu uivo pode ser ouvido em 5km e convoca todos os lobisomens da regiao.",
+          "description": "Gabriel é o primeiro Van Helsing a alcançar hibridização perfeita — lobo e vampiro não coexistem em seu corpo, são UM. Sua existência redefine o que é possível. Regeneração passiva de 300 PV/rodada. Imune a TODOS os efeitos de controle (Atordoamento, Medo, Paralisia, Dominação, etc.). Dano necrótico e sônico o curam. Cada rodada em combate, Gabriel acumula 1 Carga Progenitor (máx 15) — gastando 5 cargas, pode realizar 1 ação extra; gastando 10, revive um aliado caído com 100% de vida. A presença de Gabriel concede +12 em todas as estatísticas a aliados Van Helsing em 50m.",
           "stats": [
-            "Dominio: lobisomem em 30m obedece (sem DT para nivel inferior)",
-            "Regeneracao: 570 PV/round | Lobisomem aliado em 15m: +5 ARM + +1 Reacao cada",
-            "Uivo: convoca todos lobisomens em 5km"
+            "Regen 300 PV/rodada | Imune a TODOS os efeitos de controle",
+            "Dano necrótico/sônico cura | Cargas Progenitor (+1/rodada, máx 15)",
+            "5 cargas = ação extra | 10 cargas = reviver aliado 100% | Aliados VH 50m: +12 tudo"
           ]
         },
         {
-          "name": "Investida do Lobo Demonio",
+          "name": "Garra do Demônio",
           "type": "ativa",
-          "description": "Gabriel avanca com forca demoniaca. Move 20m atropelando tudo. Cada ser no caminho: 14d17+85 Dano Verdadeiro + DT FORT 65 ou lancado 10m. Alvo no final: 26d17+153 Dano Verdadeiro + DT FORT 71 ou incapacitado 1 round. Investida deixa rastro de destruicao - terreno dificil por 2 rounds.",
+          "description": "Gabriel ataca com a Garra do Demônio — garras que rasgam a própria alma do alvo enquanto o corpo é desmembrado. 1 alvo: 15d10+75 de dano Verdadeiro. O alvo perde 50 PV permanentemente (não recuperáveis durante o combate). DT Vontade 42. Falha: o alvo fica com Terror do Demônio — não pode atacar Gabriel por 3 rodadas e foge se possível. Se o alvo tiver menos de 25% de vida, a Garra executa: morte instantânea (sem teste de resistência).",
           "stats": [
-            "Linha 20m | No caminho: 14d17+85 Verdadeiro + DT FORT 65 ou lancado 10m",
-            "Alvo final: 26d17+153 Verdadeiro + DT FORT 71 ou incapacitado 1 round",
-            "Terreno dificil no rastro por 2 rounds"
+            "1 alvo | 15d10+75 Verdadeiro | -50 PV permanentes",
+            "DT Vontade 42 — Falha: Terror do Demônio (não ataca Gabriel, foge) 3 rodadas",
+            "Alvo <25% vida: EXECUTE — morte instantânea | CD: 3 Rodadas"
           ]
         },
         {
-          "name": "Mordida do Demonio",
+          "name": "Uivo do Apocalipse",
           "type": "ativa",
-          "description": "Gabriel morde com presas imbuidas com energia demoniaca. 24d17+162 Dano Verdadeiro. DT FORT 68 - Falha: Maldicao do Lobo Demonio - o alvo perde 183 PV/round e -34 Resultado por 3 rounds. Se o alvo ja for lobisomem: a mordicao amplifica, dobrando todos os efeitos negativos.",
+          "description": "Gabriel solta o uivo que deu origem à sua lenda — tão poderoso que a terra treme, o céu escurece, e os mortos se levantam. Área 40m: 12d10+60 de dano sônico/necrótico a todos. DT Constituição 44. Falha: Atordoado por 2 rodadas. O uivo invoca 2d4+2 Lobos Demônios (cada um: 400 PV, 10d10+35, 20 ARM) que servem Gabriel. A área fica em Escuridão Total por 3 rodadas. Gabriel cura 100% de todo dano causado.",
           "stats": [
-            "24d17+162 Dano Verdadeiro | DT FORT 68",
-            "Falha: Maldicao - 183 PV/round + -34 Resultado x3 rounds",
-            "Lobisomem: efeitos dobrados"
+            "Área 40m | 12d10+60 sônico/necrótico | DT Constituição 44",
+            "Falha: Atordoado 2 rodadas | Invoca 2d4+2 Lobos Demônios (400 PV cada)",
+            "Escuridão Total 3 rodadas | Cura 100% do dano | CD: 6 Rodadas"
           ]
         },
         {
-          "name": "Uivo de Guerra da Alcateia",
+          "name": "Forma Demoníaca",
           "type": "ativa",
-          "description": "Gabriel uiva - todos lobisomem aliados em 30m entram em Frenesi: +34 Resultado, +5d17+34 dano adicional, imunes a medo e controle. Dura 3 rounds. Gabriel recebe o dobro dos bonus. Inimigos em 20m: DT WILL 65 ou paralisados por terror 1 round.",
+          "description": "Gabriel assume sua forma verdadeira — o Lobo Demônio, uma besta de 5 metros com pelagem negra como vazio, olhos vermelho-sangue que queimam, e presas que destroem o éter. Por 5 rodadas: TODOS os atributos +16, ARM dobrada, 350 PV/rodada de regeneração. Cada ataque: 15d10+65 em cone de 5m (múltiplos alvos). Gabriel voa, é intangível quando deseja, e pode se teletransportar 20m como ação livre. Inimigos em 20m: DT Vontade 44 — Falha: prostrados (não agem) por 1 rodada.",
           "stats": [
-            "Aliados lobisomem em 30m: +34 Resultado + +5d17+34 + imunes a medo/controle x3 rounds",
-            "Gabriel: dobro dos bonus | Inimigos 20m: DT WILL 65 ou paralisados 1 round"
+            "5 Rodadas | Tudo +16 | ARM dobrada | Regen 350/rodada",
+            "Ataques: 15d10+65 cone 5m | Voa + intangível + teleporte 20m grátis",
+            "Inimigos 20m: DT Vontade 44 — Falha: Prostrados 1 rodada | CD: 7 Rodadas"
           ]
         },
         {
-          "name": "O Demonio Interior",
+          "name": "Fim de Tudo — O Progenitor Desperto",
           "type": "ultimate",
-          "description": "Por 4 rounds: Gabriel libera o demonio interno completamente. Transformacao total: dano base quadruplica, 5 ataques/turn de +20d17+136 Dano Verdadeiro. ARM +68, regenera 913 PV/round. Qualquer lobisomem que morrer perto dele tem sua alma absorvida - Gabriel cura 685 PV instantaneamente. Aura de terror demoniaco em 15m: inimigos DT WILL 77/round ou perdem acao. CD: 17 rounds.",
+          "description": "Gabriel libera o poder que dorme em seu sangue ancestral desde a primeira noite — o poder que criou a maldição híbrida. Por 6 rodadas: Gabriel transcende. Imune a TODO dano por 3 rodadas, depois regenera 500 PV/rodada. 4 ataques por rodada, cada um 18d10+80 de Dano Verdadeiro. A cada rodada, um Eclipse cobre o campo de batalha (todos os inimigos sofrem 8d10+40). Gabriel pode criar portais de sangue para aparecer atrás de qualquer inimigo instantaneamente. Inimigos derrotados ressuscitam como Lacaios Demônios sob seu comando permanentemente. No final: explosão apocalíptica de 30d10+120 em 50m.",
           "stats": [
-            "4 rounds | 5 ataques/turn: +20d17+136 Dano Verdadeiro | ARM +51",
-            "Regeneracao: 913 PV/round | Morte de lobisomem proximo: cura 685 PV",
-            "Aura terror 15m: DT WILL 77/round ou perde acao",
-            "CD: 17 rounds"
+            "6 Rodadas | 3 rodadas IMUNE a dano | depois regen 500/rodada",
+            "4 ataques/rodada: 18d10+80 Verdadeiro | Eclipse: 8d10+40/rodada em todos",
+            "Portais de sangue | Abates viram Lacaios permanentes | Final: 30d10+120 em 50m",
+            "CD: 20 Rodadas"
           ]
         }
       ],
       "stats": {
-        "vida": 10040,
-        "arm": 78,
-        "ba": 54,
-        "bd": 51,
-        "ca": 61,
-        "reac": 16,
+        "vida": 13340,
+        "arm": 87,
+        "ba": 58,
+        "bd": 55,
+        "ca": 65,
+        "reac": 17,
         "dano": "21d10+65",
-        "danoExtra": "+6d12",
-        "tag": "vs 10 PCs + AL(4)"
+        "danoExtra": "+9d12",
+        "tag": "vs 12 PCs + AL(5)"
       },
       "nome": "Gabriel Van Helsing - O Lobo Demonio",
-      "raca": "Lobisomem Alfa Supremo"
+      "raca": "Híbrido Vampiro/Lobisomem — O Progenitor"
     },
     {
       "description": "",
       "attrs": [
-        26,
-        29,
+        28,
+        30,
         24,
-        26,
-        26,
-        21
+        24,
+        22,
+        24
       ],
       "id": "b42c6ce2-5bd7-40ff-b390-fee8d257badd",
       "avatar": "codex-avatars/b42c6ce2-5bd7-40ff-b390-fee8d257badd.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 26,
+      "na": "6",
+      "nivel": 34,
       "abilities": [
         {
-          "description": "A polícia e o afastamento da família transformaram Damien em um guerreiro metódico. Nunca desperdiça um movimento — cada ação é calculada. No início de cada rodada: +4 no Resultado de tudo (acumula até +16 após 4 rodadas de combate ativo). Jamais pode ser surpreendido. Seus ataques contra alvos que já atacaram nessa rodada recebem +10 no Resultado adicional.",
-          "name": "Disciplina de Ferro",
+          "name": "Lâmina Espectral",
+          "type": "passiva",
+          "description": "As garras e armas de Damien existem entre o físico e o etéreo — ele ataca como névoa que se solidifica dentro da armadura do inimigo. Todos os ataques ignoram ARM e metade da CA. Quando Damien causa dano, ele pode escolher entre dano físico real OU dano fantasma (ignora toda redução, mas cura apenas 50% do que seria). Aliados adjacentes a Damien ganham +8 em Defesa por sua aura espectral.",
           "stats": [
-            "Acúmulo: +4 no Resultado por rodada de combate ativo (máx +16)",
-            "Imune a Surpresa | Ataques contra alvos que já agiram nessa rodada: +10 no Resultado adicional"
-          ],
-          "type": "passiva"
+            "Ataques ignoram ARM e 50% da CA",
+            "Escolhe: dano físico OU dano fantasma (ignora redução, cura 50%)",
+            "Aliados adjacentes: +8 Defesa"
+          ]
         },
         {
-          "description": "Damien combina treinamento policial com natureza licantropa em 3 golpes precisos: imobilização parcial (+4d8+29, alvo perde 1 Reação), quebra de equilíbrio (+6d8+37, DT Destreza 35 — Falha: derrubado) e finalização (+7d8+44 Verdadeiro). Se todos os 3 acertarem: alvo imobilizado por 1 Rodada e -12 no Resultado por 2 Rodadas.",
-          "name": "Técnica Policial Evoluída",
+          "name": "Garras Phase",
+          "type": "ativa",
+          "description": "Damien mergulha suas garras no peito do inimigo como se fossem fumaça — então as solidifica dentro dos órgãos vitais. 1 alvo: 10d8+48 de dano fantasma (ignora ARM, CA e reduções). DT Constituição 36. Falha: órgãos danificados — alvo perde 2 Reações, -12 em todas as ações, e sofre 4d8 de dano interno por rodada até receber cura mágica.",
           "stats": [
-            "3 ataques: +4d8+29 (-1 Reação) → +6d8+37 (DT Destreza 35 ou derrubado) → +7d8+44 Verdadeiro",
-            "3 acertos: imobilizado 1 Rodada | -12 nas ações por 2 Rodadas"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d8+48 fantasma (ignora ARM, CA, reduções)",
+            "DT Constituição 36 — Falha: -2 Reações, -12 nas ações, 4d8 interno/rodada",
+            "CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Ação Livre. Damien identifica vulnerabilidades táticas. 1 alvo: por 2 Rodadas — -10 na ARM do alvo contra os ataques de Damien, e cada vez que o alvo usar uma habilidade de combate, Damien recebe 1 ação de contra-ataque gratuita (máx 2 por rodada). Acumula +3 no Resultado pela passiva.",
-          "name": "Investigador de Campo",
+          "name": "Deslocamento Espectral",
+          "type": "ativa",
+          "description": "Damien se torna completamente fantasma por um instante, atravessando o inimigo e atacando por trás. Teleporta através de qualquer criatura ou barreira em linha reta até 12m. Durante o deslocamento, causa 8d8+36 de dano a cada inimigo atravessado. Ao emergir atrás do alvo primário, ataca com +14 no Resultado e o alvo está Flanqueado (sem bônus de Defesa por 2 rodadas).",
           "stats": [
-            "Ação Livre | 1 alvo | 2 Rodadas | -10 ARM do alvo (contra Damien)",
-            "Cada habilidade de combate do alvo: +1 contra-ataque gratuito de Damien (máx 2/Rod)"
-          ],
-          "type": "ativa"
+            "Teleporte 12m através de qualquer coisa | 8d8+36 por inimigo atravessado",
+            "Emergindo: +14 Resultado | Alvo Flanqueado 2 rodadas",
+            "CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Damien identifica e atinge com precisão absoluta. 1 ataque: 10d8+62 Dano Verdadeiro, ignora ARM e CA. DT Constituição 38 — Falha: o alvo é atordoado por 1 Rodada. Se Damien tiver +18 no Resultado acumulado pela passiva (3+ rodadas de combate): adiciona Sangramento de 60/Rod por 2 Rodadas automaticamente.",
-          "name": "Golpe Cirúrgico",
+          "name": " Campo de Dissolução",
+          "type": "ativa",
+          "description": "Damien irradia sua energia espectral em 10m, tornando a realidade semi-sólida. Por 3 rodadas: todos os ataques na área (aliados ou inimigos) causam apenas 50% de dano físico, mas dano fantasma é amplificado em +50%. Inimigos na área: DT Vontade 36 por rodada — Falha: perdem 1 Reação. Damien pode tornar um aliado intangível por rodada como ação livre (imune a dano físico até o próximo turno).",
           "stats": [
-            "1 ataque | 10d8+62 Dano Verdadeiro | Ignora ARM e CA",
-            "DT Constituição 38 — Falha: atordoado 1 Rodada",
-            "+12 passiva (3+ rodadas): Sangramento automático 60/Rod × 2"
-          ],
-          "type": "ativa"
+            "Área 10m, 3 rodadas | Dano físico -50% | Dano fantasma +50%",
+            "Inimigos: DT Vontade 36/rodada — Falha: -1 Reação",
+            "1 aliado/rodada fica intangível | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rodadas Damien manifesta a síntese perfeita de tudo que aprendeu fora da família. Age 2x por turno, todos os ataques são automáticos, e qualquer habilidade de controle de inimigos que tente afetá-lo falha automaticamente. Cada acerto acumula +4 no Resultado pela passiva ao invés de aguardar a rodada. Aliados em 10m recebem metade dos bônus acumulados pela passiva de Damien.",
-          "name": "Lei do Lobo",
+          "name": "Ceifador Espectral — Corte Entre Mundos",
+          "type": "ultimate",
+          "description": "Damien se divide em dois — metade física, metade espectral — e ataca simultaneamente de ambos os planos. Por 4 rodadas: cada ataque causa dano duplo (uma vez físico, uma vez fantasma). Damien faz 2 ataques por rodada, cada um com 12d8+55. O alvo deve fazer DT Constituição 40 por ataque — Falha: perde 20 PV permanentes (não recuperáveis por cura normal durante o combate). No ataque final, Damien funde os dois planos em uma onda cortante: 18d8+80 em linha de 15m.",
           "stats": [
-            "3 Rodadas | Age 2× por turno | Todos os ataques automáticos",
-            "Habilidades de controle inimigas: falham automaticamente",
-            "Acertos: +4 passiva imediato | Aliados em 10m: metade dos bônus da passiva",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | Cada ataque: dano duplo (físico + fantasma)",
+            "2 ataques/rodada: 12d8+55 | DT Const 40 — Falha: -20 PV permanentes",
+            "Final: Onda cortante 18d8+80 em linha 15m",
+            "CD: 10 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1571,
-        "arm": 44,
-        "ba": 31,
-        "bd": 28,
-        "ca": 38,
-        "reac": 9,
-        "dano": "8d8+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3416,
+        "arm": 63,
+        "ba": 39,
+        "bd": 36,
+        "ca": 46,
+        "reac": 12,
+        "dano": "10d8+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Damien Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        33,
-        36,
         28,
-        39,
-        33,
-        30
+        26,
+        28,
+        28,
+        24,
+        28
       ],
       "id": "7d48303c-ab00-4436-ac29-c4e46fd0f8c7",
       "avatar": "codex-avatars/7d48303c-ab00-4436-ac29-c4e46fd0f8c7.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 32,
+      "na": "8",
+      "nivel": 40,
       "abilities": [
         {
-          "description": "Markus é o lobo mais brilhante que a família produziu — e ele sabe disso. Acumula Dominância: +1 por acerto, +2 por esquiva perfeita, +3 por habilidade do inimigo que tente e falhe (máx 10). Cada 2 de Dominância: +3 no Resultado de tudo. Com 15 de Dominância: imune a qualquer efeito de controle ou surpresa por aquela rodada, e todos seus ataques causam Dano Verdadeiro. O ego é seu motor — jamais recua sem necessidade estratégica.",
-          "name": "Gênio do Combate",
+          "name": "Sangue Ancestral",
+          "type": "passiva",
+          "description": "O sangue de Markus é a substância mais antiga e potente da linhagem Van Helsing — séculos de hibridização concentrados em cada gota. Criaturas não-híbridas que tocam seu sangue sofrem 4d10 de dano cáustico por contato. Markus é imune a todos os efeitos de sangue, veneno, doença e necrose. A cada rodada, Markus acumula 1 Carga Ancestral (máx 10). Gastando 3 cargas: cura 200 PV. Gastando 5: concede a 1 aliado resistência híbrida (+10 Defesas, regen 60/rodada) por 3 rodadas.",
           "stats": [
-            "Acúmulo de Dominância: +1 por acerto, +2 por esquiva, +3 por habilidade inimiga que falha (máx 10)",
-            "2 Dominância: +3 no Resultado de tudo",
-            "15 Dominância: imune a controle e surpresa | todos os ataques = Dano Verdadeiro"
-          ],
-          "type": "passiva"
+            "Sangue cáustico: 4d10 a não-híbridos que o tocam",
+            "Imune a sangue, veneno, doença, necrose",
+            "Cargas Ancestrais (+1/rodada, máx 10) | 3 cargas: cura 200 | 5 cargas: buffa aliado"
+          ]
         },
         {
-          "description": "Markus vê o que ninguém mais vê. Ação Livre. Escolhe 1 alvo: por 3 Rodadas, todos os ataques de Markus contra ele são automáticos, e qualquer DT de resistência do alvo é reduzida em -15. Além disso, identifica imediatamente o ponto mais fraco da armadura do alvo: -29 de ARM contra os ataques de Markus. Acumula +2 de Dominância.",
-          "name": "Análise Superior",
+          "name": "Lâmina Ancestral",
+          "type": "ativa",
+          "description": "Markus condensa seu sangue ancestral em uma lâmina de energia rubra que corta a própria alma. 1 alvo: 12d8+50 de dano Verdadeiro. DT Vontade 38 (alma) E DT Constituição 38 (corpo) simultaneamente. Se falhar em uma: -10 em todas as ações por 3 rodadas. Se falhar em ambas: perde 1 habilidade aleatória por 24h (o sangue ancestral contamina a memória muscular). A lâmina ignora toda redução e imunidade a dano.",
           "stats": [
-            "Ação Livre | 1 alvo | 3 Rodadas: ataques automáticos | DTs do alvo -15",
-            "-29 ARM do alvo contra ataques de Markus | +2 Dominância"
-          ],
-          "type": "ativa"
+            "1 alvo | 12d8+50 Verdadeiro | Ignora redução e imunidade",
+            "DT Vontade 38 + DT Constituição 38 | Falhar 1: -10 tudo/3 rodadas",
+            "Falhar ambas: perde 1 habilidade aleatória/24h | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Markus transforma-se com precisão que rivaliza com qualquer mestre. Transformação parcial personalizada: por 2 Rodadas — 3 ataques por turno de +6d8+30 Dano Verdadeiro, ARM +31, regenera 206 PV/Rodada. A cada acerto: +1 Dominância. Se ativar com 6+ Dominância: dano sobe para +9d8+66 e o efeito dura 3 Rodadas.",
-          "name": "Controle Magistral",
+          "name": "Dádiva Híbrida",
+          "type": "ativa",
+          "description": "Markus compartilha seu sangue ancestral com aliados, despertando temporariamente traços híbridos latentes. 1 aliado tocado: ganha forma híbrida parcial por 4 rodadas — +12 FOR/DES/CON, regeneração de 100 PV/rodada, ataques causam +4d10 de dano necrótico, imune a Medo e Atordoamento. O aliado também ganha +1 ação por rodada. Após o efeito, o aliado fica Exaurido (-4 em tudo, sem regen) por 1 rodada pelo choque do sangue.",
           "stats": [
-            "2 Rodadas (3 com 6+ Dominância) | 3 ataques/turno: +6d8+30 Verdadeiro (ou +9d8+66)",
-            "+31 ARM | Regeneração: 206 PV/Rodada",
-            "Acerto: +1 Dominância"
-          ],
-          "type": "ativa"
+            "1 aliado | Forma híbrida parcial 4 rodadas",
+            "+12 FOR/DES/CON | regen 100/rodada | +4d10 necrótico/ataque | imune a CC",
+            "+1 ação/rodada | Após: Exaurido (-4 tudo) 1 rodada | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "A técnica que quase derrotou o Alfa. 1 ataque impossível de esquivar — o alvo não pode usar Reações contra ele. Dano: 13d8+81 Verdadeiro. DT Fortitude 44 — Falha: perde 4 Reações e -29 no Resultado por 2 Rodadas. Markus acumula +3 Dominância. Se tiver 8+ Dominância ao usar: o alvo também fica incapacitado por 1 Rodada.",
-          "name": "Golpe do Rival",
+          "name": "Maré de Sangue",
+          "type": "ativa",
+          "description": "Markus sangra voluntariamente, liberando litros de sangue ancestral que se transformam em uma maré corrosiva viva. Área 15m: 10d8+45 de dano cáustico/necrótico a todos. O sangue permanece como um Lago de Sangue por 3 rodadas. Inimigos no lago: 4d8/rodada, -8 em todas as ações, e DT Constituição 34 — Falha: ficam Presos (não podem sair do lago). Markus pode absorver o lago a qualquer momento, curando 200 PV e recuperando 3 Cargas Ancestrais.",
           "stats": [
-            "1 ataque impossível de esquivar (sem Reações) | 13d8+81 Dano Verdadeiro",
-            "DT Fortitude 44 — Falha: -4 Reações | -20 nas ações por 2 Rodadas",
-            "+3 Dominância | 8+ Dominância: alvo incapacitado 1 Rodada"
-          ],
-          "type": "ativa"
+            "Área 15m | 10d8+45 cáustico/necrótico | Lago persiste 3 rodadas",
+            "No lago: 4d8/rodada | -8 ações | DT Const 34 ou Presos",
+            "Absorver lago: cura 200 PV + 3 Cargas Ancestrais | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rodadas, Markus manifesta o porquê quase derrubou o Alfa — o inimigo mais próximo que qualquer lobo chegou disso. Age 3 vezes por turno, cada ataque causa +12d8+73 Dano Verdadeiro, ARM sobe +52, regenera 247 PV/Rodada. Se tiver 21 Dominância ao ativar: todos em 15m testam Vontade DT 35 ou ficam com medo por 2 Rodadas (sem ações ofensivas). Ao final da Ultimate: Dominância não zera — reduz para 5.",
-          "name": "O Inegável",
+          "name": "Patriarca — O Primeiro Sangue",
+          "type": "ultimate",
+          "description": "Markus desvela a verdade de sua existência — ele carrega o sangue híbrido original, o template do qual todos os outros descendem. Por 5 rodadas: Markus irradia seu sangue ancestral em 30m. TODOS os inimigos sofrem 6d8+35 de dano por rodada (o sangue rejeita os impuros). TODOS os aliados híbridos ganham +16 no Resultado e regeneração de 150 PV/rodada. Markus: 200 PV/rodada de regeneração, imune a TODO efeito de controle, e cada ataque causa 14d8+60 de Dano Verdadeiro. No final, seu sangue explode: 20d8+90 a todos os inimigos em 25m. Cada inimigo derrotado concede a Markus +50 PV permanentes por 24h.",
           "stats": [
-            "3 Rodadas | 3 ataques/turno: +12d8+50 Dano Verdadeiro | +52 ARM | Regeneração 247 PV/Rod",
-            "15 Dominância ao ativar: área 15m — DT Vontade 35 ou medo 2 Rodadas",
-            "Após Ultimate: Dominância reduz para 5 (não zera)",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "5 Rodadas | Inimigos 30m: 6d8+35/rodada | Aliados híbridos: +16 + regen 150",
+            "Markus: regen 200/rodada | imune a CC | 14d8+60 Verdadeiro/ataque",
+            "Final: 20d8+90 em 25m | Abates: +50 PV permanentes/24h",
+            "CD: 14 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 2200,
-        "arm": 50,
-        "ba": 36,
-        "bd": 33,
-        "ca": 43,
-        "reac": 10,
-        "dano": "10d8+35",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 5542,
+        "arm": 75,
+        "ba": 46,
+        "bd": 43,
+        "ca": 53,
+        "reac": 14,
+        "dano": "12d8+42",
+        "danoExtra": "+5d12",
+        "tag": "vs 8 PCs + AL(3)"
       },
       "nome": "Markus Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        20,
-        32,
-        17,
-        17,
-        12,
-        20
+        24,
+        30,
+        24,
+        24,
+        22,
+        22
       ],
       "id": "bb47d5c6-26ac-4968-8d25-e26c069154e9",
       "avatar": "codex-avatars/bb47d5c6-26ac-4968-8d25-e26c069154e9.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 19,
+      "na": "6",
+      "nivel": 27,
       "abilities": [
         {
-          "description": "Matteo passou a vida fugindo da polícia — e ficou absurdamente bom nisso. Velocidade de movimento sempre dobrada. A cada 2 Rodadas sem receber dano: acumula 1 Carga de Adrenalina (máx 5). 2 Cargas: +8 no Resultado de ataques e evasões. 4 Cargas: próximo ataque é automático. PORÉM: cada Carga acima de 3 aplica -3 no Resultado de suas Defesas (controle se deteriora com o tempo). 5 Cargas: completamente descontrolado por 1 Rodada (ataca aliados ou inimigos aleatoriamente).",
-          "name": "Velocidade da Fuga",
+          "name": "Mercúrio das Sombras",
+          "type": "passiva",
+          "description": "O corpo híbrido de Matteo existe parcialmente no plano das sombras. Ele se move como mercúrio líquido — deslizando entre gotas de escuridão, impossível de agarrar. +10 em Esquiva contra todos os ataques. Sempre que esquivar, deixa para trás uma sombra residual que atrai um ataque inimigo (o inimigo deve fazer DT Vontade 34 ou atacar a sombra em vez de Matteo). Matteo pode se fundir a qualquer sombra em 10m como movimento livre.",
           "stats": [
-            "Velocidade de movimento sempre dobrada",
-            "Acúmulo: +1 Adrenalina a cada 2 rodadas sem dano (máx 5)",
-            "2 Cargas: +8 em ataques e evasões | 4 Cargas: ataque automático",
-            "Cargas >3: -3 nas Defesas por Carga extra | 5 Cargas: descontrolado por 1 Rodada"
-          ],
-          "type": "passiva"
+            "+10 Esquiva contra todos os ataques",
+            "Ao esquivar: cria sombra residual (DT Vontade 34 ou inimigo a ataca)",
+            "Funde-se a sombras em 10m como movimento livre"
+          ]
         },
         {
-          "description": "Matteo atinge e some antes de qualquer reação. 3 ataques rápidos: +3d8+23 cada, com +23 no Resultado. Após os ataques, move até 20m para longe sem provocar ataques de oportunidade. Cada ataque acumula 1 Carga de Adrenalina. Se já tiver 3+ Cargas: dano dobra mas -5 nas Defesas por 1 Rodada.",
-          "name": "Rasteiro Relâmpago",
+          "name": "Lâmina de Mercúrio Sombrio",
+          "type": "ativa",
+          "description": "Matteo condensa escuridão e sangue em uma lâmina semiprecisa que atravessa armadura como se fosse água. Estocada rápida: 8d8+38 de dano, ignora metade da ARM. A lâmina injeta uma gota de sangue vampírico sombrio no alvo — DT Constituição 34. Falha: o alvo fica Sangrando (4d8 por rodada até curado) e Matteo pode rastrear seu sangue em qualquer distância por 24h.",
           "stats": [
-            "3 ataques: +3d8+23 cada | +23 no Resultado | Afastamento: 20m sem ataques de oportunidade",
-            "Cada ataque: +1 Carga de Adrenalina",
-            "3+ Cargas ao usar: dano dobra | -5 nas Defesas por 1 Rodada"
-          ],
-          "type": "ativa"
+            "1 alvo | 8d8+38 dano (ignora metade da ARM)",
+            "DT Constituição 34 — Falha: Sangrando 4d8/rodada + rastreável por 24h",
+            "CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Matteo vai de 0 a absurdo em 0,1 segundo. Por 1 Rodada: velocidade quadruplicada, primeiro ataque automático (+6d8+42 de Dano), evasão de +23 contra qualquer ataque. Custo: +2 Cargas de Adrenalina imediatas — se isso o levar a 5 Cargas, o descontrole se ativa ao final da rodada.",
-          "name": "Estouro de Velocidade",
+          "name": "Enxame Sombrio",
+          "type": "ativa",
+          "description": "Matteo se fragmenta em dezenas de sombras lupinas — lobos feitos de escuridão que atacam de todas as direções. O corpo de Matteo se dissolve e se recompõe repetidamente. Área 10m, todos os inimigos: 6d8+30 de dano por sombra. Cada inimigo é atacado por 1d3 sombras. Matteo se reconstitui ao lado de qualquer alvo atingido, atacando novamente com +8 no Resultado.",
           "stats": [
-            "1 Rodada | Velocidade ×4 | Primeiro ataque automático: +6d8+42",
-            "Evasão +23 contra qualquer ataque",
-            "Custo: +2 Cargas imediatas (cuidado com descontrole)"
-          ],
-          "type": "ativa"
+            "Área 10m | 1d3 sombras por inimigo | 6d8+30 cada",
+            "Reaparece ao lado de um alvo: ataque bônus +8 Resultado",
+            "CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Matteo evade qualquer coisa — não por habilidade, mas por puro instinto de sobrevivência. Reação: nega completamente 1 ataque ou habilidade de área (sai da área a tempo). Custo: 1 Reação. Depois disso, Matteo move 15m automaticamente como parte da evasão. Não funciona contra habilidades sem movimento (magia instantânea pura) — DT Destreza 45 para evadir nesses casos.",
-          "name": "Evasão Desesperada",
+          "name": "Forma Líquida",
+          "type": "ativa",
+          "description": "Matteo ativa sua transformação híbrida completa — corpo líquido-sombrio com garras de mercúrio. Por 3 rodadas: imune a dano físico (cortante/perfurante/contundente), +14 no Resultado de todos os ataques, ataques causam 4d8 de dano sombrio adicional. Matteo pode passar por frestas, baixo de portas, entre grades. Cada inimigo tocado fica lento (-10 em tudo) por 1 rodada.",
           "stats": [
-            "Reação | Nega completamente 1 ataque ou habilidade de área",
-            "Movimento automático de 15m após a evasão",
-            "Magia instantânea pura: DT Destreza 45 para evadir"
-          ],
-          "type": "ativa"
+            "3 Rodadas | Imune a dano físico | +14 Resultado",
+            "+4d8 sombrio por ataque | Inimigos tocados: -10 em tudo (1 rodada)",
+            "Atravessa qualquer barreira física | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Matteo para de tentar controlar — vai a 100% por 3 Rodadas: velocidade x8, 4 ataques por turno de +5d8+20 cada com +30 no Resultado. RISCO TOTAL: sem controle algum — ataca o alvo mais próximo a cada turno (aliado ou inimigo, aleatório), e qualquer tentativa de controle (aliado ou sistema) falha automaticamente. Após a Ultimate: colapsa por 2 Rodadas (imóvel, 0 Reações). Se sobreviver, regenera 298 PV.",
-          "name": "Lobo Desbocado",
+          "name": "Eclipse de Mercúrio — Devorador de Luz",
+          "type": "ultimate",
+          "description": "Matteo se torna um buraco negro de sombras — todo a luz em 30m é consumida. A escuridão é absoluta e viva, cheia de lobos sombrios que rasgam a realidade. Por 4 rodadas: todos os inimigos em 30m estão Cegos e sofrem 8d8+40 de dano sombrio por rodada. Matteo é onipresente na área — pode atacar qualquer inimigo a qualquer momento, 3 ataques por rodada com +16 no Resultado. Inimigos derrotados alimentam a escuridão, curando Matteo em 200 PV por morte.",
           "stats": [
-            "3 Rodadas | Velocidade ×8 | 4 ataques/turno: +5d8+20, +20 no Resultado",
-            "DESCONTROLADO: ataca o mais próximo (aliado ou inimigo) aleatoriamente",
-            "Controles externos falham automaticamente durante a Ultimate",
-            "Após Ultimate: imóvel 2 Rodadas + regeneração 298 PV | CD: 8 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | Área 30m | Inimigos Cegos | 8d8+40 sombrio/rodada",
+            "Matteo: 3 ataques/rodada, +16 Resultado, alcance ilimitado na área",
+            "Inimigo derrotado: +200 PV para Matteo",
+            "CD: 9 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1016,
-        "arm": 36,
-        "ba": 26,
-        "bd": 23,
-        "ca": 33,
-        "reac": 8,
-        "dano": "6d8+24",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 2341,
+        "arm": 53,
+        "ba": 34,
+        "bd": 31,
+        "ca": 41,
+        "reac": 10,
+        "dano": "8d8+30",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Matteo Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
+        26,
+        26,
         24,
-        31,
-        24,
-        29,
-        31,
-        21
+        26,
+        22,
+        26
       ],
       "id": "09170110-9bf6-4537-98f5-789daf74be32",
       "avatar": "codex-avatars/09170110-9bf6-4537-98f5-789daf74be32.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 24,
+      "na": "6",
+      "nivel": 32,
       "abilities": [
         {
-          "description": "Dias é o melhor lobo em controle que a família já viu — cultivado durante anos de solidão e sobrevivência sem a alcateia. Nunca sofre penalidades por transformação descontrolada. Suas habilidades licantrópicas nunca falham por falta de controle. Em combate solo (sem aliados): +22 no Resultado de tudo e regeneração passiva de 86 PV/Rodada. Pode transformar partes específicas do corpo (olhos, braços, pernas) como Ação Livre sem custo.",
-          "name": "Controle Absoluto",
+          "name": "Ressonância do Vazio",
+          "type": "passiva",
+          "description": "A voz de Dias carrega a ressonância de dois mundos — o uivo ancestral do lobo e o silêncio morto do vampiro. Sons próximos a Dias são distorcidos e amplificados. Aliados em 10m: +6 em todas as Defesas (a ressonância desvia ataques). Inimigos em 10m: -4 em todas as Defesas (o som os desorienta). Dias é imune a dano sônico, atordoamento por som, e silêncio mágico.",
           "stats": [
-            "Sem penalidades por descontrole | Habilidades licantrópicas nunca falham",
-            "Solo (sem aliados): +22 no Resultado de tudo + regeneração 86 PV/Rodada",
-            "Transformação parcial (membro específico): Ação Livre, sem custo"
-          ],
-          "type": "passiva"
+            "Aliados em 10m: +6 Defesas | Inimigos: -4 Defesas",
+            "Imune a dano sônico e atordoamento por som",
+            "Imune a Silêncio mágico"
+          ]
         },
         {
-          "description": "Dias transforma exatamente o que precisa, onde precisa, quando precisa. Escolhe 1 parte do corpo para transformar completamente: Olhos (detecta qualquer ser a 30m, +15 no Resultado de ataques por 2 Rodadas), Braços (+6d8+44 de Dano e garras que ignoram ARM por 2 Rodadas) ou Pernas (velocidade triplicada, sem ataques de oportunidade por 2 Rodadas). Pode combinar duas partes — custo: 1 Reação extra.",
-          "name": "Transformação Cirúrgica",
+          "name": "Uivo Necrossônico",
+          "type": "ativa",
+          "description": "Dias solta um uivo que existe em duas frequências — uma física que estilhaça ossos, outra necrótica que arranca a alma. Cone de 12m: 8d8+40 de dano sônico + 6d8 de dano necrótico. DT Constituição 36. Falha: ensurdecido (-8 em tudo, -2 Reações) por 2 rodadas e perde 30 PV por rodada (dano necrótico não reduzido por ARM). Estruturas na área sofrem dano triplo.",
           "stats": [
-            "Escolha: Olhos (+15 Resultado + detecção 30m), Braços (+6d8+44 + ignora ARM) ou Pernas (velocidade ×3)",
-            "Combinar 2 partes: custo de +1 Reação extra | Duração: 2 Rodadas"
-          ],
-          "type": "ativa"
+            "Cone 12m | 8d8+40 sônico + 6d8 necrótico",
+            "DT Constituição 36 — Falha: Ensurdecido (-8 tudo, -2 Reações) 2 rodadas",
+            "Estruturas sofrem dano triplo | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Anos sozinho contra criaturas sobrenaturais forjaram reflexos que alcateias não desenvolvem. 2 ataques: +6d8+41 e +4d8+32. Se ambos acertarem e Dias estiver solo: +1 ataque bônus gratuito de +4d8+29. Pode usar como Reação para contra-atacar, sem custo adicional.",
-          "name": "Dança Solitária",
+          "name": "Silêncio Absoluto",
+          "type": "ativa",
+          "description": "Dias inverte sua ressonância, criando um vácuo de som tão absoluto que a própria morte sussurra. Área 10m: Silêncio total por 3 rodadas. Magias e habilidades com componente verbal são seladas. Inimigos na área: DT Vontade 38. Falha: paralisados pelo terror do silêncio mortal por 1 rodada. Aliados na área ficam imunes a efeitos mentais. Dias cura 5d8+30 por inimigo afetado.",
           "stats": [
-            "2 ataques: +6d8+41 + +4d8+32",
-            "Solo + 2 acertos: +1 ataque bônus +4d8+29",
-            "Pode usar 1 golpe como Reação (sem custo adicional)"
-          ],
-          "type": "ativa"
+            "Área 10m | Silêncio total 3 rodadas | Habilidades verbais seladas",
+            "DT Vontade 38 — Falha: Paralisado 1 rodada pelo terror",
+            "Dias cura 5d8+30 por inimigo afetado | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Dias já sobreviveu ao que destruiria qualquer outro. Gatilho: atingir 68% PV. Ativa automaticamente ou manualmente. Por 2 Rodadas: regenera 205 PV/Rodada, ARM sobe +18, imune a efeitos de estado. Em modo solo, a duração sobe para 3 Rodadas e a regeneração sobe para 308 PV/Rodada.",
-          "name": "Sangue da Sobrevivência",
+          "name": "Eco Mortal",
+          "type": "ativa",
+          "description": "Dias marca um alvo com uma nota de morte, então o eco reverbera para todos próximos. 1 alvo primário: 10d8+45 de dano necrossônico. O som reverbera para os 3 inimigos mais próximos do alvo primário, causando 6d8+28 cada (dano reduzido por 25% a cada salto). Alvos atingidos ficam com Ressonância Mortal: se um morrer, explode causando 8d8+30 em 6m.",
           "stats": [
-            "Gatilho: 68% PV | 2 Rodadas (3 em solo)",
-            "Regeneração: 205 PV/Rod (308 em solo) | +26 ARM | Imune a efeitos de estado"
-          ],
-          "type": "ativa"
+            "1 alvo: 10d8+45 necrossônico + eco para 3 próximos: 6d8+28 cada",
+            "Ressonância Mortal: morte = explosão 8d8+30 em 6m",
+            "CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Dias libera a forma perfeita que desenvolveu sozinho — cada músculo, cada célula, cada instinto refinado pela solidão. Por 3 Rodadas: transformação completa sob controle absoluto, 3 ataques por turno de +7d8+60 cada, regeneração de 257 PV/Rodada, e qualquer habilidade de controle inimiga falha automaticamente. Em modo solo: dano base soma +4d8+29 adicional e pode ativar Transformação Cirúrgica em 3 partes simultaneamente como Ação Livre.",
-          "name": "O Solitário",
+          "name": "Vazio Ressonante — O Fim de Todo Som",
+          "type": "ultimate",
+          "description": "Dias converge toda ressonância acumulada em um único ponto e a detona — criando um vácuo tão absoluto que a realidade range. Área 20m: 16d8+70 de dano necrossônico a todos. DT Constituição 42. Falha: o som é arrancado permanentemente do corpo do alvo (mudo, ensurdecido, todas as habilidades verbais seladas pelo resto do combate) e sofre 8d8 de dano necrótico por rodada. Após a explosão, um campo de silêncio mortal persiste por 3 rodadas: qualquer criatura que entrar sofre 6d8+20 imediatamente.",
           "stats": [
-            "3 Rodadas | 3 ataques/turno: +7d8+60 cada | Regeneração: 257 PV/Rodada",
-            "Habilidades de controle inimiga: falham automaticamente",
-            "Solo: +4d8+29 adicional por ataque + 3 partes de Transformação Cirúrgica simultâneas",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "Área 20m | 16d8+70 necrossônico a todos | DT Constituição 42",
+            "Falha: Permanentemente mudo/ensurdecido + 8d8 necrótico/rodada",
+            "Campo de silêncio mortal 3 rodadas: 6d8+20 ao entrar",
+            "CD: 10 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1393,
-        "arm": 42,
-        "ba": 29,
-        "bd": 26,
-        "ca": 36,
-        "reac": 9,
-        "dano": "8d8+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3080,
+        "arm": 58,
+        "ba": 38,
+        "bd": 35,
+        "ca": 45,
+        "reac": 11,
+        "dano": "10d8+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Dias Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
+        30,
         26,
-        26,
-        24,
-        24,
-        24,
-        24
+        28,
+        20,
+        20,
+        22
       ],
       "id": "5c018095-fa93-4fd6-9c22-8ff6c42ba51a",
       "avatar": "codex-avatars/5c018095-fa93-4fd6-9c22-8ff6c42ba51a.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 26,
+      "na": "6",
+      "nivel": 34,
       "abilities": [
         {
-          "description": "Miguel é o lobo completo — não o melhor em nada, perfeito em tudo. Não possui fraqueza elemental ou de atributo. Cada combate que dura mais de 3 Rodadas aumenta permanentemente sua eficiência: +2 no Resultado de tudo, acumulando até +15. Nunca pode ser surpreendido, nunca perde mais de 2 Reações por habilidade inimiga, e tem resistência natural de 22% a qualquer fonte de dano.",
-          "name": "Equilíbrio Natural",
+          "name": "Arma Viva de Sangue",
+          "type": "passiva",
+          "description": "O corpo de Miguel é uma arma forjada em sangue — ossos lupinos densos como aço, animados por sangue vampírico que pulsa como um motor necrótico. Seus ataques desarmados causam 2d10+35 de dano base. Cada ataque corpo-a-corpo acumula 1 Carga Sanguínea (máx 10). A cada 3 cargas, o próximo ataque causa +4d10 de dano e cura Miguel em 50 PV. Miguel nunca fica desarmado — suas mãos são literalmente armas.",
           "stats": [
-            "Sem fraqueza de atributo ou elemental",
-            "Combate longo: +2 no Resultado por rodada acima de 3 (máx +10)",
-            "Imune a Surpresa | Máximo de -2 Reações por habilidade inimiga",
-            "Resistência natural: 22% de todo dano recebido é absorvido"
-          ],
-          "type": "passiva"
+            "Ataques desarmados: 2d10+35 base",
+            "Acumula Cargas Sanguíneas (+1 por ataque, máx 10)",
+            "A cada 3 cargas: +4d10 dano + cura 50 PV"
+          ]
         },
         {
-          "description": "Miguel mistura força e técnica — não brilhante, mas absolutamente eficaz. 2 ataques: +6d8+41 e +4d8+32. Se ambos acertarem: +1 Reação bônus nessa rodada e o alvo perde 1 Reação. Pode usar parcialmente como Reação (1 golpe) ao ser atacado.",
-          "name": "Golpe Combinado",
+          "name": "Lâminas Ósseas",
+          "type": "ativa",
+          "description": "Miguel estende ossos afiados como espadas de seus antebraços, banhados em sangue necrótico. 2 ataques consecutivos: 10d8+45 cada, crítico em 18-20. As lâminas injetam sangue vampírico — DT Constituição 34. Falha: o alvo fica Vulnerável (+50% dano) a ataques de Miguel por 3 rodadas. As lâminas podem ser usadas para aparar (+8 na Defesa) como reação.",
           "stats": [
-            "2 ataques: +6d8+41 + +4d8+32",
-            "2 acertos: +1 Reação bônus + alvo perde 1 Reação",
-            "Pode usar 1 golpe como Reação (contra-ataque)"
-          ],
-          "type": "ativa"
+            "2 ataques: 10d8+45 cada | Crítico em 18-20",
+            "DT Constituição 34 — Falha: +50% dano de Miguel por 3 rodadas",
+            "Pode aparar (+8 Defesa) como reação | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Movimento licantropo melhorado com peso técnico. Move 12m ignorando ataques de oportunidade, aplica 1 ataque de +7d8+47 no destino. DT Destreza 35 — Falha: o alvo é derrubado. Se usado em seguida de Golpe Combinado na mesma rodada (como 3ª ação): o ataque do Passo é automático.",
-          "name": "Passo do Lobo",
+          "name": "Armadura de Espinhos Sanguíneos",
+          "type": "ativa",
+          "description": "Miguel faz seu sangue vampírico explodir através da pele, criando uma armadura de espinhos ósseos cobertos de necrose. Por 3 rodadas: +18 de ARM. Qualquer inimigo que atacar Miguel em corpo-a-corpo sofre 6d8+20 de dano de perfuração dos espinhos e fica Sangrando (3d8/rodada). Miguel pode detonar a armadura: estilhaços em 8m, 8d8+30 a todos.",
           "stats": [
-            "Movimento: 12m sem ataques de oportunidade | Ataque no destino: +7d8+47",
-            "DT Destreza 35 — Falha: alvo derrubado",
-            "Após Golpe Combinado na mesma rodada: ataque automático"
-          ],
-          "type": "ativa"
+            "3 Rodadas | +18 ARM | Inimigos melee: 6d8+20 + Sangrando 3d8/rodada",
+            "Detonar armadura: 8d8+30 em 8m a todos",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Ação Livre. Miguel lê o campo sem parar o combate. Por 2 Rodadas: +8 no Resultado de tudo, aliados em 8m recebem +5 no Resultado, e qualquer habilidade inimiga que Miguel já tenha visto nesse combate tem DT reduzida em -4 para resistência. O bônus de aliados persiste 1 Rodada a mais após o efeito principal.",
-          "name": "Análise de Campo",
+          "name": "Arpão de Sangue",
+          "type": "ativa",
+          "description": "Miguel lança um tendão ósseo gigante coberto de sangue necrótico como um arpão, perfurando e puxando o inimigo. Alcance 15m: 8d8+38 de dano perfurante. O alvo é puxado 10m em direção a Miguel (DT Força 36 para resistir). Chegando ao corpo-a-corpo: Miguel ganha 1 ataque grátis com +10 no Resultado. O tendão permanece, criando uma linha de sangue que causa 3d8/rodada a quem cruzar.",
           "stats": [
-            "Ação Livre | 2 Rodadas | +8 no Resultado de tudo",
-            "Aliados em 8m: +5 no Resultado",
-            "DTs de habilidades já vistas: -4 para resistência de Miguel | Bônus de aliados: +1 Rodada extra"
-          ],
-          "type": "ativa"
+            "Alcance 15m | 8d8+38 perfurante | Puxa 10m (DT Força 36)",
+            "Chegada: 1 ataque grátis +10 Resultado",
+            "Linha de sangue: 3d8/rodada a quem cruzar | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rodadas, Miguel atinge o ápice do que é: não o mais forte, não o mais rápido, mas absolutamente sem lacunas. Age 2x por turno, todos os bônus acumulados no combate dobram, resistência aumenta para 44%, aliados em 12m recebem todos os bônus de Análise de Campo permanentemente durante a Ultimate. Após a Ultimate: Miguel pode optar por sacrificar os bônus acumulados para curar 726 PV em aliados à sua escolha (divididos como quiser).",
-          "name": "Lobo Completo",
+          "name": "Ferro e Sangue — Arsenal Vivo",
+          "type": "ultimate",
+          "description": "Miguel ativa a transformação máxima de seu corpo-arma — ossos brotam em todas as direções, criando lâminas, espinhos, garras e caudas espinhentas, tudo animado por sangue necrótico fervente. Por 4 rodadas: Miguel vira uma esfera de lâminas de 3m. Qualquer criatura em 3m sofre 8d8+40 por rodada automaticamente. Miguel faz 3 ataques por rodada: 12d8+55 cada. A cada ataque, converte todas as Cargas Sanguíneas acumuladas em +2d10 por carga (máx 20d10). Imune a ser desarmado, agarrado ou movido contra a vontade.",
           "stats": [
-            "3 Rodadas | Age 2× por turno | Bônus acumulados dobram | Resistência: 44%",
-            "Aliados em 12m: Análise de Campo permanente durante a Ultimate",
-            "Pós-Ultimate: sacrifica bônus para curar 726 PV em aliados (opcional)",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | Aura de lâminas 3m: 8d8+40/rodada automático",
+            "3 ataques/rodada: 12d8+55 | Cargas Sanguíneas: +2d10 cada (máx +20d10)",
+            "Imune a desarmar, agarrar, mover forçado | CD: 11 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1571,
-        "arm": 44,
-        "ba": 31,
-        "bd": 28,
-        "ca": 38,
-        "reac": 9,
-        "dano": "8d8+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3416,
+        "arm": 63,
+        "ba": 39,
+        "bd": 36,
+        "ca": 46,
+        "reac": 12,
+        "dano": "10d8+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Miguel Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        31,
-        21,
-        31,
-        17,
-        19,
-        21
+        28,
+        24,
+        26,
+        24,
+        26,
+        24
       ],
       "id": "0f6c88d6-69fa-434c-b47c-9fe79b5bc3cb",
       "avatar": "codex-avatars/0f6c88d6-69fa-434c-b47c-9fe79b5bc3cb.webp",
       "profile": "guerreiro",
-      "na": "4",
-      "nivel": 24,
+      "na": "6",
+      "nivel": 32,
       "abilities": [
         {
-          "description": "Cecillia absorve punição e devolve com juros. A cada 338 PV sofridos, acumula 1 Carga de Voracidade (máx 5). 2 Cargas: +3d15+22 em todos os ataques. 4 Cargas: ARM aumenta em +18. 5 Cargas: próximo ataque causa Dano Verdadeiro e é automático. Além disso: qualquer crítico recebido recarrega imediatamente 1 Carga de Voracidade extra — inimigos que tentam derrubá-la testam Força DT 26 ou fracassam.",
-          "name": "Tanque de Guerra",
+          "name": "Autoridade da Matriarca",
+          "type": "passiva",
+          "description": "Cecillia irradia a presença de uma Alfa lupina e uma Mestra vampírica simultaneamente — a fúria da matilha e a obediência dos mortos. Aliados em 15m: +10 no Resultado de todos os ataques e +8 em todas as Defesas. Inimigos em 15m: DT Vontade 32 ao tentar atacar Cecillia — Falha: o ataque tem -10 no Resultado por hesitação sobrenatural. Criaturas invocadas por Cecillia ganham +50% de PV e dano.",
           "stats": [
-            "Acúmulo: +1 Voracidade a cada 338 PV sofridos (máx 5)",
-            "2 Cargas: +3d15+22 em ataques | 4 Cargas: +18 ARM",
-            "5 Cargas: próximo ataque automático + Dano Verdadeiro",
-            "Crítico recebido: +1 Carga extra | Derrubadas: atacante testa Força DT 26"
-          ],
-          "type": "passiva"
+            "Aliados 15m: +10 ataques | +8 Defesas",
+            "Inimigos 15m: DT Vontade 32 para atacá-la — Falha: -10 no ataque",
+            "Invocações: +50% PV e dano"
+          ]
         },
         {
-          "description": "Cecillia avança como um veículo sem freios. Move até 15m em linha reta — todo inimigo no caminho testa Fortitude DT 26 ou recebe 9d15+52 Dano e é derrubado. Alvos no fim da linha recebem dano dobrado (18d15+103). Cada inimigo derrubado acumula 1 Carga de Voracidade.",
-          "name": "Investida Voraz",
+          "name": "Comando da Alfa — Caçada",
+          "type": "ativa",
+          "description": "Cecillia emite um uivo de comando que ativaa fúria predatória de todos os aliados. Todos os aliados em 20m: +14 no Resultado de ataques, +4d10 de dano por ataque, e ganham Regeneração de 80 PV/rodada por 3 rodadas. Aliados podem fazer 1 ataque bônus por rodada contra inimigos já feridos. Efeito dura 3 rodadas.",
           "stats": [
-            "Linha: 15m | Todos no caminho: DT Fortitude 38 ou 9d15+52 + derrubado",
-            "Alvo no fim da linha: dano dobrado (18d15+103)",
-            "Cada derrubado: +1 Carga de Voracidade"
-          ],
-          "type": "ativa"
+            "Aliados 20m: +14 Resultado | +4d10/ataque | Regen 80 PV/rodada (3 rodadas)",
+            "1 ataque bônus/rodada vs inimigos feridos",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Um único golpe com toda a massa licantropa. DT Fortitude 41 — Falha: 13d15+74 Dano, o alvo perde permanentemente 5 de ARM (recuperável apenas fora de combate) e 2 Reações. Sucesso: metade do dano. Se Cecillia tiver 3+ Cargas de Voracidade, a perda de ARM é de 15 e ela acumula 1 Carga extra.",
-          "name": "Golpe Britador",
+          "name": "Escravos de Sangue",
+          "type": "ativa",
+          "description": "Cecillia domina a mente de inimigos fracos com seu olhar vampírico, transformando-os em marionetes temporárias. 1d3+1 alvos em 12m com nível inferior ao dela: DT Vontade 36. Falha: Dominados por 3 rodadas — atacam outros inimigos como aliados de Cecillia. Alvos dominados ganham +4 no Resultado. Se um escravo morrer enquanto dominado, Cecillia cura 150 PV. Criaturas de nível superior resistem automaticamente.",
           "stats": [
-            "DT Fortitude 41 | Falha: 13d15+74 Dano | -5 ARM permanente no combate | -2 Reações",
-            "3+ Cargas: -15 ARM + 1 Carga extra"
-          ],
-          "type": "ativa"
+            "1d3+1 alvos inferiores em 12m | DT Vontade 36",
+            "Falha: Dominados 3 rodadas (+4 Resultado) — atacam inimigos",
+            "Escravo morto: Cecillia cura 150 PV | CD: 6 Rodadas"
+          ]
         },
         {
-          "description": "Quanto mais Cecillia é atingida, mais selvagem ela fica. Ativa automaticamente ao atingir 85% PV ou manualmente. Por 2 Rodadas: dano base dobra, +2 ataques por turno, imune a Atordoamento e -30% de qualquer dano recebido (conversão em Carga de Voracidade). Cada ataque bem-sucedido regenera 68 PV.",
-          "name": "Frenesi de Batalha",
+          "name": "Punho da Matriarca",
+          "type": "ativa",
+          "description": "Cecillia canaliza toda sua autoridade híbrida em um golpe que esmaga corpo e alma. 1 alvo: 10d10+50 de dano esmagador. DT Vontade 38 (Defesa mental, não física). Falha: o alvo fica Prostrado — ajoelhado perante a Matriarca, incapaz de agir por 1 rodada, e todos os aliados de Cecillia ganham +8 no Resultado contra aquele alvo por 3 rodadas. Inimigos adjacentes fazem DT Vontade 34 ou recuam 5m por medo.",
           "stats": [
-            "Gatilho: 85% PV | 2 Rodadas | Dano base dobra | +2 ataques/turno",
-            "Imune a Atordoamento | 30% de todo dano recebido vira Carga",
-            "Acerto = regeneração de 68 PV"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d10+50 | DT Vontade 38 (não física)",
+            "Falha: Prostrado 1 rodada + aliados +8 vs alvo por 3 rodadas",
+            "Adjacentes: DT Vontade 34 ou recuam 5m | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Cecillia não se transforma — ela explode. Por 3 Rodadas: +1014 PV temporários, ARM +30, 3 ataques por turno de +9d10+38 cada. Qualquer alvo que sofra 3 ataques consecutivos dela na mesma Rodada testa Fortitude DT 30 ou é incapacitado por 1 Rodada. Ao final da Ultimate, o excesso de Cargas de Voracidade (acima de 5) é liberado como explosão de 4d15+37 em 8m por Carga excedente.",
-          "name": "Colosso Feral",
+          "name": "Rainha de Dois Mundos — Coroação de Sangue e Pelo",
+          "type": "ultimate",
+          "description": "Cecillia ascende à sua forma máxima — a Rainha absoluta de lobos e mortos. Por 4 rodadas:aura de comando em 30m, TODOS os aliados (incluindo invocações) ganham +20 no Resultado, regeneração de 150 PV/rodada, e 2 ataques por rodada. Cada inimigo em 30m faz DT Vontade 42 no início de cada rodada — Falha: fica Paralisado por 1 rodada por submissão forçada. No encerramento, Cecillia invoca 2d4 Lobos Sombrios永久os (cada um: 250 PV, 8d10+30, 14 ARM) que persistem até o fim do combate.",
           "stats": [
-            "3 Rodadas | +1014 PV temporários | +34 ARM | 3 ataques/turno: +9d10+38 cada",
-            "3 ataques no mesmo alvo/Rodada: DT Fortitude 44 ou incapacitado 1 Rodada",
-            "Fim da Ultimate: Cargas >5 explodem em 4d15+37 em 8m por excedente",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | Aliados 30m: +20 Resultado | Regen 150/rodada | 2 ataques/rodada",
+            "Inimigos: DT Vontade 42/rodada — Falha: Paralisado 1 rodada",
+            "Final: Invoca 2d4 Lobos Sombrios permanentes (250 PV cada)",
+            "CD: 12 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1729,
-        "arm": 44,
-        "ba": 29,
-        "bd": 26,
-        "ca": 36,
-        "reac": 8,
-        "dano": "8d10+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3752,
+        "arm": 60,
+        "ba": 38,
+        "bd": 35,
+        "ca": 45,
+        "reac": 10,
+        "dano": "10d10+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Cecillia Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
         26,
-        29,
         24,
-        26,
-        24,
+        30,
+        22,
+        22,
         24
       ],
       "id": "badb0dc5-dfdb-4496-b5af-bf63c138301e",
       "avatar": "codex-avatars/badb0dc5-dfdb-4496-b5af-bf63c138301e.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 24,
+      "na": "6",
+      "nivel": 32,
       "abilities": [
         {
-          "description": "Dorian é o lobo que se encaixa em qualquer briga. A cada ataque recebido, identifica o padrão do oponente: acumula 1 Ficha de Leitura (máx 4). 2 fichas: +8 no Resultado de ataques e defesas contra aquele alvo. 4 fichas: o próximo ataque de Dorian acerta automaticamente. Ao mudar de alvo, as fichas transferem-se parcialmente (perde 1). Contra Ivan Van Helsing especificamente: acumula 2 fichas por interação (placar acirrado — os dois se conhecem bem).",
-          "name": "Adaptação Perfeita",
+          "name": "Imortalidade Híbrida",
+          "type": "passiva",
+          "description": "A regeneração lupina de Dorian, amplificada pelo não-morto vampírico, cria um ciclo de cura que desafia a própria morte. Regeneração passiva de 120 PV/rodada. Uma vez por combate, se Dorian chegar a 0 PV, ele entra em Estado de Morte Aparente por 1 rodada (parece morto, imune a tudo) e então revive com 50% dos PV máximos. Dano necrótico o cura em vez de ferir. Membros severados se reanexam em 1 rodada.",
           "stats": [
-            "Acúmulo: +1 Leitura por ataque recebido (máx 4 por alvo)",
-            "2 Leituras: +8 no Resultado (ataque e defesa) contra o alvo",
-            "4 Leituras: próximo ataque automático",
-            "Troca de alvo: perde apenas 1 ficha (transfere 3)"
-          ],
-          "type": "passiva"
+            "Regeneração: 120 PV/rodada | Dano necrótico cura em vez de ferir",
+            "1x/combate: Ao chegar a 0 PV — revive com 50% PV máx após 1 rodada",
+            "Membros cortados: reanexam em 1 rodada"
+          ]
         },
         {
-          "description": "Dorian usa o impulso do inimigo contra ele. Reação — ao ser atacado: pode escolher absorver o impacto e redirecionar a força. Dano reduzido em 73%, e Dorian aplica imediatamente 1 ataque de contra-ritmo: 7d8+47 de Dano Verdadeiro. Se tiver 3+ fichas de Leitura, a redução de dano sobe para 110% e o contra-ataque aplica -15 no Resultado do alvo por 1 Rodada.",
-          "name": "Contra-Ritmo",
+          "name": "Drenar Vital",
+          "type": "ativa",
+          "description": "Dorian crava as presas vampíricas no alvo enquanto garras lupinas o prendem. 1 alvo: 8d8+38 de dano de drenagem. Dorian cura o dobro do dano causado. DT Constituição 36. Falha: o alvo fica Exaurido (-2 em todas as atribuições por 2 rodadas, -10 no Resultado). Se o alvo estiver com menos de 30% da vida, Dorian pode optar por Absorver — mata instantaneamente e ganha +50 PV máximos permanentes por 24h.",
           "stats": [
-            "Reação | Ao ser atacado: reduz dano em 73% + contra-ataque 7d8+47 Verdadeiro",
-            "3+ Leituras: redução 110% + contra-ataque aplica -15 nas ações do alvo por 1 Rodada"
-          ],
-          "type": "ativa"
+            "1 alvo | 8d8+38 drenagem | Dorian cura o dobro",
+            "DT Constituição 36 — Falha: Exaurido (-2 atribuições, -10 Resultado) 2 rodadas",
+            "Alvo <30% vida: Absorção = morte instantânea + 50 PV máximos/24h | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Dorian é implacável — adapta, pressiona, não deixa o inimigo respirar. Por 2 Rodadas: 2 ataques extras por turno de +3d8+18 cada. Cada ataque bem-sucedido acumula 1 Leitura. Se o alvo tentar usar uma habilidade durante a pressão, testa Concentração DT 22 — Falha: a habilidade é interrompida.",
-          "name": "Pressão Constante",
+          "name": "Pele de Lobo Morto",
+          "type": "ativa",
+          "description": "Dorian induz uma transformação parcial que ativa todas as suas defesas híbridas simultaneamente. Por 3 rodadas: regeneração aumenta para 250 PV/rodada, +20 de ARM, imune a Atordoamento, Medo e Paralisia. Inimigos que atacarem Dorian em corpo-a-corpo sofferem 4d8 de dano de reflexo necrótico (o sangue morto queima os vivos). Dorian pode cancelar a qualquer momento para atacar com +10 no Resultado.",
           "stats": [
-            "2 Rodadas | +2 ataques extras/turno: +3d8+18 cada",
-            "Acerto = +1 Leitura | Habilidade do alvo: DT Concentração 32 ou interrompida"
-          ],
-          "type": "ativa"
+            "3 Rodadas | Regen 250 PV/rodada | +20 ARM | Imune a CC (Atord, Medo, Paralisia)",
+            "Inimigos melee: 4d8 necrótico de reflexo ao atacar Dorian",
+            "Cancelar: +10 Resultado no próximo ataque | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Dorian finaliza com exatidão. 1 ataque: 10d8+62 de Dano Verdadeiro, ignora ARM. DT Constituição 38 — Falha: -2 Reações e Sangramento de 60/Rod por 2 Rodadas. Se tiver 4 Leituras no alvo, pode aplicar dois golpes simultâneos (dano total 21d8+123) e a DT sobe para 44.",
-          "name": "Golpe Preciso",
+          "name": "Ecos de Ferimento",
+          "type": "ativa",
+          "description": "Dorian reverte o estado de seu corpo a um momento anterior, desfeito todo dano recentemente sofrido, e canaliza esse dano revertido como uma explosão de energia vital roubada. Cura a si mesmo completamente e causa aos inimigos em 8m dano igual ao total que Dorian curou nos últimos 3 turnos (máx 300). DT Constituição 34 — Falha: o dano é dobrado e o alvo fica Envenenado (4d8/rodada por 2 rodadas).",
           "stats": [
-            "1 ataque | 10d8+62 Dano Verdadeiro, ignora ARM",
-            "DT Constituição 38 — Falha: -2 Reações + Sangramento 60/Rod × 2",
-            "4 Leituras: ataque duplo simultâneo (21d8+123) | DT 30"
-          ],
-          "type": "ativa"
+            "Cura-se completamente + causa dano em 8m igual ao curado nos últimos 3 turnos",
+            "Máximo: 300 de dano | DT Constituição 34 — Falha: dano dobrado + Envenenado 4d8/rodada",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Por 3 Rodadas Dorian atinge o estado de adaptação máxima — anticipa qualquer ação antes de acontecer. Age 2x por turno, cada ação gera 1 Leitura automática, e contra-ataques não consomem Reação. Para cada tipo de habilidade diferente que um inimigo tiver usado no combate, Dorian recebe +3 no Resultado de forma permanente no encontro. Após a Ultimate: Leituras não são zeradas — permanecem para o próximo turno.",
-          "name": "Forma Perfeita",
+          "name": "Imortal — O Que Não Pode Morrer",
+          "type": "ultimate",
+          "description": "Dorian aceita sua natureza híbrida sem reservas — ele se torna verdadeiramente imortal por um tempo. Por 5 rodadas: não pode ser reduzido abaixo de 1 PV por nenhum meio. Regeneração de 400 PV/rodada. Todos os ataques causam 10d8+50 de dano de drenagem (cura a Dorian o equivalente). A cada rodada, Dorian pode ressuscitar um aliado caído com 50% de vida ao custo de 200 PV próprios (que regenera no turno seguinte). Inimigos que atacarem Dorian durante a ultimate ficam Marcados — Dorian cura 100 PV a cada ataque recebido.",
           "stats": [
-            "3 Rodadas | Age 2× por turno | Cada ação = +1 Leitura automática",
-            "Contra-ataques sem custo de Reação",
-            "+3 permanente no Resultado por tipo de habilidade diferente vista no combate",
-            "Leituras não zeradas após a Ultimate | CD: 6 Rodadas"
-          ],
-          "type": "ultimate"
+            "5 Rodadas | Não cai abaixo de 1 PV | Regen 400 PV/rodada",
+            "Ataques: 10d8+50 drenagem (cura equivalente) | Ressuscita aliado: -200 PV próprios",
+            "Inimigos que o atacam: Dorian cura 100 PV por ataque recebido",
+            "CD: 12 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1393,
-        "arm": 42,
-        "ba": 29,
-        "bd": 26,
-        "ca": 36,
-        "reac": 9,
-        "dano": "8d8+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3080,
+        "arm": 58,
+        "ba": 38,
+        "bd": 35,
+        "ca": 45,
+        "reac": 11,
+        "dano": "10d8+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Dorian Van Helsing",
-      "raca": "Lobisomem"
-    },
-    {
-      "description": "",
-      "attrs": [
-        31,
-        21,
-        33,
-        17,
-        29,
-        19
-      ],
-      "id": "5a6b4cb2-f583-4706-b7f1-4c6876fa1fdc",
-      "avatar": "codex-avatars/5a6b4cb2-f583-4706-b7f1-4c6876fa1fdc.webp",
-      "profile": "guerreiro",
-      "na": "4",
-      "nivel": 29,
-      "abilities": [
-        {
-          "description": "Emanuel jurou proteger — e seu corpo obedece a esse juramento. Cada vez que um aliado sofre dano em até 12m, Emanuel acumula 1 Chama de Proteção (máx 5). 2 Chamas: +3d15+22 no próximo ataque. 4 Chamas: próximo ataque ignora ARM. 5 Chamas: ativa Fúria Protetora automaticamente sem custo de Reação. Além disso: qualquer ataque que reduziria um aliado a 0 PV em 6m de Emanuel — ele pode interpor-se como Reação, recebendo o dano no lugar.",
-          "name": "Guardião da Alcateia",
-          "stats": [
-            "Acúmulo: +1 Chama por aliado atingido em 12m (máx 5)",
-            "2 Chamas: +3d15+22 no próximo ataque | 4 Chamas: ataque ignora ARM",
-            "5 Chamas: Fúria Protetora automática (sem custo de Reação)",
-            "Reação: interpõe-se entre aliado e ataque fatal em 6m (absorve dano)"
-          ],
-          "type": "passiva"
-        },
-        {
-          "description": "O uivo de Emanuel ressoa com décadas de batalha e promessas cumpridas. Todos os aliados em 15m recebem: +15 no Resultado de todos os ataques, regeneração de 152 PV e +28 ARM por 2 Rodadas. Inimigos no mesmo raio testam Vontade DT 25 — Falha: -8 no Resultado e instintivamente recuam 4m. Emanuel acumula 1 Chama de Proteção por aliado beneficiado.",
-          "name": "Uivo de Guerra",
-          "stats": [
-            "Aliados em 15m: +15 no Resultado | Regeneração 152 PV | +28 ARM por 2 Rodadas",
-            "Inimigos em 15m: DT Vontade 37 — Falha: -8 nas ações + recuo 4m",
-            "+1 Chama por aliado beneficiado"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Quando a alcateia está em perigo, Emanuel se torna um monstro. Reação, ativada quando um aliado é atacado: Emanuel se interpõe e ataca o agressor com 10d15+67 de Dano. DT Fortitude 42 — Falha: o agressor é lançado 5m e perde suas 2 próximas Reações. Se tiver 3+ Chamas ao ativar, o dano sobe para 15d15+89 e o agressor é também atordoado por 1 Rodada.",
-          "name": "Fúria Protetora",
-          "stats": [
-            "Reação | Gatilho: aliado sendo atacado em 6m | Ataque: 10d15+67 Dano",
-            "DT Fortitude 42 — Falha: lançado 5m + perde 2 próximas Reações",
-            "3+ Chamas: dano 15d15+60 + atordoado 1 Rodada"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Décadas sobrevivendo ao impossível cristalizaram em Emanuel um instinto que transcende treinamento. Gatilho: atingir 57% PV. Ativa automaticamente ou manualmente. Por 2 Rodadas: imune a qualquer redução de atributos ou efeitos de controle, regenera 284 PV/Rodada e cada ataque causa +4d15+30 adicional. Se combinar com 4+ Chamas, a duração sobe para 3 Rodadas.",
-          "name": "Instinto de Sobrevivência",
-          "stats": [
-            "Gatilho: 57% PV | 2 Rodadas (3 com 4+ Chamas)",
-            "Imune a redução de atributos e efeitos de controle",
-            "Regeneração: 284 PV/Rodada | +4d19+38 adicional por ataque"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Emanuel transforma-se completamente — não por escolha, mas por promessa. Por 3 Rodadas: forma licantropa plena de guardião. Vida máxima aumenta em 1137 PV temporários, ARM sobe +47, regeneração de 379 PV/Rodada. Qualquer aliado que morrer durante a Ultimate é mantido vivo com 1 PV por 1 Rodada adicional (Emanuel absorve a morte temporariamente). Cada morte absorvida concede 1 ataque extra gratuito de 12d15+74. Após a Ultimate: Emanuel colapsa — 0 Reações por 1 Rodada.",
-          "name": "Último Defensor",
-          "stats": [
-            "3 Rodadas | +1137 PV temporários | +47 ARM | Regeneração 379 PV/Rodada",
-            "Morte de aliado: absorvida temporariamente (aliado fica com 1 PV por 1 Rodada)",
-            "Cada morte absorvida: +1 ataque extra 12d15+74",
-            "Após Ultimate: 0 Reações por 1 Rodada | CD: 8 Rodadas"
-          ],
-          "type": "ultimate"
-        }
-      ],
-      "stats": {
-        "vida": 2301,
-        "arm": 49,
-        "ba": 33,
-        "bd": 30,
-        "ca": 40,
-        "reac": 9,
-        "dano": "10d10+35",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
-      },
-      "nome": "Emanuel Van Helsing",
-      "raca": "Lobisomem"
-    },
-    {
-      "description": "",
-      "attrs": [
-        29,
-        33,
-        24,
-        29,
-        24,
-        21
-      ],
-      "id": "ade4461e-43bf-411c-9d24-5acff19c422b",
-      "avatar": "codex-avatars/ade4461e-43bf-411c-9d24-5acff19c422b.webp",
-      "profile": "especialista",
-      "na": "4",
-      "nivel": 30,
-      "abilities": [
-        {
-          "description": "Robert criou sua própria escola de combate mesclando artes marciais com instinto licantropo. Cada ataque bem-sucedido consecutivo acumula 1 Fluxo Marcial (máx 5). 2 Fluxo: +3d8+22 adicional por ataque. 4 Fluxo: +1 Reação extra. 5 Fluxo: próximo ataque ignora ARM e CA e reseta para 2. Quebrar a sequência (erro ou hit-by) zera o Fluxo para 0. Com arma branca: acúmulo dobrado (2 Fluxo por acerto).",
-          "name": "Arte da Sobrevivência",
-          "stats": [
-            "Acúmulo: +1 Fluxo Marcial por acerto consecutivo (máx 5) | Zerá ao errar ou ser atingido",
-            "2 Fluxo: +3d8+22 por ataque | 4 Fluxo: +1 Reação extra",
-            "5 Fluxo: próximo ataque ignora ARM e CA → reseta para 2",
-            "Arma branca: +2 Fluxo por acerto ao invés de 1"
-          ],
-          "type": "passiva"
-        },
-        {
-          "description": "Robert funde artes marciais com sua natureza licantropa em uma sequência única: 3 golpes mistos (socos, cotovelos e garras parciais). +6d8+37 cada. Se os 3 acertarem: o alvo perde 2 Reações e -15 no Resultado por 2 Rodadas. Cada golpe conta para o Fluxo Marcial. O terceiro golpe é sempre com garras — 44% de aplicar Sangramento de 50/Rodada por 2 Rodadas.",
-          "name": "Técnica do Lobo",
-          "stats": [
-            "3 ataques: +6d8+37 cada | 3 acertos: -2 Reações + -10 nas ações por 2 Rodadas",
-            "Cada golpe conta para Fluxo Marcial",
-            "Terceiro golpe (garra): 44% de Sangramento 50/Rod × 2"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Robert combina uma arma branca com garras licantrópicas — a arma distrai, a garra mata. 2 ataques: o primeiro com arma (+9d8+51 Dano) e o segundo com garras (+7d8+44 Dano Verdadeiro). Se ambos acertarem o mesmo alvo, o alvo perde 1 Reação adicional. Com 3+ Fluxo Marcial, a combinação concede automaticamente +2 Fluxo extras após os ataques.",
-          "name": "Lâmina e Garra",
-          "stats": [
-            "2 ataques: Arma +9d8+51 | Garra +7d8+44 Verdadeiro",
-            "2 acertos no mesmo alvo: -1 Reação adicional",
-            "3+ Fluxo Marcial: +2 Fluxo extras após os ataques"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Robert para um ataque com precisão absoluta e responde. Reação — ao ser atacado: neutraliza o ataque (dano zerado), e responde com 9d8+56 de Dano Verdadeiro. O contraataque conta como ataque furtivo para fins de bônus. Se tiver 4+ Fluxo quando ativar, pode neutralizar 2 ataques na mesma rodada e contra-atacar ambos.",
-          "name": "Defesa Perfeita",
-          "stats": [
-            "Reação | Neutraliza ataque recebido (dano zerado)",
-            "Contraataque: 9d8+56 Dano Verdadeiro | Conta como ataque furtivo",
-            "4+ Fluxo ao ativar: pode neutralizar e contraatacar 2 ataques na mesma rodada"
-          ],
-          "type": "ativa"
-        },
-        {
-          "description": "Por 3 Rodadas Robert atinge o ápice de sua arte única: 3 ataques por turno (cada um com +9d8+59 de Dano), todas as Defesas perfeitas são ativadas automaticamente uma vez por rodada, e com arma branca o dano adicional de garra é somado em cada golpe. Se o Fluxo Marcial estiver em 5 ao ativar, ele começa a Ultimate já com 5 Fluxo — a sequência não se interrompe. Após a Ultimate: Fluxo reseta para 3.",
-          "name": "Arte Primordial",
-          "stats": [
-            "3 Rodadas | 3 ataques/turno: +9d8+40 cada",
-            "Defesa Perfeita automática 1×/rodada",
-            "Fluxo em 5 ao ativar: começa e mantém 5 Fluxo durante a Ultimate",
-            "Após a Ultimate: Fluxo reseta para 3 | CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
-        }
-      ],
-      "stats": {
-        "vida": 1958,
-        "arm": 48,
-        "ba": 34,
-        "bd": 31,
-        "ca": 41,
-        "reac": 10,
-        "dano": "10d8+35",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
-      },
-      "nome": "Robert Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
@@ -4798,246 +4666,409 @@
         32,
         22,
         30,
-        15,
-        17,
-        20
+        18,
+        18,
+        24
+      ],
+      "id": "5a6b4cb2-f583-4706-b7f1-4c6876fa1fdc",
+      "avatar": "codex-avatars/5a6b4cb2-f583-4706-b7f1-4c6876fa1fdc.webp",
+      "profile": "guerreiro",
+      "na": "8",
+      "nivel": 37,
+      "abilities": [
+        {
+          "name": "Fúria Incontível",
+          "type": "passiva",
+          "description": "A massa lupina e a força morta-viva de Emanuel criam uma kombinção de poder bruto que não pode ser parada. Emanuel é Imune a Efeitos de Movimento forçado (empurrão, arremesso, etc.) e ganha +4 no Resultado de Força para cada 10% de vida perdida. Ao receber dano, Emanuel acumula 1 de Fúria (máx 15). A cada 5 de Fúria, o próximo ataque causa +6d10 e Emanuel regenera 100 PV. Emanuel nunca perde ações por dano.",
+          "stats": [
+            "Imune a movimento forçado | +4 Força a cada 10% de vida perdida",
+            "Acumula Fúria (+1/attack, máx 15) | A cada 5 Fúria: +6d10 + regen 100",
+            "Nunca perde ações por dano"
+          ]
+        },
+        {
+          "name": "Investida Devastadora",
+          "type": "ativa",
+          "description": "Emanuel entra em corrida com a velocidade de um lobo e a massa de um morto-vivo — nada o detém. Linha de 15m: causa 10d10+45 de dano a cada criatura no caminho, empurrando-as 5m lateralmente (DT Força 38 para resistir). Estruturas no caminho são destruídas. Ao chegar ao final, Emanuel ganha +10 no Resultado do próximo ataque e converte toda Fúria acumulada em +1d10 por ponto de Fúria.",
+          "stats": [
+            "Linha 15m | 10d10+45 a todos no caminho | Empurra 5m (DT Força 38)",
+            "Estruturas destruídas | Chegada: +10 Resultado + Fúria → +1d10/ponto",
+            "CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Pulso de Fúria",
+          "type": "ativa",
+          "description": "Emanuel libera sua fúria acumulada em uma onda de choque sismica. Área 10m: 8d10+40 de dano de impacto a todos. DT Constituição 36. Falha: Atordoado por 1 rodada e empurrado 5m. Emanuel cura 80 PV por inimigo atingido. Se Emanuel tiver 10+ de Fúria, a onda ignora ARM e o raio aumenta para 15m. Esta habilidade não consome Fúria — a usa para amplificar.",
+          "stats": [
+            "Área 10m (15m se 10+ Fúria) | 8d10+40 impacto (ignora ARM se 10+ Fúria)",
+            "DT Constituição 36 — Falha: Atordoado + empurrado 5m",
+            "Cura 80 PV/inimigo atingido | CD: 3 Rodadas"
+          ]
+        },
+        {
+          "name": "Pele de Aço Morto",
+          "type": "ativa",
+          "description": "Emanuel endurece sua pele ao máximo — ossos lupinos recobertos por sangue vampírico coagulado tão duro quanto granito. Por 3 rodadas: ARM dobrada, imune a dano cortante/perfurante, e reflete 25% de todo dano recebido de volta ao atacante. Qualquer inimigo que atacar Emanuel corpo-a-corpo tem sua arma destruída se for de qualidade inferior (DT Constituição do item 30).",
+          "stats": [
+            "3 Rodadas | ARM dobrada | Imune a cortante/perfurante",
+            "Reflete 25% do dano | Armas inferiores destruídas (DT Const 30)",
+            "CD: 5 Rodadas"
+          ]
+        },
+        {
+          "name": "Catarse — O Juggernaut Desperto",
+          "type": "ultimate",
+          "description": "Emanuel libera toda a Fúria acumulada de uma vez, atingindo um estado de fúria berserker amplificado pela fome vampírica. Por 4 rodadas: Emanuel converte TODA a Fúria em bônus permanente (não consome): +2d10 de dano por ponto de Fúria acumulado no momento da ativação. Emanuel fica Imune a TODO dano por 2 rodadas, então regenera 300 PV/rodada pelos 2 restantes. 3 ataques por rodada: 12d10+55 cada. Inimigos em 5m: DT Vontade 40 — Falha: Paralisados de terror.",
+          "stats": [
+            "4 Rodadas | Fúria → +2d10/ponto de dano (não consome)",
+            "2 rodadas IMUNE a dano | 2 rodadas regenera 300/rodada",
+            "3 ataques/rodada: 12d10+55 | Inimigos 5m: DT Vontade 40 ou Paralisados",
+            "CD: 12 Rodadas"
+          ]
+        }
+      ],
+      "stats": {
+        "vida": 5814,
+        "arm": 69,
+        "ba": 44,
+        "bd": 41,
+        "ca": 51,
+        "reac": 12,
+        "dano": "12d10+42",
+        "danoExtra": "+5d12",
+        "tag": "vs 8 PCs + AL(3)"
+      },
+      "nome": "Emanuel Van Helsing",
+      "raca": "Híbrido Vampiro/Lobisomem"
+    },
+    {
+      "description": "",
+      "attrs": [
+        26,
+        26,
+        26,
+        28,
+        24,
+        26
+      ],
+      "id": "ade4461e-43bf-411c-9d24-5acff19c422b",
+      "avatar": "codex-avatars/ade4461e-43bf-411c-9d24-5acff19c422b.webp",
+      "profile": "especialista",
+      "na": "8",
+      "nivel": 38,
+      "abilities": [
+        {
+          "name": "Domínio Noturno",
+          "type": "passiva",
+          "description": "Robert reivindica o campo de batalha como seu território de caça — um cruzamento entre o covil lupino e o castelo vampírico. Área de 25m centrada em Robert: ele sabe a posição de todas as criaturas (ignora invisibilidade), pode se teletransportar para qualquer ponto da área como movimento, e causa +30% de dano. Inimigos que entrarem no domínio fazem DT Vontade 36 — Falha: -6 em todas as ações enquanto permanecerem. Aliados no domínio ganham +8 em Defesas.",
+          "stats": [
+            "Domínio 25m | Sabe posição de todos | Teleporte livre na área",
+            "+30% dano no domínio | Inimigos ao entrar: DT Vontade 36 ou -6 em tudo",
+            "Aliados no domínio: +8 Defesas"
+          ]
+        },
+        {
+          "name": "Olho do Senhor",
+          "type": "ativa",
+          "description": "Robert marca um ponto do campo de batalha como o centro de seu domínio, e o terreno responde. Marca 1 ponto em 25m: a área de 10m ao redor se torna Território Reforçado por 3 rodadas. Inimigos na área: -12 em todas as Defesas e não podem usar teleporte/mobilidade. Robert pode atacar qualquer criatura na área a qualquer momento (1 ataque bônus/rodada). A cada criatura derrotada na área, Robert cura 200 PV.",
+          "stats": [
+            "Marca ponto 25m | Área 10m: Território Reforçado 3 rodadas",
+            "Inimigos: -12 Defesas | sem teleporte | Robert: 1 ataque bônus/rodada",
+            "Abate na área: cura 200 PV | CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Sentinelas do Domínio",
+          "type": "ativa",
+          "description": "Robert invoca os guardiões de seu domínio — lobos espectrais e morcegos gigantes fundidos em criaturas híbridas. Invoca 1d3+1 Sentinelas (cada um: 300 PV, 10d10+30 de ataque, 16 ARM, vôo). Os Sentinelas patrulham o domínio e têm +10 no Resultado contra inimigos feridos. Duram 4 rodadas. Robert pode sacrificar um Sentinela como ação livre para curar a si mesmo em 150 PV ou teleportar 15m.",
+          "stats": [
+            "Invoca 1d3+1 Sentinelas (300 PV | 10d10+30 | 16 ARM | vôo)",
+            "+10 Resultado vs feridos | Duram 4 rodadas",
+            "Sacrificar Sentinela: cura 150 PV OU teleporte 15m | CD: 6 Rodadas"
+          ]
+        },
+        {
+          "name": "Decreto do Soberano",
+          "type": "ativa",
+          "description": "Robert profere um decreto absoluto sobre seu território — e o mundo obedece. 1 efeito poderoso à escolha: BANIR (1 alvo é expelido do domínio, sofre 10d8+45 e fica Imobilizado por 2 rodadas fora da área); ou PROIBIR (escolhe 1 tipo de ação — mágica, movimento, ou ataques à distância — inimigos no domínio não podem usá-la por 3 rodadas); ou COMANDAR (1d3+1 inimigos inferiores: DT Vontade 40 ou se ajoelham e não agem por 1 rodada).",
+          "stats": [
+            "3 opções: BANIR (10d8+45 + Imobilizado), PROIBIR (sela tipo de ação 3 rodadas),",
+            "ou COMANDAR (1d3+1 inimigos DT Vontade 40 ou imobilizados)",
+            "CD: 5 Rodadas"
+          ]
+        },
+        {
+          "name": "Monarca da Noite Eterna — Castelo de Sangue e Luar",
+          "type": "ultimate",
+          "description": "Robert cristaliza seu domínio em uma manifestação física — uma mansão espectral de sangue e ossos ergue-se ao redor dele, consumindo o campo de batalha. Área 40m: o Domínio se torna permanente (não pode ser dissipado). Todos os inimigos na área sofrem 6d10+35 de dano por rodada passivo (o próprio domínio os devora). Robert ganha controle absoluto: pode redirecionar qualquer ataque direcionado a aliados para si mesmo (cura 100% do dano), invoca 2d4 Sentinelas extras, e seus ataques causam Dano Verdadeiro. Dura até o fim do combate.",
+          "stats": [
+            "Domínio permanente 40m | Inimigos: 6d10+35/rodada passivo",
+            "Robert: redireciona ataques de aliados (cura 100%) | +2d4 Sentinelas | Dano Verdadeiro",
+            "Dura até o fim do combate | CD: 15 Rodadas"
+          ]
+        }
+      ],
+      "stats": {
+        "vida": 5066,
+        "arm": 69,
+        "ba": 44,
+        "bd": 41,
+        "ca": 51,
+        "reac": 14,
+        "dano": "12d8+42",
+        "danoExtra": "+5d12",
+        "tag": "vs 8 PCs + AL(3)"
+      },
+      "nome": "Robert Van Helsing",
+      "raca": "Híbrido Vampiro/Lobisomem"
+    },
+    {
+      "description": "",
+      "attrs": [
+        30,
+        22,
+        30,
+        18,
+        18,
+        22
       ],
       "id": "62dda4be-7139-4a48-a427-d807350ade51",
       "avatar": "codex-avatars/62dda4be-7139-4a48-a427-d807350ade51.webp",
       "profile": "guerreiro",
-      "na": "4",
-      "nivel": 21,
+      "na": "6",
+      "nivel": 29,
       "abilities": [
         {
-          "description": "Ivan nunca treinou técnica — ele não precisou. Sua força é simplesmente absurda por natureza. A cada rodada de combate, seu dano aumenta em +1d10+8 (máx +6d10+40 acumulados). Ataques físicos dele ignoram automaticamente 12 pontos de ARM do alvo. Se um alvo tentar imobilizá-lo, Ivan testa com Vantagem. Fato: já empatou diversas vezes com Dorian Van Helsing — uma raridade assustadora.",
-          "name": "Força Natural",
+          "name": "Fortaleza Necrótica",
+          "type": "passiva",
+          "description": "O corpo de Ivan é uma fortaleza viva — ossos lupinos tão densos quanto aço, reforçados por uma armadura necrótica de sangue vampírico coagulado. +16 de ARM passiva. Sempre que Ivan sofre dano, a armadura necrótica absorve 50% e converte em energia — cada 100 PV absorvidos concedem +4 no Resultado do próximo ataque. Dano cortante e perfurante tem -30% de eficácia contra Ivan.",
           "stats": [
-            "Acúmulo: +1d10+8 dano por rodada (máx +6d10+40)",
-            "Ataques ignoram 12 pontos de ARM automaticamente",
-            "Testes de resistência à imobilização: com Vantagem"
-          ],
-          "type": "passiva"
+            "+16 ARM passiva | Dano cortante/perfurante -30%",
+            "Cada 100 PV absorvidos: +4 Resultado no próximo ataque",
+            "Armadura necrótica regenera 60 PV/rodada automaticamente"
+          ]
         },
         {
-          "description": "Força pura concentrada em um único golpe. DT Fortitude 32 — Falha: 9d12+47 de Dano, o alvo é derrubado e perde 3 Reações. Sucesso: metade do dano. O impacto do soco cria uma onda de choque de 4m — alvos adjacentes testam Fortitude DT 20 ou são derrubados (sem dano). Se Ivan tiver acumulado +4d12 ou mais pela passiva, o dano base sobe para 13d12+59.",
-          "name": "Soco Devastador",
+          "name": "Punho de Ferro Morto",
+          "type": "ativa",
+          "description": "Ivan canaliza toda sua densidade óssea e poder necrótico em um único soco devastador. A armored necrótica se concentra em seu punho, dobrando de espessura. 1 alvo: 10d10+50 de dano de impacto. DT Constituição 38 — Falha: arremessado 8m, atordoado por 1 rodada, e -10 em todas as Defesas por 2 rodadas. Se o alvo colidir com outro inimigo, ambos sofrem 6d10 de dano de colisão.",
           "stats": [
-            "DT Fortitude 32 | Falha: 9d12+47 Dano + derrubado + -3 Reações",
-            "Onda de choque 4m: adjacentes testam DT 20 ou são derrubados",
-            "4d12+ acumulados pela passiva: dano sobe para 13d12+59"
-          ],
-          "type": "ativa"
+            "1 alvo | 10d10+50 impacto | DT Constituição 38",
+            "Falha: Arremessado 8m + Atordoado 1 rodada + -10 Defesas (2 rodadas)",
+            "Colisão com outro: +6d10 em ambos | CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Ivan não tem técnica — mas a academia ensinou volume. 4 socos consecutivos: +4d12+21 cada. Se todos acertarem, o alvo é atordoado por 1 Rodada (sem ações). Cada soco conta para o acúmulo de bônus da passiva se ocorrer antes do turno máximo.",
-          "name": "Rajada Bruta",
+          "name": "Ossatura Explosiva",
+          "type": "ativa",
+          "description": "Ivan detona fragmentos de sua própria armadura necrótica como estilhaços vampíricos. Os ossos se projetam em todas as direções, perfurando tudo em 8m. Área 8m: 8d10+35 de dano perfurante a todos os inimigos. Cada estilhaço que atinge um alvo se finca e drena sangue — 3d10 de dano necrótico adicional por rodada por 2 rodadas. Ivan cura 40 PV por estilhaço que atinge um alvo.",
           "stats": [
-            "4 ataques: +4d12+21 cada",
-            "4 acertos: alvo atordoado 1 Rodada (sem ações)"
-          ],
-          "type": "ativa"
+            "Área 8m | 8d10+35 perfurante a todos",
+            "Estilhaços fixados: 3d10 necrótico/rodada por 2 rodadas",
+            "Ivan cura 40 PV por alvo atingido | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Ivan fica mais perigoso quando está perdendo — seu orgulho não aceita a derrota. Gatilho: Ivan estar abaixo de 79% PV. Ativa automaticamente ou pode ser ativada manualmente. Por 2 Rodadas: +20 no Resultado de todos os ataques, dano base dobra, imune a Atordoamento e Desequilíbrio. Inimigos que o atacarem durante esse estado testam Fortitude DT 22 ou recebem dano de contra-impacto de 2d12+24.",
-          "name": "Fúria do Ego",
+          "name": "Muralha de Sangue",
+          "type": "ativa",
+          "description": "Ivan estaca seu pé no chão e sua armadura necrótica se expande, criando uma muralha de osso e sangue coagulado em semicírculo de 6m. Aliados atrás da muralha: +20 de ARM e imunidade a efeitos de área por 3 rodadas. Qualquer inimigo que tente atravessar sofre 8d10+30 de dano e é empurrado de volta. A muralha tem 800 PV e se regenera 120 PV/rodada com o sangue de Ivan.",
           "stats": [
-            "Gatilho: <79% PV | 2 Rodadas | +32 no Resultado | Dano base dobra",
-            "Imune a Atordoamento e Desequilíbrio durante o estado",
-            "Contra-impacto: atacantes testam Fortitude DT 22 ou recebem 2d12+24"
-          ],
-          "type": "ativa"
+            "Muralha semicircular 6m | Aliados: +20 ARM + imune a área (3 rodadas)",
+            "Inimigos que cruzam: 8d10+30 + empurrados",
+            "Muralha: 800 PV | Regenera 120 PV/rodada | CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Ivan libera tudo que tem — bruto, selvagem, sem técnica alguma. A força do Sangue Real que nunca explorou irrompe por 3 Rodadas: seu dano base triplica, realiza 3 ataques por turno, cada ataque tem 35% de chance de derrubar o alvo independentemente de DT. Se ele já tiver acumulado o máximo da passiva (+6d12+47), o primeiro ataque ignora ARM, CA e mata instantaneamente alvos com menos de 32% PV. Após a Ultimate: exausto — -12 no Resultado por 2 Rodadas.",
-          "name": "Força Primordial",
+          "name": "Colosso Imortal — Forma Cidadela",
+          "type": "ultimate",
+          "description": "Ivan se transforma em sua forma híbrida máxima — um colosso de 4 metros, osso e sangue vampírico fundidos em uma massa impenetrável de fúria. Por 4 rodadas: ARM dobrada, 400 PV/rodada de regeneração, imune a Atordoamento, Medo e efeitos de movimento. Cada ataque causa 12d10+55 de dano em cone de 5m (atinge múltiplos alvos). A cada rodada, Ivan pode escolher um alvo e executar um Esmagamento: 16d10+70 — DT Constituição 42 ou morte instantânea se o alvo tiver menos de 30% de vida.",
           "stats": [
-            "3 Rodadas | Dano base ×3 | 3 ataques/turno | 30% de derrubar por ataque",
-            "Máximo da passiva + ataque: ignora ARM e CA | Abaixo de 32% PV = morte instantânea",
-            "Após a Ultimate: -12 no Resultado por 2 Rodadas (exaustão)",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | ARM dobrada | Regen 400 PV/rodada | Imune a CC",
+            "Ataques: 12d10+55 em cone 5m (múltiplos alvos)",
+            "Esmagamento: 16d10+70 — execute se alvo <30% vida (DT Const 42)",
+            "CD: 10 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1439,
-        "arm": 40,
-        "ba": 28,
-        "bd": 25,
-        "ca": 35,
-        "reac": 7,
-        "dano": "6d10+24",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3198,
+        "arm": 60,
+        "ba": 35,
+        "bd": 32,
+        "ca": 42,
+        "reac": 10,
+        "dano": "8d10+30",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Ivan Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
-        21,
         26,
-        21,
-        31,
-        29,
-        33
+        28,
+        26,
+        24,
+        22,
+        24
       ],
       "id": "4bbf172d-8a36-4b2c-99e0-7ad2dc3c956c",
       "avatar": "codex-avatars/4bbf172d-8a36-4b2c-99e0-7ad2dc3c956c.webp",
       "profile": "especialista",
-      "na": "4",
-      "nivel": 27,
+      "na": "6",
+      "nivel": 35,
       "abilities": [
         {
-          "description": "Roberto viu mais guerras do que a maioria viveu vidas. A cada rodada que passa sem atacar, acumula 1 Ficha de Posicionamento (máx 4). Com 2 fichas: seu próximo ataque causa +4d8+37 e reduz 2 Reações do alvo. Com 4 fichas: o próximo ataque ignora ARM e CA e aplica -22 no Resultado de todas as ações do alvo por 2 Rodadas. Fora de combate: convence qualquer NPC de qualquer coisa com teste de Carisma DT 10.",
-          "name": "Paciência do Patriarca",
+          "name": "Eclipse Pessoal",
+          "type": "passiva",
+          "description": "Roberto existe no ponto exato entre lobo e vampiro — a linha do eclipse. Cada transformação parcial que ele realiza libera uma onda de energia eclipse. Roberto começa cada combate com 3 cargas de Eclipse. Sempre que muda de forma (ativa uma habilidade de transformação), libera uma Onda Eclipse: 6d8+30 em 5m e inimigos atingidos ficam com Visão Reduzida (-4 em ataques à distância e Defesas por 2 rodadas).",
           "stats": [
-            "Acúmulo: +1 Posicionamento por rodada sem atacar (máx 4)",
-            "2 fichas: próximo ataque +4d8+37 + -2 Reações do alvo",
-            "4 fichas: ignora ARM e CA + -22 nas ações do alvo por 2 Rodadas",
-            "Fora de combate: persuasão automática (DT 10)"
-          ],
-          "type": "passiva"
+            "Começa com 3 cargas de Eclipse",
+            "Cada transformação: Onda Eclipse 6d8+30 em 5m",
+            "Inimigos atingidos: -4 em ataques à distância e Defesas (2 rodadas)"
+          ]
         },
         {
-          "description": "Décadas de combate permitiram a Roberto mapear qualquer oponente em segundos. 1 ataque: 9d8+59 Dano Verdadeiro. DT Sabedoria 40 — Falha: o alvo perde 3 Reações e tem -18 no Resultado por 2 Rodadas. Sucesso: metade do dano. Se Roberto tiver 2+ fichas, a DT sobe para 47 e o alvo perde 1 nível de uma habilidade (ela fica menos eficiente por 2 Rodadas).",
-          "name": "Ponto Fraco Identificado",
+          "name": "Ciclo Rápido",
+          "type": "ativa",
+          "description": "Roberto alterna entre forma lupina e vampírica com velocidade impossível, criando imagens residuais de ambas as formas. Teleporta 10m deixando uma imagem ilusória que explode. 1 alvo: 10d8+42 de dano duplo (metade físico da forma lupina, metade necrótico da forma vampírica). DT Vontade 34. Falha: o alvo fica Desorientado pela alternância — 50% de chance de atacar o aliado mais próximo em vez de Roberto no próximo turno.",
           "stats": [
-            "1 alvo | 9d8+59 Dano Verdadeiro | DT Sabedoria 40 (47 com 2+ fichas)",
-            "Falha: -3 Reações | -12 nas ações por 2 Rodadas",
-            "2+ fichas + Falha: alvo perde 1 nível de eficiência de habilidade por 2 Rodadas"
-          ],
-          "type": "ativa"
+            "Teleporte 10m + imagem residual explosiva | 10d8+42 (metade físico/metade necrótico)",
+            "DT Vontade 34 — Falha: Desorientado (50% chance de atacar aliado)",
+            "CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Roberto se move com a elegância de quem já venceu antes de começar. Ação Livre: move até 18m sem provocar ataques de oportunidade. Por 1 Rodada: -15 no Resultado de ataques recebidos. Se mover para adjacência de um aliado, esse aliado recebe +15 no Resultado até o fim da rodada. A mudança de posição gera 1 Ficha de Posicionamento bônus.",
-          "name": "Reposicionamento Estratégico",
+          "name": "Forma Eclipse",
+          "type": "ativa",
+          "description": "Roberto atinge o estado de Eclipse total — nem lobo, nem vampiro, mas ambos simultaneamente em perfeita sobreposição. Por 3 rodadas: +16 no Resultado, +20 de ARM, ataques causam dano físico E necrótico simultaneamente. Roberto pode alternar entre mobilidade lupina (teleporte 5m como ação livre) e resistência vampírica (cura 80 PV por ataque recebido) a cada rodada.",
           "stats": [
-            "Ação Livre | Movimento: 18m sem ataques de oportunidade",
-            "-22 no Resultado de ataques recebidos por 1 Rodada",
-            "Adjacência a aliado: +15 no Resultado para o aliado até fim da rodada",
-            "+1 Ficha de Posicionamento bônus"
-          ],
-          "type": "ativa"
+            "3 Rodadas | +16 Resultado | +20 ARM | Dano físico + necrótico",
+            "Modo Lupino: teleporte 5m/rodada grátis | Modo Vampírico: cura 80/ataque recebido",
+            "CD: 5 Rodadas"
+          ]
         },
         {
-          "description": "Roberto desfere um golpe que parece desinteressado — e é exatamente isso que o torna letal. Sua natureza licantropa, suprimida e acumulada, explode em fração de segundo. 1 ataque: 10d8+66 Dano. DT Fortitude 41 — Falha: o alvo é lançado 6m, derrubado e perde sua próxima Ação Padrão. Esse ataque consome todas as fichas acumuladas — cada ficha consumida adiciona +1d8+8 ao dano.",
-          "name": "Golpe do Ancião",
+          "name": "Eclipse Total",
+          "type": "ativa",
+          "description": "Roberto converge as duas formas em um único ponto e detona — a energia do eclipse é tão intensa que cria uma escuridão momentânea onde nem luz nem som sobrevivem. Área 15m: 8d8+40 de dano eclipse a todos. A área fica em Escuridão Total por 2 rodadas (visão impossível, incluindo visão no escuro). Roberto é imune à própria escuridão e pode atacar normalmente através dela. Inimigos presos: DT Vontade 36 — Falha: Paralisados pelo terror do eclipse.",
           "stats": [
-            "1 ataque | 10d8+66 Dano (+1d8+8 por ficha consumida)",
-            "DT Fortitude 41 — Falha: lançado 6m + derrubado + perde 1 Ação Padrão",
-            "Consome todas as Fichas de Posicionamento acumuladas"
-          ],
-          "type": "ativa"
+            "Área 15m | 8d8+40 eclipse | Escuridão Total 2 rodadas",
+            "Roberto: imune à escuridão, ataca normalmente",
+            "Inimigos presos: DT Vontade 36 — Falha: Paralisados | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Roberto orquestra o campo de batalha como o homem de negócios que é — cada peça no lugar certo, cada golpe no momento exato. Por 3 Rodadas: age duas vezes por turno, cada ataque causa +7d8+44 adicional, e qualquer inimigo que usar uma habilidade dentro de 12m testa Vontade DT 30 ou desperdiça a ação (Roberto antecipou). Aliados em 10m recebem +8 no Resultado de tudo. Acumula fichas passivamente mesmo atacando durante a Ultimate.",
-          "name": "Tática Suprema",
+          "name": "Ponto Zero — O Eclipse Primordial",
+          "type": "ultimate",
+          "description": "Roberto para de alternar entre formas e as funde permanentemente em um único momento congelado de transformação — o Ponto Zero, onde lobo e vampiro se tornam algo novo. Por 5 rodadas: Roberto existe em um estado quântico. Cada ataque tem 50% de chance de causar dano dobrado (forma se sobrepõe perfeitamente) e 50% de causar dano normal + efeito aleatório (Atordoa, Empurra 8m, ou Cura Roberto em 100 PV). Todos os ataques: 12d8+55. A cada rodada, Roberto emite uma Onda Eclipse de 10m: 8d8+35 a todos. No final, explode: 20d8+90 em 20m.",
           "stats": [
-            "3 Rodadas | 2 ações por turno | +7d8+30 adicional por ataque",
-            "Habilidades de inimigos em 12m: DT Vontade 44 ou ação desperdiçada",
-            "Aliados em 10m: +8 no Resultado de tudo",
-            "Acúmulo de fichas não é suspenso durante a Ultimate | CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "5 Rodadas | Estado quântico | 12d8+55 por ataque",
+            "50% dano dobrado OU 50% dano normal + efeito (Atordoa/Empurra/Cura 100)",
+            "Onda Eclipse 10m/rodada: 8d8+35 | Final: 20d8+90 em 20m",
+            "CD: 12 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1668,
-        "arm": 45,
-        "ba": 32,
-        "bd": 29,
-        "ca": 39,
-        "reac": 9,
-        "dano": "8d8+30",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3584,
+        "arm": 66,
+        "ba": 40,
+        "bd": 37,
+        "ca": 47,
+        "reac": 12,
+        "dano": "10d8+35",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Roberto Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
       "attrs": [
+        28,
+        28,
         24,
         22,
-        22,
-        16,
-        14,
-        20
+        24,
+        22
       ],
       "id": "3ac4ec63-2f63-4dd3-82f3-a2dda87ee179",
       "avatar": "codex-avatars/3ac4ec63-2f63-4dd3-82f3-a2dda87ee179.webp",
       "profile": "guerreiro",
-      "na": "4",
-      "nivel": 22,
+      "na": "6",
+      "nivel": 30,
       "abilities": [
         {
-          "description": "Isabelle não luta — ela caça. Cada vez que sofre dano, acumula 1 Carga de Frenesi (máx 6). 2 Cargas: +2d12+18 no dano de todos os ataques. 4 Cargas: +1 Reação extra. 6 Cargas: próximo ataque acerta automaticamente e ignora ARM e CA — depois reseta para 3. Sua aparência enganosa concede +12 no Resultado no primeiro ataque de cada combate (o inimigo subestima).",
-          "name": "Instinto Selvagem",
+          "name": "Sede da Caçadora",
+          "type": "passiva",
+          "description": "Isabelle é a caçadora suprema — o instinto de rastreamento lupino aperfeiçoado pela sede de sangue vampírica. Uma vez que ela prova uma gota do sangue de um inimigo (através de qualquer ataque que cause dano), ele é Marcado permanentemente. Isabelle sabe a localização exata de alvos Marcados em qualquer distância, ignora camuflagem/invisibilidade contra eles, e seus ataques contra Marcados causam +50% de dano e têm +12 no Resultado. Máximo de 5 Marcas ativas.",
           "stats": [
-            "Acúmulo: +1 Frenesi por dano sofrido (máx 6)",
-            "2 Cargas: +2d12+18 dano em ataques | 4 Cargas: +1 Reação extra",
-            "6 Cargas: acerto automático ignorando ARM e CA → reseta para 3",
-            "Primeiro ataque de cada combate: +12 no Resultado (subestimada)"
-          ],
-          "type": "passiva"
+            "Ataques que causam dano = Marcam o alvo permanentemente",
+            "Marcados: rastreados em qualquer distância | ignora invisibilidade",
+            "vs Marcados: +50% dano | +12 Resultado | Máx 5 Marcas"
+          ]
         },
         {
-          "description": "Isabelle desferere garras potencializadas pelo Sangue Real — parcialmente transformada, sem perder o controle instintivo que compensa sua falta de técnica. 3 ataques rápidos: +4d12+24 cada. Se os 3 acertarem o mesmo alvo, o alvo sofre Sangramento de 70/Rodada por 3 Rodadas. Cada acerto conta como dano para acumular Frenesi.",
-          "name": "Garras do Sangue Real",
+          "name": "Perseguição Selvagem",
+          "type": "ativa",
+          "description": "Isabelle entra em modo de perseguição — velocidade lupina impulsionada por fome vampírica. Teleporta até 20m até um alvo (alcance ilimitado se for Marcado) e executa 3 ataques rápidos: 8d10+35 cada. Se o alvo for Marcado, cada ataque causa +4d10 de dano sanguíneo. Após a perseguição, Isabelle deixa um rastro de medo — inimigos adjacentes fazem DT Vontade 34 ou ficam Amedrontados (-8 em tudo) por 2 rodadas.",
           "stats": [
-            "3 ataques: +4d12+24 cada",
-            "3 acertos no mesmo alvo: Sangramento 70/Rod por 3 Rodadas",
-            "Cada acerto conta como dano recebido para fins de acúmulo de Frenesi (representa risco tomado)"
-          ],
-          "type": "ativa"
+            "Teleporte 20m (ilimitado se Marcado) | 3 ataques: 8d10+35 cada",
+            "vs Marcado: +4d10 sanguíneo por ataque",
+            "Inimigos adjacentes: DT Vontade 34 ou Amedrontados (-8/2 rodadas)",
+            "CD: 3 Rodadas"
+          ]
         },
         {
-          "description": "Isabelle libera o instinto — por 2 Rodadas ela entra em modo de predadora pura: +3 ataques por rodada com +2d10+10 cada, mas -8 no Resultado das Defesas. Durante o Frenesi, cada acerto acumula 1 Carga de Frenesi adicional. Se o Frenesi encerrar com 5+ Cargas, o próximo ataque após o modo é automático.",
-          "name": "Frenesi Animal",
+          "name": "Fome Coletiva",
+          "type": "ativa",
+          "description": "Isabelle libera seu uivo de caça, convocando uma matilha de sombras lupino-vampíricas que se alimentam do sangue dos inimigos. Área 15m: invoca 1d4+2 Predadores Sombrios (cada um: 200 PV, 8d10+25 mordida, 12 ARM). Os Predadores priorizam alvos Marcados e cada mordida cura Isabelle em 60 PV. A matilha dura 4 rodadas ou até ser destruída.",
           "stats": [
-            "2 Rodadas | +3 ataques/rodada: +2d10+10 cada | -8 nas Defesas",
-            "Cada acerto durante Frenesi: +1 Carga adicional",
-            "Sair do Frenesi com 5+ Cargas: próximo ataque automático"
-          ],
-          "type": "ativa"
+            "Área 15m | Invoca 1d4+2 Predadores Sombrios",
+            "Cada Predador: 200 PV | 8d10+25 mordida | 12 ARM",
+            "Mordida cura Isabelle 60 PV | Duram 4 rodadas | CD: 6 Rodadas"
+          ]
         },
         {
-          "description": "Isabelle avança e morde com força licantropa plena. DT Força 31 — Falha: o alvo é imobilizado por 1 Rodada, sofre 6d10+30 de Dano e Sangramento de 60/Rodada por 2 Rodadas. Sucesso: metade do dano e sem imobilização. Se Isabelle tiver 4+ Cargas de Frenesi, o alvo testa com Desvantagem e o Sangramento dobra para 120/Rodada.",
-          "name": "Mordida da Predadora",
+          "name": "Sangue Contaminado",
+          "type": "ativa",
+          "description": "Isabelle injeta seu sangue híbrido no alvo através de garras ou presas — o sangue vampírico entra em conflito com o sangue do alvo, enquanto a toxina lupina acelera o processo. DT Constituição 38. Falha: o alvo sofre 6d10+30 de dano necrótico e seu sangue se torna tóxico — a cada cura recebida, sofre 4d10 de dano em vez. Dura 3 rodadas. Se o alvo for Marcado, o efeito é duas vezes mais potente (dano dobrado, dura 5 rodadas).",
           "stats": [
-            "DT Força 31 — Falha: imobilizado 1 Rodada | 6d10+30 Dano | Sangramento 60/Rod × 2",
-            "Sucesso: metade do dano | 4+ Cargas: alvo testa com Desvantagem + Sangramento 120/Rod"
-          ],
-          "type": "ativa"
+            "1 alvo | DT Constituição 38 — Falha: 6d10+30 necrótico",
+            "Sangue tóxico: cura causa 4d10 dano em vez de curar (3 rodadas)",
+            "vs Marcado: efeito dobrado | CD: 4 Rodadas"
+          ]
         },
         {
-          "description": "Isabelle finalmente solta o que tenta segurar. Por 3 Rodadas: transformação incompleta mas devastadora — perde parcialmente o raciocínio (não pode usar habilidades que exijam planejamento), mas seu dano base dobra, recebe +32 ARM, regenera 159 PV/Rodada e realiza 2 ataques por turno automaticamente. Qualquer dano sofrido nesse estado acumula 2 Cargas ao invés de 1. Ao final, Isabelle desmaia por 1 Rodada — vulnerável.",
-          "name": "A Besta Desperta",
+          "name": "Caçada Final — A Última Presa",
+          "type": "ultimate",
+          "description": "Isabelle assume sua forma de caçadora ápice — um híbrido perfeito de loba e vampira, com garras de 30cm e olhos vermelho-sangue. Por 4 rodadas: velocidade triplicada, 3 ataques por rodada com 10d10+45 cada (Dano Verdadeiro contra Marcados). A cada abate, Isabelle entra em Frenesi: +6 no Resultado de todos os ataques acumulativo e regenera 300 PV. No final, ela ataca todos os alvos Marcados simultaneamente com um uivo sônico-sanguíneo: 14d10+65 a cada um.",
           "stats": [
-            "3 Rodadas | Dano base dobra | +32 ARM | Regeneração 159 PV/Rodada | 2 ataques/turno automáticos",
-            "Dano sofrido = +2 Cargas (ao invés de 1)",
-            "Ao final: incapacitada por 1 Rodada (vulnerável)",
-            "CD: 7 Rodadas"
-          ],
-          "type": "ultimate"
+            "4 Rodadas | Velocidade x3 | 3 ataques/rodada: 10d10+45",
+            "Dano Verdadeiro vs Marcados | Abate: +6 Resultado acumulável + 300 PV",
+            "Final: 14d10+65 em todos os Marcados",
+            "CD: 10 Rodadas"
+          ]
         }
       ],
       "stats": {
-        "vida": 1536,
-        "arm": 41,
-        "ba": 28,
-        "bd": 25,
-        "ca": 35,
-        "reac": 7,
-        "dano": "6d10+24",
-        "danoExtra": "+2d10",
-        "tag": "vs 4 PCs"
+        "vida": 3360,
+        "arm": 62,
+        "ba": 36,
+        "bd": 33,
+        "ca": 43,
+        "reac": 10,
+        "dano": "8d10+30",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
       },
       "nome": "Isabelle Van Helsing",
-      "raca": "Lobisomem"
+      "raca": "Híbrido Vampiro/Lobisomem"
     },
     {
       "description": "",
@@ -10057,6 +10088,87 @@
       },
       "nome": "Os Ancestrais das Bruxas",
       "raca": "Espiritos Ancestrais"
+    },
+    {
+      "id": "rosa-vh-hybrid-0001",
+      "nome": "Rosa Van Helsing",
+      "profile": "mistico",
+      "nivel": 30,
+      "na": "6",
+      "raca": "Híbrido Vampiro/Lobisomem — Sangue Molecular",
+      "description": "A alquimista definitiva da linhagem Van Helsing. Rosa não apenas carrega o sangue híbrido — ela o compreende e manipula em nível molecular. O sangue vampírico e lupino em suas veias não coexistem em conflito; ela os reestrutura como um chemist trabalhando com elementos vivos. Cristalização, vaporização, reconstrução molecular — seu sangue é arma, armadura e ferramenta. Dizem que uma única gota de seu sangue pode curar ou matar um exército, dependendo de como ela rearranja suas moléculas.",
+      "avatar": "codex-avatars/rosa-vh-hybrid-0001.webp",
+      "attrs": [
+        24,
+        26,
+        24,
+        28,
+        24,
+        30
+      ],
+      "stats": {
+        "vida": 2240,
+        "arm": 58,
+        "ba": 36,
+        "bd": 33,
+        "ca": 43,
+        "reac": 9,
+        "dano": "11d6+34",
+        "danoExtra": "+4d10",
+        "tag": "vs 6 PCs + AL(2)"
+      },
+      "abilities": [
+        {
+          "name": "Sangue Molecular",
+          "type": "passiva",
+          "description": "O sangue híbrido de Rosa existe em estado de fluxo molecular constante — ela o reestrutura à vontade como um alquimista manipulando elementos vivos. Rosa é imune a manipulação de sangue, veneno, doença e necrose. A cada rodada, ela absorve partículas de sangue ambientes (de ferimentos, ar, solo), regenerando 120 PV. Inimigos sangrando em 5m perdem 3d10 PV adicionais por rodada enquanto seu sangue é atraído magneticamente para Rosa. Rosa pode sentir a presença de sangue em 50m (detecta criaturas vivas, mortos-vivos e frescos de sangue).",
+          "stats": [
+            "Imune a manipulação de sangue, veneno, doença, necrose",
+            "Regeneração: 120 PV/rodada + absorve sangue ambiente",
+            "Inimigos sangrando 5m: -3d10 PV/rodada | Sente sangue em 50m"
+          ]
+        },
+        {
+          "name": "Cristais Hemáticos",
+          "type": "ativa",
+          "description": "Rosa cristaliza seu sangue em armas de borda molecular — tão afiadas que cortam entre átomos, atravessando qualquer armadura como se fosse papel. Forma cristais de sangue no ar que se lançam contra 1 a 3 alvos. Cada cristal: 8d6+35 de Dano Verdadeiro. Os cristais se fixam no corpo do alvo e começam a cristalizar seu próprio sangue — DT Constituição 36. Falha: cristalização interna — 4d6 de dano por rodada por 2 rodadas, -8 em ações físicas (cristais limitam movimento). Se o alvo já estiver sangrando, o dano dos cristais é dobrado.",
+          "stats": [
+            "1-3 alvos | 8d6+35 Dano Verdadeiro por cristal (atravessa ARM)",
+            "DT Constituição 36 — Falha: cristalização interna 4d6/rodada + -8 físico (2 rodadas)",
+            "vs Sangrando: dano dobrado | CD: 3 Rodadas"
+          ]
+        },
+        {
+          "name": "Vapor Sanguíneo",
+          "type": "ativa",
+          "description": "Rosa vaporiza seu sangue em uma névoa fina e molecularmente carregada que preenche a área. A névoa é viva — procura ativamente o sangue dos inimigos, entrando por poros e ferimentos. Área 12m: 6d8+40 de dano necrótico a todos os inimigos. A nébow os Marca com a assinatura molecular do sangue de Rosa. Alvos Marcados: Rosa pode se teletransportar até eles como ação livre e causa +50% de dano contra eles por 3 rodadas. Rosa cura 100% de todo dano causado pela névoa.",
+          "stats": [
+            "Área 12m | 6d8+40 necrótico a inimigos | Rosa cura 100%",
+            "Alvos Marcados: teleporte grátis + Rosa +50% dano vs eles (3 rodadas)",
+            "CD: 4 Rodadas"
+          ]
+        },
+        {
+          "name": "Forja Molecular",
+          "type": "ativa",
+          "description": "Rosa acelera a vibração molecular de seu sangue a um estado líquido-metal, tornando seu corpo semi-fluido e sobre-humano. Por 3 rodadas: Rosa se torna semi-fluida (imune a dano físico cortante/perfurante), +15 no Resultado de tudo, e qualquer inimigo que tocar sofre 8d6+40 de dano de disrupção molecular enquanto o sangue daquele inimigo vibra fora de controle. Rosa estende tentáculos de sangue (alcance 8m) que podem atacar múltiplos alvos simultaneamente ou agarrar/prender inimigos (DT Força 36).",
+          "stats": [
+            "3 Rodadas | Semi-fluida: imune a cortante/perfurante | +15 Resultado",
+            "Toque: 8d6+40 disrupção molecular | Tentáculos de sangue 8m (agarra: DT For 36)",
+            "CD: 5 Rodadas"
+          ]
+        },
+        {
+          "name": "Gênese Sanguínea — Código Molecular Absoluto",
+          "type": "ultimate",
+          "description": "Rosa desbloqueia o potencial definitivo de seu sangue híbrido — a habilidade de reescrever o código molecular do sangue em si. Ela detona um pulso de energia molecular pura através do sangue de cada criatura viva em 30m. Todos os inimigos: DT Constituição 42. Falha: 15d6+60 de Dano Verdadeiro e seu sangue é reescrito — ficam Vulneráveis a TODO dano (x2) por 5 rodadas. Rosa absorve toda energia liberada: cura completa, +20 em todos os atributos por 3 rodadas. Se um inimigo morrer com esta habilidade, Rosa pode ressuscitar 1 aliado caído com a energia liberada (50% vida).",
+          "stats": [
+            "Área 30m | DT Constituição 42 — Falha: 15d6+60 Verdadeiro + Vulnerável (x2 dano) 5 rodadas",
+            "Rosa: cura completa + +20 tudo (3 rodadas)",
+            "Inimigo morto: ressuscita 1 aliado (50% vida) | CD: 12 Rodadas"
+          ]
+        }
+      ]
     }
   ]
 }
