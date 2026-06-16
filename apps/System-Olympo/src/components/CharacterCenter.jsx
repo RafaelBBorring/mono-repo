@@ -583,7 +583,7 @@ Antes do JSON, explique sua ideia. Se precisar de confirmacao do jogador antes d
 
   return (
     <div className="cc-modal-overlay" onClick={onClose}>
-      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ overflow: editMode ? 'visible' : 'auto' }}>
+      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()}>
         <button className="cc-modal-close" onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
         </button>

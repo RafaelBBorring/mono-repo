@@ -151,132 +151,170 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
   const [writing, setWriting] = useState(false)
   const saveTimer = useRef(null)
   const fileRef = useRef(null)
+  const npcRef = useRef(null)
+  const loadedRef = useRef(false)
+
+  useEffect(() => { npcRef.current = npc }, [npc])
+
+  const debouncedSave = useCallback((updated) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await saveNpc(updated)
+      } catch (err) {
+        console.error('[NpcSheet] saveNpc failed:', err)
+      }
+    }, 500)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current)
+        const latest = npcRef.current
+        if (latest) {
+          saveNpc(latest).catch(err => console.error('[NpcSheet] save on unmount failed:', err))
+        }
+      }
+    }
+  }, [])
 
   useEffect(() => { loadNpc() }, [npcId])
 
   async function loadNpc() {
     setLoading(true)
+    loadedRef.current = false
     const data = await getNpc(npcId)
     setNpc(data)
+    npcRef.current = data
     setLoading(false)
+    loadedRef.current = true
+
     const handleRec = await getFileHandleRecord(npcId)
     setFileHandleInfo(handleRec)
     if (handleRec) {
       setSyncStatus('pending')
       const result = await syncNpcFromFile(npcId)
       setSyncStatus(result.status)
-      if (result.npc) setNpc(result.npc)
+      if (result.npc && loadedRef.current) {
+        const current = npcRef.current
+        const fileUpdated = result.npc.updated_at || ''
+        const localUpdated = current?.updated_at || ''
+        if (fileUpdated > localUpdated) {
+          setNpc(result.npc)
+          npcRef.current = result.npc
+        }
+      }
     }
   }
 
-  const debouncedSave = useCallback((updated) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => {
-      await saveNpc(updated)
-    }, 500)
-  }, [])
-
   function update(patch) {
-    setNpc(prev => {
-      const next = { ...prev, ...patch }
-      debouncedSave(next)
-      return next
-    })
+    const next = { ...npcRef.current, ...patch }
+    npcRef.current = next
+    setNpc(next)
+    debouncedSave(next)
   }
 
   function updateStats(patch) {
-    setNpc(prev => {
-      const next = { ...prev, stats: { ...prev.stats, ...patch } }
-      debouncedSave(next)
-      return next
-    })
+    const prev = npcRef.current
+    const next = { ...prev, stats: { ...prev.stats, ...patch } }
+    npcRef.current = next
+    setNpc(next)
+    debouncedSave(next)
   }
 
   function updateAttr(index, value) {
-    setNpc(prev => {
-      const attrs = [...(prev.attrs || [])]
-      attrs[index] = Math.max(1, parseInt(value) || 1)
-      const next = { ...prev, attrs }
-      debouncedSave(next)
-      return next
-    })
+    const prev = npcRef.current
+    const attrs = [...(prev.attrs || [])]
+    attrs[index] = Math.max(1, parseInt(value) || 1)
+    const next = { ...prev, attrs }
+    npcRef.current = next
+    setNpc(next)
+    debouncedSave(next)
   }
 
   function updateAbility(index, patch) {
-    setNpc(prev => {
-      const abilities = [...(prev.abilities || [])]
-      abilities[index] = { ...(abilities[index] || {}), ...patch }
-      const next = { ...prev, abilities }
-      debouncedSave(next)
-      return next
-    })
+    const prev = npcRef.current
+    const abilities = [...(prev.abilities || [])]
+    abilities[index] = { ...(abilities[index] || {}), ...patch }
+    const next = { ...prev, abilities }
+    npcRef.current = next
+    setNpc(next)
+    debouncedSave(next)
   }
 
   function buffNerfAbility(index, direction) {
-    setNpc(prev => {
-      const abilities = [...(prev.abilities || [])]
-      const ab = abilities[index]
-      const factor = direction === 'buff' ? 1.18 : 0.85
-      abilities[index] = {
-        ...ab,
-        description: scaleHTMLNumbers(ab.description || '', factor),
-        stats: (ab.stats || []).map(s => scaleHTMLNumbers(s, factor)),
-      }
-      const next = { ...prev, abilities }
-      debouncedSave(next)
-      return next
-    })
+    const prev = npcRef.current
+    const abilities = [...(prev.abilities || [])]
+    const ab = abilities[index]
+    const factor = direction === 'buff' ? 1.18 : 0.85
+    abilities[index] = {
+      ...ab,
+      description: scaleHTMLNumbers(ab.description || '', factor),
+      stats: (ab.stats || []).map(s => scaleHTMLNumbers(s, factor)),
+    }
+    const next = { ...prev, abilities }
+    npcRef.current = next
+    setNpc(next)
+    debouncedSave(next)
   }
 
-  async function handleLevelChange(direction) {
-    setNpc(prev => {
-      const newLevel = Math.max(1, Math.min(50, prev.nivel + direction))
-      const result = generateNpcStats(prev.profile, newLevel, prev.na, 'balanceada')
-      if (!result) return prev
-      const next = {
-        ...prev,
-        nivel: newLevel,
-        stats: result.stats,
-        attrs: result.attrs,
-      }
-      debouncedSave(next)
-      return next
-    })
+  function handleLevelChange(direction) {
+    const prev = npcRef.current
+    if (!prev) return
+    const newLevel = Math.max(1, Math.min(50, prev.nivel + direction))
+    const result = generateNpcStats(prev.profile, newLevel, prev.na, 'balanceada')
+    if (!result) return
+    const next = {
+      ...prev,
+      nivel: newLevel,
+      stats: result.stats,
+      attrs: result.attrs,
+    }
+    npcRef.current = next
+    setNpc(next)
+    debouncedSave(next)
   }
 
   function openLevelModal() {
-    setLevelDraft({ nivel: npc.nivel, na: String(npc.na) })
+    const current = npcRef.current
+    setLevelDraft({ nivel: current.nivel, na: String(current.na) })
     setShowLevelModal(true)
   }
 
   async function applyLevelModal() {
-    const result = generateNpcStats(npc.profile, levelDraft.nivel, levelDraft.na, 'balanceada')
+    const prev = npcRef.current
+    if (!prev) return
+    const result = generateNpcStats(prev.profile, levelDraft.nivel, levelDraft.na, 'balanceada')
     if (!result) return
     const next = {
-      ...npc,
+      ...prev,
       nivel: levelDraft.nivel,
       na: levelDraft.na,
       stats: result.stats,
       attrs: result.attrs,
     }
-    await saveNpc(next)
+    npcRef.current = next
+    try { await saveNpc(next) } catch (err) { console.error('[NpcSheet] applyLevelModal save failed:', err) }
     setNpc(next)
     setShowLevelModal(false)
   }
 
   async function handleOracleRebalance() {
     if (!confirm('O Oraculo vai reformular todas as habilidades baseado no nivel/NA atual. Continuar?')) return
+    const prev = npcRef.current
     setOracleLoading(true)
     try {
-      const result = await callOracleForNpc(npc)
+      const result = await callOracleForNpc(prev)
       const newAbilities = (result.habilidades || []).map(h => ({
         name: h.name || h.nome || '',
         type: (h.type || h.tipo || 'ativa').toLowerCase().replace(/extra.*/i, 'ativa'),
         description: h.description || h.descricao || '',
         stats: h.stats || [],
       }))
-      const next = { ...npc, abilities: newAbilities }
-      await saveNpc(next)
+      const next = { ...prev, abilities: newAbilities }
+      npcRef.current = next
+      try { await saveNpc(next) } catch (err) { console.error('[NpcSheet] oracle save failed:', err) }
       setNpc(next)
     } catch (err) {
       console.error('[Oracle] erro:', err)
@@ -398,8 +436,14 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
   }
 
   async function handleSaveAndBack() {
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    await saveNpc(npc)
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = null
+    }
+    const latest = npcRef.current
+    if (latest) {
+      try { await saveNpc(latest) } catch (err) { console.error('[NpcSheet] saveAndBack failed:', err) }
+    }
     onBack?.()
   }
 
@@ -407,7 +451,10 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
     setSyncing(true)
     const result = await syncNpcFromFile(npcId)
     setSyncStatus(result.status)
-    if (result.npc) setNpc(result.npc)
+    if (result.npc) {
+      setNpc(result.npc)
+      npcRef.current = result.npc
+    }
     setSyncing(false)
   }
 

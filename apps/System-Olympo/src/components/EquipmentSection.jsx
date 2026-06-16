@@ -853,6 +853,8 @@ export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdat
   const [editRank, setEditRank] = useState(rank.rank)
   const [editHabilidades, setEditHabilidades] = useState(habilidades || [])
   const [editEquipped, setEditEquipped] = useState(char.armaEquipada !== false)
+  const [generating, setGenerating] = useState(false)
+  const [genDesc, setGenDesc] = useState('')
   const imageRef = useRef(null)
   const triagemBonus = getWeaponTriagemBonus(char)
   const assassinBonus = getAssassinReactionBonus(char)
@@ -919,6 +921,36 @@ export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdat
   function addWeaponHab() {
     if (editUsedSlots >= editRankDef.slots) return
     setEditHabilidades([...editHabilidades, { nome: '', potencia: 'Fraca', descricao: '', tipo: 'Ativa', custo: '' }])
+  }
+
+  async function handleGenerate() {
+    setGenerating(true)
+    setError('')
+    try {
+      const data = await generateWeaponAbilities(char, char.arma || weapon.id, editRank, editRankDef.slots, genDesc || undefined)
+      if (data?.habilidades?.length) {
+        const normalized = data.habilidades.map(h => ({
+          ...h,
+          potencia: (() => { const s = String(h.potencia || '').toLowerCase(); if (s.startsWith('fort')) return 'Forte'; if (s.startsWith('med') || s.startsWith('méd')) return 'Média'; return 'Fraca' })(),
+        }))
+        const used = normalized.reduce((s, h) => s + (WEAPON_ABILITY_COST[h.potencia] || 0), 0)
+        if (used <= editRankDef.slots) {
+          setEditHabilidades(normalized)
+        } else {
+          let acc = 0
+          const fitting = []
+          for (const h of normalized) {
+            const cost = WEAPON_ABILITY_COST[h.potencia] || 0
+            if (acc + cost <= editRankDef.slots) { fitting.push(h); acc += cost }
+          }
+          setEditHabilidades(fitting)
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'Erro ao gerar habilidades.')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   function updateWeaponHab(i, patch) {
@@ -1035,30 +1067,48 @@ export function WeaponDrawer({ weapon, rank, habilidades, char, canEdit, onUpdat
                     <div key={i} className="bg-void/45 border border-sep/30 rounded-lg p-2.5 space-y-1.5">
                       <div className="flex gap-1.5">
                         <input type="text" value={h.nome || ''} onChange={e => updateWeaponHab(i, { nome: e.target.value })} placeholder="Nome"
-                          className="min-w-0 flex-1 bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                          className="min-w-0 flex-1 bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
                         <select value={h.potencia || 'Fraca'} onChange={e => updateWeaponHab(i, { potencia: e.target.value })}
-                          className="bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-xs text-txt-main">
+                          className="bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-sm text-txt-main">
                           {Object.entries(WEAPON_ABILITY_COST).map(([label, cost]) => <option key={label} value={label}>{label} ({cost})</option>)}
                         </select>
                         <select value={h.tipo || 'Ativa'} onChange={e => updateWeaponHab(i, { tipo: e.target.value })}
-                          className="bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-xs text-txt-main">
+                          className="bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-sm text-txt-main">
                           <option value="Ativa">Ativa</option>
                           <option value="Passiva">Passiva</option>
                         </select>
-                        <button onClick={() => removeWeaponHab(i)} className="text-err/55 hover:text-err text-sm px-1 shrink-0">✕</button>
+                        <button onClick={() => removeWeaponHab(i)} className="text-err/55 hover:text-err text-base px-1 shrink-0">✕</button>
                       </div>
                       <textarea value={h.descricao || ''} onChange={e => updateWeaponHab(i, { descricao: e.target.value })} placeholder="Descrição da habilidade..." rows={2}
-                        className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-xs text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
+                        className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-sm text-txt-main resize-none focus:border-gold/40 focus:outline-none leading-relaxed" />
                       <input type="text" value={h.custo || ''} onChange={e => updateWeaponHab(i, { custo: e.target.value })} placeholder="Custo"
-                        className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-xs text-txt-main focus:border-gold/40 focus:outline-none" />
+                        className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-sm text-txt-main focus:border-gold/40 focus:outline-none" />
                     </div>
                   ))}
                   {editUsedSlots < editRankDef.slots && (
-                    <button onClick={addWeaponHab} className="text-gold/70 hover:text-gold text-[10px]">+ Habilidade</button>
+                    <button onClick={addWeaponHab} className="text-gold/70 hover:text-gold text-xs">+ Habilidade</button>
                   )}
                   {editRankDef.slots === 0 && (
-                    <p className="text-txt-dim/40 text-[10px] italic">Este rank não concede slots de habilidade.</p>
+                    <p className="text-txt-dim/40 text-xs italic">Este rank não concede slots de habilidade.</p>
                   )}
+                  <div className="border-t border-sep/20 pt-2 mt-2 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-indigo-400 text-sm">✦</span>
+                      <span className="text-txt-dim text-xs uppercase tracking-wider">Gerar com Oráculo</span>
+                    </div>
+                    <input type="text" value={genDesc} onChange={e => setGenDesc(e.target.value)} placeholder="Descreva o tema das habilidades (opcional)..."
+                      className="w-full bg-void/60 border border-sep/40 rounded px-2 py-1.5 text-sm text-txt-main focus:border-indigo-400/40 focus:outline-none" />
+                    <button onClick={handleGenerate} disabled={generating || editRankDef.slots === 0}
+                      className="w-full bg-indigo-500/10 border border-indigo-400/30 text-indigo-400 text-xs px-3 py-2 rounded-lg hover:bg-indigo-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                      {generating ? <>
+                        <span className="animate-spin inline-block w-3 h-3 border border-indigo-400/40 border-t-indigo-400 rounded-full" />
+                        Gerando...
+                      </> : <>
+                        <span className="material-symbols-outlined text-sm">auto_fix_high</span>
+                        Gerar Habilidades com IA
+                      </>}
+                    </button>
+                  </div>
                 </div>
               </div>
               <button onClick={saveEdit} disabled={editUsedSlots > editRankDef.slots}
