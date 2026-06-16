@@ -1293,6 +1293,14 @@ Responda EXCLUSIVAMENTE com JSON:
 
 // ─── generateWeaponAbilities ──────────────────────────────────────────────
 
+function normalizePotencia(p) {
+  if (!p) return 'Fraca'
+  const s = String(p).toLowerCase().trim()
+  if (s.startsWith('fort')) return 'Forte'
+  if (s.startsWith('med') || s.startsWith('méd') || s.startsWith('médi')) return 'Média'
+  return 'Fraca'
+}
+
 export async function analyzeBalance(char, direction = null, targetContext = null) {
   return withLocalAIFallback(
     'analyzeBalance',
@@ -1311,6 +1319,8 @@ export async function generateWeaponAbilities(char, weaponId, weaponRank, slots,
   const weaponMec = weaponDef?.mec || ''
   const weaponBand = RANK_BAND_MAP[weaponRank] || 'N1-7'
 
+  const effectiveCount = count || Math.max(1, Math.min(5, Math.ceil(slots / 2)))
+
   const existingHabs = (char.armaHabilidades || []).map((h, i) => ({
     index: i, nome: h.nome || '', descricao: h.descricao || '', potencia: h.potencia || 'Fraca', tipo: h.tipo || 'Ativa', custo: h.custo || '',
   }))
@@ -1327,7 +1337,7 @@ Cada rank mapeia para uma faixa de poder equivalente a um nivel de personagem:
 
 ARMA ATUAL: ${weaponName} | Dano base: ${weaponDano} | Mecânica: ${weaponMec}
 RANK DA ARMA: ${weaponRank} | Faixa de poder equivalente: ${weaponBand}
-Crie EXATAMENTE ${count} habilidade${count > 1 ? 's' : ''}. Total slots NAO pode exceder ${slots}.
+Crie EXATAMENTE ${effectiveCount} habilidade${effectiveCount > 1 ? 's' : ''}. Total slots NAO pode exceder ${slots}.
 Slots: Fraca=1, Média=2, Forte=3.
 
 PERSONAGEM (contexto adicional): ${char.nome || 'Sem Nome'} | Classe: ${char.classe || 'N/A'} | Nível: ${char.nivel || 1}
@@ -1339,17 +1349,17 @@ REGRAS DE BALANCEAMENTO POR RANK DA ARMA:
 Use a faixa ${weaponBand} como referencia para o TDH e IPL:
 
 TDH (TETO DE DANO POR HABILIDADE DA ARMA):
-N1-5:  Fraca=2d6+8   | Media=3d8+12  | Forte=5d8+18
-N3-8:  Fraca=3d8+12  | Media=4d10+18 | Forte=6d10+24
-N6-12: Fraca=4d10+15 | Media=6d10+22 | Forte=8d12+30
-N10-16: Fraca=5d10+20| Media=7d12+28 | Forte=10d12+38
-N14-20: Fraca=6d12+25| Media=9d12+35 | Forte=12d12+48
-N18-25: Fraca=8d12+30| Media=10d12+42| Forte=14d12+58
-N22-28: Fraca=9d12+35| Media=12d12+48| Forte=16d12+65
-N26-30: Fraca=10d12+40|Media=14d12+55| Forte=20d12+75
+N1-5:  Fraca=2d6+8   | Média=3d8+12  | Forte=5d8+18
+N3-8:  Fraca=3d8+12  | Média=4d10+18 | Forte=6d10+24
+N6-12: Fraca=4d10+15 | Média=6d10+22 | Forte=8d12+30
+N10-16: Fraca=5d10+20| Média=7d12+28 | Forte=10d12+38
+N14-20: Fraca=6d12+25| Média=9d12+35 | Forte=12d12+48
+N18-25: Fraca=8d12+30| Média=10d12+42| Forte=14d12+58
+N22-28: Fraca=9d12+35| Média=12d12+48| Forte=16d12+65
+N26-30: Fraca=10d12+40| Média=14d12+55| Forte=20d12+75
 
-CUSTO DE ENERGIA: Fraca=3-10E | Media=10-25E | Forte=25-50E
-DURAÇÃO: Fraca 1-2rod | Media 2-4rod | Forte 3-6rod
+CUSTO DE ENERGIA: Fraca=3-10E | Média=10-25E | Forte=25-50E
+DURAÇÃO: Fraca 1-2rod | Média 2-4rod | Forte 3-6rod
 
 IMPORTANTE:
 1. O dano da habilidade e EXTRA ao dano base da arma + bônus do rank.
@@ -1359,9 +1369,10 @@ IMPORTANTE:
 5. Cada habilidade DEVE ter pelo menos 1 efeito mecânico numerico mensuravel.
 6. Misture tipos Ativa e Passiva de forma criativa.
 7. O nome da habilidade deve ser tematico e combinar com o tipo de arma.
+8. O campo "potencia" DEVE ser exatamente uma destas: "Fraca", "Média" (com acento), ou "Forte".
 
 ${existingHabs.length > 0 ? `
-HABILIDADES EXISTENTES DA ARMA (para contexto):
+HABILIDADES EXISTENTES DA ARMA (para contexto — NAO repita):
 ${JSON.stringify(existingHabs, null, 2)}
 ` : ''}
 
@@ -1378,8 +1389,14 @@ Responda EXCLUSIVAMENTE com JSON:
       { role: 'system', content: buildSystemContext() },
       { role: 'user',   content: prompt },
     ]),
-    () => createLocalWeaponAbilitiesResult(count, weaponName, weaponBand, userDesc)
+    () => createLocalWeaponAbilitiesResult(effectiveCount, weaponName, weaponBand, userDesc)
   )
+  if (response?.habilidades) {
+    response.habilidades = response.habilidades.map(h => ({
+      ...h,
+      potencia: normalizePotencia(h.potencia),
+    }))
+  }
   return response
   try {
     return extractJSON(response)

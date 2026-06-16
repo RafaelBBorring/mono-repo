@@ -1,8 +1,9 @@
 const DB_NAME = 'codex-arcanum-db'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const STORE_NAME = 'npcs'
 const FOLDERS_STORE = 'folders'
 const ASSIGNMENTS_STORE = 'assignments'
+const FILE_HANDLES_STORE = 'file_handles'
 
 const SEED_VERSION_KEY = 'codex-seed-version'
 const CURRENT_SEED_VERSION = '2026-06-16-silas-balance'
@@ -37,6 +38,12 @@ function openDB() {
       if (!db.objectStoreNames.contains(ASSIGNMENTS_STORE)) {
         const assignStore = db.createObjectStore(ASSIGNMENTS_STORE, { keyPath: 'npcId' })
         assignStore.createIndex('folderId', 'folderId', { unique: false })
+      }
+      if (!db.objectStoreNames.contains(FILE_HANDLES_STORE)) {
+        db.createObjectStore(FILE_HANDLES_STORE, { keyPath: 'npcId' })
+      }
+      if (e.oldVersion < 3 && db.objectStoreNames.contains(FILE_HANDLES_STORE) === false) {
+        db.createObjectStore(FILE_HANDLES_STORE, { keyPath: 'npcId' })
       }
     }
     req.onsuccess = () => resolve(req.result)
@@ -335,5 +342,197 @@ export async function exportAllNpcs() {
     npcs,
     folders,
     assignments,
+  }
+}
+
+// ─── File System Access API — Shared NPC Sync ────────────────────────────
+
+export function isFileSystemAccessSupported() {
+  return typeof window !== 'undefined' && typeof window.showOpenFilePicker === 'function'
+}
+
+export async function saveFileHandle(npcId, handle, fileName) {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const store = tx(db, FILE_HANDLES_STORE, 'readwrite')
+    const req = store.put({
+      npcId,
+      handle,
+      fileName,
+      linkedAt: new Date().toISOString(),
+      lastSyncAt: null,
+    })
+    req.onsuccess = () => resolve()
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function getFileHandleRecord(npcId) {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const store = tx(db, FILE_HANDLES_STORE)
+    const req = store.get(npcId)
+    req.onsuccess = () => resolve(req.result || null)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function getAllFileHandleRecords() {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const store = tx(db, FILE_HANDLES_STORE)
+    const req = store.openCursor()
+    const results = []
+    req.onsuccess = (e) => {
+      const cursor = e.target.result
+      if (cursor) {
+        results.push(cursor.value)
+        cursor.continue()
+      } else {
+        resolve(results)
+      }
+    }
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function removeFileHandle(npcId) {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const store = tx(db, FILE_HANDLES_STORE, 'readwrite')
+    const req = store.delete(npcId)
+    req.onsuccess = () => resolve()
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function updateFileHandleSync(npcId) {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const store = tx(db, FILE_HANDLES_STORE, 'readwrite')
+    const existing = store.get(npcId)
+    existing.onsuccess = () => {
+      if (!existing.result) return resolve()
+      const record = { ...existing.result, lastSyncAt: new Date().toISOString() }
+      const putReq = store.put(record)
+      putReq.onsuccess = () => resolve(record)
+      putReq.onerror = () => reject(putReq.error)
+    }
+    existing.onerror = () => reject(existing.error)
+  })
+}
+
+async function ensurePermission(handle, mode = 'read') {
+  if (!handle || !handle.queryPermission) return false
+  const opts = { mode }
+  if ((await handle.queryPermission(opts)) === 'granted') return true
+  if ((await handle.requestPermission(opts)) === 'granted') return true
+  return false
+}
+
+async function readFileHandle(handle) {
+  const file = await handle.getFile()
+  const text = await file.text()
+  return text
+}
+
+function parseCodexContent(text) {
+  const data = JSON.parse(text)
+  if (data.format === 'codex-arcanum' && Array.isArray(data.npcs)) {
+    return data.npcs
+  }
+  if (Array.isArray(data)) return data
+  if (data.id && (data.nome || data.name)) return [data]
+  return []
+}
+
+export async function syncNpcFromFile(npcId) {
+  const record = await getFileHandleRecord(npcId)
+  if (!record?.handle) return { status: 'no_handle' }
+  const granted = await ensurePermission(record.handle, 'read')
+  if (!granted) return { status: 'permission_needed' }
+  try {
+    const text = await readFileHandle(record.handle)
+    const fileNpcs = parseCodexContent(text)
+    const fileNpc = fileNpcs.find(n => n.id === npcId) || fileNpcs[0]
+    if (!fileNpc) return { status: 'file_missing_npc' }
+    const localNpc = await getNpc(npcId)
+    if (!localNpc) {
+      await importNpcs([{ ...fileNpc, _syncedFromFile: true }])
+      await updateFileHandleSync(npcId)
+      return { status: 'synced', npc: fileNpc }
+    }
+    const fileUpdated = fileNpc.updated_at || ''
+    const localUpdated = localNpc.updated_at || ''
+    if (fileUpdated > localUpdated) {
+      await importNpcs([{ ...fileNpc, _syncedFromFile: true, updated_at: new Date().toISOString() }])
+      await updateFileHandleSync(npcId)
+      return { status: 'synced', npc: fileNpc }
+    }
+    if (localUpdated > fileUpdated) {
+      return { status: 'local_newer', npc: localNpc }
+    }
+    await updateFileHandleSync(npcId)
+    return { status: 'synced', npc: localNpc }
+  } catch (err) {
+    return { status: 'error', error: err.message }
+  }
+}
+
+export async function syncAllFromFiles() {
+  const records = await getAllFileHandleRecords()
+  const results = []
+  for (const record of records) {
+    const result = await syncNpcFromFile(record.npcId)
+    results.push({ npcId: record.npcId, fileName: record.fileName, ...result })
+  }
+  return results
+}
+
+export async function writeNpcToFile(npcId) {
+  const record = await getFileHandleRecord(npcId)
+  if (!record?.handle) return { status: 'no_handle' }
+  const granted = await ensurePermission(record.handle, 'readwrite')
+  if (!granted) return { status: 'permission_needed' }
+  const npc = await getNpc(npcId)
+  if (!npc) return { status: 'npc_not_found' }
+  try {
+    const exportData = {
+      format: 'codex-arcanum',
+      version: '2.0',
+      exported_at: new Date().toISOString(),
+      npcs: [{ ...npc, updated_at: new Date().toISOString() }],
+    }
+    const writable = await record.handle.createWritable()
+    await writable.write(JSON.stringify(exportData, null, 2))
+    await writable.close()
+    await updateFileHandleSync(npcId)
+    return { status: 'written' }
+  } catch (err) {
+    return { status: 'error', error: err.message }
+  }
+}
+
+export async function linkNpcFile(npcId) {
+  if (!isFileSystemAccessSupported()) return { status: 'unsupported' }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{
+        description: 'Ficha Codex',
+        accept: { 'application/json': ['.codex', '.json'] },
+      }],
+      multiple: false,
+    })
+    const text = await readFileHandle(handle)
+    const fileNpcs = parseCodexContent(text)
+    const fileNpc = fileNpcs.find(n => n.id === npcId) || fileNpcs[0]
+    if (!fileNpc) return { status: 'file_empty' }
+    const targetId = fileNpc.id || npcId
+    await importNpcs([{ ...fileNpc, _syncedFromFile: true, updated_at: new Date().toISOString() }])
+    await saveFileHandle(targetId, handle, handle.name)
+    return { status: 'linked', npcId: targetId, npcName: fileNpc.nome || fileNpc.name }
+  } catch (err) {
+    if (err.name === 'AbortError') return { status: 'cancelled' }
+    return { status: 'error', error: err.message }
   }
 }

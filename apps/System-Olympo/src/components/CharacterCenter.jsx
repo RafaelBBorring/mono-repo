@@ -304,8 +304,14 @@ function extractOracleJson(resp) {
 }
 
 function extractOracleText(resp) {
+  if (!resp) return ''
+  const afterFence = resp.match(/```(?:json)?\s*\n?[\s\S]*?```\s*\n?([\s\S]*)$/)
+  if (afterFence && afterFence[1].trim()) return afterFence[1].trim()
   const before = resp.match(/^([\s\S]*?)(?=```json|\{[\s\S]*"custoEnergia")/)
-  return before ? before[1].trim() : ''
+  if (before && before[1].trim()) return before[1].trim()
+  const afterLoose = resp.match(/\{[\s\S]*"custoEnergia"[\s\S]*\}\s*\n?([\s\S]*)$/)
+  if (afterLoose && afterLoose[1].trim()) return afterLoose[1].trim()
+  return ''
 }
 
 const RT_COLORS = [
@@ -421,9 +427,21 @@ function AbilityDetailModal({ habilidade, index, onClose, onEdit, char }) {
   const [oracleLoading, setOracleLoading] = useState(false)
   const [oracleResult, setOracleResult] = useState(null)
   const [oracleError, setOracleError] = useState('')
+  const [oracleChat, setOracleChat] = useState([])
+  const [oracleChatInput, setOracleChatInput] = useState('')
+  const [oracleChatLoading, setOracleChatLoading] = useState(false)
+  const [oracleChatPending, setOracleChatPending] = useState(null)
+  const [showChat, setShowChat] = useState(false)
   const editorRef = useRef(null)
+  const chatScrollRef = useRef(null)
 
-  useEffect(() => { setDraft(habilidade); setEditMode(false); setOracleResult(null); setOracleError('') }, [habilidade])
+  useEffect(() => { setDraft(habilidade); setEditMode(false); setOracleResult(null); setOracleError(''); setOracleChat([]); setShowChat(false); setOracleChatPending(null) }, [habilidade])
+
+  useEffect(() => {
+    if (showChat && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [oracleChat, oracleChatLoading, showChat])
 
   useEffect(() => {
     if (editMode && editorRef.current) {
@@ -470,20 +488,78 @@ Energia atual: ${draft.custoEnergia || 0} | Dano atual: ${draft.dano || '—'} |
 Descrição: ${draft.descricaoBalanceada || draft.descricao || '—'}
 Tags: ${normalizeSkillTags(draft).join(', ') || 'nenhuma'}
 
-Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
+Analise cuidadosamente cada valor atual e compare com os limites da faixa do personagem.
+No campo "feedback" do JSON, liste CLARAMENTE cada alteracao feita e o motivo. Ex: "Dano reduzido de 5d10+30 para 3d8+15: valor original excedia o TDH Forte da faixa". Se nenhum valor precisou ser alterado, diga "Habilidade dentro dos limites — nenhum ajuste necessario".
+
+Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados e o feedback explicando o que mudou:`
       const resp = await chatAboutAbility(char, prompt, [])
       const parsed = extractOracleJson(resp)
       const feedback = extractOracleText(resp)
       if (!parsed) {
-        setOracleError('O Oráculo não conseguiu retornar valores. Tente novamente.')
+        setOracleError('O Oraculo nao conseguiu retornar valores. Tente novamente.')
         return
       }
-      setOracleResult({ parsed, feedback: feedback || parsed.feedback || 'Balanceamento concluído.' })
+      setOracleResult({ parsed, feedback: feedback || parsed.feedback || 'Balanceamento concluido.' })
     } catch (err) {
-      setOracleError(err.message || 'Erro ao contatar o Oráculo.')
+      setOracleError(err.message || 'Erro ao contatar o Oraculo.')
     } finally {
       setOracleLoading(false)
     }
+  }
+
+  async function handleChatSend() {
+    if (!char || !oracleChatInput.trim() || oracleChatLoading) return
+    const userMsg = oracleChatInput.trim()
+    const newHistory = [...oracleChat, { role: 'user', content: userMsg }]
+    setOracleChat(newHistory)
+    setOracleChatInput('')
+    setOracleChatLoading(true)
+    setOracleChatPending(null)
+    try {
+      const contextMsg = `Habilidade em foco: "${draft.nome || '—'}" (tipo: ${tipo})
+Energia atual: ${draft.custoEnergia || 0} | Dano: ${draft.dano || '—'} | Duração: ${draft.duracao || '—'} | DT: ${draft.dt || '—'}
+Descrição: ${draft.descricaoBalanceada || draft.descricao || '—'}
+Tags: ${normalizeSkillTags(draft).join(', ') || 'nenhuma'}
+
+Solicitação: ${userMsg}
+
+Responda em portugues de forma clara. Se voce sugerir alteracoes nos valores da habilidade, inclua OBRIGATORIAMENTE um bloco JSON com os novos valores completos no formato:
+\`\`\`json
+{ "custoEnergia": numero, "dano": "string", "duracao": "string", "dt": "DT X Atributo", "descricaoBalanceada": "texto", "feedback": "explicacao das mudancas" }
+\`\`\`
+Antes do JSON, explique sua ideia. Se precisar de confirmacao do jogador antes de aplicar, faca a pergunta e NAO inclua o JSON ainda.`
+      const resp = await chatAboutAbility(char, contextMsg, newHistory.slice(-6))
+      const parsed = extractOracleJson(resp)
+      const text = extractOracleText(resp) || resp.replace(/```json[\s\S]*?```/g, '').trim()
+      setOracleChat(prev => [...prev, { role: 'assistant', content: text }])
+      if (parsed) {
+        setOracleChatPending(parsed)
+      }
+    } catch (err) {
+      setOracleChat(prev => [...prev, { role: 'assistant', content: 'Erro: ' + (err.message || 'Nao foi possivel contatar o Oraculo.') }])
+    } finally {
+      setOracleChatLoading(false)
+    }
+  }
+
+  function applyChatPending() {
+    if (!oracleChatPending) return
+    const p = oracleChatPending
+    const merged = {
+      ...draft,
+      custoEnergia: p.custoEnergia ?? draft.custoEnergia,
+      dano: p.dano ?? draft.dano,
+      dt: p.dt ?? draft.dt,
+      duracao: p.duracao ?? draft.duracao,
+      ...(p.descricaoBalanceada ? { descricaoBalanceada: p.descricaoBalanceada, descricao: p.descricaoBalanceada } : {}),
+      ...(p.tags ? { tags: p.tags } : {}),
+      ...(p.valores ? { valores: p.valores } : {}),
+      status: 'Balanceado',
+    }
+    setDraft(merged)
+    onEdit(index, merged)
+    setOracleChatPending(null)
+    setOracleChat(prev => [...prev, { role: 'assistant', content: 'Alteracoes aplicadas com sucesso.' }])
   }
 
   function applyOracle() {
@@ -507,7 +583,7 @@ Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
 
   return (
     <div className="cc-modal-overlay" onClick={onClose}>
-      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ overflow: 'visible' }}>
+      <div className="cc-modal-content glass-panel" onClick={e => e.stopPropagation()} style={{ overflow: editMode ? 'visible' : 'auto' }}>
         <button className="cc-modal-close" onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
         </button>
@@ -630,63 +706,67 @@ Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
                 </div>
               )}
 
-              {canOracle && !oracleLoading && !oracleResult && (
+              {canOracle && !showChat && (
                 <div className="mt-4 pt-3 border-t border-sep/50">
-                  <button className="cc-oracle-btn" onClick={handleOracle}>
-                    <span className="text-sm">✦</span> Balanciar com Oráculo
-                  </button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button className="cc-oracle-btn" onClick={handleOracle} disabled={oracleLoading}>
+                      <span className="text-sm">✦</span> {oracleLoading ? 'Analisando…' : 'Balanciar com Oráculo'}
+                    </button>
+                    <button className="cc-oracle-chat-btn" onClick={() => { setShowChat(true); setOracleResult(null) }}>
+                      <span className="material-symbols-outlined text-sm">forum</span> Conversar
+                    </button>
+                  </div>
                   {oracleError && <p className="text-err text-xs mt-2">{oracleError}</p>}
                 </div>
               )}
 
-              {oracleLoading && (
+              {oracleLoading && !showChat && (
                 <div className="mt-4 pt-3 border-t border-sep/50 flex items-center gap-2 text-gold/80 text-sm">
                   <span className="cc-oracle-spinner" />
                   Oráculo analisando…
                 </div>
               )}
 
-              {oracleResult && (
+              {oracleResult && !showChat && (
                 <div className="cc-oracle-result mt-4 pt-3 border-t border-sep/50">
                   <div className="cc-oracle-result-header">
-                    <span className="text-gold font-cinzel text-sm">✦ Sugestão do Oráculo</span>
+                    <span className="text-gold font-cinzel text-sm">✦ Análise do Oráculo</span>
                   </div>
                   {oracleResult.feedback && (
-                    <p className="text-xs text-txt-dim leading-relaxed mt-2 mb-3">{oracleResult.feedback}</p>
+                    <div className="text-xs text-txt-dim leading-relaxed mt-2 mb-3 cc-oracle-feedback">
+                      {oracleResult.feedback.split('\n').map((line, li) => (
+                        <p key={li} className={line.match(/^[•\-\d]/) ? 'ml-3' : ''}>{line}</p>
+                      ))}
+                    </div>
                   )}
                   <div className="cc-oracle-diff">
-                    {oracleResult.parsed.custoEnergia != null && oracleResult.parsed.custoEnergia !== draft.custoEnergia && (
-                      <div className="cc-oracle-diff-row">
-                        <span className="text-txt-dim">Energia</span>
-                        <span className="font-mono text-txt-dim line-through">{draft.custoEnergia || 0}</span>
-                        <span className="text-gold">→</span>
-                        <span className="font-mono text-tomato">{oracleResult.parsed.custoEnergia}</span>
-                      </div>
-                    )}
-                    {oracleResult.parsed.dano != null && oracleResult.parsed.dano !== draft.dano && (
-                      <div className="cc-oracle-diff-row">
-                        <span className="text-txt-dim">Dano</span>
-                        <span className="font-mono text-txt-dim line-through">{draft.dano || '—'}</span>
-                        <span className="text-gold">→</span>
-                        <span className="font-mono text-tomato">{oracleResult.parsed.dano}</span>
-                      </div>
-                    )}
-                    {oracleResult.parsed.dt != null && oracleResult.parsed.dt !== draft.dt && (
-                      <div className="cc-oracle-diff-row">
-                        <span className="text-txt-dim">DT</span>
-                        <span className="font-mono text-txt-dim line-through">{draft.dt || '—'}</span>
-                        <span className="text-gold">→</span>
-                        <span className="font-mono">{oracleResult.parsed.dt}</span>
-                      </div>
-                    )}
-                    {oracleResult.parsed.duracao != null && oracleResult.parsed.duracao !== draft.duracao && (
-                      <div className="cc-oracle-diff-row">
-                        <span className="text-txt-dim">Duração</span>
-                        <span className="font-mono text-txt-dim line-through">{draft.duracao || '—'}</span>
-                        <span className="text-gold">→</span>
-                        <span>{oracleResult.parsed.duracao || 'instantânea'}</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const p = oracleResult.parsed
+                      const rows = []
+                      if (p.custoEnergia != null && p.custoEnergia !== draft.custoEnergia) {
+                        rows.push(['Energia', draft.custoEnergia || 0, p.custoEnergia])
+                      }
+                      if (p.dano != null && p.dano !== draft.dano) {
+                        rows.push(['Dano', draft.dano || '—', p.dano])
+                      }
+                      if (p.dt != null && p.dt !== draft.dt) {
+                        rows.push(['DT', draft.dt || '—', p.dt])
+                      }
+                      if (p.duracao != null && p.duracao !== draft.duracao) {
+                        rows.push(['Duração', draft.duracao || '—', p.duracao || 'instantânea'])
+                      }
+                      if (rows.length === 0) {
+                        return <p className="text-xs text-ok italic">Nenhum valor numérico alterado — apenas descrição ajustada.</p>
+                      }
+                      return rows.map(([label, old, val]) => (
+                        <div key={label} className="cc-oracle-diff-row">
+                          <span className="text-txt-dim">{label}</span>
+                          <span className="font-mono text-txt-dim line-through">{old}</span>
+                          <span className="text-gold">→</span>
+                          <span className="font-mono text-tomato">{val}</span>
+                        </div>
+                      ))
+                    })()}
                   </div>
                   {oracleResult.parsed.descricaoBalanceada && (
                     <div className="mt-2">
@@ -694,12 +774,93 @@ Retorne OBRIGATORIAMENTE um bloco JSON com os valores FINAIS balanceados:`
                       <p className="text-xs text-txt-main leading-relaxed cc-oracle-desc">{oracleResult.parsed.descricaoBalanceada}</p>
                     </div>
                   )}
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex gap-2 mt-3 flex-wrap">
                     <button className="cc-oracle-apply" onClick={applyOracle}>
                       <span className="material-symbols-outlined text-sm">check_circle</span> Aplicar
                     </button>
                     <button className="cc-oracle-discard" onClick={() => setOracleResult(null)}>
                       Descartar
+                    </button>
+                    <button className="cc-oracle-reanalyze" onClick={handleOracle} disabled={oracleLoading}>
+                      <span className="material-symbols-outlined text-sm">refresh</span> Re-analisar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {canOracle && showChat && (
+                <div className="cc-oracle-chat mt-4 pt-3 border-t border-sep/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gold font-cinzel text-sm flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm">forum</span> Conversa com o Oráculo
+                    </span>
+                    <button className="text-txt-dim text-xs hover:text-txt-main" onClick={() => { setShowChat(false); setOracleChat([]); setOracleChatPending(null) }}>
+                      ✕ Fechar
+                    </button>
+                  </div>
+                  <div ref={chatScrollRef} className="cc-oracle-chat-messages">
+                    {oracleChat.length === 0 && (
+                      <p className="text-xs text-txt-dim/50 italic text-center py-4">
+                        Descreva o que gostaria de mudar nesta habilidade. O Oráculo vai analisar e sugerir ajustes.
+                      </p>
+                    )}
+                    {oracleChat.map((msg, i) => (
+                      <div key={i} className={`cc-oracle-chat-msg cc-oracle-chat-msg--${msg.role}`}>
+                        <span className="cc-oracle-chat-author">{msg.role === 'user' ? 'Você' : 'Oráculo'}</span>
+                        <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    ))}
+                    {oracleChatLoading && (
+                      <div className="cc-oracle-chat-msg cc-oracle-chat-msg--assistant">
+                        <span className="cc-oracle-chat-author">Oráculo</span>
+                        <div className="flex items-center gap-2 text-gold/60 text-xs">
+                          <span className="cc-oracle-spinner" /> pensando…
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {oracleChatPending && (
+                    <div className="cc-oracle-chat-pending">
+                      <div className="cc-oracle-diff">
+                        {(() => {
+                          const p = oracleChatPending
+                          const rows = []
+                          if (p.custoEnergia != null && p.custoEnergia !== draft.custoEnergia) rows.push(['Energia', draft.custoEnergia || 0, p.custoEnergia])
+                          if (p.dano != null && p.dano !== draft.dano) rows.push(['Dano', draft.dano || '—', p.dano])
+                          if (p.dt != null && p.dt !== draft.dt) rows.push(['DT', draft.dt || '—', p.dt])
+                          if (p.duracao != null && p.duracao !== draft.duracao) rows.push(['Duração', draft.duracao || '—', p.duracao || 'instantânea'])
+                          if (rows.length === 0) return <p className="text-xs text-txt-dim italic">Alterações na descrição detectadas.</p>
+                          return rows.map(([label, old, val]) => (
+                            <div key={label} className="cc-oracle-diff-row">
+                              <span className="text-txt-dim">{label}</span>
+                              <span className="font-mono text-txt-dim line-through">{old}</span>
+                              <span className="text-gold">→</span>
+                              <span className="font-mono text-tomato">{val}</span>
+                            </div>
+                          ))
+                        })()}
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button className="cc-oracle-apply" onClick={applyChatPending}>
+                          <span className="material-symbols-outlined text-sm">check_circle</span> Aplicar mudanças
+                        </button>
+                        <button className="cc-oracle-discard" onClick={() => setOracleChatPending(null)}>
+                          Descartar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="cc-oracle-chat-input-wrap">
+                    <textarea
+                      value={oracleChatInput}
+                      onChange={e => setOracleChatInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend() } }}
+                      placeholder="Ex: Acho que podemos aumentar o dano e reduzir a duração…"
+                      rows={2}
+                      className="cc-oracle-chat-input"
+                    />
+                    <button className="cc-oracle-chat-send" onClick={handleChatSend} disabled={oracleChatLoading || !oracleChatInput.trim()}>
+                      <span className="material-symbols-outlined text-sm">send</span>
                     </button>
                   </div>
                 </div>

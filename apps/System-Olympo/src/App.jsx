@@ -29,6 +29,7 @@ import CodexDashboard from './components/codex/CodexDashboard'
 import NpcCreator from './components/codex/NpcCreator'
 import NpcSheet from './components/codex/NpcSheet'
 import NpcImportExport from './components/codex/NpcImportExport'
+import SharedNpcManager from './components/codex/SharedNpcManager'
 import InfiniteBoard from './components/InfiniteBoard'
 import { ATTRIBUTES } from './data/attributes'
 import { PROGRESSION } from './data/progression'
@@ -776,7 +777,9 @@ function parseHash() {
   const adminTab = parts[1] || null
   let codexNpcId = null
   if (view === 'codex' && parts[1] === 'npc' && parts[2]) codexNpcId = parts[2]
+  if (view === 'shared-npcs' && parts[1] === 'npc' && parts[2]) codexNpcId = parts[2]
   if (view === 'codex-new') return { view: 'codex-new', sheetId: null, adminTab: null, codexNpcId: null }
+  if (view === 'shared-npcs') return { view: 'shared-npcs', sheetId: null, adminTab: null, codexNpcId }
   if (view === 'board') return { view: 'board', sheetId: null, adminTab: null, codexNpcId: null }
   return { view, sheetId, adminTab, codexNpcId }
 }
@@ -788,6 +791,8 @@ function buildHash(view, sheetId = null, adminTab = null, codexNpcId = null) {
   if (view === 'codex' && codexNpcId) return `#/codex/npc/${codexNpcId}`
   if (view === 'codex') return `#/codex`
   if (view === 'codex-new') return `#/codex-new`
+  if (view === 'shared-npcs' && codexNpcId) return `#/shared-npcs/npc/${codexNpcId}`
+  if (view === 'shared-npcs') return `#/shared-npcs`
   if (view === 'board') return `#/board`
   return `#/${view}`
 }
@@ -1075,6 +1080,7 @@ function AppInner() {
   const navItems = [
     { key: 'wizard', label: 'Criar' },
     { key: 'library', label: 'Personagens' },
+    { key: 'shared-npcs', label: 'Fichas Compartilhadas' },
     { key: 'reference', label: 'Livro de Regras' },
   ]
   if (isAdmin) {
@@ -1263,6 +1269,19 @@ function AppInner() {
             <NpcCreator
               onCreated={() => navigate('codex')}
               onBack={() => navigate('codex')} />
+          </div>
+        </main>
+      ) : view === 'shared-npcs' ? (
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            {codexNpcId ? (
+              <NpcSheet npcId={codexNpcId}
+                onBack={() => navigate('shared-npcs')}
+                onDeleted={() => navigate('shared-npcs')} />
+            ) : (
+              <SharedNpcManager
+                onOpenNpc={(id) => navigate('shared-npcs', null, null, id)} />
+            )}
           </div>
         </main>
       ) : (

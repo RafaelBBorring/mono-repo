@@ -9950,3 +9950,210 @@ body {
   background: rgba(255,255,255,0.08);
   color: rgba(231,229,228,0.8);
 }
+
+.cc-oracle-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.25);
+  color: rgba(165,180,252,0.9);
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-oracle-chat-btn:hover {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.4);
+}
+
+.cc-oracle-reanalyze {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(231,229,228,0.6);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cc-oracle-reanalyze:hover:not(:disabled) {
+  background: rgba(247,189,72,0.08);
+  border-color: rgba(247,189,72,0.3);
+  color: rgba(247,189,72,0.9);
+}
+
+.cc-oracle-reanalyze:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cc-oracle-feedback {
+  background: rgba(0,0,0,0.15);
+  border-radius: 6px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.cc-oracle-feedback p {
+  margin-bottom: 2px;
+}
+
+/* === ORACLE CHAT === */
+.cc-oracle-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-oracle-chat-messages {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+  scroll-behavior: smooth;
+}
+
+.cc-oracle-chat-msg {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+}
+
+.cc-oracle-chat-msg--user {
+  align-self: flex-end;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.2);
+  color: #c7d2fe;
+}
+
+.cc-oracle-chat-msg--assistant {
+  align-self: flex-start;
+  background: rgba(247,189,72,0.06);
+  border: 1px solid rgba(247,189,72,0.15);
+  color: #e2e8f0;
+}
+
+.cc-oracle-chat-author {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+  opacity: 0.5;
+}
+
+.cc-oracle-chat-msg--user .cc-oracle-chat-author {
+  color: #a5b4fc;
+}
+
+.cc-oracle-chat-msg--assistant .cc-oracle-chat-author {
+  color: rgba(247,189,72,0.6);
+}
+
+.cc-oracle-chat-pending {
+  background: rgba(247,189,72,0.04);
+  border: 1px solid rgba(247,189,72,0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.cc-oracle-chat-input-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.cc-oracle-chat-input {
+  flex: 1;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #e2e8f0;
+  font-size: 0.8125rem;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.cc-oracle-chat-input:focus {
+  border-color: rgba(247,189,72,0.3);
+}
+
+.cc-oracle-chat-send {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(247,189,72,0.15), rgba(245,158,11,0.08));
+  border: 1px solid rgba(247,189,72,0.3);
+  border-radius: 8px;
+  color: rgba(247,189,72,0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cc-oracle-chat-send:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(247,189,72,0.25), rgba(245,158,11,0.12));
+  border-color: rgba(247,189,72,0.5);
+}
+
+.cc-oracle-chat-send:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* === ABILITY CREATION FONT SIZE INCREASE === */
+.abilities-stage label,
+.abilities-stage .text-xs:not(.font-mono) {
+  font-size: 0.8125rem !important;
+}
+
+.abilities-stage input[type="text"],
+.abilities-stage input[type="number"],
+.abilities-stage textarea,
+.abilities-stage select {
+  font-size: 0.9375rem !important;
+}
+
+.abilities-stage .text-\[10px\] {
+  font-size: 0.75rem !important;
+}
+
+.abilities-stage .text-\[9px\] {
+  font-size: 0.6875rem !important;
+}
+
+/* Modal body font increase for readability */
+.cc-modal-body {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.cc-modal-stat {
+  font-size: 0.875rem;
+}
+
+.cc-edit-field span {
+  font-size: 0.75rem;
+}
+
+.cc-edit-field input {
+  font-size: 0.875rem;
+}

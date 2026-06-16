@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getNpc, saveNpc, deleteNpc, resolveAvatarUrl } from '../../services/codexDb'
+import { getNpc, saveNpc, deleteNpc, resolveAvatarUrl, getFileHandleRecord, syncNpcFromFile, writeNpcToFile, isFileSystemAccessSupported } from '../../services/codexDb'
 import { CODEX_PROFILES } from '../../data/codexProfiles'
 import { CODEX_NA_MODS, NA_OPTIONS } from '../../data/codexNaMods'
 import { attrMod, calcCA, generateNpcStats, getAttrDist } from '../../utils/codexCalculator'
@@ -145,6 +145,10 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
   const [oracleLoading, setOracleLoading] = useState(false)
   const [showLevelModal, setShowLevelModal] = useState(false)
   const [levelDraft, setLevelDraft] = useState({ nivel: 5, na: '1' })
+  const [fileHandleInfo, setFileHandleInfo] = useState(null)
+  const [syncStatus, setSyncStatus] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+  const [writing, setWriting] = useState(false)
   const saveTimer = useRef(null)
   const fileRef = useRef(null)
 
@@ -155,6 +159,14 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
     const data = await getNpc(npcId)
     setNpc(data)
     setLoading(false)
+    const handleRec = await getFileHandleRecord(npcId)
+    setFileHandleInfo(handleRec)
+    if (handleRec) {
+      setSyncStatus('pending')
+      const result = await syncNpcFromFile(npcId)
+      setSyncStatus(result.status)
+      if (result.npc) setNpc(result.npc)
+    }
   }
 
   const debouncedSave = useCallback((updated) => {
@@ -302,6 +314,79 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
     setShowExportMenu(false)
   }
 
+  async function handleExportPDF() {
+    setShowExportMenu(false)
+    const sheetEl = document.querySelector('.glass-card')
+    if (!sheetEl) return
+
+    const editables = sheetEl.querySelectorAll('input, textarea')
+    const origStyles = Array.from(editables).map(el => ({ el, border: el.style.borderColor, bg: el.style.background }))
+    editables.forEach(el => { el.style.borderColor = 'transparent'; el.style.background = 'transparent' })
+
+    const origOverflow = sheetEl.style.overflow
+    const origMaxHeight = sheetEl.style.maxHeight
+    sheetEl.style.overflow = 'visible'
+    sheetEl.style.maxHeight = 'none'
+
+    const btn = document.createElement('button')
+    btn.textContent = 'Gerando PDF...'
+    btn.className = 'fixed bottom-4 right-4 bg-primary/20 border border-primary/30 text-primary text-sm px-4 py-2 rounded-lg z-[300] animate-pulse'
+    document.body.appendChild(btn)
+
+    try {
+      const loadScript = (src) => new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) return resolve()
+        const s = document.createElement('script')
+        s.src = src
+        s.onload = resolve
+        s.onerror = reject
+        document.head.appendChild(s)
+      })
+
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+
+      const canvas = await window.html2canvas(sheetEl, {
+        scale: 2,
+        backgroundColor: '#10141e',
+        useCORS: true,
+        logging: false,
+      })
+
+      const { jsPDF } = window.jspdf
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = pdf.internal.pageSize.getHeight()
+      const imgWidth = pdfWidth
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      let heightLeft = imgHeight
+      let position = 0
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pdfHeight
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pdfHeight
+      }
+
+      pdf.save(`${(npc.nome || 'npc').replace(/[^a-zA-Z0-9À-ÿ]/g, '_')}.pdf`)
+    } catch (err) {
+      console.error('[PDF] erro:', err)
+      alert('Nao foi possivel gerar o PDF. Use a opcao Imprimir do navegador (Ctrl+P) e escolha "Salvar como PDF".')
+      window.print()
+    } finally {
+      btn.remove()
+      sheetEl.style.overflow = origOverflow
+      sheetEl.style.maxHeight = origMaxHeight
+      origStyles.forEach(({ el, border, bg }) => { el.style.borderColor = border; el.style.background = bg })
+    }
+  }
+
   function handleAvatarFile(file) {
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
@@ -316,6 +401,28 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     await saveNpc(npc)
     onBack?.()
+  }
+
+  async function handleSyncFromFile() {
+    setSyncing(true)
+    const result = await syncNpcFromFile(npcId)
+    setSyncStatus(result.status)
+    if (result.npc) setNpc(result.npc)
+    setSyncing(false)
+  }
+
+  async function handleWriteToFile() {
+    if (!fileHandleInfo) return
+    setWriting(true)
+    const result = await writeNpcToFile(npcId)
+    if (result.status === 'written') {
+      setSyncStatus('synced')
+    } else if (result.status === 'permission_needed') {
+      alert('Permissão de escrita negada. Clique novamente e autorize a escrita no arquivo.')
+    } else if (result.status === 'error') {
+      alert('Erro ao salvar no arquivo: ' + (result.error || 'desconhecido'))
+    }
+    setWriting(false)
   }
 
   if (loading) {
@@ -354,6 +461,26 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
             <span className="material-symbols-outlined text-sm align-middle mr-1">save</span>
             Salvar e Voltar
           </button>
+          {fileHandleInfo && (
+            <>
+              <button onClick={handleSyncFromFile} disabled={syncing}
+                className="px-3 py-1.5 border rounded text-xs transition-colors flex items-center gap-1 disabled:opacity-50"
+                title="Sincronizar do arquivo vinculado">
+                <span className={`material-symbols-outlined text-sm align-middle ${syncing ? 'animate-spin' : ''}`}>
+                  {syncing ? 'progress_activity' : 'cloud_sync'}
+                </span>
+                {syncing ? '...' : 'Sync'}
+              </button>
+              <button onClick={handleWriteToFile} disabled={writing || !isFileSystemAccessSupported()}
+                className="px-3 py-1.5 border border-emerald-400/30 rounded text-xs text-emerald-400 hover:bg-emerald-400/10 transition-colors flex items-center gap-1 disabled:opacity-50"
+                title="Salvar alterações no arquivo vinculado (write-back)">
+                <span className={`material-symbols-outlined text-sm align-middle ${writing ? 'animate-spin' : ''}`}>
+                  {writing ? 'progress_activity' : 'cloud_upload'}
+                </span>
+                {writing ? '...' : 'Salvar no Arquivo'}
+              </button>
+            </>
+          )}
           <div className="relative">
             <button onClick={() => setShowExportMenu(!showExportMenu)}
               className="px-3 py-1.5 border border-sep rounded text-xs text-txt-dim hover:border-gold hover:text-gold transition-colors">
@@ -362,6 +489,9 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
             </button>
             {showExportMenu && (
               <div className="absolute right-0 top-full mt-1 bg-deep border border-sep rounded-lg shadow-xl z-50 py-1 min-w-[160px]">
+                <button onClick={handleExportPDF} className="w-full px-4 py-2 text-xs text-on-surface hover:bg-primary/10 text-left flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
+                </button>
                 <button onClick={handleExportJSON} className="w-full px-4 py-2 text-xs text-on-surface hover:bg-primary/10 text-left">JSON</button>
                 <button onClick={handleExportCodex} className="w-full px-4 py-2 text-xs text-on-surface hover:bg-primary/10 text-left">.codex</button>
               </div>
@@ -416,6 +546,26 @@ export default function NpcSheet({ npcId, onBack, onDeleted }) {
               <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-violet-500/10 text-violet-400 border border-violet-500/20">
                 NA {npc.na} · {naInfo?.tag || ''}
               </span>
+              {fileHandleInfo && syncStatus && (
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono flex items-center gap-1 border ${
+                  syncStatus === 'synced' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                  syncStatus === 'local_newer' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                  syncStatus === 'permission_needed' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                  syncStatus === 'pending' ? 'bg-white/5 text-txt-dim border-white/10' :
+                  'bg-red-500/10 text-red-400 border-red-500/20'
+                }`} title={`Arquivo: ${fileHandleInfo.fileName}`}>
+                  <span className={`material-symbols-outlined text-[11px] ${syncStatus === 'pending' ? 'animate-spin' : ''}`}>
+                    {syncStatus === 'synced' ? 'cloud_done' :
+                     syncStatus === 'local_newer' ? 'edit_note' :
+                     syncStatus === 'permission_needed' ? 'lock' :
+                     syncStatus === 'pending' ? 'sync' : 'error'}
+                  </span>
+                  {syncStatus === 'synced' ? 'Sincronizado' :
+                   syncStatus === 'local_newer' ? 'Alteração local' :
+                   syncStatus === 'permission_needed' ? 'Requer permissão' :
+                   syncStatus === 'pending' ? 'Verificando…' : 'Erro'}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 text-[10px] font-mono text-outline">
               <span>Raca:</span>
