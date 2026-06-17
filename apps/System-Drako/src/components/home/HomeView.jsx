@@ -204,7 +204,8 @@ function HexagonCTA({ label, sub, icon, filled = false, onClick }) {
   const [phase, setPhase] = useState('init')   // 'init' | 'in' | 'out'
   const [hover, setHover] = useState(false)
   const [hit, setHit] = useState(false)
-  const SIZE = 180
+  const W = 184
+  const H = Math.round((W * 2) / Math.sqrt(3))   // regular pointy-top hexagon (symmetric)
   const spinClass = phase === 'in' ? 'spin-in' : phase === 'out' ? 'spin-out' : ''
   const glow = hover
     ? 'drop-shadow(0 0 22px rgba(246,217,140,0.75))'
@@ -218,7 +219,7 @@ function HexagonCTA({ label, sub, icon, filled = false, onClick }) {
       className="d-flex flex-column align-items-center"
       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
     >
-      <div className={`hex-graphic ${spinClass}`} style={{ position: 'relative', width: SIZE, height: SIZE, filter: glow, transition: 'filter .4s' }}>
+      <div className={`hex-graphic ${spinClass}`} style={{ position: 'relative', width: W, height: H, filter: glow, transition: 'filter .4s' }}>
         <div className={hit ? 'hammer-hit' : ''} style={{ position: 'absolute', inset: 0 }}>
           {/* outer hex (gold edge) */}
           <div className="hex" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#f6d98c,#c8921b 55%,#7c570e)', opacity: filled ? 1 : 0.55 }} />
