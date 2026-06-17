@@ -340,6 +340,7 @@ body {
 .project-card[data-color="red"]    { --card-accent: rgba(248, 113, 113, 0.4); --card-glow: rgba(248, 113, 113, 0.15); }
 .project-card[data-color="purple"] { --card-accent: rgba(167, 139, 250, 0.4); --card-glow: rgba(167, 139, 250, 0.15); }
 .project-card[data-color="teal"]   { --card-accent: rgba(45, 212, 191, 0.4); --card-glow: rgba(45, 212, 191, 0.15); }
+.project-card[data-color="ember"]  { --card-accent: rgba(242, 102, 27, 0.4); --card-glow: rgba(242, 102, 27, 0.15); }
 
 .card-glow {
   position: absolute;
