@@ -24,6 +24,7 @@ export default function BoardView({ id }) {
   const [showGallery, setShowGallery] = useState(false)
   const [gallerySearch, setGallerySearch] = useState('')
   const [detail, setDetail] = useState(null)
+  const [panning, setPanning] = useState(false)
   const viewportRef = useRef(null)
   const drag = useRef(null)
   const saveTimer = useRef(null)
@@ -79,21 +80,21 @@ export default function BoardView({ id }) {
     })
   }
 
-  /* ---------- Pan (right button) / interact ---------- */
+  /* ---------- Pan (left/right drag on empty canvas) / interact ---------- */
+  const beginPan = (e) => {
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+    drag.current = { mode: 'pan', sx: e.clientX, sy: e.clientY, startView: board.view, moved: false }
+  }
   const onPointerDown = (e) => {
-    if (e.button === 2) {
-      // right-button pan
-      const startView = board.view
-      drag.current = { mode: 'pan', sx: e.clientX, sy: e.clientY, startView }
-      e.preventDefault()
-    } else if (e.button === 0 && (e.target === viewportRef.current || e.target.dataset?.canvasbg)) {
-      setSelected(null)
-    }
+    if (e.button === 2) { e.preventDefault(); beginPan(e); return }
+    if (e.button === 0 && (e.target === viewportRef.current || e.target.dataset?.canvasbg)) beginPan(e)
   }
   const onPointerMove = (e) => {
     const d = drag.current; if (!d) return
     const dx = e.clientX - d.sx, dy = e.clientY - d.sy
     if (d.mode === 'pan') {
+      if (!d.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return
+      if (!d.moved) { d.moved = true; setPanning(true) }
       setBoard(prev => ({ ...prev, view: { ...prev.view, x: d.startView.x + dx, y: d.startView.y + dy } }))
     } else if (d.mode === 'node') {
       const s = board.view.scale
@@ -112,7 +113,15 @@ export default function BoardView({ id }) {
       }) }))
     }
   }
-  const onPointerUp = () => { drag.current = null }
+  const onPointerUp = () => {
+    const d = drag.current
+    if (d?.mode === 'pan') {
+      if (!d.moved) setSelected(null)
+      else setBoard(prev => { persist(prev); return prev })
+      setPanning(false)
+    }
+    drag.current = null
+  }
 
   const startNodeDrag = (e, node) => {
     if (e.button !== 0) return
@@ -201,13 +210,13 @@ export default function BoardView({ id }) {
 
         {/* Hint */}
         <div className="position-absolute" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 5, color: 'var(--drako-muted)', fontSize: '0.78rem', textAlign: 'center', pointerEvents: 'none' }}>
-          <span className="kbd">botão direito</span> mover · <span className="kbd">scroll</span> zoom · <span className="kbd">esquerdo</span> interagir · <span className="kbd">Ctrl+C/V</span> duplicar
+          <span className="kbd">arrastar</span> mover · <span className="kbd">scroll</span> zoom · <span className="kbd">clicar</span> selecionar · <span className="kbd">Ctrl+C/V</span> duplicar
         </div>
 
         <div
           ref={viewportRef}
           className="canvas-grid-bg position-absolute"
-          style={{ inset: 0, touchAction: 'none', cursor: 'default' }}
+          style={{ inset: 0, touchAction: 'none', cursor: panning ? 'grabbing' : 'grab' }}
           data-canvasbg="1"
           onWheel={onWheel}
           onPointerDown={onPointerDown}

@@ -105,6 +105,42 @@ h1, h2, h3, h4 { font-family: 'Fraunces', Georgia, serif; color: var(--drako-gol
 }
 .card-sheen:hover::before { opacity: 1; transform: translateX(60%); }
 
+/* ---------- Level cards (forja lendária) ---------- */
+.lvl-card {
+  --tier: #e0ad33;
+  position: relative;
+  padding: 1.5rem;
+  border-radius: 16px;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--tier) 50%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--tier) 10%, transparent), rgba(12,10,7,0.72) 70%);
+  box-shadow: 0 0 20px -10px color-mix(in srgb, var(--tier) 70%, transparent);
+  transition: transform .16s ease-in, border-color .3s, box-shadow .3s, background .3s;
+}
+.lvl-card:hover {
+  border-color: color-mix(in srgb, var(--tier) 90%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 55%, transparent), 0 0 30px -4px color-mix(in srgb, var(--tier) 80%, transparent);
+}
+.lvl-card--selected {
+  border-color: var(--tier);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tier) 60%, transparent), 0 0 38px -2px var(--tier);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--tier) 20%, transparent), rgba(12,10,7,0.72) 68%);
+}
+.lvl-card--press { transform: translateY(3px) scale(0.96); }
+
+/* sparks erupt from the card borders */
+.lvl-sparks { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: visible; }
+.lvl-spark {
+  position: absolute; border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  animation: lvl-spark-fly .66s cubic-bezier(.2,.7,.2,1) forwards;
+}
+@keyframes lvl-spark-fly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--ox)), calc(-50% + var(--oy))) scale(1.15); }
+}
+
 /* ---------- Buttons ---------- */
 .btn-drako {
   position: relative; overflow: hidden;

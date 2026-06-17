@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Stepper from '../ui/Stepper.jsx'
 import { Button } from '../ui/Button.jsx'
 import IconPickerModal from '../ui/IconPickerModal.jsx'
@@ -18,7 +18,6 @@ const STEPS = [
   { key: 'id', title: 'Identidade', short: 'Identidade' },
   { key: 'nivel', title: 'Nível', short: 'Nível' },
   { key: 'attr', title: 'Atributos', short: 'Atributos' },
-  { key: 'anot', title: 'Anotações', short: 'Anotações' },
   { key: 'hab', title: 'Habilidades', short: 'Habilidades' },
   { key: 'rev', title: 'Revisão', short: 'Revisão' }
 ]
@@ -146,21 +145,13 @@ export default function WizardView() {
         <AttributesStep char={char} cap={cap} budget={budget} left={left} valid={valid} onAttr={onAttr} />
       )}
 
-      {/* STEP 3 — Anotações */}
+      {/* STEP 3 — Habilidades */}
       {step === 3 && (
-        <div className="glass p-4">
-          <label className="label-drako">Anotações do Mestre</label>
-          <textarea className="textarea-drako" rows={6} value={char.anotacoes || ''} onChange={(e) => patch({ anotacoes: e.target.value })} placeholder="Comportamento, ferro, fraquezas, vínculos, gatilhos narrativos — o que ajudar a jogar este NPC." />
-        </div>
-      )}
-
-      {/* STEP 4 — Habilidades */}
-      {step === 4 && (
         <AbilityEditor abilities={char.abilities} onChange={(ab) => patch({ abilities: ab })} onAIGenerate={() => setShowAI(true)} />
       )}
 
-      {/* STEP 5 — Revisão = ficha final */}
-      {step === 5 && (
+      {/* STEP 4 — Revisão = ficha final */}
+      {step === 4 && (
         <div>
           <div className="d-flex align-items-center justify-content-between mb-3">
             <div>
@@ -190,14 +181,32 @@ export default function WizardView() {
 }
 
 function LevelCard({ level: l, active, onSelect }) {
-  const [hit, setHit] = useState(false)
   const color = LEVEL_COLORS[l.key] || '#e0ad33'
-  const choose = () => { setHit(true); setTimeout(() => { onSelect(); setHit(false) }, 300) }
+  const [pressing, setPressing] = useState(false)
+  const [burst, setBurst] = useState(0)
+  const timer = useRef(null)
+
+  const choose = () => {
+    if (active) { setBurst(b => b + 1); return }
+    setPressing(true)
+    timer.current = setTimeout(() => {
+      setBurst(b => b + 1)
+      onSelect()
+      setPressing(false)
+    }, 160)
+  }
+  useEffect(() => () => clearTimeout(timer.current), [])
+
   return (
-    <button className={`glass glass-hover p-4 text-start w-100 h-100 ${hit ? 'hammer-hit' : ''}`} style={{ borderColor: active ? color : undefined, background: active ? `${color}1a` : undefined }} onClick={choose}>
+    <button
+      className={`lvl-card glass text-start w-100 h-100 ${active ? 'lvl-card--selected' : ''} ${pressing ? 'lvl-card--press' : ''}`}
+      style={{ '--tier': color }}
+      onClick={choose}
+    >
+      <SparkBurst trigger={burst} color={color} />
       <div className="d-flex align-items-center justify-content-between">
-        <h4 className="m-0" style={{ fontSize: '1.3rem', color: active ? color : 'var(--drako-gold-soft)' }}>{l.name}</h4>
-        <i className="bi bi-hammer" style={{ color, fontSize: '1.3rem', opacity: active ? 1 : 0.4 }} />
+        <h4 className="m-0 font-display" style={{ fontSize: '1.3rem', color }}>{l.name}</h4>
+        <i className="bi bi-hammer" style={{ color, fontSize: '1.3rem', opacity: active ? 1 : 0.55 }} />
       </div>
       <p className="mt-2 mb-3" style={{ fontSize: '0.96rem', color: '#cdc1a6' }}>{l.tagline}</p>
       <div className="d-flex flex-wrap gap-2 mb-2">
@@ -210,6 +219,44 @@ function LevelCard({ level: l, active, onSelect }) {
         <span style={{ color: 'var(--pe)' }}><i className="bi bi-bullseye me-1" />{l.max.pe}</span>
       </div>
     </button>
+  )
+}
+
+function SparkBurst({ trigger, color }) {
+  const [parts, setParts] = useState([])
+  useEffect(() => {
+    if (!trigger) return
+    const N = 24
+    const arr = Array.from({ length: N }, (_, i) => {
+      const edge = i % 4
+      const along = 6 + Math.random() * 88
+      const reach = 16 + Math.random() * 30
+      const jitter = (Math.random() - 0.5) * 18
+      let sx, sy, ox, oy
+      if (edge === 0) { sx = along; sy = 0; ox = jitter; oy = -reach }
+      else if (edge === 1) { sx = 100; sy = along; ox = reach; oy = jitter }
+      else if (edge === 2) { sx = along; sy = 100; ox = jitter; oy = reach }
+      else { sx = 0; sy = along; ox = -reach; oy = jitter }
+      return { id: `${trigger}-${i}`, sx: `${sx}%`, sy: `${sy}%`, ox, oy, size: 3 + Math.random() * 3, delay: Math.random() * 0.05 }
+    })
+    setParts(arr)
+    const t = setTimeout(() => setParts([]), 720)
+    return () => clearTimeout(t)
+  }, [trigger])
+  if (!parts.length) return null
+  return (
+    <div className="lvl-sparks" aria-hidden="true">
+      {parts.map(p => (
+        <span key={p.id} className="lvl-spark" style={{
+          left: p.sx, top: p.sy,
+          '--ox': `${p.ox}px`, '--oy': `${p.oy}px`,
+          width: p.size, height: p.size,
+          background: color,
+          boxShadow: `0 0 6px ${color}, 0 0 12px ${color}aa`,
+          animationDelay: `${p.delay}s`
+        }} />
+      ))}
+    </div>
   )
 }
 
@@ -244,7 +291,7 @@ function AttributesStep({ char, cap, budget, left, valid, onAttr }) {
                   <div className="d-flex align-items-center gap-2">
                     <button className="btn-ghost" style={{ width: 30, height: 30, padding: 0 }} disabled={v <= 0} onClick={() => onAttr(a.key, v - 1)}><i className="bi bi-dash" /></button>
                     <span className="font-display gold-text" style={{ fontSize: '1.6rem', minWidth: 36, textAlign: 'center' }}>{v}</span>
-                    <button className="btn-ghost" style={{ width: 30, height: 30, padding: 0 }} disabled={left <= 0 && v >= cap} onClick={() => onAttr(a.key, v + 1)}><i className="bi bi-plus" /></button>
+                    <button className="btn-ghost" style={{ width: 30, height: 30, padding: 0 }} disabled={left <= 0 || v >= cap} onClick={() => onAttr(a.key, v + 1)}><i className="bi bi-plus" /></button>
                   </div>
                 </div>
                 <div style={{ height: 10, borderRadius: 6, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>

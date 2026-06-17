@@ -8,7 +8,7 @@ import Tag from '../ui/Tag.jsx'
 import { SLOT_STYLE } from './abilities/AbilityEditor.jsx'
 
 export const LEVEL_COLORS = {
-  recruta: '#8aa07a', iniciante: '#2ecc71', veterano: '#e0ad33', elite: '#f39c12', lenda: '#f2661b'
+  recruta: '#8b9a73', iniciante: '#3fb0b5', veterano: '#9b6bd6', elite: '#e8643b', lenda: '#f4c95d'
 }
 
 export default function CharacterSheet({ character: c, editable = false, onChange, onResource, onResourceMax, onAttribute, onOpenIcon, onAIBalance, onLevelUp }) {
@@ -41,12 +41,12 @@ export default function CharacterSheet({ character: c, editable = false, onChang
               )}
               <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
                 <span className="tag-chip" style={{ color: lvlColor, fontSize: '0.78rem' }}>{lvl?.name}</span>
-                {editable ? (
-                  <input className="font-body" value={c.raca || ''} placeholder="Raça" onChange={(e) => onChange?.({ raca: e.target.value })}
-                    style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--drako-muted)', fontSize: '0.98rem', width: 120 }} />
-                ) : (
-                  c.raca && <span className="text-muted-drako" style={{ fontSize: '0.98rem' }}>{c.raca}</span>
-                )}
+                <span className="tag-chip d-inline-flex align-items-center" style={{ color: '#cdc1a6', fontSize: '0.78rem' }}>
+                  <i className="bi bi-person-vcard me-1" style={{ opacity: 0.8 }} />
+                  {editable
+                    ? <input className="font-body" value={c.raca || ''} placeholder="Raça" onChange={(e) => onChange?.({ raca: e.target.value })} style={{ background: 'transparent', border: 'none', outline: 'none', color: 'inherit', fontSize: '0.78rem', width: 110, padding: 0 }} />
+                    : <span>{c.raca || 'Sem raça'}</span>}
+                </span>
               </div>
               {editable && onLevelUp && (
                 <button className="btn-ghost mt-2" style={{ fontSize: '0.82rem', padding: '0.3rem 0.7rem' }} onClick={onLevelUp}><i className="bi bi-arrow-up-circle me-1" />Subir de nível</button>
@@ -171,12 +171,6 @@ function AttributeRing({ attr, value, editable, onChange }) {
         <div className="font-display" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8e6', fontSize: '1.25rem', fontWeight: 700 }}>{value}</div>
       </div>
       <div className="font-mono" style={{ fontSize: '0.66rem', color: attr.color, letterSpacing: '0.06em' }}>{attr.short}</div>
-      {editable && (
-        <div className="d-flex gap-1 mt-1">
-          <button className="btn-ghost" style={{ width: 20, height: 20, padding: 0, fontSize: '0.6rem' }} onClick={() => onChange(Math.max(0, value - 1))}>−</button>
-          <button className="btn-ghost" style={{ width: 20, height: 20, padding: 0, fontSize: '0.6rem' }} onClick={() => onChange(Math.min(10, value + 1))}>+</button>
-        </div>
-      )}
     </div>
   )
 }

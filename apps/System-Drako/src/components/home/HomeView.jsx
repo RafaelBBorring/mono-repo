@@ -3,6 +3,7 @@ import { useHashRoute } from '../../hooks/useHashRoute.js'
 import Reveal from '../ui/Reveal.jsx'
 import { Button } from '../ui/Button.jsx'
 import { ATTRIBUTES, STARTING_LEVELS, SYSTEM_META } from '../../data/index.js'
+import { LEVEL_COLORS } from '../sheet/CharacterSheet.jsx'
 import { exportDatabaseDrako, importDrakoFile } from '../../lib/storage.js'
 import { useToast } from '../../contexts/ToastContext.jsx'
 import AIAutoCharacterModal from '../ai/AIAutoCharacterModal.jsx'
@@ -117,13 +118,15 @@ export default function HomeView() {
         <Reveal><h3 className="font-display text-gold text-center mb-1" style={{ fontSize: '1.5rem' }}>Níveis de Início</h3></Reveal>
         <Reveal><p className="text-center text-muted-drako mx-auto mb-4" style={{ maxWidth: 640 }}>Da juventude à lenda — escolha o ponto de partida.</p></Reveal>
         <div className="row g-3">
-          {STARTING_LEVELS.map((l, i) => (
+          {STARTING_LEVELS.map((l, i) => {
+            const color = LEVEL_COLORS[l.key] || '#e0ad33'
+            return (
             <div className="col-md-6 col-xl-4" key={l.key}>
               <Reveal delay={i * 60}>
-                <div className="glass glass-static card-sheen p-4 h-100">
+                <div className="glass glass-static card-sheen p-4 h-100" style={{ border: `1px solid ${color}66`, boxShadow: `0 0 24px -10px ${color}88` }}>
                   <div className="d-flex align-items-center justify-content-between">
-                    <h4 className="m-0" style={{ fontSize: '1.25rem' }}>{l.name}</h4>
-                    <span className="font-mono text-gold" style={{ fontSize: '0.8rem' }}>{l.points} pts</span>
+                    <h4 className="m-0 font-display" style={{ fontSize: '1.25rem', color }}>{l.name}</h4>
+                    <span className="font-mono" style={{ fontSize: '0.8rem', color }}>{l.points} pts</span>
                   </div>
                   <p className="mt-2 mb-3" style={{ fontSize: '0.96rem', color: '#cdc1a6' }}>{l.tagline}</p>
                   <div className="d-flex gap-3 font-mono" style={{ fontSize: '0.82rem' }}>
@@ -134,7 +137,8 @@ export default function HomeView() {
                 </div>
               </Reveal>
             </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 

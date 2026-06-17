@@ -85,7 +85,7 @@ export default function MysticBackdrop() {
     scene.add(embers)
 
     // ---------- Scroll / mouse input ----------
-    const input = { warp: 0, targetWarp: 0.6, mouseX: 0, mouseY: 0 }
+    const input = { warp: 0, targetWarp: 0, mouseX: 0, mouseY: 0 }
     let lastY = window.scrollY
     const onScroll = () => {
       const dy = window.scrollY - lastY
@@ -105,12 +105,12 @@ export default function MysticBackdrop() {
     const tick = () => {
       const dt = Math.min(0.05, clock.getDelta())
       const t = clock.elapsedTime
-      // ease warp back to idle
-      input.targetWarp += (0.6 - input.targetWarp) * (reduce ? 0 : 0.02)
-      input.warp += (input.targetWarp - input.warp) * 0.08
-      const warp = reduce ? 0.4 : input.warp
-      const speed = (8 + warp * 3) * 60 * dt   // downward
-      const len = 1 + warp * 0.9               // streak length grows with warp
+      // ease warp back to idle (idle = still starfield); snappy settle ~0.3s
+      input.targetWarp += (0 - input.targetWarp) * (reduce ? 0 : 0.2)
+      input.warp += (input.targetWarp - input.warp) * 0.25
+      const warp = reduce ? 0 : input.warp
+      const speed = warp * 1.05 * 60 * dt          // 0 at idle -> stars stand still
+      const len = warp                              // streak length scales with warp (dots at idle)
 
       for (let i = 0; i < COUNT; i++) {
         let x = state[i * 4], y = state[i * 4 + 2] != null ? state[i * 4 + 1] : 0
@@ -120,7 +120,7 @@ export default function MysticBackdrop() {
         y -= vy
         if (y < -H) { y = H; x = (Math.random() - 0.5) * W * 2; state[i * 4] = x }
         state[i * 4 + 1] = y
-        const streak = state[i * 4 + 3] + len * (4 + depth * 16)
+        const streak = len * (4 + depth * 20)
         positions[i * 6] = x;     positions[i * 6 + 1] = y;            positions[i * 6 + 2] = z
         positions[i * 6 + 3] = x; positions[i * 6 + 4] = y + streak;  positions[i * 6 + 5] = z
       }
@@ -129,10 +129,11 @@ export default function MysticBackdrop() {
       for (let i = 0; i < ECOUNT; i++) {
         let x = estate[i * 3], y = estate[i * 3 + 1], z = estate[i * 3 + 2]
         const depth = (z + W * 0.8) / (W * 1.6)
-        y -= speed * (0.5 + depth) * 0.7
+        const eDrift = (0.35 + warp * 0.6) * 60 * dt   // gentle floor + warp: alive but calm
+        y -= eDrift * (0.5 + depth) * 0.7
         if (y < -H) { y = H; x = (Math.random() - 0.5) * W * 1.8; estate[i * 3] = x }
         estate[i * 3 + 1] = y
-        epos[i * 3] = x; epos[i * 3 + 1] = y + Math.sin(t * 0.7 + i) * 0.6; epos[i * 3 + 2] = z
+        epos[i * 3] = x; epos[i * 3 + 1] = y + Math.sin(t * 0.7 + i) * 0.5; epos[i * 3 + 2] = z
       }
       ePosAttr.needsUpdate = true
 
