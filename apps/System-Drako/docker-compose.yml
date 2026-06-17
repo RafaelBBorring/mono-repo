@@ -1,0 +1,19 @@
+﻿services:
+  system-drako:
+    build: .
+    image: system-drako:latest
+    container_name: system-drako
+    ports:
+      - "8080:80"
+    environment:
+      # Lidos do .env pelo docker compose (auto-load).
+      # No Docker, a IA recebe a chave em runtime via /config.json.
+      OPENROUTER_API_KEY: ${VITE_OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${VITE_OPENROUTER_MODEL:-google/gemma-4-26b-a4b-it:free}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
