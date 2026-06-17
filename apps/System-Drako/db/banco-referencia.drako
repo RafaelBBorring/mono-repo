@@ -1,0 +1,62 @@
+{
+  "kind": "drako-db",
+  "version": 1,
+  "app": "system-drako",
+  "exportedAt": "2025-01-01T00:00:00.000Z",
+  "note": "Banco de referência do System-Drako. Use como ponto de partida: baixe o projeto para ter esta pasta, ou importe este arquivo pela Biblioteca / painel de Banco de Dados.",
+  "folders": [
+    { "id": "fld_herois", "name": "Heróis de Exemplo" },
+    { "id": "fld_inimigos", "name": "Inimigos de Exemplo" }
+  ],
+  "characters": [
+    {
+      "id": "chr_thalren",
+      "name": "Thalren Sombrasol",
+      "raca": "Elfo",
+      "icon": null,
+      "folderId": "fld_herois",
+      "isNPC": true,
+      "level": "veterano",
+      "arquetipo": "Arqueiro Sombrio",
+      "attributes": { "for": 3, "agi": 6, "per": 6, "int": 4, "von": 3, "pre": 3, "am": 3 },
+      "narrativa": { "conceito": "Um arqueiro élfico caçado pelo passado.", "vinculo": "A filha que sobreviveu ao massacre.", "cicatriz": "Foi abandonado pelo mestre antes do golpe final." },
+      "anotacoes": "Foca em ataque à distância. Acumulativo com Marcas de Fogo.",
+      "resources": { "vida": 29, "energia": 30, "pe": 17 },
+      "conditions": [],
+      "abilities": {
+        "passiva": { "id": "ab_t_pass", "kind": "passiva", "name": "Olho de Caçador", "descricao": "A cada 3 ataques bem-sucedidos, ganha +1d6 no próximo ataque à distância.", "energia": 0, "tags": [ { "label": "Acumulativa", "color": "#e0ad33" }, { "label": "Mira", "color": "#2ecc71" } ] },
+        "ativa1": { "id": "ab_t_a1", "kind": "ativa", "name": "Flecha Sombria", "descricao": "Dispara uma flecha envolta em sombra (Feitiço médio): +1d6 no acerto, cada sucesso vale 5 de dano, ignora Absorção.", "energia": 4, "tags": [ { "label": "Dano", "color": "#9b59b6" }, { "label": "Magia", "color": "#16a085" } ] },
+        "ativa2": { "id": "ab_t_a2", "kind": "ativa", "name": "Passo Etéreo", "descricao": "Desliza entre sombras, repositionando-se livremente no turno (controle/mobilidade).", "energia": 5, "tags": [ { "label": "Mobilidade", "color": "#3498db" } ] },
+        "ativa3": { "id": "ab_t_a3", "kind": "ativa", "name": "Marcas de Fogo", "descricao": "Acumula uma brasa no alvo a cada acerto. Estoura todas as brasas causando 3 de dano cada (máx 5).", "energia": 6, "tags": [ { "label": "Acumulativa", "color": "#f2661b" }, { "label": "Fogo", "color": "#c0392b" } ] },
+        "ultimate": { "id": "ab_t_ult", "kind": "ultimate", "name": "Tempestade de Brasas", "descricao": "Chove flechas flamejantes numa área (Feitiço maior): +2d6, cada sucesso vale 7, ignora Absorção. Deixa Thalren vulnerável no próximo turno (-1d6 na Esquiva).", "energia": 12, "tags": [ { "label": "Área", "color": "#f2661b" }, { "label": "Devastador", "color": "#c0392b" } ] }
+      },
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "chr_grak",
+      "name": "Grak, o Brutamontes",
+      "raca": "Orc",
+      "icon": null,
+      "folderId": "fld_inimigos",
+      "isNPC": true,
+      "level": "recruta",
+      "arquetipo": "Bruto",
+      "attributes": { "for": 3, "agi": 2, "per": 2, "int": 1, "von": 2, "pre": 2, "am": 2 },
+      "narrativa": { "conceito": "Um bruto orc que resolve tudo no corpo a corpo.", "vinculo": "Sua horda.", "cicatriz": "" },
+      "anotacoes": "Inimigo simples de início de campanha.",
+      "resources": { "vida": 18, "energia": 10, "pe": 6 },
+      "conditions": [],
+      "abilities": {
+        "passiva": { "id": "ab_g_pass", "kind": "passiva", "name": "Pele Grossa", "descricao": "Reduz 1 de dano adicional de qualquer fonte física (soma com a Absorção).", "energia": 0, "tags": [ { "label": "Defesa", "color": "#27ae60" } ] },
+        "ativa1": { "id": "ab_g_a1", "kind": "ativa", "name": "Golpe Pesado", "descricao": "Um ataque brutal (arma média): +2d6 no acerto, cada sucesso vale 4 de dano.", "energia": 3, "tags": [ { "label": "Dano", "color": "#c0392b" } ] },
+        "ativa2": { "id": "ab_g_a2", "kind": "ativa", "name": "Rosno Intimidador", "descricao": "Usa Presença para intimidar um alvo, impondo -1d6 na próxima ação dele.", "energia": 2, "tags": [ { "label": "Controle", "color": "#f39c12" } ] },
+        "ativa3": { "id": "ab_g_a3", "kind": "ativa", "name": "Fúria", "descricao": "Entra em fúria: +1d6 em ataques corpo a corpo por 3 rodadas, mas não pode se esquivar.", "energia": 4, "tags": [ { "label": "Buff", "color": "#f2661b" } ] },
+        "ultimate": { "id": "ab_g_ult", "kind": "ultimate", "name": "Demolidor", "descricao": "Golpe devastador (arma pesada, custa 1 PE): +3d6, cada sucesso vale 6, empurra o alvo.", "energia": 8, "tags": [ { "label": "Devastador", "color": "#c0392b" } ] }
+      },
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "boards": []
+}

@@ -12,6 +12,7 @@ on:
       - 'apps/Hades-VFX/**'
       - 'apps/codex-arcanum/**'
       - 'apps/Poseidon/**'
+      - 'apps/System-Drako/**'
       - '.github/workflows/deploy-olympo.yml'
   workflow_dispatch:
 
@@ -121,6 +122,23 @@ jobs:
           npm run build
         working-directory: apps/Poseidon/frontend
 
+      # ── System-Drako (React + Vite) ──
+      - name: Cache System-Drako deps
+        uses: actions/cache@v4
+        with:
+          path: apps/System-Drako/node_modules
+          key: drako-${{ hashFiles('apps/System-Drako/package-lock.json') }}
+
+      - name: Build System-Drako
+        run: |
+          npm ci
+          npm run build
+        working-directory: apps/System-Drako
+        env:
+          VITE_BASE: /mono-repo/system-drako/
+          VITE_OPENROUTER_API_KEY: ${{ secrets.DRAKO_OPENROUTER_KEY }}
+          VITE_OPENROUTER_MODEL: ${{ vars.DRAKO_OPENROUTER_MODEL || 'google/gemma-4-26b-a4b-it:free' }}
+
       # ── Assemble site ──
       - name: Assemble site
         run: |
@@ -181,6 +199,11 @@ jobs:
           mkdir -p _site/poseidon
           cp -r apps/Poseidon/frontend/dist/* _site/poseidon/
           cp apps/Poseidon/frontend/dist/index.html _site/poseidon/404.html
+
+          # System-Drako → /system-drako/
+          mkdir -p _site/system-drako
+          cp -r apps/System-Drako/dist/* _site/system-drako/
+          cp apps/System-Drako/dist/index.html _site/system-drako/404.html
 
           touch _site/.nojekyll
 

@@ -5,6 +5,10 @@ const DB_VERSION = 1
 
 let _db = null
 
+const _listeners = new Set()
+export function subscribeDB(fn) { _listeners.add(fn); return () => _listeners.delete(fn) }
+function _notify() { _listeners.forEach(fn => { try { fn() } catch {} }) }
+
 export async function getDB() {
   if (_db) return _db
   _db = await openDB(DB_NAME, DB_VERSION, {
@@ -41,17 +45,20 @@ export async function dbGet(store, key) {
 export async function dbPut(store, value) {
   const db = await getDB()
   await db.put(store, value)
+  _notify()
   return value
 }
 
 export async function dbDel(store, key) {
   const db = await getDB()
   await db.delete(store, key)
+  _notify()
 }
 
 export async function dbClear(store) {
   const db = await getDB()
   await db.clear(store)
+  _notify()
 }
 
 export async function dbBulkPut(store, items) {
@@ -59,6 +66,7 @@ export async function dbBulkPut(store, items) {
   const tx = db.transaction(store, 'readwrite')
   await Promise.all(items.map(i => tx.store.put(i)))
   await tx.done
+  _notify()
   return items
 }
 

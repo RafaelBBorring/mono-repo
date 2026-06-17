@@ -201,38 +201,34 @@ export default function HomeView() {
 }
 
 function HexagonCTA({ label, sub, icon, filled = false, onClick }) {
+  const [phase, setPhase] = useState('init')   // 'init' | 'in' | 'out'
   const [hover, setHover] = useState(false)
   const [hit, setHit] = useState(false)
   const SIZE = 180
-  const ringStyle = {
-    width: SIZE, height: SIZE,
-    background: filled ? 'linear-gradient(135deg,#f6d98c,#c8921b 55%,#7c570e)' : 'transparent',
-    border: filled ? 'none' : '2px solid rgba(224,173,51,0.55)',
-    transition: 'transform .8s cubic-bezier(.2,.7,.2,1), box-shadow .4s',
-    transform: hover ? 'rotate(30deg)' : 'rotate(0deg)',
-    boxShadow: filled ? '0 0 40px rgba(224,173,51,0.35)' : '0 0 24px rgba(224,173,51,0.12)'
-  }
-  const faceStyle = {
-    position: 'absolute', inset: 8,
-    background: 'radial-gradient(circle at 50% 35%, #1c1812, #0a0806)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    transition: 'transform .8s cubic-bezier(.2,.7,.2,1)',
-    transform: hover ? 'rotate(-30deg) scale(0.96)' : 'rotate(0)'
-  }
+  const spinClass = phase === 'in' ? 'spin-in' : phase === 'out' ? 'spin-out' : ''
+  const glow = hover
+    ? 'drop-shadow(0 0 22px rgba(246,217,140,0.75))'
+    : filled ? 'drop-shadow(0 0 16px rgba(224,173,51,0.35))' : 'drop-shadow(0 0 8px rgba(224,173,51,0.15))'
+
   return (
     <button
-      onClick={() => { setHit(true); setTimeout(onClick, 180) }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      onClick={() => { setHit(true); setTimeout(onClick, 200) }}
+      onMouseEnter={() => { setHover(true); setPhase('in') }}
+      onMouseLeave={() => { setHover(false); setPhase('out') }}
       className="d-flex flex-column align-items-center"
       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
     >
-      <div style={{ position: 'relative', width: SIZE, height: SIZE }} className={hit ? 'hammer-hit' : ''}>
-        <div className="hex" style={ringStyle} />
-        <div className="hex" style={faceStyle}>
-          <i className={`bi ${icon}`} style={{ fontSize: '3.2rem', color: filled ? '#fff8e6' : 'var(--drako-gold-soft)', filter: 'drop-shadow(0 0 12px rgba(224,173,51,0.5))' }} />
+      <div className={`hex-graphic ${spinClass}`} style={{ position: 'relative', width: SIZE, height: SIZE, filter: glow, transition: 'filter .4s' }}>
+        <div className={hit ? 'hammer-hit' : ''} style={{ position: 'absolute', inset: 0 }}>
+          {/* outer hex (gold edge) */}
+          <div className="hex" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#f6d98c,#c8921b 55%,#7c570e)', opacity: filled ? 1 : 0.55 }} />
+          {/* dark face inset to form the edge ring */}
+          <div className="hex" style={{ position: 'absolute', inset: filled ? 8 : 4, background: 'radial-gradient(circle at 50% 35%, #1c1812, #0a0806)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <i className={`bi ${icon}`} style={{ fontSize: '3rem', color: '#fff8e6', filter: 'drop-shadow(0 0 10px rgba(224,173,51,0.55))' }} />
+          </div>
         </div>
       </div>
-      <div className="font-display mt-3" style={{ fontSize: '1.35rem', color: 'var(--drako-gold-soft)' }}>{label}</div>
+      <div className="font-display mt-3" style={{ fontSize: '1.35rem', color: 'var(--drako-gold-soft)', transition: 'color .3s', ...(hover ? { color: '#fff8e6' } : {}) }}>{label}</div>
       <div className="text-muted-drako" style={{ fontSize: '0.88rem' }}>{sub}</div>
     </button>
   )

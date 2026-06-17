@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react'
 import MysticBackdrop from './components/backdrop/MysticBackdrop.jsx'
 import AppShell from './components/layout/AppShell.jsx'
 import { ToastProvider } from './contexts/ToastContext.jsx'
+import { DatabaseProvider } from './contexts/DatabaseContext.jsx'
 import { useHashRoute } from './hooks/useHashRoute.js'
 
 const HomeView = lazy(() => import('./components/home/HomeView.jsx'))
@@ -39,14 +40,16 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <MysticBackdrop />
-      <AppShell>
-        <Suspense fallback={<Fallback />}>
-          <div key={(route.path[0] || 'home') + (route.path[1] || '')} className="page-enter">
-            {view}
-          </div>
-        </Suspense>
-      </AppShell>
+      <DatabaseProvider>
+        <MysticBackdrop />
+        <AppShell>
+          <Suspense fallback={<Fallback />}>
+            <div key={(route.path[0] || 'home') + (route.path[1] || '')} className="page-enter">
+              {view}
+            </div>
+          </Suspense>
+        </AppShell>
+      </DatabaseProvider>
     </ToastProvider>
   )
 }

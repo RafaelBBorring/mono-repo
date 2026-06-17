@@ -22,12 +22,27 @@ npm run build               # gera /dist
 npm run preview             # serve o build
 ```
 
-### Docker (recomendado para deploy)
+### Docker (deploy local)
 ```bash
 docker compose up -d --build      # http://localhost:8080
 ```
+> Imagem multi-stage (Node build → Nginx). A chave da IA entra em runtime via variável `OPENROUTER_API_KEY` (lida do `.env` pelo compose → `/config.json`).
 
-> A imagem é multi-stage (Node build → Nginx serve). Healthcheck incluso.
+### GitHub Pages (deploy online)
+O projeto já está plugado no workflow do mono-repo (`.github/workflows/deploy-olympo.yml`) e publica em `https://<owner>.github.io/mono-repo/system-drako/`. Para a IA funcionar lá:
+1. Crie o **secret** do repositório: **`DRAKO_OPENROUTER_KEY`** = sua chave OpenRouter.
+2. (Opcional) variável `DRAKO_OPENROUTER_MODEL` para mudar o modelo default.
+O build injeta a chave (ela fica no bundle client-side — ok para projeto privado). O `VITE_BASE=/mono-repo/system-drako/` é aplicado no CI.
+
+---
+
+## Banco de dados (local + arquivo)
+
+O System-Drako guarda tudo **localmente** (IndexedDB). Para usar 100% online e levar seus dados entre máquinas, abra o **painel Banco de Dados** (ícone no topo) e conecte um **arquivo `.drako`** (Chrome/Edge desktop):
+- O Chrome **memoriza a localização** do arquivo — nas próximas visitas o sistema **reconecta sozinho** e **salva automaticamente a cada alteração** (mesmo se você sair sem salvar).
+- Você também pode baixar o projeto (com a pasta `db/` de referência) ou importar/exportar um backup `.drako` pela Biblioteca.
+
+Ver [`db/README.md`](./db/README.md) para detalhes.
 
 ---
 

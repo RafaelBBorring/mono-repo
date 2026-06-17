@@ -89,36 +89,44 @@ export default function WizardView() {
 
       {/* STEP 0 — Identidade */}
       {step === 0 && (
-        <div className="glass p-4">
-          <div className="d-flex flex-wrap align-items-center gap-4">
-            <button onClick={() => setShowIcon(true)} className="card-sheen" style={{ width: 150, height: 150, borderRadius: 22, overflow: 'hidden', position: 'relative', cursor: 'pointer', border: '2px solid rgba(224,173,51,0.5)', background: 'radial-gradient(circle at 50% 30%, #1c1812, #0a0806)' }} title="Definir ícone">
-              {char.icon?.dataUrl
-                ? <img src={char.icon.dataUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${char.icon.x || 50}% ${char.icon.y || 50}%`, transform: `scale(${char.icon.scale || 1})` }} />
-                : <div className="d-flex flex-column align-items-center justify-content-center h-100"><i className="bi bi-person-plus text-gold" style={{ fontSize: '2rem' }} /><span className="text-muted-drako mt-1" style={{ fontSize: '0.8rem' }}>Definir ícone</span></div>}
-            </button>
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <div className="mb-3">
-                <label className="label-drako">Nome</label>
-                <input className="input-drako" style={{ fontSize: '1.15rem' }} value={char.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Ex: Kael, o Cinzento" />
-              </div>
-              <div className="mb-3">
-                <label className="label-drako">Raça</label>
-                <input className="input-drako" value={char.raca} onChange={(e) => patch({ raca: e.target.value })} placeholder="Ex: Humano, Elfo, Orc" />
-              </div>
-              <div className="row g-2">
-                <div className="col-sm-6">
-                  <label className="label-drako">Tipo</label>
-                  <select className="select-drako" value={char.isNPC ? 'npc' : 'pc'} onChange={(e) => patch({ isNPC: e.target.value === 'npc' })}>
-                    <option value="npc">NPC (Mestre)</option>
-                    <option value="pc">Personagem (Jogador)</option>
-                  </select>
+        <div className="glass p-4 p-lg-5">
+          <div className="row g-4 align-items-center">
+            <div className="col-lg-5 d-flex justify-content-center">
+              <button onClick={() => setShowIcon(true)} className="card-sheen" style={{ width: 230, height: 230, borderRadius: 26, overflow: 'hidden', position: 'relative', cursor: 'pointer', border: '2px solid rgba(224,173,51,0.5)', background: 'radial-gradient(circle at 50% 30%, #1c1812, #0a0806)', boxShadow: '0 0 0 4px rgba(5,4,3,0.6), 0 0 30px rgba(224,173,51,0.12)' }} title="Definir ícone">
+                {char.icon?.dataUrl
+                  ? <img src={char.icon.dataUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${char.icon.x || 50}% ${char.icon.y || 50}%`, transform: `scale(${char.icon.scale || 1})` }} />
+                  : <div className="d-flex flex-column align-items-center justify-content-center h-100">
+                      <i className="bi bi-person-plus text-gold" style={{ fontSize: '3rem' }} />
+                      <span className="text-muted-drako mt-2" style={{ fontSize: '0.92rem' }}>Definir ícone</span>
+                      <span className="text-muted-drako" style={{ fontSize: '0.74rem' }}>clique para escolher</span>
+                    </div>}
+              </button>
+            </div>
+            <div className="col-lg-7">
+              <div className="ps-lg-4" style={{ borderLeft: '1px solid var(--drako-border)', paddingLeft: '1.5rem' }}>
+                <div className="mb-3">
+                  <label className="label-drako">Nome</label>
+                  <input className="input-drako" style={{ fontSize: '1.15rem' }} value={char.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Ex: Kael, o Cinzento" />
                 </div>
-                <div className="col-sm-6">
-                  <label className="label-drako">Pasta</label>
-                  <select className="select-drako" value={char.folderId || ''} onChange={(e) => patch({ folderId: e.target.value || null })}>
-                    <option value="">— Sem pasta —</option>
-                    {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
+                <div className="mb-3">
+                  <label className="label-drako">Raça</label>
+                  <input className="input-drako" value={char.raca} onChange={(e) => patch({ raca: e.target.value })} placeholder="Ex: Humano, Elfo, Orc" />
+                </div>
+                <div className="row g-2">
+                  <div className="col-sm-6">
+                    <label className="label-drako">Tipo</label>
+                    <select className="select-drako" value={char.isNPC ? 'npc' : 'pc'} onChange={(e) => patch({ isNPC: e.target.value === 'npc' })}>
+                      <option value="npc">NPC (Mestre)</option>
+                      <option value="pc">Personagem (Jogador)</option>
+                    </select>
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="label-drako">Pasta</label>
+                    <select className="select-drako" value={char.folderId || ''} onChange={(e) => patch({ folderId: e.target.value || null })}>
+                      <option value="">— Sem pasta —</option>
+                      {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
