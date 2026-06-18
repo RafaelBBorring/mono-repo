@@ -4,7 +4,7 @@ import Reveal from '../ui/Reveal.jsx'
 import { Button } from '../ui/Button.jsx'
 import { ATTRIBUTES, STARTING_LEVELS, SYSTEM_META } from '../../data/index.js'
 import { LEVEL_COLORS } from '../sheet/CharacterSheet.jsx'
-import { exportDatabaseDrako, importDrakoFile } from '../../lib/storage.js'
+import { exportDatabaseDrako, importDrakoFiles } from '../../lib/storage.js'
 import { useToast } from '../../contexts/ToastContext.jsx'
 import AIAutoCharacterModal from '../ai/AIAutoCharacterModal.jsx'
 import Modal from '../ui/Modal.jsx'
@@ -177,12 +177,14 @@ export default function HomeView() {
         </Reveal>
       </section>
 
-      <input ref={fileRef} type="file" accept=".drako,application/json" hidden onChange={async (e) => {
-        const f = e.target.files?.[0]; if (!f) return
+      <input ref={fileRef} type="file" accept=".drako,application/json" multiple hidden onChange={async (e) => {
+        const fs = e.target.files; if (!fs || !fs.length) return
         try {
-          const res = await importDrakoFile(f)
-          if (res.type === 'database') toast.success(`Importado: ${res.characters} fichas, ${res.boards} quadros.`)
-          else toast.success('Ficha importada.')
+          const res = await importDrakoFiles(fs)
+          if (res.errors?.length) toast.error(`${res.errors.length} arquivo(s) falharam.`)
+          const total = res.characters || 0
+          if (total > 0) toast.success(`Importado: ${total} ficha(s)${res.boards ? `, ${res.boards} quadro(s)` : ''}.`)
+          else toast.error('Nenhuma ficha encontrada.')
           setShowImport(false)
         } catch (err) { toast.error(err.message) }
         e.target.value = ''
@@ -191,9 +193,9 @@ export default function HomeView() {
       <AIAutoCharacterModal open={showOracle} onClose={() => setShowOracle(false)} onCreated={(id) => { setShowOracle(false); navigate(`ficha/${id}`) }} />
 
       <Modal open={showImport} onClose={() => setShowImport(false)} title="Importar .drako" size="sm"
-        footer={<><Button variant="ghost" onClick={() => setShowImport(false)}>Cancelar</Button><Button onClick={() => fileRef.current?.click()}><i className="bi bi-folder2-open me-2" />Escolher arquivo</Button></>}>
+        footer={<><Button variant="ghost" onClick={() => setShowImport(false)}>Cancelar</Button><Button onClick={() => fileRef.current?.click()}><i className="bi bi-folder2-open me-2" />Escolher arquivo(s)</Button></>}>
         <p className="text-muted-drako" style={{ fontSize: '0.98rem' }}>
-          Selecione um arquivo <span className="kbd">.drako</span> — pode ser uma ficha ou um backup completo. A importação mescla com o que já existe.
+          Selecione um ou mais arquivos <span className="kbd">.drako</span> — pode ser uma ficha, um pacote com várias fichas ou um backup completo. A importação mescla com o que já existe.
         </p>
       </Modal>
     </div>

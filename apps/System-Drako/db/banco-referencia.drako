@@ -1,7 +1,7 @@
 {
   "kind": "drako-db",
   "version": 1,
-  "exportedAt": "2026-06-18T01:48:30.060Z",
+  "exportedAt": "2026-06-18T02:01:18.271Z",
   "app": "system-drako",
   "characters": [
     {
@@ -103,6 +103,130 @@
       },
       "createdAt": "2025-01-01T00:00:00.000Z",
       "updatedAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "chr_mqiqpyab4557exzm",
+      "name": "Kael Ardent",
+      "icon": null,
+      "folderId": null,
+      "isNPC": true,
+      "level": "veterano",
+      "raca": "Mago de Batalha",
+      "arquetipo": "",
+      "attributes": {
+        "for": 6,
+        "agi": 5,
+        "per": 4,
+        "int": 5,
+        "von": 4,
+        "pre": 3,
+        "am": 1
+      },
+      "narrativa": {
+        "conceito": "Um estudioso da arte arcana que aprendeu a fundir energia mística com táticas de guerra, usando explosões de aura para controlar o campo de batalha.",
+        "vinculo": "Protege a guilda de mercenários que salvou sua família durante um ataque de bandidos, jurando retribuir com cada vida que conseguir preservar.",
+        "cicatriz": "Perdeu o braço direito numa explosão de magia descontrolada; a cicatriz ainda arde quando ele força sua aura além dos limites, mas também lhe dá intuição sobre fontes de energia instáveis."
+      },
+      "anotacoes": "",
+      "resources": {
+        "vida": 36,
+        "energia": 20,
+        "pe": 18
+      },
+      "conditions": [],
+      "abilities": {
+        "passiva": {
+          "id": "ab_t47fcoj",
+          "kind": "passiva",
+          "name": "Resonância de Aura",
+          "descricao": "Para cada 3 sucessos acumulados em ataques de magia bem‑sucedidos, Kael ganha +1d6 permanente até o final da cena em todos os seus testes de PER e INT, representando a sincronia crescente entre mente e energia.",
+          "energia": 0,
+          "tags": [
+            {
+              "label": "Sinergia",
+              "color": "#6A0DAD"
+            },
+            {
+              "label": "Acúmulo",
+              "color": "#FFD700"
+            }
+          ]
+        },
+        "ativa1": {
+          "id": "ab_93gv34c",
+          "kind": "ativa",
+          "name": "Explosão Arcana",
+          "descricao": "Um disparo de energia média (AM) que atinge um alvo à distância curta. Causa dano mágico cujo Valor por Sucesso é 5. Se o alvo for atingido por um ataque físico na mesma rodada, o dano aumenta em +2d6.",
+          "energia": 4,
+          "tags": [
+            {
+              "label": "Dano",
+              "color": "#FF4500"
+            },
+            {
+              "label": "Curto",
+              "color": "#00BFFF"
+            }
+          ]
+        },
+        "ativa2": {
+          "id": "ab_9uqwa15",
+          "kind": "ativa",
+          "name": "Muralha de Vontade",
+          "descricao": "Gasta 3 energia para criar uma barreira que dura 1 rodada. Enquanto ativa, a ABSORÇÃO do alvo aliado aumenta em +4 e ele recebe +1 sucesso extra em ESQUIVA (AGI).",
+          "energia": 3,
+          "tags": [
+            {
+              "label": "Proteção",
+              "color": "#228B22"
+            },
+            {
+              "label": "Aliado",
+              "color": "#DAA520"
+            }
+          ]
+        },
+        "ativa3": {
+          "id": "ab_9zhcpt6",
+          "kind": "ativa",
+          "name": "Corte de Percepção",
+          "descricao": "Combinação de AGI + PER (ação combinada). Rola o menor (4) e, se o maior (PER=5) for ≥6? não, então soma +1d6. Cada sucesso gera 2 pontos de dano físico leve e concede ao alvo –1d6 em sua próxima rolagem de PER, refletindo desorientação.",
+          "energia": 2,
+          "tags": [
+            {
+              "label": "Físico",
+              "color": "#A52A2A"
+            },
+            {
+              "label": "Debuff",
+              "color": "#708090"
+            }
+          ]
+        },
+        "ultimate": {
+          "id": "ab_dzve9ej",
+          "kind": "ultimate",
+          "name": "Tempestade Celeste",
+          "descricao": "Kael canaliza sua aura ao máximo (custo 12 energia). Cria uma área de efeito de raio médio que dura 2 rodadas. Cada sucesso gera dano mágico maior (Valor por Sucesso 10) e todos os alvos na área sofrem –1 sucesso em ESQUIVA enquanto a tempestade persiste. Aliados dentro da área recebem +2 sucessos em testes de INT.",
+          "energia": 12,
+          "tags": [
+            {
+              "label": "Área",
+              "color": "#4B0082"
+            },
+            {
+              "label": "Dano",
+              "color": "#FF1493"
+            },
+            {
+              "label": "Suporte",
+              "color": "#00FA9A"
+            }
+          ]
+        }
+      },
+      "createdAt": "2026-06-18T00:07:02.867Z",
+      "updatedAt": "2026-06-18T01:57:39.300Z"
     },
     {
       "id": "chr_thalren",
@@ -218,7 +342,7 @@
         }
       },
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "updatedAt": "2026-06-18T01:47:55.782Z"
+      "updatedAt": "2026-06-18T01:57:32.256Z"
     }
   ],
   "folders": [
@@ -237,33 +361,43 @@
       "name": "Novo Quadro",
       "nodes": [
         {
-          "id": "nd_mqiu44zea7z6b708",
+          "id": "nd_mqiuprf9c3wzd433",
           "kind": "character",
-          "characterId": "chr_thalren",
-          "x": 337.99999999999994,
-          "y": -178.50000000000003,
-          "w": 426,
-          "h": 444,
+          "characterId": "chr_mqiqpyab4557exzm",
+          "x": 416.4768424859892,
+          "y": -237.13156332995948,
+          "w": 360,
+          "h": 500,
           "expanded": false
         },
         {
-          "id": "nd_mqiu44zeosfibk83",
+          "id": "nd_mqiuprf9avv2mb7m",
+          "kind": "character",
+          "characterId": "chr_thalren",
+          "x": 826.4768424859892,
+          "y": -237.13156332995948,
+          "w": 360,
+          "h": 500,
+          "expanded": false
+        },
+        {
+          "id": "nd_mqiuprf9lptuyp2o",
           "kind": "character",
           "characterId": "chr_grak",
-          "x": 794,
-          "y": -170.5,
-          "w": 336,
-          "h": 410,
+          "x": 416.4768424859892,
+          "y": 322.8684366700405,
+          "w": 360,
+          "h": 500,
           "expanded": false
         }
       ],
       "view": {
-        "x": -46.47684248598898,
-        "y": 338.6315633299595,
-        "scale": 0.9999999999999998
+        "x": 47.5239827280609,
+        "y": 187.45723508577498,
+        "scale": 0.9999999999999996
       },
       "createdAt": "2026-06-18T01:13:39.229Z",
-      "updatedAt": "2026-06-18T01:47:47.178Z"
+      "updatedAt": "2026-06-18T01:58:58.664Z"
     }
   ],
   "settings": [

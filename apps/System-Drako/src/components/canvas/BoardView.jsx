@@ -533,7 +533,7 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamag
         <ResourceBar label="PE" icon="bi-bullseye" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(val) => setResource(c.id, 'pe', val)} />
       </div>
 
-      <div className="px-3 py-2 d-flex gap-2">
+      <div className="px-3 py-2 d-flex gap-1 justify-content-between">
         <AttrPip a="for" c={c} />
         <AttrPip a="agi" c={c} />
         <AttrPip a="per" c={c} />
@@ -542,12 +542,6 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamag
         <AttrPip a="pre" c={c} />
         <AttrPip a="am" c={c} />
       </div>
-
-      {abs > 0 && (
-        <div className="px-2 pb-1">
-          <span className="tag-chip" style={{ color: '#c0392b', fontSize: '0.6rem', padding: '0.1rem 0.4rem' }} title="Redução de dano físico pela Força"><i className="bi bi-shield me-1" />Absorção {abs}</span>
-        </div>
-      )}
 
       <div className="px-3 pb-3 d-flex gap-2">
         <button data-no-drag="1" className="btn-dmg flex-grow-1" onClick={() => onDamage('dmg')} title="Aplicar dano">
@@ -593,9 +587,14 @@ function AttrPip({ a, c }) {
   if (!attr) return null
   const v = c.attributes?.[a] || 0
   return (
-    <div className="flex-grow-1 text-center" style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 6, padding: '3px 0' }} title={`${attr.name}: ${v}`}>
-      <div className="font-mono" style={{ fontSize: '0.5rem', color: attr.color, lineHeight: 1 }}>{attr.short}</div>
-      <div className="font-display gold-text" style={{ fontSize: '0.82rem', lineHeight: 1.1 }}>{v}</div>
+    <div className="flex-grow-1 text-center" style={{
+      background: `linear-gradient(180deg, ${attr.color}14, rgba(0,0,0,0.42))`,
+      border: `1px solid ${attr.color}33`,
+      borderRadius: 8,
+      padding: '6px 2px'
+    }} title={`${attr.name}: ${v}`}>
+      <div className="font-mono" style={{ fontSize: '0.6rem', color: attr.color, lineHeight: 1, letterSpacing: '0.04em', fontWeight: 700 }}>{attr.short}</div>
+      <div className="font-display gold-text" style={{ fontSize: '1.1rem', lineHeight: 1.1, fontWeight: 600, marginTop: 2 }}>{v}</div>
     </div>
   )
 }
