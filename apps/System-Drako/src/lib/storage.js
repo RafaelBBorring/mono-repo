@@ -1,4 +1,5 @@
-import { exportDatabase, importDatabase } from './db.js'
+import { exportDatabase, importDatabase, saveCharacter } from './db.js'
+import { uid } from './id.js'
 
 export const DRACO_KIND = 'drako-char'
 const DB_KIND = 'drako-db'
@@ -52,7 +53,14 @@ export async function importDrakoFile(file, { onMerge } = {}) {
   const text = await file.text()
   const data = parseDrako(text)
   if (data.kind === DRACO_KIND) {
-    return { type: 'character', character: data.character }
+    if (!data.character || typeof data.character !== 'object') throw new Error('Ficha .drako inválida.')
+    const character = {
+      ...data.character,
+      id: data.character.id || uid('chr'),
+      updatedAt: new Date().toISOString()
+    }
+    await saveCharacter(character)
+    return { type: 'character', character }
   }
   const result = await importDatabase(data, 'merge')
   if (onMerge) onMerge(result)

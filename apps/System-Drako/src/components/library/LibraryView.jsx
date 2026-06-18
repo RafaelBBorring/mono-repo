@@ -36,7 +36,7 @@ export default function LibraryView() {
     setNewFolderName(''); setShowNewFolder(false); reload(); toast.success('Pasta criada.')
   }
   const onImport = async (file) => {
-    try { const res = await importDrakoFile(file); if (res.type === 'database') toast.success(`Banco importado: ${res.characters} fichas.`); else toast.success('Ficha importada.'); reload() }
+    try { const res = await importDrakoFile(file); if (res.type === 'character') { setSearch(''); setFolderFilter(null) } await reload(); if (res.type === 'database') toast.success(`Banco importado: ${res.characters} fichas.`); else toast.success(`Ficha importada: ${res.character?.name || 'Sem Nome'}.`) }
     catch (err) { toast.error(err.message) }
   }
 

@@ -16,6 +16,8 @@ const MIN_W = 120, MIN_H = 90
 const VIEW_MIN = 0.15
 const VIEW_MAX = 3
 const UNFILED_FOLDER = '__unfiled__'
+const CHARACTER_CARD_W = 360
+const CHARACTER_CARD_H = 500
 
 export default function BoardView({ id }) {
   const { navigate } = useHashRoute()
@@ -87,15 +89,15 @@ export default function BoardView({ id }) {
   const addManyCharacters = (characterIds) => {
     if (!characterIds.length) return
     const { cx, cy } = centerWorld()
-    const COLS = Math.min(characterIds.length, 3)
-    const STEP_X = 260, STEP_Y = 300
+    const COLS = Math.min(characterIds.length, 2)
+    const STEP_X = 410, STEP_Y = 560
     const newNodes = characterIds.map((cid, i) => {
       const col = i % COLS, row = Math.floor(i / COLS)
       return {
         id: uid('nd'), kind: 'character', characterId: cid,
-        x: cx - (COLS * STEP_X) / 2 + col * STEP_X - 100,
-        y: cy - STEP_Y + row * STEP_Y - 110,
-        w: 270, h: 268, expanded: false
+        x: cx - (COLS * STEP_X) / 2 + col * STEP_X - 180,
+        y: cy - STEP_Y / 2 + row * STEP_Y,
+        w: CHARACTER_CARD_W, h: CHARACTER_CARD_H, expanded: false
       }
     })
     update(prev => ({ ...prev, nodes: [...prev.nodes, ...newNodes] }))
@@ -176,7 +178,8 @@ export default function BoardView({ id }) {
   }
   const fit = () => {
     if (!board.nodes.length) { update(prev => ({ ...prev, view: { x: 0, y: 0, scale: 1 } })); return }
-    const xs = board.nodes.flatMap(n => [n.x, n.x + n.w]), ys = board.nodes.flatMap(n => [n.y, n.y + n.h])
+    const xs = board.nodes.flatMap(n => [n.x, n.x + (n.kind === 'character' ? Math.max(n.w || 0, CHARACTER_CARD_W) : n.w)])
+    const ys = board.nodes.flatMap(n => [n.y, n.y + (n.kind === 'character' ? Math.max(n.h || 0, CHARACTER_CARD_H) : n.h)])
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys)
     const pad = 120, vp = viewportRef.current
     const scale = Math.min(2.5, Math.max(VIEW_MIN, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
@@ -432,10 +435,12 @@ function Node({ node, sel, startDrag, startResize, children, characterMode, acce
     startDrag(e, node)
   }
   const lvlColor = characterMode ? accentColor : null
+  const width = characterMode ? Math.max(node.w || 0, CHARACTER_CARD_W) : node.w
+  const minHeight = characterMode ? Math.max(node.h || 0, CHARACTER_CARD_H) : node.h
   return (
     <div onPointerDown={onDown} className="glass position-absolute"
       style={{
-        left: node.x, top: node.y, width: node.w, minHeight: node.h,
+        left: node.x, top: node.y, width, minHeight,
         border: sel
           ? `1.5px solid ${lvlColor || 'rgba(224,173,51,0.85)'}`
           : `1px solid ${lvlColor ? lvlColor + '88' : 'rgba(224,173,51,0.16)'}`,
@@ -475,7 +480,7 @@ function ShapeBody({ node, patch }) {
         <i className="bi bi-grip-horizontal text-muted-drako" style={{ fontSize: '0.85rem' }} />
         <button onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { _del: true })} className="btn-ghost" data-no-drag="1" style={{ width: 22, height: 22, padding: 0, fontSize: '0.7rem' }}><i className="bi bi-x" /></button>
       </div>
-      <div onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { shape: node.shape === 'rect' ? 'circle' : 'rect' })} style={{ height: node.h - 50, borderRadius: node.shape === 'circle' ? '50%' : 12, border: `2px solid ${node.color}`, background: `${node.color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      <div onClick={() => patch(node.id, { shape: node.shape === 'rect' ? 'circle' : 'rect' })} style={{ height: node.h - 50, borderRadius: node.shape === 'circle' ? '50%' : 12, border: `2px solid ${node.color}`, background: `${node.color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'grab' }}>
         <div className="d-flex gap-1">{NOTE_COLORS.map(col => <button key={col} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); patch(node.id, { color: col }) }} style={{ width: 12, height: 12, borderRadius: 3, background: col, border: node.color === col ? '2px solid #fff8e6' : '2px solid transparent' }} />)}</div>
       </div>
     </div>
@@ -498,38 +503,37 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamag
 
   return (
     <div style={{ borderTop: `3px solid ${color}` }}>
-      <div className="px-2 pt-2 pb-1 d-flex align-items-center gap-2">
-        <button onClick={onOpen} className="card-sheen" style={{ background: 'none', border: `2px solid ${color}`, borderRadius: 12, overflow: 'hidden', width: 52, height: 52, cursor: 'pointer', padding: 0, flex: '0 0 auto', filter: dead ? 'grayscale(0.7) brightness(0.5)' : 'none' }} title="Abrir detalhes">
-          <MiniPortrait c={c} size={52} color={color} />
-        </button>
-        <div className="min-w-0 flex-grow-1">
-          <button onClick={onOpen} style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', width: '100%' }}>
-            <div className="font-display gold-text" style={{ fontSize: '0.98rem', lineHeight: 1.05, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name || 'Sem Nome'}</div>
-            <div className="d-flex align-items-center gap-1 mt-1">
-              <span className="tag-chip" style={{ color, fontSize: '0.62rem', padding: '0.1rem 0.45rem', borderColor: color + '99' }}>{lvl?.name}</span>
-              {c.raca && <span className="text-muted-drako" style={{ fontSize: '0.66rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.raca}</span>}
-            </div>
-          </button>
+      <div className="p-3 pb-2" style={{ background: `linear-gradient(180deg, ${color}18, rgba(0,0,0,0) 70%)` }}>
+        <div className="position-relative card-sheen" style={{ height: 190, borderRadius: 14, overflow: 'hidden', border: `2px solid ${color}aa`, background: 'radial-gradient(circle at 50% 30%, #1c1812, #0a0806)', boxShadow: `0 14px 32px -18px rgba(0,0,0,0.9), 0 0 22px ${color}22`, filter: dead ? 'grayscale(0.7) brightness(0.58)' : 'none' }}>
+          <CharacterBoardPortrait c={c} color={color} />
+          <div className="position-absolute d-flex gap-1" style={{ top: 8, right: 8 }} data-no-drag="1">
+            <button className="btn-ghost" style={{ width: 32, height: 32, padding: 0, fontSize: '0.86rem', background: 'rgba(0,0,0,0.55)' }} onClick={() => patch(node.id, { expanded: !node.expanded })} title="Expandir habilidades"><i className={`bi ${node.expanded ? 'bi-arrows-angle-contract' : 'bi-list-ul'}`} /></button>
+            <button className="btn-ghost" style={{ width: 32, height: 32, padding: 0, fontSize: '0.86rem', color: '#ff8a7a', borderColor: 'rgba(231,76,60,0.45)', background: 'rgba(0,0,0,0.55)' }} onClick={() => patch(node.id, { _del: true })} title="Remover do quadro"><i className="bi bi-x-lg" /></button>
+          </div>
         </div>
-        <div className="d-flex flex-column gap-1">
-          <button className="btn-ghost" data-no-drag="1" style={{ width: 24, height: 24, padding: 0, fontSize: '0.7rem' }} onClick={() => patch(node.id, { expanded: !node.expanded })} title="Expandir habilidades"><i className={`bi ${node.expanded ? 'bi-arrows-angle-contract' : 'bi-list-ul'}`} /></button>
-          <button className="btn-ghost" data-no-drag="1" style={{ width: 24, height: 24, padding: 0, fontSize: '0.7rem', color: '#ff8a7a', borderColor: 'rgba(231,76,60,0.4)' }} onClick={() => patch(node.id, { _del: true })} title="Remover do quadro"><i className="bi bi-x" /></button>
+        <div className="mt-3">
+          <div className="font-display gold-text" style={{ fontSize: '1.34rem', lineHeight: 1.08, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name || 'Sem Nome'}</div>
+          <div className="d-flex align-items-center gap-2 mt-2 flex-wrap">
+            <span className="tag-chip" style={{ color, fontSize: '0.74rem', padding: '0.16rem 0.55rem', borderColor: color + '99' }}>{lvl?.name}</span>
+            {c.raca && <span className="text-muted-drako" style={{ fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 190 }}>{c.raca}</span>}
+            {abs > 0 && <span className="tag-chip" style={{ color: '#c0392b', fontSize: '0.68rem', padding: '0.12rem 0.5rem' }}><i className="bi bi-shield me-1" />{abs}</span>}
+          </div>
         </div>
       </div>
 
       {dead && (
-        <div className="mx-2 mb-1 text-center font-mono" style={{ fontSize: '0.62rem', color: '#ff6b6b', letterSpacing: '0.08em', padding: '2px 6px', border: '1px solid rgba(231,76,60,0.4)', borderRadius: 6, background: 'rgba(231,76,60,0.08)' }}>
+        <div className="mx-3 mb-2 text-center font-mono" style={{ fontSize: '0.68rem', color: '#ff6b6b', letterSpacing: '0.08em', padding: '4px 8px', border: '1px solid rgba(231,76,60,0.4)', borderRadius: 7, background: 'rgba(231,76,60,0.08)' }}>
           <i className="bi bi-skull me-1" />EM RISCO DE MORTE
         </div>
       )}
 
-      <div className="px-2 d-flex flex-column gap-1">
+      <div className="px-3 d-flex flex-column gap-2">
         <ResourceBar label="Vida" icon="bi-heart-pulse" color="var(--life)" value={r.vida ?? 0} max={max.vida} onChange={(val) => setResource(c.id, 'vida', val)} />
         <ResourceBar label="Energia" icon="bi-lightning-charge" color="var(--energy)" value={r.energia ?? 0} max={max.energia} onChange={(val) => setResource(c.id, 'energia', val)} />
         <ResourceBar label="PE" icon="bi-bullseye" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(val) => setResource(c.id, 'pe', val)} />
       </div>
 
-      <div className="px-2 py-1 d-flex gap-1">
+      <div className="px-3 py-2 d-flex gap-2">
         <AttrPip a="for" c={c} />
         <AttrPip a="agi" c={c} />
         <AttrPip a="per" c={c} />
@@ -545,20 +549,20 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamag
         </div>
       )}
 
-      <div className="px-2 pb-2 d-flex gap-1">
+      <div className="px-3 pb-3 d-flex gap-2">
         <button data-no-drag="1" className="btn-dmg flex-grow-1" onClick={() => onDamage('dmg')} title="Aplicar dano">
-          <i className="bi bi-dash-circle" />
+          <i className="bi bi-dash-circle me-1" />Dano
         </button>
         <button data-no-drag="1" className="btn-heal flex-grow-1" onClick={() => onDamage('heal')} title="Curar">
-          <i className="bi bi-plus-circle" />
+          <i className="bi bi-plus-circle me-1" />Cura
         </button>
-        <button data-no-drag="1" className="btn-ghost flex-grow-1" style={{ padding: '0.35rem', fontSize: '0.78rem' }} onClick={onOpen} title="Abrir ficha completa">
+        <button data-no-drag="1" className="btn-ghost" style={{ padding: '0.35rem 0.65rem', fontSize: '0.86rem' }} onClick={onOpen} title="Abrir ficha completa">
           <i className="bi bi-box-arrow-up-right" />
         </button>
       </div>
 
       {node.expanded && (
-        <div className="px-2 pb-2" style={{ borderTop: '1px solid rgba(224,173,51,0.12)', marginTop: 2, paddingTop: 6 }}>
+        <div className="px-3 pb-3" style={{ borderTop: '1px solid rgba(224,173,51,0.12)', marginTop: 2, paddingTop: 10 }}>
           <div className="label-drako" style={{ fontSize: '0.66rem', marginBottom: 4 }}>Habilidades</div>
           <div className="d-flex flex-column gap-1" style={{ maxHeight: 200, overflowY: 'auto' }}>
             {['passiva', 'ativa1', 'ativa2', 'ativa3', 'ultimate'].map(k => {
@@ -612,6 +616,20 @@ function ResourceBar({ label, icon, color, value, max, onChange }) {
         className="no-spin font-mono"
         style={{ width: 36, background: 'transparent', border: 'none', color: tone, fontSize: '0.7rem', textAlign: 'right', outline: 'none' }} />
       <span className="font-mono text-muted-drako" style={{ fontSize: '0.66rem' }}>/ {max}</span>
+    </div>
+  )
+}
+
+function CharacterBoardPortrait({ c, color }) {
+  const icon = c.icon
+  return (
+    <div className="no-select" style={{ position: 'absolute', inset: 0 }}>
+      {icon?.dataUrl ? (
+        <img src={icon.dataUrl} alt="" draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${icon.x || 50}% ${icon.y || 50}%`, transform: `scale(${icon.scale || 1})`, transformOrigin: 'center' }} />
+      ) : (
+        <div className="d-flex align-items-center justify-content-center h-100 font-display gold-text" style={{ fontSize: '4rem', background: `radial-gradient(circle at 50% 35%, ${color}22, rgba(0,0,0,0.15))` }}>{(c.name || '?').slice(0, 2).toUpperCase()}</div>
+      )}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.22))', pointerEvents: 'none' }} />
     </div>
   )
 }
