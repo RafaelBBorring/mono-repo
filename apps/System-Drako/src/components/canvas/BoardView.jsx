@@ -5,8 +5,8 @@ import { ATTRIBUTES } from '../../data/attributes.js'
 import { maxResources } from '../../lib/calculator.js'
 import { useHashRoute } from '../../hooks/useHashRoute.js'
 import { useToast } from '../../contexts/ToastContext.jsx'
-import { Button } from '../ui/Button.jsx'
 import Modal from '../ui/Modal.jsx'
+import { Button } from '../ui/Button.jsx'
 import { uid } from '../../lib/id.js'
 import { LEVEL_COLORS } from '../sheet/CharacterSheet.jsx'
 
@@ -76,7 +76,7 @@ export default function BoardView({ id }) {
     const cx = vp.clientWidth / 2, cy = vp.clientHeight / 2
     update(prev => {
       const v = prev.view
-      const scale = Math.min(2.5, Math.max(0.2, v.scale * f))
+      const scale = Math.min(3, Math.max(0.15, v.scale * f))
       const wx = (cx - v.x) / v.scale, wy = (cy - v.y) / v.scale
       return { ...prev, view: { x: cx - wx * scale, y: cy - wy * scale, scale } }
     })
@@ -85,14 +85,14 @@ export default function BoardView({ id }) {
     if (!board.nodes.length) { update(prev => ({ ...prev, view: { x: 0, y: 0, scale: 1 } })); return }
     const xs = board.nodes.flatMap(n => [n.x, n.x + n.w]), ys = board.nodes.flatMap(n => [n.y, n.y + n.h])
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys)
-    const pad = 90, vp = viewportRef.current
-    const scale = Math.min(2, Math.max(0.2, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
+    const pad = 120, vp = viewportRef.current
+    const scale = Math.min(2.5, Math.max(0.15, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
     const x = -minX * scale + (vp.clientWidth - (maxX - minX) * scale) / 2
     const y = -minY * scale + (vp.clientHeight - (maxY - minY) * scale) / 2
     update(prev => ({ ...prev, view: { x, y, scale } }))
   }
 
-  // ---------- Native wheel zoom (passive:false so preventDefault works) ----------
+  // ---------- Native wheel zoom (passive:false) ----------
   useEffect(() => {
     const vp = viewportRef.current; if (!vp) return
     const onWheel = (e) => {
@@ -101,7 +101,7 @@ export default function BoardView({ id }) {
       const mx = e.clientX - rect.left, my = e.clientY - rect.top
       setBoard(prev => {
         const v = prev.view
-        const scale = Math.min(2.5, Math.max(0.2, v.scale * (1 + -e.deltaY * 0.0015)))
+        const scale = Math.min(3, Math.max(0.15, v.scale * (1 + -e.deltaY * 0.0015)))
         const wx = (mx - v.x) / v.scale, wy = (my - v.y) / v.scale
         const next = { ...prev, view: { x: mx - wx * scale, y: my - wy * scale, scale } }
         persist(next); return next
@@ -111,17 +111,17 @@ export default function BoardView({ id }) {
     return () => vp.removeEventListener('wheel', onWheel)
   }, [persist, loaded])
 
-  // ---------- Pointer interactions ----------
+  // ---------- Pointer: right-drag = pan smooth ----------
   const startPan = (e) => {
     const vp = viewportRef.current
     try { vp.setPointerCapture(e.pointerId) } catch {}
-    drag.current = { mode: 'pan', sx: e.clientX, sy: e.clientY, vx: board.view.x, vy: board.view.y }
+    drag.current = { mode: 'pan', pid: e.pointerId, sx: e.clientX, sy: e.clientY, vx: board.view.x, vy: board.view.y }
   }
   const startNodeDrag = (e, node) => {
     const vp = viewportRef.current
     try { vp.setPointerCapture(e.pointerId) } catch {}
     setSelected(node.id)
-    drag.current = { mode: 'node', id: node.id, nx: node.x, ny: node.y, sx: e.clientX, sy: e.clientY }
+    drag.current = { mode: 'node', id: node.id, sx: e.clientX, sy: e.clientY, nx: node.x, ny: node.y }
   }
   const startResize = (e, node, corner) => {
     const vp = viewportRef.current
@@ -131,18 +131,15 @@ export default function BoardView({ id }) {
   }
 
   const onViewportPointerDown = (e) => {
-    if (e.button === 2) { startPan(e); return }
-    if (e.button === 0) {
-      const t = e.target
-      const isEmpty = t === viewportRef.current || t?.dataset?.canvasbg || t?.dataset?.world
-      if (isEmpty) { setSelected(null); startPan(e) }
-    }
+    if (e.button === 2) { startPan(e); return }                 // right = pan
+    if (e.button === 0) { setSelected(null) }                   // left on empty = deselect
   }
   const onPointerMove = (e) => {
     const d = drag.current; if (!d) return
     const dx = e.clientX - d.sx, dy = e.clientY - d.sy
     const s = board.view.scale
     if (d.mode === 'pan') {
+      // smooth pan: direct follow
       setBoard(prev => ({ ...prev, view: { ...prev.view, x: d.vx + dx, y: d.vy + dy } }))
     } else if (d.mode === 'node') {
       update(prev => ({ ...prev, nodes: prev.nodes.map(n => n.id === d.id ? { ...n, x: d.nx + dx / s, y: d.ny + dy / s } : n) }))
@@ -159,71 +156,85 @@ export default function BoardView({ id }) {
       }) }))
     }
   }
-  const onPointerUp = (e) => {
+  const endDrag = (e) => {
     if (drag.current) { try { viewportRef.current?.releasePointerCapture(e.pointerId) } catch {} }
     drag.current = null
   }
 
-  // keyboard: copy/paste/delete
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && selected) {
-        clipboard.current = JSON.parse(JSON.stringify(board.nodes.find(n => n.id === selected) || null))
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clipboard.current) {
-        const c = { ...clipboard.current, id: uid('nd'), x: clipboard.current.x + 30, y: clipboard.current.y + 30 }
-        update(prev => ({ ...prev, nodes: [...prev.nodes, c] })); setSelected(c.id)
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selected) { removeNode(selected) }
+      const k = e.key.toLowerCase()
+      if ((e.ctrlKey || e.metaKey) && k === 'c' && selected) clipboard.current = JSON.parse(JSON.stringify(board.nodes.find(n => n.id === selected) || null))
+      else if ((e.ctrlKey || e.metaKey) && k === 'v' && clipboard.current) { const c = { ...clipboard.current, id: uid('nd'), x: clipboard.current.x + 30, y: clipboard.current.y + 30 }; update(prev => ({ ...prev, nodes: [...prev.nodes, c] })); setSelected(c.id) }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && selected) removeNode(selected)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [selected, board, update])
 
-  if (!loaded) return <div className="container py-5 text-center"><div className="spinner-border text-gold" /></div>
+  if (!loaded) return <div className="d-flex align-items-center justify-content-center" style={{ height: '100vh' }}><div className="spinner-border text-gold" /></div>
+
   const v = board.view
+  const dot = 26 * v.scale
   const filteredGallery = chars.filter(c => !gallerySearch.trim() || (c.name || '').toLowerCase().includes(gallerySearch.toLowerCase()))
+  const bgStyle = {
+    backgroundColor: '#070505',
+    backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.16) 1.3px, transparent 1.4px)',
+    backgroundSize: `${dot}px ${dot}px`,
+    backgroundPosition: `${v.x}px ${v.y}px`
+  }
 
   return (
-    <div className="position-fixed" style={{ inset: 0, zIndex: 1000, background: '#070504', display: 'flex', flexDirection: 'column' }}>
-      <div className="d-flex align-items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--drako-border)', background: 'rgba(10,8,6,0.85)', backdropFilter: 'blur(8px)' }}>
-        <button className="btn-ghost" style={{ width: 40, height: 40, padding: 0 }} onClick={() => navigate('quadros')} title="Voltar"><i className="bi bi-arrow-left" /></button>
-        <input className="input-drako" style={{ width: 240, height: 40 }} value={board.name} onChange={(e) => update(b => ({ ...b, name: e.target.value }))} />
-        <span className="d-flex align-items-center gap-1 ms-2" style={{ fontSize: '0.8rem', color: 'var(--drako-muted)' }}>
-          <i className="bi bi-cloud-check text-life" /><span className="font-mono">{board.nodes.length} elementos · {Math.round(v.scale * 100)}%</span>
-        </span>
-        <div className="ms-auto d-flex gap-1">
-          <button className="btn-ghost" style={{ height: 40, padding: '0 0.8rem' }} onClick={async () => { await saveBoard(board); toast.success('Quadro salvo.') }}><i className="bi bi-save me-1" />Salvar</button>
+    <div className="position-fixed" style={{ inset: 0, zIndex: 2000, background: '#070505', display: 'flex', flexDirection: 'column' }}>
+      {/* ===== Minimal navbar ===== */}
+      <div className="d-flex align-items-center justify-content-between px-3 py-2" style={{ borderBottom: '1px solid rgba(224,173,51,0.14)', background: 'rgba(7,5,5,0.9)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
+        <div className="d-flex align-items-center gap-2">
+          <span style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg,#f6d98c,#c8921b 50%,#543c0a)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(224,173,51,0.35)' }}>
+            <i className="bi bi-dragon-fill" style={{ color: '#1a1408', fontSize: '1.1rem' }} />
+          </span>
+          <input className="font-display" value={board.name} onChange={(e) => update(b => ({ ...b, name: e.target.value }))} title="Nome do quadro"
+            style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--drako-gold-soft)', fontSize: '1.05rem', width: 200 }} />
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <span className="font-mono text-muted-drako d-none d-md-inline" style={{ fontSize: '0.74rem' }}>{Math.round(v.scale * 100)}%</span>
+          <Button onClick={() => setShowGallery(true)}><i className="bi bi-person-plus-fill me-2" />Adicionar ficha</Button>
+          <button className="btn-ghost d-flex align-items-center gap-1" onClick={() => navigate('quadros')} title="Sair do quadro"><i className="bi bi-box-arrow-right" /><span className="d-none d-sm-inline">Sair</span></button>
         </div>
       </div>
 
+      {/* ===== Stage ===== */}
       <div className="position-relative flex-grow-1" style={{ overflow: 'hidden' }}>
-        {/* Left circular toolbar */}
+        {/* Left circular tools */}
         <div className="position-absolute d-flex flex-column align-items-center gap-2" style={{ left: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 5 }}>
-          <CircleTool primary icon="bi-person-plus-fill" title="Adicionar fichas" onClick={() => setShowGallery(true)} />
           <CircleTool icon="bi-sticky-fill" title="Nota" onClick={() => addNode({ kind: 'note', text: '', color: '#e0ad33', w: 200, h: 150 })} />
           <CircleTool icon="bi-square" title="Forma" onClick={() => addNode({ kind: 'shape', shape: 'rect', color: '#e0ad33', w: 170, h: 120 })} />
-          <div style={{ height: 1, width: 30, background: 'var(--drako-border)', margin: '4px 0' }} />
+          <div style={{ height: 1, width: 28, background: 'rgba(224,173,51,0.25)', margin: '4px 0' }} />
           <CircleTool icon="bi-zoom-in" title="Zoom +" onClick={() => zoomBy(1.2)} />
           <CircleTool icon="bi-zoom-out" title="Zoom -" onClick={() => zoomBy(1 / 1.2)} />
           <CircleTool icon="bi-arrows-fullscreen" title="Ajustar à tela" onClick={fit} />
+          {selected && <div style={{ height: 1, width: 28, background: 'rgba(224,173,51,0.25)', margin: '4px 0' }} />}
+          {selected && <CircleTool danger icon="bi-trash" title="Excluir selecionado" onClick={() => removeNode(selected)} />}
         </div>
 
-        <div className="position-absolute" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 5, color: 'var(--drako-muted)', fontSize: '0.78rem', textAlign: 'center', pointerEvents: 'none' }}>
-          <span className="kbd">botão direito</span> ou <span className="kbd">esquerdo no vazio</span> mover · <span className="kbd">scroll</span> zoom · <span className="kbd">Ctrl+C/V</span> duplicar
+        {/* Controls hint */}
+        <div className="position-absolute" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 5, color: 'rgba(255,255,255,0.35)', fontSize: '0.76rem', textAlign: 'center', pointerEvents: 'none' }}>
+          <span className="kbd">botão direito</span> navegar · <span className="kbd">esquerdo</span> manipular · <span className="kbd">scroll</span> zoom · <span className="kbd">Ctrl+C/V</span> duplicar
         </div>
 
         <div
           ref={viewportRef}
-          className="canvas-grid-bg position-absolute"
-          style={{ inset: 0, touchAction: 'none', cursor: 'grab' }}
+          className="position-absolute no-select"
+          style={{ inset: 0, touchAction: 'none', userSelect: 'none', cursor: 'default', ...bgStyle }}
           data-canvasbg="1"
           onPointerDown={onViewportPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onPointerLeave={endDrag}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <div data-world="1" className="position-absolute" style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale})`, transformOrigin: '0 0', width: 1, height: 1 }}>
+          <div className="position-absolute" style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale})`, transformOrigin: '0 0', width: 1, height: 1 }}>
             {board.nodes.map(node => {
               const sel = selected === node.id
               if (node.kind === 'note') return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode}><NoteBody node={node} patch={patchNode} /></Node>
@@ -238,8 +249,8 @@ export default function BoardView({ id }) {
 
           {board.nodes.length === 0 && (
             <div className="position-absolute top-50 start-50 translate-middle text-center" style={{ pointerEvents: 'none' }}>
-              <i className="bi bi-grid-3x3-gap text-gold" style={{ fontSize: '2.6rem' }} />
-              <p className="text-muted-drako mt-2" style={{ fontSize: '1rem' }}>Quadro vazio.<br />Clique em <i className="bi bi-person-plus-fill text-gold" /> à esquerda para adicionar fichas.</p>
+              <i className="bi bi-grid-3x3-gap text-gold" style={{ fontSize: '2.6rem', opacity: 0.5 }} />
+              <p className="mt-2" style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.4)' }}>Quadro vazio.<br />Clique em <b className="text-gold">Adicionar ficha</b> no topo.</p>
             </div>
           )}
         </div>
@@ -277,12 +288,12 @@ export default function BoardView({ id }) {
   )
 }
 
-function CircleTool({ icon, title, onClick, primary }) {
+function CircleTool({ icon, title, onClick, danger }) {
   return (
     <button title={title} onClick={onClick}
-      style={{ width: primary ? 58 : 46, height: primary ? 58 : 46, borderRadius: 999, border: primary ? '1px solid rgba(255,248,230,0.4)' : '1px solid rgba(224,173,51,0.35)', background: primary ? 'linear-gradient(135deg,#f6d98c,#7c570e)' : 'rgba(15,12,9,0.85)', color: primary ? '#1a1408' : 'var(--drako-gold-soft)', cursor: 'pointer', fontSize: primary ? '1.4rem' : '1.1rem', boxShadow: primary ? '0 0 22px rgba(224,173,51,0.45)' : '0 6px 18px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s' }}
-      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
-      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+      style={{ width: 46, height: 46, borderRadius: 999, border: `1px solid ${danger ? 'rgba(231,76,60,0.5)' : 'rgba(224,173,51,0.35)'}`, background: 'rgba(12,9,7,0.85)', color: danger ? '#ff8a7a' : 'var(--drako-gold-soft)', cursor: 'pointer', fontSize: '1.1rem', boxShadow: '0 6px 18px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s, border-color .2s' }}
+      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.borderColor = danger ? 'rgba(231,76,60,0.9)' : 'rgba(224,173,51,0.7)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = danger ? 'rgba(231,76,60,0.5)' : 'rgba(224,173,51,0.35)' }}>
       <i className={`bi ${icon}`} />
     </button>
   )
@@ -298,13 +309,12 @@ const RESIZE_CORNERS = [
 function Node({ node, sel, startDrag, startResize, remove, children }) {
   const onDown = (e) => {
     if (e.button !== 0) return
-    // não inicia arraste sobre controles interativos
-    if (e.target.closest('button, input, textarea, select')) return
+    if (e.target.closest('button, input, textarea, select')) return   // left manipulates elements
     e.stopPropagation()
     startDrag(e, node)
   }
   return (
-    <div onPointerDown={onDown} className="glass position-absolute" style={{ left: node.x, top: node.y, width: node.w, minHeight: node.h, border: sel ? '1px solid rgba(224,173,51,0.85)' : '1px solid var(--drako-border)', boxShadow: sel ? '0 0 0 1px rgba(224,173,51,0.3), 0 0 26px rgba(224,173,51,0.16)' : undefined, cursor: 'grab' }}>
+    <div onPointerDown={onDown} className="glass position-absolute" style={{ left: node.x, top: node.y, width: node.w, minHeight: node.h, border: sel ? '1px solid rgba(224,173,51,0.85)' : '1px solid rgba(224,173,51,0.16)', boxShadow: sel ? '0 0 0 1px rgba(224,173,51,0.3), 0 0 28px rgba(224,173,51,0.18)' : '0 12px 40px -16px rgba(0,0,0,0.8)', cursor: 'grab' }}>
       <div className="d-flex align-items-center justify-content-between px-1" style={{ height: 24 }}>
         <i className="bi bi-grip-horizontal text-muted-drako" style={{ fontSize: '0.85rem' }} />
         <button onPointerDown={(e) => e.stopPropagation()} onClick={() => remove(node.id)} className="btn-ghost" style={{ width: 22, height: 22, padding: 0, fontSize: '0.7rem' }}><i className="bi bi-x" /></button>
@@ -319,7 +329,7 @@ function Node({ node, sel, startDrag, startResize, remove, children }) {
 
 function NoteBody({ node, patch }) {
   return (
-    <div style={{ background: `linear-gradient(180deg, ${node.color}22, rgba(19,16,12,0.9))`, borderRadius: 10, padding: 8 }}>
+    <div style={{ background: `linear-gradient(180deg, ${node.color}22, rgba(19,16,12,0.92))`, borderRadius: 10, padding: 8 }}>
       <div className="d-flex align-items-center gap-1 mb-1">
         {NOTE_COLORS.map(col => <button key={col} onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { color: col })} style={{ width: 14, height: 14, borderRadius: 4, background: col, border: node.color === col ? '2px solid #fff8e6' : '2px solid transparent', cursor: 'pointer' }} />)}
       </div>
