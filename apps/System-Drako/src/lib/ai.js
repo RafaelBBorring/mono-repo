@@ -6,9 +6,11 @@ const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const FALLBACK_MODELS = [
   'google/gemma-4-26b-a4b-it:free',
   'openai/gpt-oss-120b:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'openai/gpt-oss-20b:free',
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
   'qwen/qwen3-next-80b-a3b-instruct:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'nvidia/nemotron-3-super-120b-a12b:free'
+  'meta-llama/llama-3.3-70b-instruct:free'
 ]
 
 export function isAIConfigured() {
@@ -16,30 +18,33 @@ export function isAIConfigured() {
   return Boolean(k) && !String(k).includes('coloque-sua')
 }
 
-async function requestOnce({ apiKey, model, body }) {
+const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+
+async function requestOnce({ apiKey, model, body, allowFormat }) {
+  const payload = { ...body, model }
+  if (allowFormat) payload.response_format = { type: 'json_object' }
   const res = await fetch(API_URL, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ ...body, model })
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   })
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
-    const err = new Error(`OpenRouter ${res.status}: ${txt.slice(0, 300)}`)
+    const err = new Error(`OpenRouter ${res.status}: ${txt.slice(0, 200)}`)
     err.status = res.status
-    err.recoverable = res.status === 429 || res.status === 404 || res.status === 502 || res.status === 503 || res.status === 529
+    // 429 (rate limit), 404/400 (modelo/formato), 5xx — tenta próximo modelo
+    err.recoverable = [400, 404, 429, 500, 502, 503, 529].includes(res.status)
     throw err
   }
-  return res.json()
+  const data = await res.json()
+  return data?.choices?.[0]?.message?.content || ''
 }
 
 async function callAI(userPrompt, { json = true, temperature = 0.7 } = {}) {
   await loadConfig()
   const { apiKey, model } = getConfig()
   if (!apiKey || String(apiKey).includes('coloque-sua')) {
-    throw new Error('IA não configurada. Defina VITE_OPENROUTER_API_KEY no .env (dev) ou passe OPENROUTER_API_KEY ao container (Docker).')
+    throw new Error('IA não configurada. Defina VITE_OPENROUTER_API_KEY no .env (dev) ou no secret DRAKO_OPENROUTER_KEY (GitHub Pages), ou OPENROUTER_API_KEY no container (Docker).')
   }
   const baseBody = {
     temperature,
@@ -48,20 +53,28 @@ async function callAI(userPrompt, { json = true, temperature = 0.7 } = {}) {
       { role: 'user', content: userPrompt }
     ]
   }
-  if (json) baseBody.response_format = { type: 'json_object' }
 
   const candidates = [model, ...FALLBACK_MODELS.filter(m => m !== model)]
-  let lastErr
-  for (const m of candidates) {
-    try {
-      const data = await requestOnce({ apiKey, model: m, body: baseBody })
-      const content = data?.choices?.[0]?.message?.content || ''
-      if (!json) return content
-      return safeParseJSON(content)
-    } catch (e) {
-      lastErr = e
-      if (!e.recoverable) throw e
+  let lastErr = null
+  for (let attempt = 0; attempt < candidates.length; attempt++) {
+    const m = candidates[attempt]
+    // 1ª tentativa do modelo com response_format; se falir por formato, tenta sem.
+    for (const allowFormat of [true, false]) {
+      try {
+        const content = await requestOnce({ apiKey, model: m, body: baseBody, allowFormat: json && allowFormat })
+        if (!json) return content
+        try { return safeParseJSON(content) }
+        catch { /* JSON inválido — trata como recuperável e segue */ if (!allowFormat) throw new Error('json-invalid') }
+      } catch (e) {
+        lastErr = e
+        if (e.message === 'json-invalid') break
+      }
     }
+    // pequena pausa entre modelos para aliviar o rate limit
+    if (attempt < candidates.length - 1) await sleep(350)
+  }
+  if (lastErr && /429/.test(lastErr.message)) {
+    throw new Error('O Oráculo está no limite de taxa dos modelos gratuitos. Aguarde alguns segundos e tente novamente.')
   }
   throw lastErr || new Error('Falha ao chamar o Oráculo.')
 }

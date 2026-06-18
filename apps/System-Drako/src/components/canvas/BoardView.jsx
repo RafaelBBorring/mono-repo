@@ -24,7 +24,7 @@ export default function BoardView({ id }) {
   const [showGallery, setShowGallery] = useState(false)
   const [gallerySearch, setGallerySearch] = useState('')
   const [detail, setDetail] = useState(null)
-  const [panning, setPanning] = useState(false)
+
   const viewportRef = useRef(null)
   const drag = useRef(null)
   const saveTimer = useRef(null)
@@ -54,53 +54,99 @@ export default function BoardView({ id }) {
     const vp = viewportRef.current, v = board.view
     return { cx: (-v.x + vp.clientWidth / 2) / v.scale, cy: (-v.y + vp.clientHeight / 2) / v.scale }
   }
-
   const addNode = (partial) => {
     const { cx, cy } = centerWorld()
     const node = { id: uid('nd'), x: cx - 100, y: cy - 70, w: 200, ...partial }
     update(prev => ({ ...prev, nodes: [...prev.nodes, node] }))
     setSelected(node.id)
   }
-
   const removeNode = (nid) => update(prev => ({ ...prev, nodes: prev.nodes.filter(n => n.id !== nid) }))
   const patchNode = (nid, patch) => update(prev => ({ ...prev, nodes: prev.nodes.map(n => n.id === nid ? { ...n, ...patch } : n) }))
 
-  /* ---------- Zoom (wheel) ---------- */
-  const onWheel = (e) => {
-    e.preventDefault()
-    const vp = viewportRef.current; if (!vp) return
-    const rect = vp.getBoundingClientRect()
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top
-    setBoard(prev => {
-      const v = prev.view
-      const scale = Math.min(2.5, Math.max(0.2, v.scale * (1 + -e.deltaY * 0.0015)))
-      const wx = (mx - v.x) / v.scale, wy = (my - v.y) / v.scale
-      const next = { ...prev, view: { x: mx - wx * scale, y: my - wy * scale, scale } }
-      persist(next); return next
+  const setCharResource = (cid, key, value) => {
+    setChars(prev => {
+      const next = prev.map(c => c.id === cid ? { ...c, resources: { ...c.resources, [key]: value } } : c)
+      const c = next.find(x => x.id === cid); if (c) saveCharacter(c)
+      return next
     })
   }
 
-  /* ---------- Pan (left/right drag on empty canvas) / interact ---------- */
-  const beginPan = (e) => {
-    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
-    drag.current = { mode: 'pan', sx: e.clientX, sy: e.clientY, startView: board.view, moved: false }
+  const zoomBy = (f) => {
+    const vp = viewportRef.current; if (!vp) return
+    const cx = vp.clientWidth / 2, cy = vp.clientHeight / 2
+    update(prev => {
+      const v = prev.view
+      const scale = Math.min(2.5, Math.max(0.2, v.scale * f))
+      const wx = (cx - v.x) / v.scale, wy = (cy - v.y) / v.scale
+      return { ...prev, view: { x: cx - wx * scale, y: cy - wy * scale, scale } }
+    })
   }
-  const onPointerDown = (e) => {
-    if (e.button === 2) { e.preventDefault(); beginPan(e); return }
-    if (e.button === 0 && (e.target === viewportRef.current || e.target.dataset?.canvasbg)) beginPan(e)
+  const fit = () => {
+    if (!board.nodes.length) { update(prev => ({ ...prev, view: { x: 0, y: 0, scale: 1 } })); return }
+    const xs = board.nodes.flatMap(n => [n.x, n.x + n.w]), ys = board.nodes.flatMap(n => [n.y, n.y + n.h])
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys)
+    const pad = 90, vp = viewportRef.current
+    const scale = Math.min(2, Math.max(0.2, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
+    const x = -minX * scale + (vp.clientWidth - (maxX - minX) * scale) / 2
+    const y = -minY * scale + (vp.clientHeight - (maxY - minY) * scale) / 2
+    update(prev => ({ ...prev, view: { x, y, scale } }))
+  }
+
+  // ---------- Native wheel zoom (passive:false so preventDefault works) ----------
+  useEffect(() => {
+    const vp = viewportRef.current; if (!vp) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      const rect = vp.getBoundingClientRect()
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top
+      setBoard(prev => {
+        const v = prev.view
+        const scale = Math.min(2.5, Math.max(0.2, v.scale * (1 + -e.deltaY * 0.0015)))
+        const wx = (mx - v.x) / v.scale, wy = (my - v.y) / v.scale
+        const next = { ...prev, view: { x: mx - wx * scale, y: my - wy * scale, scale } }
+        persist(next); return next
+      })
+    }
+    vp.addEventListener('wheel', onWheel, { passive: false })
+    return () => vp.removeEventListener('wheel', onWheel)
+  }, [persist, loaded])
+
+  // ---------- Pointer interactions ----------
+  const startPan = (e) => {
+    const vp = viewportRef.current
+    try { vp.setPointerCapture(e.pointerId) } catch {}
+    drag.current = { mode: 'pan', sx: e.clientX, sy: e.clientY, vx: board.view.x, vy: board.view.y }
+  }
+  const startNodeDrag = (e, node) => {
+    const vp = viewportRef.current
+    try { vp.setPointerCapture(e.pointerId) } catch {}
+    setSelected(node.id)
+    drag.current = { mode: 'node', id: node.id, nx: node.x, ny: node.y, sx: e.clientX, sy: e.clientY }
+  }
+  const startResize = (e, node, corner) => {
+    const vp = viewportRef.current
+    try { vp.setPointerCapture(e.pointerId) } catch {}
+    setSelected(node.id)
+    drag.current = { mode: 'resize', id: node.id, corner, x: node.x, y: node.y, w: node.w, h: node.h, sx: e.clientX, sy: e.clientY }
+  }
+
+  const onViewportPointerDown = (e) => {
+    if (e.button === 2) { startPan(e); return }
+    if (e.button === 0) {
+      const t = e.target
+      const isEmpty = t === viewportRef.current || t?.dataset?.canvasbg || t?.dataset?.world
+      if (isEmpty) { setSelected(null); startPan(e) }
+    }
   }
   const onPointerMove = (e) => {
     const d = drag.current; if (!d) return
     const dx = e.clientX - d.sx, dy = e.clientY - d.sy
+    const s = board.view.scale
     if (d.mode === 'pan') {
-      if (!d.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return
-      if (!d.moved) { d.moved = true; setPanning(true) }
-      setBoard(prev => ({ ...prev, view: { ...prev.view, x: d.startView.x + dx, y: d.startView.y + dy } }))
+      setBoard(prev => ({ ...prev, view: { ...prev.view, x: d.vx + dx, y: d.vy + dy } }))
     } else if (d.mode === 'node') {
-      const s = board.view.scale
       update(prev => ({ ...prev, nodes: prev.nodes.map(n => n.id === d.id ? { ...n, x: d.nx + dx / s, y: d.ny + dy / s } : n) }))
     } else if (d.mode === 'resize') {
-      const s = board.view.scale
       const ddx = dx / s, ddy = dy / s
       update(prev => ({ ...prev, nodes: prev.nodes.map(n => {
         if (n.id !== d.id) return n
@@ -113,69 +159,25 @@ export default function BoardView({ id }) {
       }) }))
     }
   }
-  const onPointerUp = () => {
-    const d = drag.current
-    if (d?.mode === 'pan') {
-      if (!d.moved) setSelected(null)
-      else setBoard(prev => { persist(prev); return prev })
-      setPanning(false)
-    }
+  const onPointerUp = (e) => {
+    if (drag.current) { try { viewportRef.current?.releasePointerCapture(e.pointerId) } catch {} }
     drag.current = null
   }
 
-  const startNodeDrag = (e, node) => {
-    if (e.button !== 0) return
-    e.stopPropagation(); setSelected(node.id)
-    drag.current = { mode: 'node', id: node.id, nx: node.x, ny: node.y, sx: e.clientX, sy: e.clientY }
-  }
-  const startResize = (e, node, corner) => {
-    if (e.button !== 0) return
-    e.stopPropagation(); setSelected(node.id)
-    drag.current = { mode: 'resize', id: node.id, corner, x: node.x, y: node.y, w: node.w, h: node.h, sx: e.clientX, sy: e.clientY }
-  }
-
-  /* ---------- Resource edit (persist to character) ---------- */
-  const setCharResource = (cid, key, value) => {
-    setChars(prev => {
-      const next = prev.map(c => c.id === cid ? { ...c, resources: { ...c.resources, [key]: value } } : c)
-      const c = next.find(x => x.id === cid); if (c) saveCharacter(c)
-      return next
-    })
-  }
-
-  const zoomBy = (f) => {
-    const vp = viewportRef.current, cx = vp.clientWidth / 2, cy = vp.clientHeight / 2
-    setBoard(prev => {
-      const v = prev.view
-      const scale = Math.min(2.5, Math.max(0.2, v.scale * f))
-      const wx = (cx - v.x) / v.scale, wy = (cy - v.y) / v.scale
-      const next = { ...prev, view: { x: cx - wx * scale, y: cy - wy * scale, scale } }
-      persist(next); return next
-    })
-  }
-  const fit = () => {
-    if (!board.nodes.length) { update(prev => ({ ...prev, view: { x: 0, y: 0, scale: 1 } })); return }
-    const xs = board.nodes.flatMap(n => [n.x, n.x + n.w]), ys = board.nodes.flatMap(n => [n.y, n.y + n.h])
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys)
-    const pad = 80, vp = viewportRef.current
-    const scale = Math.min(2, Math.max(0.2, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
-    const x = -minX * scale + (vp.clientWidth - (maxX - minX) * scale) / 2
-    const y = -minY * scale + (vp.clientHeight - (maxY - minY) * scale) / 2
-    update(prev => ({ ...prev, view: { x, y, scale } }))
-  }
-
+  // keyboard: copy/paste/delete
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selected) clipboard.current = JSON.parse(JSON.stringify(board.nodes.find(n => n.id === selected) || null))
-      else if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboard.current) {
-        const c = { ...clipboard.current, id: uid('nd'), x: clipboard.current.x + 24, y: clipboard.current.y + 24 }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && selected) {
+        clipboard.current = JSON.parse(JSON.stringify(board.nodes.find(n => n.id === selected) || null))
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clipboard.current) {
+        const c = { ...clipboard.current, id: uid('nd'), x: clipboard.current.x + 30, y: clipboard.current.y + 30 }
         update(prev => ({ ...prev, nodes: [...prev.nodes, c] })); setSelected(c.id)
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selected) removeNode(selected)
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selected) { removeNode(selected) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selected, board])
+  }, [selected, board, update])
 
   if (!loaded) return <div className="container py-5 text-center"><div className="spinner-border text-gold" /></div>
   const v = board.view
@@ -183,7 +185,6 @@ export default function BoardView({ id }) {
 
   return (
     <div className="position-fixed" style={{ inset: 0, zIndex: 1000, background: '#070504', display: 'flex', flexDirection: 'column' }}>
-      {/* Top bar */}
       <div className="d-flex align-items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--drako-border)', background: 'rgba(10,8,6,0.85)', backdropFilter: 'blur(8px)' }}>
         <button className="btn-ghost" style={{ width: 40, height: 40, padding: 0 }} onClick={() => navigate('quadros')} title="Voltar"><i className="bi bi-arrow-left" /></button>
         <input className="input-drako" style={{ width: 240, height: 40 }} value={board.name} onChange={(e) => update(b => ({ ...b, name: e.target.value }))} />
@@ -195,7 +196,6 @@ export default function BoardView({ id }) {
         </div>
       </div>
 
-      {/* Stage */}
       <div className="position-relative flex-grow-1" style={{ overflow: 'hidden' }}>
         {/* Left circular toolbar */}
         <div className="position-absolute d-flex flex-column align-items-center gap-2" style={{ left: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 5 }}>
@@ -205,34 +205,32 @@ export default function BoardView({ id }) {
           <div style={{ height: 1, width: 30, background: 'var(--drako-border)', margin: '4px 0' }} />
           <CircleTool icon="bi-zoom-in" title="Zoom +" onClick={() => zoomBy(1.2)} />
           <CircleTool icon="bi-zoom-out" title="Zoom -" onClick={() => zoomBy(1 / 1.2)} />
-          <CircleTool icon="bi-arrows-fullscreen" title="Ajustar" onClick={fit} />
+          <CircleTool icon="bi-arrows-fullscreen" title="Ajustar à tela" onClick={fit} />
         </div>
 
-        {/* Hint */}
         <div className="position-absolute" style={{ bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 5, color: 'var(--drako-muted)', fontSize: '0.78rem', textAlign: 'center', pointerEvents: 'none' }}>
-          <span className="kbd">arrastar</span> mover · <span className="kbd">scroll</span> zoom · <span className="kbd">clicar</span> selecionar · <span className="kbd">Ctrl+C/V</span> duplicar
+          <span className="kbd">botão direito</span> ou <span className="kbd">esquerdo no vazio</span> mover · <span className="kbd">scroll</span> zoom · <span className="kbd">Ctrl+C/V</span> duplicar
         </div>
 
         <div
           ref={viewportRef}
           className="canvas-grid-bg position-absolute"
-          style={{ inset: 0, touchAction: 'none', cursor: panning ? 'grabbing' : 'grab' }}
+          style={{ inset: 0, touchAction: 'none', cursor: 'grab' }}
           data-canvasbg="1"
-          onWheel={onWheel}
-          onPointerDown={onPointerDown}
+          onPointerDown={onViewportPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
+          onPointerCancel={onPointerUp}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <div className="position-absolute" style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale})`, transformOrigin: '0 0', width: 1, height: 1 }}>
+          <div data-world="1" className="position-absolute" style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale})`, transformOrigin: '0 0', width: 1, height: 1 }}>
             {board.nodes.map(node => {
               const sel = selected === node.id
-              if (node.kind === 'note') return <Node key={node.id} node={node} sel={sel} setSelected={setSelected} startDrag={startNodeDrag} startResize={startResize} patch={patchNode} remove={removeNode}><NoteBody node={node} patch={patchNode} /></Node>
-              if (node.kind === 'shape') return <Node key={node.id} node={node} sel={sel} setSelected={setSelected} startDrag={startNodeDrag} startResize={startResize} patch={patchNode} remove={removeNode}><ShapeBody node={node} patch={patchNode} /></Node>
+              if (node.kind === 'note') return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode}><NoteBody node={node} patch={patchNode} /></Node>
+              if (node.kind === 'shape') return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode}><ShapeBody node={node} patch={patchNode} /></Node>
               if (node.kind === 'character') {
                 const c = charMap[node.characterId]
-                return <Node key={node.id} node={node} sel={sel} setSelected={setSelected} startDrag={startNodeDrag} startResize={startResize} patch={patchNode} remove={removeNode}><CharacterBody node={node} character={c} patch={patchNode} setResource={setCharResource} onOpen={() => setDetail(c?.id)} /></Node>
+                return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode}><CharacterBody node={node} character={c} patch={patchNode} setResource={setCharResource} onOpen={() => setDetail(c?.id)} /></Node>
               }
               return null
             })}
@@ -282,15 +280,7 @@ export default function BoardView({ id }) {
 function CircleTool({ icon, title, onClick, primary }) {
   return (
     <button title={title} onClick={onClick}
-      style={{
-        width: primary ? 58 : 46, height: primary ? 58 : 46, borderRadius: 999,
-        border: primary ? '1px solid rgba(255,248,230,0.4)' : '1px solid rgba(224,173,51,0.35)',
-        background: primary ? 'linear-gradient(135deg,#f6d98c,#7c570e)' : 'rgba(15,12,9,0.85)',
-        color: primary ? '#1a1408' : 'var(--drako-gold-soft)',
-        cursor: 'pointer', fontSize: primary ? '1.4rem' : '1.1rem',
-        boxShadow: primary ? '0 0 22px rgba(224,173,51,0.45)' : '0 6px 18px rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s'
-      }}
+      style={{ width: primary ? 58 : 46, height: primary ? 58 : 46, borderRadius: 999, border: primary ? '1px solid rgba(255,248,230,0.4)' : '1px solid rgba(224,173,51,0.35)', background: primary ? 'linear-gradient(135deg,#f6d98c,#7c570e)' : 'rgba(15,12,9,0.85)', color: primary ? '#1a1408' : 'var(--drako-gold-soft)', cursor: 'pointer', fontSize: primary ? '1.4rem' : '1.1rem', boxShadow: primary ? '0 0 22px rgba(224,173,51,0.45)' : '0 6px 18px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .2s' }}
       onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
       onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
       <i className={`bi ${icon}`} />
@@ -298,22 +288,30 @@ function CircleTool({ icon, title, onClick, primary }) {
   )
 }
 
-function Node({ node, sel, setSelected, startDrag, startResize, patch, remove, children }) {
-  const corners = ['nw', 'ne', 'sw', 'se']
-  const cpos = { nw: { left: -6, top: -6, cursor: 'nwse-resize' }, ne: { right: -6, top: -6, cursor: 'nesw-resize' }, sw: { left: -6, bottom: -6, cursor: 'nesw-resize' }, se: { right: -6, bottom: -6, cursor: 'nwse-resize' } }
+const RESIZE_CORNERS = [
+  { c: 'nw', style: { left: -6, top: -6, cursor: 'nwse-resize' } },
+  { c: 'ne', style: { right: -6, top: -6, cursor: 'nesw-resize' } },
+  { c: 'sw', style: { left: -6, bottom: -6, cursor: 'nesw-resize' } },
+  { c: 'se', style: { right: -6, bottom: -6, cursor: 'nwse-resize' } }
+]
+
+function Node({ node, sel, startDrag, startResize, remove, children }) {
+  const onDown = (e) => {
+    if (e.button !== 0) return
+    // não inicia arraste sobre controles interativos
+    if (e.target.closest('button, input, textarea, select')) return
+    e.stopPropagation()
+    startDrag(e, node)
+  }
   return (
-    <div onPointerDown={(e) => { e.stopPropagation(); setSelected(node.id) }} className="glass position-absolute" style={{
-      left: node.x, top: node.y, width: node.w, minHeight: node.h,
-      border: sel ? '1px solid rgba(224,173,51,0.8)' : '1px solid var(--drako-border)',
-      boxShadow: sel ? '0 0 0 1px rgba(224,173,51,0.3), 0 0 26px rgba(224,173,51,0.16)' : undefined
-    }}>
-      <div className="d-flex align-items-center justify-content-between px-1" onPointerDown={(e) => startDrag(e, node)} style={{ cursor: 'grab', height: 22 }}>
+    <div onPointerDown={onDown} className="glass position-absolute" style={{ left: node.x, top: node.y, width: node.w, minHeight: node.h, border: sel ? '1px solid rgba(224,173,51,0.85)' : '1px solid var(--drako-border)', boxShadow: sel ? '0 0 0 1px rgba(224,173,51,0.3), 0 0 26px rgba(224,173,51,0.16)' : undefined, cursor: 'grab' }}>
+      <div className="d-flex align-items-center justify-content-between px-1" style={{ height: 24 }}>
         <i className="bi bi-grip-horizontal text-muted-drako" style={{ fontSize: '0.85rem' }} />
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); remove(node.id) }} className="btn-ghost" style={{ width: 22, height: 22, padding: 0, fontSize: '0.7rem' }}><i className="bi bi-x" /></button>
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={() => remove(node.id)} className="btn-ghost" style={{ width: 22, height: 22, padding: 0, fontSize: '0.7rem' }}><i className="bi bi-x" /></button>
       </div>
       <div className="px-2 pb-2">{children}</div>
-      {sel && corners.map(c => (
-        <div key={c} onPointerDown={(e) => startResize(e, node, c)} style={{ position: 'absolute', width: 12, height: 12, borderRadius: 3, background: '#f6d98c', border: '1px solid #1a1408', ...cpos[c] }} />
+      {sel && RESIZE_CORNERS.map(({ c, style }) => (
+        <div key={c} data-resize="1" onPointerDown={(e) => { if (e.button !== 0) return; e.stopPropagation(); startResize(e, node, c) }} style={{ position: 'absolute', width: 14, height: 14, borderRadius: 3, background: '#f6d98c', border: '1px solid #1a1408', ...style }} />
       ))}
     </div>
   )
@@ -334,7 +332,7 @@ function NoteBody({ node, patch }) {
 function ShapeBody({ node, patch }) {
   return (
     <div onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { shape: node.shape === 'rect' ? 'circle' : 'rect' })} style={{ height: node.h - 50, borderRadius: node.shape === 'circle' ? '50%' : 12, border: `2px solid ${node.color}`, background: `${node.color}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-      <div className="d-flex gap-1">{NOTE_COLORS.map(col => <button key={col} onClick={(e) => { e.stopPropagation(); patch(node.id, { color: col }) }} style={{ width: 12, height: 12, borderRadius: 3, background: col, border: node.color === col ? '2px solid #fff8e6' : '2px solid transparent' }} />)}</div>
+      <div className="d-flex gap-1">{NOTE_COLORS.map(col => <button key={col} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); patch(node.id, { color: col }) }} style={{ width: 12, height: 12, borderRadius: 3, background: col, border: node.color === col ? '2px solid #fff8e6' : '2px solid transparent' }} />)}</div>
     </div>
   )
 }
@@ -344,25 +342,21 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen }) {
   const lvl = LEVEL_BY_KEY[c.level]; const color = LEVEL_COLORS[c.level] || '#e0ad33'
   const max = maxResources(c.attributes, c.level); const r = { ...max, ...c.resources }
   return (
-    <div onPointerDown={(e) => e.stopPropagation()}>
+    <div>
       <div className="d-flex align-items-center gap-2">
-        <button onClick={onOpen} style={{ background: 'none', border: `2px solid ${color}aa`, borderRadius: 12, overflow: 'hidden', width: 48, height: 48, cursor: 'pointer', padding: 0, flex: '0 0 auto' }}>
-          <MiniPortrait c={c} size={48} color={color} />
-        </button>
+        <button onClick={onOpen} style={{ background: 'none', border: `2px solid ${color}aa`, borderRadius: 12, overflow: 'hidden', width: 48, height: 48, cursor: 'pointer', padding: 0, flex: '0 0 auto' }}><MiniPortrait c={c} size={48} color={color} /></button>
         <div className="min-w-0 flex-grow-1">
           <button onClick={onOpen} style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', width: '100%' }}>
             <div className="font-display gold-text" style={{ fontSize: '1rem', lineHeight: 1.05, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name || 'Sem Nome'}</div>
             <div className="text-muted-drako" style={{ fontSize: '0.7rem' }}>{lvl?.name}{c.raca ? ' · ' + c.raca : ''}</div>
           </button>
         </div>
-        <button className="btn-ghost" style={{ width: 26, height: 26, padding: 0, fontSize: '0.7rem' }} onClick={() => patch(node.id, { expanded: !node.expanded })} title="Expandir">
-          <i className={`bi ${node.expanded ? 'bi-arrows-angle-contract' : 'bi-arrows-fullscreen'}`} />
-        </button>
+        <button className="btn-ghost" style={{ width: 26, height: 26, padding: 0, fontSize: '0.7rem' }} onClick={() => patch(node.id, { expanded: !node.expanded })} title="Expandir"><i className={`bi ${node.expanded ? 'bi-arrows-angle-contract' : 'bi-arrows-fullscreen'}`} /></button>
       </div>
       <div className="d-flex flex-column gap-1 mt-2">
-        <QuickRes label="Vida" color="var(--life)" value={r.vida ?? 0} max={max.vida} onChange={(v) => setResource(c.id, 'vida', v)} />
-        <QuickRes label="Energia" color="var(--energy)" value={r.energia ?? 0} max={max.energia} onChange={(v) => setResource(c.id, 'energia', v)} />
-        <QuickRes label="PE" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(v) => setResource(c.id, 'pe', v)} />
+        <QuickRes label="Vida" color="var(--life)" value={r.vida ?? 0} max={max.vida} onChange={(val) => setResource(c.id, 'vida', val)} />
+        <QuickRes label="Energia" color="var(--energy)" value={r.energia ?? 0} max={max.energia} onChange={(val) => setResource(c.id, 'energia', val)} />
+        <QuickRes label="PE" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(val) => setResource(c.id, 'pe', val)} />
       </div>
       {node.expanded && (
         <div className="mt-2">

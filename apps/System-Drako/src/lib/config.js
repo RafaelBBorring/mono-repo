@@ -6,6 +6,10 @@ let _ready = null
 export function loadConfig() {
   if (_ready) return _ready
   _ready = (async () => {
+    // Se a chave já está "baked" no build (ex.: GitHub Pages), não tentamos
+    // buscar config.json — evita um 404 desnecessário no console.
+    const bakedKey = import.meta.env.VITE_OPENROUTER_API_KEY || ''
+    if (bakedKey && !bakedKey.includes('coloque-sua')) return
     try {
       const res = await fetch('config.json', { cache: 'no-cache' })
       if (res.ok) {
