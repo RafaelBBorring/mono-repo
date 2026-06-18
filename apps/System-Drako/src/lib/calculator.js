@@ -103,4 +103,49 @@ export function combinedAction(attributes, keyA, keyB) {
   return combinedPool(a, b)
 }
 
+export function clampPct(value, max) {
+  if (!max || max <= 0) return 0
+  return Math.max(0, Math.min(1, value / max))
+}
+
+function lerp(a, b, t) { return a + (b - a) * t }
+function lerpHue(a, b, t) {
+  const diff = b - a
+  if (Math.abs(diff) > 180) {
+    if (diff > 0) return (a + 360 + (b - a) * t) % 360
+    return (a + ((b + 360 - a) * t)) % 360
+  }
+  return a + diff * t
+}
+
+export function healthColor(pct, kind = 'vida') {
+  const p = Math.max(0, Math.min(1, pct))
+  if (kind === 'vida') {
+    const h = lerpHue(0, 130, p)
+    const s = lerp(60, 75, p)
+    const l = lerp(45, 50, p)
+    return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`
+  }
+  if (kind === 'energia') {
+    const h = lerpHue(0, 35, p)
+    const s = lerp(70, 95, p)
+    const l = lerp(42, 52, p)
+    return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`
+  }
+  if (kind === 'pe') {
+    const h = lerpHue(283, 320, p)
+    const s = lerp(35, 60, p)
+    const l = lerp(35, 50, p)
+    return `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`
+  }
+  return '#e0ad33'
+}
+
+export function healthGradient(pct, kind = 'vida') {
+  const p = Math.max(0, Math.min(1, pct))
+  const c1 = healthColor(p, kind)
+  const c2 = healthColor(Math.max(0, p - 0.18), kind)
+  return `linear-gradient(180deg, ${c1}, ${c2})`
+}
+
 export { ABSORPTION_TABLE, absorption }

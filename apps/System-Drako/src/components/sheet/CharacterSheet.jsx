@@ -4,6 +4,7 @@ import { ATTRIBUTES } from '../../data/attributes.js'
 import { absorption } from '../../lib/calculator.js'
 import { ABILITY_SLOTS } from '../../lib/character.js'
 import HexagonResource from '../ui/HexagonResource.jsx'
+import EditableNumber from '../ui/EditableNumber.jsx'
 import Tag from '../ui/Tag.jsx'
 import AbilityEditor, { SLOT_STYLE } from './abilities/AbilityEditor.jsx'
 
@@ -167,18 +168,19 @@ function AttributeRing({ attr, value, editable, onChange }) {
   const setValue = (raw) => onChange?.(Math.max(0, Math.min(10, Number(raw) || 0)))
   return (
     <div className="d-flex flex-column align-items-center">
-      <div style={{ position: 'relative', width: 64, height: 64 }}>
+      <div style={{ position: 'relative', width: 64, height: 64, cursor: editable ? 'pointer' : 'default' }} title={editable ? 'Clique para editar' : ''}>
         <svg width="64" height="64" viewBox="0 0 64 64">
           <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
           <circle cx="32" cy="32" r={R} fill="none" stroke={attr.color} strokeWidth="5" strokeLinecap="round"
             strokeDasharray={`${pct * C} ${C}`} transform="rotate(-90 32 32)" style={{ transition: 'stroke-dasharray .5s', filter: `drop-shadow(0 0 4px ${attr.color}88)` }} />
         </svg>
-        <div className="font-display" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8e6', fontSize: '1.25rem', fontWeight: 700 }}>{value}</div>
+        <div className="font-display" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8e6', fontSize: '1.25rem', fontWeight: 700 }}>
+          {editable
+            ? <EditableNumber value={value} min={0} max={10} step={1} onChange={setValue} ariaLabel={`Editar ${attr.name}`} style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff8e6' }} />
+            : value}
+        </div>
       </div>
       <div className="font-mono" style={{ fontSize: '0.66rem', color: attr.color, letterSpacing: '0.06em' }}>{attr.short}</div>
-      {editable && (
-        <input type="number" min={0} max={10} value={value} onChange={(e) => setValue(e.target.value)} className="input-drako no-spin font-mono mt-1" style={{ width: 58, height: 30, padding: '0.18rem 0.3rem', textAlign: 'center', fontSize: '0.76rem' }} aria-label={`Editar ${attr.name}`} />
-      )}
     </div>
   )
 }

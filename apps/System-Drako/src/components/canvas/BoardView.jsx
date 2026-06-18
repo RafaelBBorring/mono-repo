@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBoard, saveBoard, listCharacters, listFolders, saveCharacter } from '../../lib/db.js'
 import { LEVEL_BY_KEY } from '../../data/startingLevels.js'
 import { ATTRIBUTES } from '../../data/attributes.js'
-import { maxResources, absorption } from '../../lib/calculator.js'
+import { maxResources, absorption, healthColor, healthGradient } from '../../lib/calculator.js'
 import { useHashRoute } from '../../hooks/useHashRoute.js'
 import { useToast } from '../../contexts/ToastContext.jsx'
 import Modal from '../ui/Modal.jsx'
 import { Button } from '../ui/Button.jsx'
+import EditableNumber from '../ui/EditableNumber.jsx'
 import { uid } from '../../lib/id.js'
 import { LEVEL_COLORS } from '../sheet/CharacterSheet.jsx'
 
@@ -528,9 +529,9 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamag
       )}
 
       <div className="px-3 d-flex flex-column gap-2">
-        <ResourceBar label="Vida" icon="bi-heart-pulse" color="var(--life)" value={r.vida ?? 0} max={max.vida} onChange={(val) => setResource(c.id, 'vida', val)} />
-        <ResourceBar label="Energia" icon="bi-lightning-charge" color="var(--energy)" value={r.energia ?? 0} max={max.energia} onChange={(val) => setResource(c.id, 'energia', val)} />
-        <ResourceBar label="PE" icon="bi-bullseye" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(val) => setResource(c.id, 'pe', val)} />
+        <ResourceBar label="Vida" icon="bi-heart-pulse" kind="vida" value={r.vida ?? 0} max={max.vida} onChange={(val) => setResource(c.id, 'vida', val)} />
+        <ResourceBar label="Energia" icon="bi-lightning-charge" kind="energia" value={r.energia ?? 0} max={max.energia} onChange={(val) => setResource(c.id, 'energia', val)} />
+        <ResourceBar label="PE" icon="bi-bullseye" kind="pe" value={r.pe ?? 0} max={max.pe} onChange={(val) => setResource(c.id, 'pe', val)} />
       </div>
 
       <div className="px-3 py-2 d-flex gap-1 justify-content-between">
@@ -599,21 +600,20 @@ function AttrPip({ a, c }) {
   )
 }
 
-function ResourceBar({ label, icon, color, value, max, onChange }) {
-  const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0
-  const tone = pct > 60 ? color : pct > 30 ? color : '#e05252'
+function ResourceBar({ label, icon, kind, value, max, onChange }) {
+  const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0
+  const tone = healthColor(pct, kind)
+  const gradient = healthGradient(pct, kind)
   return (
     <div className="d-flex align-items-center gap-2" data-no-drag="1" style={{ background: 'rgba(0,0,0,0.28)', borderRadius: 6, padding: '3px 6px' }}>
-      <i className={`bi ${icon}`} style={{ color, fontSize: '0.72rem', width: 14 }} />
-      <span className="font-mono" style={{ fontSize: '0.66rem', color, width: 38 }}>{label}</span>
+      <i className={`bi ${icon}`} style={{ color: tone, fontSize: '0.72rem', width: 14 }} />
+      <span className="font-mono" style={{ fontSize: '0.66rem', color: tone, width: 38 }}>{label}</span>
       <div className="position-relative flex-grow-1" style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: tone, transition: 'width .3s' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct * 100}%`, background: gradient, transition: 'width .3s, background .3s' }} />
       </div>
-      <input type="number" min={0} max={max} value={value}
-        onChange={(e) => onChange(Math.max(0, Math.min(max, Number(e.target.value) || 0)))}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="no-spin font-mono"
-        style={{ width: 36, background: 'transparent', border: 'none', color: tone, fontSize: '0.7rem', textAlign: 'right', outline: 'none' }} />
+      <span data-no-drag="1" style={{ width: 30, textAlign: 'right' }}>
+        <EditableNumber value={value} min={0} max={max} step={1} onChange={onChange} ariaLabel={label} className="font-mono" style={{ fontSize: '0.78rem', fontWeight: 600, color: tone }} />
+      </span>
       <span className="font-mono text-muted-drako" style={{ fontSize: '0.66rem' }}>/ {max}</span>
     </div>
   )
@@ -911,9 +911,9 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage, onResourc
           </div>
 
           <div className="d-flex flex-column gap-2 mb-3">
-            <ResourceBar label="Vida" icon="bi-heart-pulse" color="var(--life)" value={r.vida ?? 0} max={max.vida} onChange={(val) => onResource(c.id, 'vida', val)} />
-            <ResourceBar label="Energia" icon="bi-lightning-charge" color="var(--energy)" value={r.energia ?? 0} max={max.energia} onChange={(val) => onResource(c.id, 'energia', val)} />
-            <ResourceBar label="PE" icon="bi-bullseye" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(val) => onResource(c.id, 'pe', val)} />
+            <ResourceBar label="Vida" icon="bi-heart-pulse" kind="vida" value={r.vida ?? 0} max={max.vida} onChange={(val) => onResource(c.id, 'vida', val)} />
+            <ResourceBar label="Energia" icon="bi-lightning-charge" kind="energia" value={r.energia ?? 0} max={max.energia} onChange={(val) => onResource(c.id, 'energia', val)} />
+            <ResourceBar label="PE" icon="bi-bullseye" kind="pe" value={r.pe ?? 0} max={max.pe} onChange={(val) => onResource(c.id, 'pe', val)} />
           </div>
 
           <div className="d-flex gap-2 mb-3">
@@ -950,7 +950,7 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage, onResourc
               <div className="col-3" key={a.key}>
                 <div className="text-center" style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 8, padding: '6px 2px' }}>
                   <div className="font-mono" style={{ fontSize: '0.58rem', color: a.color }}>{a.short}</div>
-                  <input type="number" min={0} max={10} value={c.attributes?.[a.key] ?? 0} onChange={(e) => onAttribute(c.id, a.key, e.target.value)} className="input-drako no-spin font-display" style={{ height: 30, padding: '0.1rem 0.25rem', textAlign: 'center', fontSize: '0.95rem' }} aria-label={`Editar ${a.name}`} />
+                  <EditableNumber value={c.attributes?.[a.key] ?? 0} min={0} max={10} step={1} onChange={(v) => onAttribute(c.id, a.key, v)} ariaLabel={`Editar ${a.name}`} className="font-display" style={{ fontSize: '1rem', fontWeight: 600, color: '#fff8e6' }} />
                 </div>
               </div>
             ))}
