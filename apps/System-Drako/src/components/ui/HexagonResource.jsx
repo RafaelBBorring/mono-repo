@@ -15,9 +15,13 @@ function stateColor(kind, pct) {
   return { fill: 'linear-gradient(180deg,#6c4287,#3e2353)', glow: 'rgba(155,89,182,0.4)', text: '#b794d4' }
 }
 
-export default function HexagonResource({ kind, label, icon, value, max }) {
+export default function HexagonResource({ kind, label, icon, value, max, editable = false, onChange, onMaxChange }) {
   const pct = Math.max(0, Math.min(1, value / Math.max(1, max)))
   const st = stateColor(kind, pct)
+  const setValue = (raw) => {
+    const next = Math.max(0, Math.min(max, Number(raw) || 0))
+    onChange?.(next)
+  }
 
   return (
     <div className="d-flex flex-column align-items-center">
@@ -39,6 +43,14 @@ export default function HexagonResource({ kind, label, icon, value, max }) {
 
       <div className="font-display mt-1" style={{ fontSize: '0.92rem', color: st.text }}>{label}</div>
       <span className="font-mono text-muted-drako" style={{ fontSize: '0.78rem' }}>máx {max}</span>
+      {editable && (
+        <div className="d-flex align-items-center gap-1 mt-1" style={{ width: 118 }}>
+          <input type="number" min={0} max={max} value={value} onChange={(e) => setValue(e.target.value)} className="input-drako no-spin font-mono" style={{ height: 30, padding: '0.2rem 0.35rem', textAlign: 'center', fontSize: '0.76rem' }} aria-label={`Editar ${label}`} />
+          <button type="button" className="btn-ghost" onClick={onMaxChange} title={`Alterar máximo de ${label}`} style={{ width: 30, height: 30, padding: 0, flex: '0 0 auto' }}>
+            <i className="bi bi-sliders" style={{ fontSize: '0.72rem' }} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

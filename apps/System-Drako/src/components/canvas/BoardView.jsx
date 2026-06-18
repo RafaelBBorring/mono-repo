@@ -13,6 +13,9 @@ import { LEVEL_COLORS } from '../sheet/CharacterSheet.jsx'
 const NOTE_COLORS = ['#e0ad33', '#f2661b', '#2ecc71', '#3498db', '#9b59b6', '#c0392b', '#16a085', '#7f8c8d']
 const DB_SAVE_DELAY = 700
 const MIN_W = 120, MIN_H = 90
+const VIEW_MIN = 0.15
+const VIEW_MAX = 3
+const UNFILED_FOLDER = '__unfiled__'
 
 export default function BoardView({ id }) {
   const { navigate } = useHashRoute()
@@ -25,11 +28,13 @@ export default function BoardView({ id }) {
   const [showGallery, setShowGallery] = useState(false)
   const [detail, setDetail] = useState(null)
   const [damage, setDamage] = useState(null)
+  const [isPanning, setIsPanning] = useState(false)
 
   const viewportRef = useRef(null)
   const drag = useRef(null)
   const saveTimer = useRef(null)
   const clipboard = useRef(null)
+  const boardRef = useRef(null)
 
   useEffect(() => {
     let alive = true
@@ -46,13 +51,30 @@ export default function BoardView({ id }) {
     saveTimer.current = setTimeout(() => saveBoard(b), DB_SAVE_DELAY)
   }, [])
   const update = useCallback((updater) => {
-    setBoard(prev => { const next = updater(prev); persist(next); return next })
+    setBoard(prev => {
+      if (!prev) return prev
+      const next = updater(prev)
+      persist(next)
+      return next
+    })
   }, [persist])
+
+  useEffect(() => () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current)
+      if (boardRef.current) saveBoard(boardRef.current)
+    }
+  }, [])
 
   const charMap = useMemo(() => Object.fromEntries(chars.map(c => [c.id, c])), [chars])
 
+  useEffect(() => {
+    boardRef.current = board
+  }, [board])
+
   const centerWorld = () => {
     const vp = viewportRef.current, v = board.view
+    if (!vp || !v) return { cx: 0, cy: 0 }
     return { cx: (-v.x + vp.clientWidth / 2) / v.scale, cy: (-v.y + vp.clientHeight / 2) / v.scale }
   }
   const addNode = (partial) => {
@@ -62,7 +84,7 @@ export default function BoardView({ id }) {
     setSelected(node.id)
     return node
   }
-  const addManyCharacters = (characterIds, opts = {}) => {
+  const addManyCharacters = (characterIds) => {
     if (!characterIds.length) return
     const { cx, cy } = centerWorld()
     const COLS = Math.min(characterIds.length, 3)
@@ -73,7 +95,7 @@ export default function BoardView({ id }) {
         id: uid('nd'), kind: 'character', characterId: cid,
         x: cx - (COLS * STEP_X) / 2 + col * STEP_X - 100,
         y: cy - STEP_Y + row * STEP_Y - 110,
-        w: 240, h: 250, expanded: false
+        w: 270, h: 268, expanded: false
       }
     })
     update(prev => ({ ...prev, nodes: [...prev.nodes, ...newNodes] }))
@@ -86,13 +108,44 @@ export default function BoardView({ id }) {
     update(prev => ({ ...prev, nodes: prev.nodes.map(n => n.id === nid ? { ...n, ...patch } : n) }))
   }
 
-  const setCharResource = (cid, key, value) => {
+  const patchCharacter = useCallback((cid, updater) => {
     setChars(prev => {
-      const next = prev.map(c => c.id === cid ? { ...c, resources: { ...c.resources, [key]: value } } : c)
-      const c = next.find(x => x.id === cid); if (c) saveCharacter(c)
+      let changed = null
+      const next = prev.map(c => {
+        if (c.id !== cid) return c
+        changed = typeof updater === 'function' ? updater(c) : { ...c, ...updater }
+        return changed
+      })
+      if (changed) saveCharacter(changed)
       return next
     })
-  }
+  }, [])
+
+  const setCharResource = useCallback((cid, key, value) => {
+    patchCharacter(cid, c => ({ ...c, resources: { ...c.resources, [key]: value } }))
+  }, [patchCharacter])
+
+  const setCharAttribute = useCallback((cid, key, value) => {
+    patchCharacter(cid, c => {
+      const attributes = { ...c.attributes, [key]: Math.max(0, Math.min(10, Number(value) || 0)) }
+      const max = maxResources(attributes, c.level)
+      const current = c.resources || {}
+      return {
+        ...c,
+        attributes,
+        resources: {
+          ...current,
+          vida: Math.min(current.vida ?? max.vida, max.vida),
+          energia: Math.min(current.energia ?? max.energia, max.energia),
+          pe: Math.min(current.pe ?? max.pe, max.pe)
+        }
+      }
+    })
+  }, [patchCharacter])
+
+  const setCharAbility = useCallback((cid, slotKey, patch) => {
+    patchCharacter(cid, c => ({ ...c, abilities: { ...c.abilities, [slotKey]: { ...c.abilities?.[slotKey], ...patch } } }))
+  }, [patchCharacter])
   const applyDamageToChar = (cid, { mode, value, useAbsorb }) => {
     const c = chars.find(x => x.id === cid); if (!c) return
     const max = maxResources(c.attributes, c.level)
@@ -104,7 +157,7 @@ export default function BoardView({ id }) {
         delta = Math.max(0, delta - abs)
       }
       setCharResource(cid, 'vida', Math.max(0, cur - delta))
-      toast[mode === 'dmg' ? 'error' : 'success'](`-${delta} PV${useAbsorb ? ' (após absorção)' : ''}`)
+      toast.error(`-${delta} PV${useAbsorb ? ' (após absorção)' : ''}`)
     } else {
       setCharResource(cid, 'vida', Math.min(max.vida, cur + delta))
       toast.success(`+${delta} PV`)
@@ -116,7 +169,7 @@ export default function BoardView({ id }) {
     const cx = vp.clientWidth / 2, cy = vp.clientHeight / 2
     update(prev => {
       const v = prev.view
-      const scale = Math.min(3, Math.max(0.15, v.scale * f))
+      const scale = Math.min(VIEW_MAX, Math.max(VIEW_MIN, v.scale * f))
       const wx = (cx - v.x) / v.scale, wy = (cy - v.y) / v.scale
       return { ...prev, view: { x: cx - wx * scale, y: cy - wy * scale, scale } }
     })
@@ -126,7 +179,7 @@ export default function BoardView({ id }) {
     const xs = board.nodes.flatMap(n => [n.x, n.x + n.w]), ys = board.nodes.flatMap(n => [n.y, n.y + n.h])
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys)
     const pad = 120, vp = viewportRef.current
-    const scale = Math.min(2.5, Math.max(0.15, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
+    const scale = Math.min(2.5, Math.max(VIEW_MIN, Math.min((vp.clientWidth - pad * 2) / Math.max(1, maxX - minX), (vp.clientHeight - pad * 2) / Math.max(1, maxY - minY))))
     const x = -minX * scale + (vp.clientWidth - (maxX - minX) * scale) / 2
     const y = -minY * scale + (vp.clientHeight - (maxY - minY) * scale) / 2
     update(prev => ({ ...prev, view: { x, y, scale } }))
@@ -141,7 +194,7 @@ export default function BoardView({ id }) {
       const mx = e.clientX - rect.left, my = e.clientY - rect.top
       setBoard(prev => {
         const v = prev.view
-        const scale = Math.min(3, Math.max(0.15, v.scale * (1 + -e.deltaY * 0.0015)))
+        const scale = Math.min(VIEW_MAX, Math.max(VIEW_MIN, v.scale * Math.exp(-e.deltaY * 0.0015)))
         const wx = (mx - v.x) / v.scale, wy = (my - v.y) / v.scale
         const next = { ...prev, view: { x: mx - wx * scale, y: my - wy * scale, scale } }
         persist(next); return next
@@ -154,6 +207,7 @@ export default function BoardView({ id }) {
   const startPan = (e) => {
     const vp = viewportRef.current
     try { vp.setPointerCapture(e.pointerId) } catch {}
+    setIsPanning(true)
     drag.current = { mode: 'pan', pid: e.pointerId, sx: e.clientX, sy: e.clientY, vx: board.view.x, vy: board.view.y, moved: false }
   }
   const startNodeDrag = (e, node) => {
@@ -180,7 +234,12 @@ export default function BoardView({ id }) {
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) d.moved = true
     const s = board.view.scale
     if (d.mode === 'pan') {
-      setBoard(prev => ({ ...prev, view: { ...prev.view, x: d.vx + dx, y: d.vy + dy } }))
+      setBoard(prev => {
+        if (!prev) return prev
+        const next = { ...prev, view: { ...prev.view, x: d.vx + dx, y: d.vy + dy } }
+        persist(next)
+        return next
+      })
     } else if (d.mode === 'node') {
       update(prev => ({ ...prev, nodes: prev.nodes.map(n => n.id === d.id ? { ...n, x: d.nx + dx / s, y: d.ny + dy / s } : n) }))
     } else if (d.mode === 'resize') {
@@ -197,15 +256,21 @@ export default function BoardView({ id }) {
     }
   }
   const endDrag = (e) => {
-    if (drag.current) { try { viewportRef.current?.releasePointerCapture(e.pointerId) } catch {} }
+    const d = drag.current
+    if (d) { try { viewportRef.current?.releasePointerCapture(e.pointerId) } catch {} }
+    if (d?.mode === 'node' && !d.moved) {
+      const node = board?.nodes.find(n => n.id === d.id)
+      if (node?.kind === 'character') setDetail(node.characterId)
+    }
+    setIsPanning(false)
     drag.current = null
   }
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA') return
       const k = e.key.toLowerCase()
-      if ((e.ctrlKey || e.metaKey) && k === 'c' && selected) clipboard.current = JSON.parse(JSON.stringify(board.nodes.find(n => n.id === selected) || null))
+      if ((e.ctrlKey || e.metaKey) && k === 'c' && selected) clipboard.current = JSON.parse(JSON.stringify(board?.nodes.find(n => n.id === selected) || null))
       else if ((e.ctrlKey || e.metaKey) && k === 'v' && clipboard.current) { const c = { ...clipboard.current, id: uid('nd'), x: clipboard.current.x + 30, y: clipboard.current.y + 30 }; update(prev => ({ ...prev, nodes: [...prev.nodes, c] })); setSelected(c.id) }
       else if ((e.key === 'Delete' || e.key === 'Backspace') && selected) removeNode(selected)
     }
@@ -225,7 +290,7 @@ export default function BoardView({ id }) {
   }
 
   return (
-    <div className="position-fixed" style={{ inset: 0, zIndex: 2000, background: '#070505', display: 'flex', flexDirection: 'column' }}>
+    <div className="position-relative" style={{ height: 'calc(100dvh - 112px)', minHeight: 560, background: '#070505', display: 'flex', flexDirection: 'column', borderTop: '1px solid rgba(224,173,51,0.12)', borderBottom: '1px solid rgba(224,173,51,0.12)' }}>
       <div className="d-flex align-items-center justify-content-between px-3 py-2" style={{ borderBottom: '1px solid rgba(224,173,51,0.14)', background: 'rgba(7,5,5,0.9)', backdropFilter: 'blur(8px)', zIndex: 10 }}>
         <div className="d-flex align-items-center gap-2">
           <span style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg,#f6d98c,#c8921b 50%,#543c0a)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(224,173,51,0.35)' }}>
@@ -265,13 +330,12 @@ export default function BoardView({ id }) {
         <div
           ref={viewportRef}
           className="position-absolute no-select"
-          style={{ inset: 0, touchAction: 'none', userSelect: 'none', cursor: 'default', ...bgStyle }}
+          style={{ inset: 0, touchAction: 'none', userSelect: 'none', cursor: isPanning ? 'grabbing' : 'default', ...bgStyle }}
           data-canvasbg="1"
           onPointerDown={onViewportPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
-          onPointerLeave={endDrag}
           onContextMenu={(e) => e.preventDefault()}
         >
           <div className="position-absolute" style={{ transform: `translate(${v.x}px, ${v.y}px) scale(${v.scale})`, transformOrigin: '0 0', width: 1, height: 1 }}>
@@ -281,7 +345,8 @@ export default function BoardView({ id }) {
               if (node.kind === 'shape') return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode}><ShapeBody node={node} patch={patchNode} /></Node>
               if (node.kind === 'character') {
                 const c = charMap[node.characterId]
-                return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode} characterMode>
+                const color = c ? (LEVEL_COLORS[c.level] || '#e0ad33') : null
+                return <Node key={node.id} node={node} sel={sel} startDrag={startNodeDrag} startResize={startResize} remove={removeNode} characterMode accentColor={color}>
                   <CharacterBody node={node} character={c} patch={patchNode} setResource={setCharResource} onOpen={() => setDetail(c?.id)} onDamage={(mode) => setDamage({ cid: c?.id, mode })} />
                 </Node>
               }
@@ -313,7 +378,16 @@ export default function BoardView({ id }) {
         onApply={(payload) => { applyDamageToChar(damage.cid, payload); setDamage(null) }}
       />
 
-      <DetailDrawer characterId={detail} chars={chars} onClose={() => setDetail(null)} onOpen={() => { if (detail) navigate(`ficha/${detail}`) }} onDamage={(mode) => setDamage({ cid: detail, mode })} />
+      <DetailDrawer
+        characterId={detail}
+        chars={chars}
+        onClose={() => setDetail(null)}
+        onOpen={() => { if (detail) navigate(`ficha/${detail}`) }}
+        onDamage={(mode) => setDamage({ cid: detail, mode })}
+        onResource={setCharResource}
+        onAttribute={setCharAttribute}
+        onAbility={setCharAbility}
+      />
     </div>
   )
 }
@@ -350,14 +424,14 @@ const RESIZE_CORNERS = [
   { c: 'se', style: { right: -6, bottom: -6, cursor: 'nwse-resize' } }
 ]
 
-function Node({ node, sel, startDrag, startResize, children, characterMode }) {
+function Node({ node, sel, startDrag, startResize, children, characterMode, accentColor }) {
   const onDown = (e) => {
     if (e.button !== 0) return
-    if (e.target.closest('button, input, textarea, select, [data-no-drag]')) return
+    if (e.target.closest('button, input, textarea, select, a, [data-no-drag]')) return
     e.stopPropagation()
     startDrag(e, node)
   }
-  const lvlColor = characterMode ? node.lvlColor : null
+  const lvlColor = characterMode ? accentColor : null
   return (
     <div onPointerDown={onDown} className="glass position-absolute"
       style={{
@@ -380,7 +454,7 @@ function Node({ node, sel, startDrag, startResize, children, characterMode }) {
 
 function NoteBody({ node, patch }) {
   return (
-    <div style={{ background: `linear-gradient(180deg, ${node.color}22, rgba(19,16,12,0.92))`, borderRadius: 10, padding: 8 }} data-no-drag="1">
+    <div style={{ background: `linear-gradient(180deg, ${node.color}22, rgba(19,16,12,0.92))`, borderRadius: 10, padding: 8 }}>
       <div className="d-flex align-items-center justify-content-between mb-1">
         <i className="bi bi-grip-horizontal text-muted-drako" style={{ fontSize: '0.85rem' }} />
         <button onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { _del: true })} className="btn-ghost" data-no-drag="1" style={{ width: 22, height: 22, padding: 0, fontSize: '0.7rem' }}><i className="bi bi-x" /></button>
@@ -396,7 +470,7 @@ function NoteBody({ node, patch }) {
 
 function ShapeBody({ node, patch }) {
   return (
-    <div data-no-drag="1">
+    <div>
       <div className="d-flex align-items-center justify-content-between mb-1">
         <i className="bi bi-grip-horizontal text-muted-drako" style={{ fontSize: '0.85rem' }} />
         <button onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { _del: true })} className="btn-ghost" data-no-drag="1" style={{ width: 22, height: 22, padding: 0, fontSize: '0.7rem' }}><i className="bi bi-x" /></button>
@@ -410,21 +484,20 @@ function ShapeBody({ node, patch }) {
 
 function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamage }) {
   if (!c) return (
-    <div className="p-2" data-no-drag="1">
+    <div className="p-2">
       <p className="text-muted-drako m-0" style={{ fontSize: '0.85rem' }}>Ficha ausente.</p>
       <button className="btn-danger-soft w-100 mt-2" data-no-drag="1" style={{ fontSize: '0.72rem' }} onClick={() => patch(node.id, { _del: true })}><i className="bi bi-trash me-1" />Remover</button>
     </div>
   )
   const lvl = LEVEL_BY_KEY[c.level]
   const color = LEVEL_COLORS[c.level] || '#e0ad33'
-  node.lvlColor = color
   const max = maxResources(c.attributes, c.level)
   const r = { ...max, ...(c.resources || {}) }
   const abs = absorption(c.attributes?.for || 0)
   const dead = (r.vida ?? 0) <= 0
 
   return (
-    <div data-no-drag="1" style={{ borderTop: `3px solid ${color}` }}>
+    <div style={{ borderTop: `3px solid ${color}` }}>
       <div className="px-2 pt-2 pb-1 d-flex align-items-center gap-2">
         <button onClick={onOpen} className="card-sheen" style={{ background: 'none', border: `2px solid ${color}`, borderRadius: 12, overflow: 'hidden', width: 52, height: 52, cursor: 'pointer', padding: 0, flex: '0 0 auto', filter: dead ? 'grayscale(0.7) brightness(0.5)' : 'none' }} title="Abrir detalhes">
           <MiniPortrait c={c} size={52} color={color} />
@@ -565,7 +638,11 @@ function CharacterPickerModal({ open, chars, folders, onClose, onAdd }) {
   }, [open])
 
   const filtered = useMemo(() => chars
-    .filter(c => folderFilter === null ? true : (c.folderId || null) === folderFilter)
+    .filter(c => {
+      if (folderFilter === null) return true
+      if (folderFilter === UNFILED_FOLDER) return !c.folderId
+      return (c.folderId || null) === folderFilter
+    })
     .filter(c => !search.trim() ||
       (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.raca || '').toLowerCase().includes(search.toLowerCase()))
@@ -604,6 +681,7 @@ function CharacterPickerModal({ open, chars, folders, onClose, onAdd }) {
         </div>
         <div className="d-flex gap-1 flex-wrap align-items-center">
           <FolderChip active={folderFilter === null} label="Todas" onClick={() => setFolderFilter(null)} />
+          <FolderChip active={folderFilter === UNFILED_FOLDER} icon="bi-folder2-open" label="Sem pasta" onClick={() => setFolderFilter(UNFILED_FOLDER)} />
           {folders.map(f => (
             <FolderChip key={f.id} active={folderFilter === f.id} icon="bi-folder-fill" label={f.name} onClick={() => setFolderFilter(f.id)} />
           ))}
@@ -737,7 +815,7 @@ function DamageModal({ state, character, onClose, onApply }) {
         <label className="d-flex align-items-center gap-2 mb-2" style={{ padding: '0.5rem 0.7rem', border: '1px solid rgba(192,57,43,0.3)', borderRadius: 10, background: 'rgba(192,57,43,0.05)', cursor: 'pointer' }}>
           <input type="checkbox" checked={useAbsorb} onChange={(e) => setUseAbsorb(e.target.checked)} style={{ accentColor: '#c0392b', width: 18, height: 18 }} />
           <div className="flex-grow-1">
-            <div style={{ fontSize: '0.86rem', color: '#ffb4a8' }}><i className="bi bi-shield me-1" />Aplicar Absorção <b>({abs})</b></div>
+            <div style={{ fontSize: '0.86rem', color: '#ffb4a8' }}><i className="bi bi-shield me-1" />Aplicar armadura / absorção <b>({abs})</b></div>
             <div className="font-mono text-muted-drako" style={{ fontSize: '0.66rem' }}>Subtrai {abs} do dano incoming (Força)</div>
           </div>
         </label>
@@ -778,16 +856,23 @@ function DamageModal({ state, character, onClose, onApply }) {
   )
 }
 
-function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage }) {
+function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage, onResource, onAttribute, onAbility }) {
   const c = chars.find(x => x.id === characterId); if (!c) return null
   const lvl = LEVEL_BY_KEY[c.level]; const color = LEVEL_COLORS[c.level] || '#e0ad33'
   const max = maxResources(c.attributes, c.level)
   const r = { ...max, ...(c.resources || {}) }
   const abs = absorption(c.attributes?.for || 0)
+  const narrative = c.narrativa || {}
+  const narrativeItems = [
+    ['Arquétipo', c.arquetipo],
+    ['Conceito', narrative.conceito],
+    ['Vínculo', narrative.vinculo],
+    ['Cicatriz', narrative.cicatriz]
+  ].filter(([, value]) => value)
   return (
     <>
-      <div className="position-fixed drako-modal-backdrop" style={{ inset: 0, zIndex: 80 }} onClick={onClose} />
-      <div className="glass position-fixed" style={{ top: 12, right: 12, bottom: 12, width: 'min(440px, 92vw)', zIndex: 81, overflowY: 'auto', animation: 'fadeUp .4s both', borderTop: `3px solid ${color}` }}>
+      <div className="position-fixed drako-modal-backdrop" style={{ inset: 0, zIndex: 8500 }} onClick={onClose} />
+      <div className="glass position-fixed" style={{ top: 12, right: 12, bottom: 12, width: 'min(440px, 92vw)', zIndex: 8501, overflowY: 'auto', animation: 'fadeUp .4s both', borderTop: `3px solid ${color}` }}>
         <div className="d-flex align-items-center justify-content-between p-3" style={{ borderBottom: '1px solid var(--drako-border)' }}>
           <h4 className="m-0 font-display gold-text" style={{ fontSize: '1.05rem' }}>Detalhes do personagem</h4>
           <div className="d-flex gap-1">
@@ -809,9 +894,9 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage }) {
           </div>
 
           <div className="d-flex flex-column gap-2 mb-3">
-            <DetailRes label="Vida" color="var(--life)" value={r.vida ?? 0} max={max.vida} />
-            <DetailRes label="Energia" color="var(--energy)" value={r.energia ?? 0} max={max.energia} />
-            <DetailRes label="PE" color="var(--pe)" value={r.pe ?? 0} max={max.pe} />
+            <ResourceBar label="Vida" icon="bi-heart-pulse" color="var(--life)" value={r.vida ?? 0} max={max.vida} onChange={(val) => onResource(c.id, 'vida', val)} />
+            <ResourceBar label="Energia" icon="bi-lightning-charge" color="var(--energy)" value={r.energia ?? 0} max={max.energia} onChange={(val) => onResource(c.id, 'energia', val)} />
+            <ResourceBar label="PE" icon="bi-bullseye" color="var(--pe)" value={r.pe ?? 0} max={max.pe} onChange={(val) => onResource(c.id, 'pe', val)} />
           </div>
 
           <div className="d-flex gap-2 mb-3">
@@ -819,13 +904,36 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage }) {
             <button className="btn-heal flex-grow-1" onClick={() => onDamage('heal')}><i className="bi bi-plus-circle me-1" />Cura</button>
           </div>
 
+          {narrativeItems.length > 0 && (
+            <div className="mb-3" style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 8, padding: 10 }}>
+              <div className="label-drako">Identidade</div>
+              <div className="d-flex flex-column gap-2">
+                {narrativeItems.map(([label, value]) => (
+                  <div key={label}>
+                    <div className="font-mono text-muted-drako" style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+                    <div style={{ fontSize: '0.86rem', color: '#d4c8ab', lineHeight: 1.45 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {c.conditions?.length > 0 && (
+            <div className="mb-3">
+              <div className="label-drako">Condições</div>
+              <div className="d-flex flex-wrap gap-1">
+                {c.conditions.map((cond, i) => <span key={i} className="tag-chip" style={{ color: '#f2661b', fontSize: '0.68rem' }}>{cond}</span>)}
+              </div>
+            </div>
+          )}
+
           <div className="label-drako">Atributos</div>
           <div className="row g-1 mb-3">
             {ATTRIBUTES.map(a => (
               <div className="col-3" key={a.key}>
                 <div className="text-center" style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 8, padding: '6px 2px' }}>
                   <div className="font-mono" style={{ fontSize: '0.58rem', color: a.color }}>{a.short}</div>
-                  <div className="font-display gold-text" style={{ fontSize: '1.05rem' }}>{c.attributes?.[a.key] ?? 0}</div>
+                  <input type="number" min={0} max={10} value={c.attributes?.[a.key] ?? 0} onChange={(e) => onAttribute(c.id, a.key, e.target.value)} className="input-drako no-spin font-display" style={{ height: 30, padding: '0.1rem 0.25rem', textAlign: 'center', fontSize: '0.95rem' }} aria-label={`Editar ${a.name}`} />
                 </div>
               </div>
             ))}
@@ -838,17 +946,7 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage }) {
             {['passiva', 'ativa1', 'ativa2', 'ativa3', 'ultimate'].map(k => {
               const ab = c.abilities?.[k]; if (!ab) return null
               const slotName = { passiva: 'Passiva', ativa1: 'Ativa 1', ativa2: 'Ativa 2', ativa3: 'Ativa 3', ultimate: 'Ultimate' }[k]
-              const meta = { passiva: '#2ecc71', ativa: '#e0ad33', ultimate: '#f2661b' }[ab.kind]
-              return (
-                <div key={k} style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 10, padding: 10, borderLeft: `4px solid ${meta}` }}>
-                  <div className="d-flex align-items-center justify-content-between">
-                    <span className="font-mono text-muted-drako" style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{slotName}</span>
-                    {ab.kind !== 'passiva' && <span className="font-mono text-energy" style={{ fontSize: '0.68rem' }}><i className="bi bi-lightning-charge-fill" /> {ab.energia}</span>}
-                  </div>
-                  <div className="font-display text-gold" style={{ fontSize: '0.95rem' }}>{ab.name || '—'}</div>
-                  {ab.descricao && <div className="text-muted-drako" style={{ fontSize: '0.82rem', lineHeight: 1.45, marginTop: 2 }}>{ab.descricao}</div>}
-                </div>
-              )
+              return <AbilityDrawerEditor key={k} slotName={slotName} ability={ab} onChange={(patch) => onAbility(c.id, k, patch)} />
             })}
             {!['passiva', 'ativa1', 'ativa2', 'ativa3', 'ultimate'].some(k => c.abilities?.[k]) && (
               <p className="text-muted-drako" style={{ fontSize: '0.85rem' }}>Sem habilidades cadastradas.</p>
@@ -857,6 +955,25 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage }) {
         </div>
       </div>
     </>
+  )
+}
+
+function AbilityDrawerEditor({ slotName, ability: ab, onChange }) {
+  const meta = { passiva: '#2ecc71', ativa: '#e0ad33', ultimate: '#f2661b' }[ab.kind] || '#e0ad33'
+  return (
+    <div style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 10, padding: 10, borderLeft: `4px solid ${meta}` }}>
+      <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
+        <span className="font-mono text-muted-drako" style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{slotName}</span>
+        {ab.kind !== 'passiva' && (
+          <div className="d-flex align-items-center gap-1" style={{ maxWidth: 92 }}>
+            <i className="bi bi-lightning-charge-fill text-energy" style={{ fontSize: '0.78rem' }} />
+            <input type="number" min={0} value={ab.energia ?? 0} onChange={(e) => onChange({ energia: Math.max(0, Number(e.target.value) || 0) })} className="input-drako no-spin font-mono" style={{ height: 28, padding: '0.12rem 0.3rem', textAlign: 'center', fontSize: '0.72rem' }} aria-label={`Editar custo de ${slotName}`} />
+          </div>
+        )}
+      </div>
+      <input value={ab.name || ''} onChange={(e) => onChange({ name: e.target.value })} className="input-drako font-display mb-2" style={{ height: 32, padding: '0.2rem 0.45rem', fontSize: '0.9rem', color: 'var(--drako-gold-soft)' }} placeholder="Nome da habilidade" />
+      <textarea value={ab.descricao || ''} onChange={(e) => onChange({ descricao: e.target.value })} className="textarea-drako" rows={3} style={{ minHeight: 74, fontSize: '0.78rem', lineHeight: 1.35, padding: '0.45rem' }} placeholder="Descrição da habilidade" />
+    </div>
   )
 }
 

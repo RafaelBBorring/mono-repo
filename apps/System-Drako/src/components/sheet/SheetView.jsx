@@ -44,6 +44,7 @@ export default function SheetView({ id }) {
 
   const onChange = (p) => patch(p)
   const onResource = (kind, value) => mutate(c => ({ ...c, resources: { ...c.resources, [kind]: value } }))
+  const onAbilities = (abilities) => mutate(c => ({ ...c, abilities }))
   const onResourceMax = (kind) => {
     const cur = maxOf(char, kind)
     const v = prompt(`Novo máximo de ${kind}:`, cur)
@@ -115,6 +116,7 @@ export default function SheetView({ id }) {
         onResource={onResource}
         onResourceMax={onResourceMax}
         onAttribute={onAttribute}
+        onAbilities={onAbilities}
         onOpenIcon={() => setShowIcon(true)}
         onAIBalance={(a) => setBalanceTarget(a)}
         onLevelUp={onLevelUp}

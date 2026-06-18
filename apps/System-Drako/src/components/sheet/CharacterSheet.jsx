@@ -5,13 +5,13 @@ import { absorption } from '../../lib/calculator.js'
 import { ABILITY_SLOTS } from '../../lib/character.js'
 import HexagonResource from '../ui/HexagonResource.jsx'
 import Tag from '../ui/Tag.jsx'
-import { SLOT_STYLE } from './abilities/AbilityEditor.jsx'
+import AbilityEditor, { SLOT_STYLE } from './abilities/AbilityEditor.jsx'
 
 export const LEVEL_COLORS = {
   recruta: '#8b9a73', iniciante: '#3fb0b5', veterano: '#9b6bd6', elite: '#e8643b', lenda: '#f4c95d'
 }
 
-export default function CharacterSheet({ character: c, editable = false, onChange, onResource, onResourceMax, onAttribute, onOpenIcon, onAIBalance, onLevelUp }) {
+export default function CharacterSheet({ character: c, editable = false, onChange, onResource, onResourceMax, onAttribute, onAbilities, onOpenIcon, onAIBalance, onLevelUp }) {
   const lvl = LEVEL_BY_KEY[c.level]
   const lvlColor = LEVEL_COLORS[c.level] || '#e0ad33'
   const r = c.resources || {}
@@ -98,8 +98,11 @@ export default function CharacterSheet({ character: c, editable = false, onChang
             <Legend color="#f2661b" label="Ultimate" />
           </div>
         </div>
-        <div className="d-flex flex-column gap-3">
-          {ABILITY_SLOTS.map(slot => {
+        {editable ? (
+          <AbilityEditor abilities={ab} onChange={onAbilities} onAIBalance={onAIBalance} />
+        ) : (
+          <div className="d-flex flex-column gap-3">
+            {ABILITY_SLOTS.map(slot => {
             const a = ab[slot.key]; if (!a) return null
             const meta = SLOT_STYLE[a.kind]
             return (
@@ -135,8 +138,9 @@ export default function CharacterSheet({ character: c, editable = false, onChang
                 </div>
               </div>
             )
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -160,6 +164,7 @@ function Portrait({ c, size, lvlColor }) {
 function AttributeRing({ attr, value, editable, onChange }) {
   const R = 26, C = 2 * Math.PI * R
   const pct = Math.max(0, Math.min(10, value)) / 10
+  const setValue = (raw) => onChange?.(Math.max(0, Math.min(10, Number(raw) || 0)))
   return (
     <div className="d-flex flex-column align-items-center">
       <div style={{ position: 'relative', width: 64, height: 64 }}>
@@ -171,6 +176,9 @@ function AttributeRing({ attr, value, editable, onChange }) {
         <div className="font-display" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8e6', fontSize: '1.25rem', fontWeight: 700 }}>{value}</div>
       </div>
       <div className="font-mono" style={{ fontSize: '0.66rem', color: attr.color, letterSpacing: '0.06em' }}>{attr.short}</div>
+      {editable && (
+        <input type="number" min={0} max={10} value={value} onChange={(e) => setValue(e.target.value)} className="input-drako no-spin font-mono mt-1" style={{ width: 58, height: 30, padding: '0.18rem 0.3rem', textAlign: 'center', fontSize: '0.76rem' }} aria-label={`Editar ${attr.name}`} />
+      )}
     </div>
   )
 }
