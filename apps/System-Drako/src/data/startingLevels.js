@@ -6,7 +6,7 @@ export const STARTING_LEVELS = [
     points: 14,
     cap: 3,
     bonus: { vida: 0, energia: 0, pe: 0 },
-    max: { vida: 19, energia: 15, pe: 9 }
+    max: { vida: 24, energia: 15, pe: 9 }
   },
   {
     key: 'iniciante',
@@ -15,7 +15,7 @@ export const STARTING_LEVELS = [
     points: 21,
     cap: 4,
     bonus: { vida: 5, energia: 5, pe: 2 },
-    max: { vida: 27, energia: 25, pe: 14 }
+    max: { vida: 32, energia: 25, pe: 14 }
   },
   {
     key: 'veterano',
@@ -24,7 +24,7 @@ export const STARTING_LEVELS = [
     points: 28,
     cap: 6,
     bonus: { vida: 10, energia: 15, pe: 5 },
-    max: { vida: 38, energia: 45, pe: 23 }
+    max: { vida: 43, energia: 45, pe: 23 }
   },
   {
     key: 'elite',
@@ -33,7 +33,7 @@ export const STARTING_LEVELS = [
     points: 35,
     cap: 8,
     bonus: { vida: 20, energia: 30, pe: 10 },
-    max: { vida: 54, energia: 70, pe: 34 }
+    max: { vida: 59, energia: 70, pe: 34 }
   },
   {
     key: 'lenda',
@@ -42,7 +42,7 @@ export const STARTING_LEVELS = [
     points: 42,
     cap: 10,
     bonus: { vida: 35, energia: 50, pe: 18 },
-    max: { vida: 75, energia: 100, pe: 48 }
+    max: { vida: 80, energia: 100, pe: 48 }
   }
 ]
 

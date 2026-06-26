@@ -7,6 +7,7 @@ import CharacterSheet from './CharacterSheet.jsx'
 import Modal from '../ui/Modal.jsx'
 import IconPickerModal from '../ui/IconPickerModal.jsx'
 import AIBalanceModal from '../ai/AIBalanceModal.jsx'
+import ResourceAdjustModal from '../ui/ResourceAdjustModal.jsx'
 import { useHashRoute } from '../../hooks/useHashRoute.js'
 import { useToast } from '../../contexts/ToastContext.jsx'
 import { exportCharacterDrako } from '../../lib/storage.js'
@@ -21,6 +22,7 @@ export default function SheetView({ id }) {
   const [balanceTarget, setBalanceTarget] = useState(null)
   const [confirmLeave, setConfirmLeave] = useState(null)
   const [showDelete, setShowDelete] = useState(false)
+  const [adjust, setAdjust] = useState(null)
   const printRef = useRef(null)
 
   useEffect(() => { getCharacter(id).then(c => { setChar(c); setLoaded(true) }) }, [id])
@@ -39,25 +41,38 @@ export default function SheetView({ id }) {
   const mutate = (fn) => { setChar(c => fn({ ...c })); setDirty(true) }
   const patch = (p) => mutate(c => ({ ...c, ...p }))
 
-  const derivedMax = (c) => maxResources(c.attributes, c.level)
-  const maxOf = (c, kind) => c.resources?.[`${kind}Max`] ?? derivedMax(c)[kind]
-
   const onChange = (p) => patch(p)
   const onResource = (kind, value) => mutate(c => ({ ...c, resources: { ...c.resources, [kind]: value } }))
   const onAbilities = (abilities) => mutate(c => ({ ...c, abilities }))
-  const onResourceMax = (kind) => {
-    const cur = maxOf(char, kind)
-    const v = prompt(`Novo máximo de ${kind}:`, cur)
-    if (v == null) return
-    const n = Math.max(0, parseInt(v, 10) || 0)
-    mutate(c => ({ ...c, resources: { ...c.resources, [`${kind}Max`]: n } }))
-  }
+  const onOpenAdjust = (kind) => setAdjust({ kind })
+  const applyAdjust = ({ kind, mode, value, useAbsorb }) => mutate(c => {
+    const r = { ...c.resources }
+    if (mode === 'dmg') {
+      const abs = useAbsorb && kind === 'vida' ? absorption(c.attributes?.for || 0) : 0
+      const delta = Math.max(0, value - abs)
+      r[kind] = Math.max(0, (r[kind] ?? 0) - delta)
+    } else if (mode === 'heal') {
+      r[kind] = (r[kind] ?? 0) + value
+    }
+    return { ...c, resources: r }
+  })
+  const resetMax = (kind) => mutate(c => {
+    const r = { ...c.resources }
+    r[kind] = maxResources(c.attributes, c.level)[kind]
+    return { ...c, resources: r }
+  })
+  const onAbsorbChange = (value) => mutate(c => {
+    const r = { ...c.resources }
+    if (value == null) delete r.absorbOverride
+    else r.absorbOverride = Math.max(0, Number(value) || 0)
+    return { ...c, resources: r }
+  })
   const onAttribute = (key, value) => mutate(c => {
     const attributes = { ...c.attributes, [key]: value }
     const d = maxResources(attributes, c.level)
     const r = { ...c.resources }
     delete r.vidaMax; delete r.energiaMax; delete r.peMax
-    return { ...c, attributes, resources: { ...d, vida: Math.min(r.vida ?? d.vida, d.vida), energia: Math.min(r.energia ?? d.energia, d.energia), pe: Math.min(r.pe ?? d.pe, d.pe) } }
+    return { ...c, attributes, resources: { ...d, vida: r.vida ?? d.vida, energia: r.energia ?? d.energia, pe: r.pe ?? d.pe } }
   })
   const onLevelUp = () => {
     const order = STARTING_LEVELS.map(s => s.key)
@@ -114,8 +129,9 @@ export default function SheetView({ id }) {
         editable
         onChange={onChange}
         onResource={onResource}
-        onResourceMax={onResourceMax}
+        onOpenAdjust={onOpenAdjust}
         onAttribute={onAttribute}
+        onAbsorbChange={onAbsorbChange}
         onAbilities={onAbilities}
         onOpenIcon={() => setShowIcon(true)}
         onAIBalance={(a) => setBalanceTarget(a)}
@@ -124,6 +140,14 @@ export default function SheetView({ id }) {
 
       <IconPickerModal open={showIcon} onClose={() => setShowIcon(false)} value={char.icon} onConfirm={(icon) => patch({ icon })} />
       <AIBalanceModal open={!!balanceTarget} onClose={() => setBalanceTarget(null)} ability={balanceTarget} character={char} onApply={onApplySuggestion} />
+
+      <ResourceAdjustModal
+        state={adjust ? { ...adjust, cid: char.id } : null}
+        character={char}
+        onClose={() => setAdjust(null)}
+        onApply={applyAdjust}
+        onResetMax={resetMax}
+      />
 
       <Modal open={!!confirmLeave} onClose={() => setConfirmLeave(null)} title="Salvar alterações?" size="sm"
         footer={<>

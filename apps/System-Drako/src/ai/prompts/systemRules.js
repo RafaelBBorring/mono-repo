@@ -22,32 +22,57 @@ Sistema ágil, ficha simples, foco na narrativa. Combates rápidos e letais — 
 - CONDIÇÕES: negativa = -1d6; positiva = +1d6; no máximo uma de cada por vez.
 
 # RECURSOS
-- VIDA = FOR*2 + VON + 10. (Integridade física total; não se recupera sozinha.)
+- VIDA = FOR*2 + VON + 15 (+ bônus do nível de distribuição). (Integridade física total; não se recupera sozinha.)
 - ENERGIA = AM*5. (Aura externalizada com intenção.) Quando chega a 0, magia passa a custar VIDA na mesma proporção.
 - PE (Pontos de Esforço) = VON*2 + AGI. (Superação momentânea.)
 
 # NÍVEIS DE INÍCIO (pontos para distribuir / limite por atributo / bônus de recursos)
-- Recruta: 14 pontos, cap 3, bônus 0/0/0. (Vida máx 19, Energia 15, PE 9)
-- Iniciante: 21 pontos, cap 4, bônus +5/+5/+2. (27/25/14)
-- Veterano: 28 pontos, cap 6, bônus +10/+15/+5. (38/45/23)
-- Elite: 35 pontos, cap 8, bônus +20/+30/+10. (54/70/34)
-- Lenda: 42 pontos, cap 10, bônus +35/+50/+18. (75/100/48)
+- Recruta: 14 pontos, cap 3, bônus 0/0/0. (Vida máx 24, Energia 15, PE 9)
+- Iniciante: 21 pontos, cap 4, bônus +5/+5/+2. (32/25/14)
+- Veterano: 28 pontos, cap 6, bônus +10/+15/+5. (43/45/23)
+- Elite: 35 pontos, cap 8, bônus +20/+30/+10. (59/70/34)
+- Lenda: 42 pontos, cap 10, bônus +35/+50/+18. (80/100/48)
 Mínimo obrigatório de 1 em cada um dos sete atributos.
 
-# COMBATE (rodadas livres, sem iniciativa rígida; ações simultâneas)
-- DANO: pool = atributo base + bônus de dados da fonte. Cada sucesso vale um VALOR POR SUCESSO fixo da fonte. Dano final = sucessos * valor, subtraída a Absorção após a Esquiva.
-- Corpo a corpo (FOR): Desarmado +0d6 / 2 por sucesso; Leve (faca/adaga) +1d6 / 3; Média (espada/machado) +2d6 / 4; Pesada (mandoble/maça) +3d6 / 6; Improvisada +0d6 / 2.
-- Distância (AGI): Arremessada +0d6 / 2; Arco curto/besta leve +1d6 / 3; Arco longo/besta pesada +2d6 / 4; Fogo leve +2d6 / 5; Fogo pesada +3d6 / 6.
-- Magia (AM): ignora Absorção. Menor +0d6 / 3; Médio +1d6 / 5; Maior +2d6 / 7; Absoluto +3d6 / 10; Celeste +3d6 / 12.
-- Ambiental (sem atributo): Leve 2d6/2; Moderada 3d6/3; Severa 4d6/5; Extrema 5d6/7; Catastrófica 6d6+/10.
-- ATAQUES POR RODADA: 2 para desarmado, leve, arremessada, arco curto/besta leve, fogo leve. 1 para todas as outras.
-- CUSTO PE: armas pesadas corpo a corpo e armas de fogo pesadas custam 1 PE por ataque.
-- PENALIDADE DE ESQUIVA NO DEFENSOR: arma pesada corpo a corpo -2d6; arco longo/besta pesada -1d6.
-- OCULTÁVEL: faca, adaga, arremessada, fogo leve passam em situações sociais.
+# COMBATE — DUAS ROLAGENS (acerto separado do dano)
+O combate usa duas rolagens com propósitos distintos. Não há mais "sucessos × valor por sucesso".
+1) ROLAGEM DE ACERTO: o atacante rola seu ATRIBUTO relevante em d6 e conta sucessos (4,5,6). Precisa atingir DIFICULDADE 2 para acertar. O defensor rola AGILIDADE — se tiver sucessos iguais ou maiores que o atacante, ESQUIVOU completamente (nenhum dano). Se o atacante tiver mais sucessos, o golpe passou.
+2) ROLAGEM DE DANO: se o golpe passou, o atacante rola os DADOS DE DANO da arma e SOMA os valores diretamente — sem contar sucessos, sem multiplicar. O resultado bruto menos a ABSORÇÃO do defensor é o dano final.
+
+## Corpo a corpo (atributo de acerto: FOR)
+- Porte LEVE: Desarmado 1d6; Faca 2d6; Adaga 2d6. (2 ataques/rodada, sem PE, sem penalidade de esquiva, ocultáveis, alcance social.)
+- Porte MÉDIO: Espada 3d6; Sabre 3d6; Lança 3d6. (1 ataque/rodada, sem PE, sem penalidade, não ocultáveis, sem alcance social.)
+- Porte PESADO: Machado 4d6; Mandoble 5d6; Maça grande 5d6. (1 ataque/rodada, custam 1 PE por ataque, penalidade de esquiva -2d6 ao portador, não ocultáveis.)
+- Improvisada: 1d6 (1 ataque/rodada, sem PE, sem penalidade; ocultável e alcance social dependem do contexto).
+
+## Distância (atributo de acerto: AGI)
+- Porte LEVE: Arma arremessada 1d6 (2 ataques, ocultável, alcance social); Arco curto 2d6 (2 ataques, não ocultável); Besta leve 2d6 (1 ataque, recarga 1 rodada, não ocultável).
+- Porte MÉDIO: Arco longo 3d6 (1 ataque, penalidade esquiva -1d6); Besta pesada 3d6 (1 ataque, recarga 2 rodadas, esquiva -1d6); Arma de fogo leve 4d6 (2 ataques, recarga 1 rodada, ocultável mas sem alcance social).
+- Porte PESADO: Arma de fogo pesada 5d6 (1 ataque, custa 1 PE por disparo, recarga 2 rodadas, esquiva -2d6, não ocultável).
+
+## Magia (atributo de acerto: AM)
+DANO MÁGICO IGNORA ABSORÇÃO (a esquiva ainda funciona normalmente, se o alvo perceber o ataque). Feitiço menor 1d6; médio 2d6; maior 3d6; absoluto 4d6; celeste 5d6.
+
+## Dano ambiental (sem atributo de acerto)
+Leve 2d6; Moderada 3d6; Severa 4d6; Extrema 5d6; Catastrófica 6d6 ou mais. O Narrador soma os dados diretamente, sem rolagem de acerto.
+
+# PROPRIEDADES DAS ARMAS
+- ATAQUES POR RODADA: armas com 2 ataques fazem duas rolagens de acerto e duas de dano separadas; o defensor esquiva de cada uma individualmente.
+- CUSTO DE PE: armas pesadas de corpo a corpo e arma de fogo pesada exigem 1 PE por ataque (obrigatório).
+- PENALIDADE DE ESQUIVA: enquanto empunha arma com penalidade, o defensor subtrai os dados indicados da pool de AGI ao esquivar (pool nunca abaixo de 1d6).
+- OCULTÁVEL: passa despercebida em situações sociais e revistas superficiais (buscas rigorosas podem pedir Agilidade/Presença).
+- ALCANCE SOCIAL: pode ser portada em ambientes formais sem confisco automático.
+- RECARGA: bestas e armas de fogo precisam de rodadas inteiras para recarregar após cada disparo. Na rodada de recarga o personagem não ataca e sofre -2d6 na esquiva. AGI 6+ reduz o tempo de recarga em 1 rodada.
+
+# AÇÕES ALTERNATIVAS (substituem o ataque da rodada; quem tem 2 ataques pode usar um ataque + uma ação alternativa)
+- EMPURRAR (FOR+AGI, dificuldade 2): alvo fica Desequilibrado até o fim da próxima rodada (não esquiva, sofre -1d6 no próximo ataque). Ambiente pode somar dano extra.
+- DESARMAR (AGI+PER, dificuldade 3): oponente perde a arma (cai até 2m). Dificuldade sobe para 4 se o alvo tiver FOR 7+.
+- SEGURAR (FOR+VON vs FOR+AGI do alvo, mais sucessos vence): alvo fica Preso até o fim da próxima rodada (não se move, não esquiva, não usa armas de 2 ataques). Para se soltar rola FOR+AGI na dificuldade igual aos sucessos do atacante. Aliados que golpearem alvo Preso IGNORAM a esquiva.
+- CRIAR ABERTURA (PER+PRE, dificuldade 2): alvo fica Exposto até o fim da rodada; o próximo aliado a atacar soma +2d6 ao dano (só um aproveita; a abertura fecha após o primeiro ataque).
 
 # DEFESA (duas camadas em sequência)
-1) ESQUIVA (AGI): cada sucesso cancela 1 sucesso do ataque antes do cálculo. Não funciona contra dano ambiental. Penalidade de arma aplicada antes de rolar (pool nunca abaixo de 1d6).
-2) ABSORÇÃO (FOR): valor fixo reduz o dano restante. FOR 1-2 = 0; 3-4 = 2; 5-6 = 4; 7-8 = 6; 9-10 = 8. DANO MÁGICO IGNORA ABSORÇÃO (só Esquiva reduz, e só se o alvo perceber o ataque).
+1) ESQUIVA (AGI): rolagem contrária de acerto — sucessos do defensores iguais ou maiores que os do atacante cancelam o golpe. Não funciona contra dano ambiental. Penalidade de arma aplicada antes de rolar (pool nunca abaixo de 1d6).
+2) ABSORÇÃO (FOR): valor fixo reduz o dano restante. FOR 1-2 = 0; 3-4 = 3; 5-6 = 4; 7-8 = 6; 9-10 = 8. DANO MÁGICO IGNORA ABSORÇÃO.
 
 # VIDA ZERO E MORTE
 Vida 0 = estado crítico (fora de combate). A cada rodada sem intervenção, 1d6: 1-2 piora; 3+ mantém estável. Cuidado médico/magia tira do risco e cura 1 Vida. Morre se piorar 3x seguidas, dano massivo além da Vida máxima numa única fonte, ou decisão narrativa.

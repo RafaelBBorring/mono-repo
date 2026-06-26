@@ -9,7 +9,7 @@ O usuário vai descrever como se escrevesse para um amigo: arquétipo, foco (sup
 REGRAS OBRIGATÓRIAS:
 - Escolha um dos 5 níveis (Recruta/Iniciante/Veterano/Elite/Lenda). Respeite pontos E limite por atributo E mínimo 1 em cada.
 - A soma dos 7 atributos DEVE ser exatamente igual aos pontos do nível. Nenhum atributo acima do cap.
-- Recursos derivam das fórmulas (Vida=FOR*2+VON+10, Energia=AM*5, PE=VON*2+AGI) SOMADOS ao bônus do nível.
+- Recursos derivam das fórmulas (Vida=FOR*2+VON+15, Energia=AM*5, PE=VON*2+AGI) SOMADOS ao bônus do nível.
 - Crie Conceito, Vínculo e Cicatriz coerentes com a descrição.
 ${gerarHabilidades ? '- Gere EXATAMENTE: 1 passiva, 3 ativas, 1 ultimate. Passiva sem energia. Ativas/Ultimate com custo de energia coerente (use as referências do sistema). Seja criativo: passivas acumulativas, sinergias entre habilidades, reatividade, redução de custo ao longo da rodada — são bem-vindas. Cada habilidade ganha 1-3 tags curtas.' : '- NÃO gere habilidades (gerarHabilidades=false).'}
 

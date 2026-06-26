@@ -1,10 +1,12 @@
 import { ABSORPTION_TABLE, absorption } from '../data/combat.js'
 import { LEVEL_BY_KEY } from '../data/startingLevels.js'
-import { combinedPool } from './dice.js'
+import { combinedPool, rollDamage } from './dice.js'
+
+const VIDA_BASE_FLAT = 15
 
 export function baseResources(attributes) {
   return {
-    vida: (attributes.for || 1) * 2 + (attributes.von || 1) + 10,
+    vida: (attributes.for || 1) * 2 + (attributes.von || 1) + VIDA_BASE_FLAT,
     energia: (attributes.am || 1) * 5,
     pe: (attributes.von || 1) * 2 + (attributes.agi || 1)
   }
@@ -51,49 +53,61 @@ export function validateAttributes(attributes, levelKey) {
   return { ok: errors.length === 0, errors, spent }
 }
 
-export function attackPool({ attribute, weapon, conditions = {}, spendPE = 0 }) {
-  const bonus = weapon?.bonusDice || 0
-  let pool = (attribute || 0) + bonus
+export function effectiveAbsorption(character) {
+  const override = character?.resources?.absorbOverride
+  if (override != null && Number.isFinite(Number(override))) return Math.max(0, Number(override))
+  return absorption(character?.attributes?.for || 0)
+}
+
+export function hitPool({ attribute = 0, conditions = {}, spendPE = 0 }) {
+  let pool = attribute
   if (conditions.pos) pool += 1
   if (conditions.neg) pool -= 1
   if (spendPE) pool += 2 * spendPE
   return Math.max(1, pool)
 }
 
-export function defensePool({ agility, weaponHeldPenalty = 0, conditions = {} }) {
-  let pool = agility + weaponHeldPenalty
+export function dodgePool({ agility, weaponHeldPenalty = 0, conditions = {} }) {
+  let pool = agility - Math.max(0, weaponHeldPenalty || 0)
   if (conditions.pos) pool += 1
   if (conditions.neg) pool -= 1
   return Math.max(1, pool)
 }
 
-export function resolveHit({ attackSuccesses, dodgeSuccesses }) {
-  const net = Math.max(0, attackSuccesses - dodgeSuccesses)
-  return { netSuccesses: net, fullyDodged: net === 0 }
+export const HIT_DIFFICULTY = 2
+
+export function resolveHit({ attackSuccesses, dodgeSuccesses = 0, difficulty = HIT_DIFFICULTY }) {
+  const passed = attackSuccesses >= difficulty && attackSuccesses > dodgeSuccesses
+  return {
+    netSuccesses: Math.max(0, attackSuccesses - dodgeSuccesses),
+    fullyDodged: dodgeSuccesses >= attackSuccesses,
+    belowDifficulty: attackSuccesses < difficulty,
+    hit: passed
+  }
 }
 
-export function resolveDamage({ netSuccesses, valuePerSuccess, attackerForca, magic = false }) {
-  const gross = netSuccesses * valuePerSuccess
-  const absorb = magic ? 0 : absorption(attackerForca)
-  return { gross, absorb, final: Math.max(0, gross - absorb) }
+export function resolveDamage({ damageSum, absorb, magic = false }) {
+  const reduction = magic ? 0 : Math.max(0, absorb || 0)
+  return { gross: damageSum, absorb: reduction, final: Math.max(0, damageSum - reduction) }
 }
 
 export function fullCombatResolution({
-  attackerAttr, weapon, attackSuccesses, defenderAgi, defenderForca,
-  defenderWeaponPenalty = 0, conditions = {}
+  attackSuccesses, defenderAgi, defenderAbsorb,
+  defenderWeaponPenalty = 0, weapon, conditions = {}
 }) {
-  const dodgePool = defensePool({ agility: defenderAgi, weaponHeldPenalty: defenderWeaponPenalty })
-  const net = Math.max(0, attackSuccesses)
-  const gross = net * weapon.valuePerSuccess
-  const absorb = weapon.ignoresArmor ? 0 : absorption(defenderForca)
-  const final = Math.max(0, gross - absorb)
+  const dodge = dodgePool({ agility: defenderAgi, weaponHeldPenalty: defenderWeaponPenalty, conditions })
+  const hit = resolveHit({ attackSuccesses, dodgeSuccesses: dodge.successes ?? dodge })
+  const dmg = rollDamage(weapon?.damage)
+  const isMagic = !!weapon?.ignoresArmor
+  const res = resolveDamage({ damageSum: dmg.sum, absorb: defenderAbsorb, magic: isMagic })
   return {
-    dodgePoolSuggested: dodgePool,
-    netSuccesses: net,
-    grossDamage: gross,
-    absorption: absorb,
-    finalDamage: final,
-    magic: !!weapon.ignoresArmor
+    dodgePool: typeof dodge === 'number' ? dodge : dodge.pool,
+    ...hit,
+    damageDice: dmg.dice,
+    grossDamage: res.gross,
+    absorption: res.absorb,
+    finalDamage: res.final,
+    magic: isMagic
   }
 }
 
@@ -148,4 +162,4 @@ export function healthGradient(pct, kind = 'vida') {
   return `linear-gradient(180deg, ${c1}, ${c2})`
 }
 
-export { ABSORPTION_TABLE, absorption }
+export { ABSORPTION_TABLE, absorption, VIDA_BASE_FLAT }

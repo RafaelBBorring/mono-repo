@@ -3,8 +3,10 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { loadConfig } from './lib/config.js'
+import { runMigrations } from './lib/migrate.js'
 
-loadConfig().finally(() => {
+loadConfig().finally(async () => {
+  await runMigrations()
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <App />

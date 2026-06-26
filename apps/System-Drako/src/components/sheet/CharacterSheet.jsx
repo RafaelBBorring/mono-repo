@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { LEVEL_BY_KEY } from '../../data/startingLevels.js'
 import { ATTRIBUTES } from '../../data/attributes.js'
-import { absorption } from '../../lib/calculator.js'
+import { effectiveAbsorption, maxResources } from '../../lib/calculator.js'
 import { ABILITY_SLOTS } from '../../lib/character.js'
 import HexagonResource from '../ui/HexagonResource.jsx'
 import EditableNumber from '../ui/EditableNumber.jsx'
@@ -12,12 +12,15 @@ export const LEVEL_COLORS = {
   recruta: '#8b9a73', iniciante: '#3fb0b5', veterano: '#9b6bd6', elite: '#e8643b', lenda: '#f4c95d'
 }
 
-export default function CharacterSheet({ character: c, editable = false, onChange, onResource, onResourceMax, onAttribute, onAbilities, onOpenIcon, onAIBalance, onLevelUp }) {
+export default function CharacterSheet({ character: c, editable = false, onChange, onResource, onOpenAdjust, onAttribute, onAbsorbChange, onAbilities, onOpenIcon, onAIBalance, onLevelUp }) {
   const lvl = LEVEL_BY_KEY[c.level]
   const lvlColor = LEVEL_COLORS[c.level] || '#e0ad33'
   const r = c.resources || {}
-  const max = { vida: r.vidaMax ?? r.vida ?? 1, energia: r.energiaMax ?? r.energia ?? 1, pe: r.peMax ?? r.pe ?? 1 }
+  const derived = maxResources(c.attributes, c.level)
+  const max = { vida: derived.vida, energia: derived.energia, pe: derived.pe }
   const ab = c.abilities || {}
+  const absorb = effectiveAbsorption(c)
+  const absorbAuto = c.resources?.absorbOverride == null
 
   const fld = (field) => ({
     value: c[field] ?? '',
@@ -57,24 +60,33 @@ export default function CharacterSheet({ character: c, editable = false, onChang
 
           {/* Resources hexagons */}
           <div className="d-flex justify-content-around gap-2 mt-4">
-            <HexagonResource kind="vida" label="Vida" icon="bi-heart-pulse" value={r.vida ?? 0} max={max.vida} editable={editable} onChange={(v) => onResource?.('vida', v)} onMaxChange={() => onResourceMax?.('vida')} />
-            <HexagonResource kind="energia" label="Energia" icon="bi-lightning-charge" value={r.energia ?? 0} max={max.energia} editable={editable} onChange={(v) => onResource?.('energia', v)} onMaxChange={() => onResourceMax?.('energia')} />
-            <HexagonResource kind="pe" label="Esforço" icon="bi-bullseye" value={r.pe ?? 0} max={max.pe} editable={editable} onChange={(v) => onResource?.('pe', v)} onMaxChange={() => onResourceMax?.('pe')} />
+            <HexagonResource kind="vida" label="Vida" icon="bi-heart-pulse" value={r.vida ?? 0} max={max.vida} editable={editable} onChange={(v) => onResource?.('vida', v)} onOpenAdjust={onOpenAdjust} />
+            <HexagonResource kind="energia" label="Energia" icon="bi-lightning-charge" value={r.energia ?? 0} max={max.energia} editable={editable} onChange={(v) => onResource?.('energia', v)} onOpenAdjust={onOpenAdjust} />
+            <HexagonResource kind="pe" label="Esforço" icon="bi-bullseye" value={r.pe ?? 0} max={max.pe} editable={editable} onChange={(v) => onResource?.('pe', v)} onOpenAdjust={onOpenAdjust} />
           </div>
         </div>
 
-        {/* Attributes rings */}
+        {/* Attributes — two columns of spheres */}
         <div className="glass p-4 mb-3">
-          <div className="d-flex align-items-center justify-content-between mb-3">
+          <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
             <h4 className="font-display text-gold m-0" style={{ fontSize: '1.05rem' }}>Atributos</h4>
-            <span className="tag-chip" style={{ color: '#c0392b', fontSize: '0.72rem' }} title="Redução de dano físico pela Força"><i className="bi bi-shield me-1" />Absorção {absorption(c.attributes?.for || 0)}</span>
+            <AbsorptionChip value={absorb} auto={absorbAuto} editable={editable} onChange={onAbsorbChange} />
           </div>
           <div className="row g-2">
-            {ATTRIBUTES.map(a => (
-              <div className="col-4 col-md-3" key={a.key}>
-                <AttributeRing attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} />
+            <div className="col-6">
+              <div className="d-flex flex-column gap-2">
+                {ATTRIBUTES.slice(0, 4).map(a => (
+                  <AttributeSphere key={a.key} attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} align="right" />
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="col-6">
+              <div className="d-flex flex-column gap-2">
+                {ATTRIBUTES.slice(4).map(a => (
+                  <AttributeSphere key={a.key} attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} align="left" />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -162,25 +174,72 @@ function Portrait({ c, size, lvlColor }) {
   )
 }
 
-function AttributeRing({ attr, value, editable, onChange }) {
-  const R = 26, C = 2 * Math.PI * R
-  const pct = Math.max(0, Math.min(10, value)) / 10
+function AttributeSphere({ attr, value, editable, onChange, align = 'left' }) {
+  const v = Math.max(0, Math.min(10, value))
   const setValue = (raw) => onChange?.(Math.max(0, Math.min(10, Number(raw) || 0)))
+  const isRight = align === 'right'
   return (
-    <div className="d-flex flex-column align-items-center">
-      <div style={{ position: 'relative', width: 64, height: 64, cursor: editable ? 'pointer' : 'default' }} title={editable ? 'Clique para editar' : ''}>
-        <svg width="64" height="64" viewBox="0 0 64 64">
-          <circle cx="32" cy="32" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
-          <circle cx="32" cy="32" r={R} fill="none" stroke={attr.color} strokeWidth="5" strokeLinecap="round"
-            strokeDasharray={`${pct * C} ${C}`} transform="rotate(-90 32 32)" style={{ transition: 'stroke-dasharray .5s', filter: `drop-shadow(0 0 4px ${attr.color}88)` }} />
+    <div className="d-flex align-items-center gap-2" style={{ flexDirection: isRight ? 'row' : 'row-reverse', textAlign: isRight ? 'right' : 'left' }}>
+      <div style={{ position: 'relative', width: 54, height: 54, flex: '0 0 auto' }}>
+        <svg width="54" height="54" viewBox="0 0 54 54">
+          <defs>
+            <radialGradient id={`orb-${attr.key}`} cx="38%" cy="32%" r="70%">
+              <stop offset="0%" stopColor={attr.color} stopOpacity="0.95" />
+              <stop offset="60%" stopColor={attr.color} stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#0a0806" stopOpacity="0.9" />
+            </radialGradient>
+          </defs>
+          <circle cx="27" cy="27" r="24" fill={`url(#orb-${attr.key})`} stroke={attr.color} strokeWidth="1.5" style={{ filter: `drop-shadow(0 0 5px ${attr.color}77)` }} />
+          <circle cx="20" cy="19" r="6" fill="rgba(255,255,255,0.35)" />
         </svg>
-        <div className="font-display" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8e6', fontSize: '1.25rem', fontWeight: 700 }}>
+        <div className="font-display" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff8e6', fontSize: '1.2rem', fontWeight: 700, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
           {editable
-            ? <EditableNumber value={value} min={0} max={10} step={1} onChange={setValue} ariaLabel={`Editar ${attr.name}`} style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff8e6' }} />
-            : value}
+            ? <EditableNumber value={v} min={0} max={10} step={1} onChange={setValue} ariaLabel={`Editar ${attr.name}`} style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff8e6' }} />
+            : v}
         </div>
       </div>
-      <div className="font-mono" style={{ fontSize: '0.66rem', color: attr.color, letterSpacing: '0.06em' }}>{attr.short}</div>
+      <div className="flex-grow-1 min-w-0">
+        <div className="font-display" style={{ fontSize: '0.96rem', color: 'var(--drako-gold-soft)', lineHeight: 1.1 }}>{attr.name}</div>
+        <div className="font-mono" style={{ fontSize: '0.64rem', color: attr.color, letterSpacing: '0.06em' }}>{attr.short}</div>
+      </div>
+    </div>
+  )
+}
+
+function AbsorptionChip({ value, auto, editable, onChange }) {
+  const [open, setOpen] = useState(false)
+  if (!editable) {
+    return (
+      <span className="tag-chip" style={{ color: '#c0392b', fontSize: '0.72rem' }} title="Redução de dano físico">
+        <i className="bi bi-shield me-1" />Absorção {value}
+      </span>
+    )
+  }
+  return (
+    <div className="position-relative">
+      <button type="button" className="tag-chip d-inline-flex align-items-center" onClick={() => setOpen(o => !o)}
+        style={{ color: auto ? '#c0392b' : '#f6d98c', fontSize: '0.72rem', cursor: 'pointer', borderColor: auto ? 'rgba(192,57,43,0.5)' : 'rgba(224,173,51,0.55)' }}
+        title="Definir absorção (sobreposição manual)">
+        <i className="bi bi-shield me-1" />Absorção {value}{!auto && <i className="bi bi-pencil ms-1" style={{ fontSize: '0.6rem' }} />}
+      </button>
+      {open && (
+        <>
+          <div className="position-fixed" style={{ inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
+          <div className="glass" style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 41, padding: '0.6rem 0.7rem', borderRadius: 12, minWidth: 168 }}>
+            <div className="font-mono text-muted-drako" style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Absorção {auto ? '(auto · FOR)' : '(manual)'}</div>
+            <div className="d-flex align-items-center gap-2">
+              <input type="number" min={0} defaultValue={value} autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) { onChange?.(Math.max(0, n)); setOpen(false) } } else if (e.key === 'Escape') setOpen(false) }}
+                className="no-spin input-drako font-mono" style={{ height: 32, width: 64, textAlign: 'center', padding: '0.1rem 0.3rem', fontSize: '0.9rem' }} aria-label="Absorção" />
+              {!auto && (
+                <button type="button" className="btn-ghost" style={{ fontSize: '0.66rem', padding: '0.3rem 0.5rem' }} onClick={() => { onChange?.(null); setOpen(false) }} title="Voltar ao valor automático da Força">
+                  <i className="bi bi-arrow-counterclockwise me-1" />Auto
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
