@@ -193,6 +193,7 @@ function LevelCard({ level: l, active, onSelect }) {
   const [pressing, setPressing] = useState(false)
   const [burst, setBurst] = useState(0)
   const timer = useRef(null)
+  const release = useRef(null)
 
   const choose = () => {
     if (active) { setBurst(b => b + 1); return }
@@ -200,10 +201,10 @@ function LevelCard({ level: l, active, onSelect }) {
     timer.current = setTimeout(() => {
       setBurst(b => b + 1)
       onSelect()
-      setPressing(false)
-    }, 160)
+    }, 150)
+    release.current = setTimeout(() => setPressing(false), 460)
   }
-  useEffect(() => () => clearTimeout(timer.current), [])
+  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(release.current) }, [])
 
   return (
     <button
@@ -234,21 +235,29 @@ function SparkBurst({ trigger, color }) {
   const [parts, setParts] = useState([])
   useEffect(() => {
     if (!trigger) return
-    const N = 24
+    const N = 42
     const arr = Array.from({ length: N }, (_, i) => {
-      const edge = i % 4
-      const along = 6 + Math.random() * 88
-      const reach = 16 + Math.random() * 30
-      const jitter = (Math.random() - 0.5) * 18
+      const r = Math.random()
+      let edge, along, reach, jitter
+      if (r < 0.46) { edge = 'top'; along = 4 + Math.random() * 92; reach = 22 + Math.random() * 34; jitter = (Math.random() - 0.5) * 26 }
+      else if (r < 0.74) { edge = 'bottom'; along = 4 + Math.random() * 92; reach = 16 + Math.random() * 28; jitter = (Math.random() - 0.5) * 24 }
+      else if (r < 0.87) { edge = 'left'; along = 10 + Math.random() * 80; reach = 12 + Math.random() * 22; jitter = (Math.random() - 0.5) * 16 }
+      else { edge = 'right'; along = 10 + Math.random() * 80; reach = 12 + Math.random() * 22; jitter = (Math.random() - 0.5) * 16 }
       let sx, sy, ox, oy
-      if (edge === 0) { sx = along; sy = 0; ox = jitter; oy = -reach }
-      else if (edge === 1) { sx = 100; sy = along; ox = reach; oy = jitter }
-      else if (edge === 2) { sx = along; sy = 100; ox = jitter; oy = reach }
-      else { sx = 0; sy = along; ox = -reach; oy = jitter }
-      return { id: `${trigger}-${i}`, sx: `${sx}%`, sy: `${sy}%`, ox, oy, size: 3 + Math.random() * 3, delay: Math.random() * 0.05 }
+      if (edge === 'top') { sx = along; sy = 0; ox = jitter; oy = -reach }
+      else if (edge === 'bottom') { sx = along; sy = 100; ox = jitter; oy = reach }
+      else if (edge === 'left') { sx = 0; sy = along; ox = -reach; oy = jitter }
+      else { sx = 100; sy = along; ox = reach; oy = jitter }
+      const rot = (Math.atan2(oy, ox) * 180) / Math.PI - 90
+      const streak = 9 + Math.random() * 11
+      return {
+        id: `${trigger}-${i}`, sx: `${sx}%`, sy: `${sy}%`, ox, oy, rot,
+        w: 2 + Math.random() * 1.6, h: streak, delay: Math.random() * 0.04,
+        dur: 0.5 + Math.random() * 0.28
+      }
     })
     setParts(arr)
-    const t = setTimeout(() => setParts([]), 720)
+    const t = setTimeout(() => setParts([]), 820)
     return () => clearTimeout(t)
   }, [trigger])
   if (!parts.length) return null
@@ -257,11 +266,11 @@ function SparkBurst({ trigger, color }) {
       {parts.map(p => (
         <span key={p.id} className="lvl-spark" style={{
           left: p.sx, top: p.sy,
-          '--ox': `${p.ox}px`, '--oy': `${p.oy}px`,
-          width: p.size, height: p.size,
+          '--ox': `${p.ox}px`, '--oy': `${p.oy}px`, '--rot': `${p.rot}deg`,
+          width: p.w, height: p.h,
           background: color,
-          boxShadow: `0 0 6px ${color}, 0 0 12px ${color}aa`,
-          animationDelay: `${p.delay}s`
+          boxShadow: `0 0 6px ${color}, 0 0 14px ${color}, 0 0 22px ${color}aa`,
+          animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s`
         }} />
       ))}
     </div>
@@ -278,7 +287,7 @@ function AttributesStep({ char, cap, budget, left, valid, onAttr }) {
           </div>
           <div>
             <div className="font-display text-gold" style={{ fontSize: '1.15rem' }}>pontos restantes</div>
-            <div className="text-muted-drako" style={{ fontSize: '0.88rem' }}>distribua entre os 7 atributos · máx {cap} cada</div>
+            <div className="text-muted-drako" style={{ fontSize: '0.88rem' }}>distribua entre os 7 atributos · máx {cap} cada · <i className="bi bi-hand-index-thumb mx-1" />arraste as barras</div>
           </div>
         </div>
         {!valid.ok && <span className="text-muted-drako" style={{ fontSize: '0.85rem' }}><i className="bi bi-info-circle me-1" />{valid.errors[0]}</span>}
@@ -286,7 +295,7 @@ function AttributesStep({ char, cap, budget, left, valid, onAttr }) {
       <div className="row g-2">
         {ATTRIBUTES.map(a => {
           const v = char.attributes[a.key]
-          const pct = (v / cap) * 100
+          const maxAllowed = Math.min(cap, v + left)
           return (
             <div className="col-md-6" key={a.key}>
               <div className="glass glass-tight p-3">
@@ -302,9 +311,7 @@ function AttributesStep({ char, cap, budget, left, valid, onAttr }) {
                     <button className="btn-ghost" style={{ width: 30, height: 30, padding: 0 }} disabled={left <= 0 || v >= cap} onClick={() => onAttr(a.key, v + 1)}><i className="bi bi-plus" /></button>
                   </div>
                 </div>
-                <div style={{ height: 10, borderRadius: 6, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${a.color}, ${a.color}aa)`, transition: 'width .4s', boxShadow: `0 0 10px ${a.color}77` }} />
-                </div>
+                <AttrSlider value={v} cap={cap} maxAllowed={maxAllowed} color={a.color} onChange={(n) => onAttr(a.key, n)} />
               </div>
             </div>
           )
@@ -312,4 +319,49 @@ function AttributesStep({ char, cap, budget, left, valid, onAttr }) {
       </div>
     </div>
   )
+}
+
+function AttrSlider({ value, cap, maxAllowed, color, onChange }) {
+  const barRef = useRef(null)
+  const dragging = useRef(false)
+  const pct = (value / cap) * 100
+
+  const valueFromX = (clientX) => {
+    const el = barRef.current
+    if (!el) return value
+    const rect = el.getBoundingClientRect()
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    return Math.round(ratio * cap)
+  }
+  const apply = (clientX) => {
+    let next = valueFromX(clientX)
+    next = Math.max(0, Math.min(maxAllowed, next))
+    if (next !== value) onChange(next)
+  }
+  const onPointerDown = (e) => {
+    if (e.button !== 0) return
+    dragging.current = true
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+    apply(e.clientX)
+  }
+  const onPointerMove = (e) => { if (dragging.current) apply(e.clientX) }
+  const onPointerUp = (e) => {
+    dragging.current = false
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch {}
+  }
+
+  return (
+    <div ref={barRef}
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
+      data-no-drag="1"
+      style={{ position: 'relative', height: 14, borderRadius: 7, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', cursor: 'ew-resize', touchAction: 'none' }}
+      title="Arraste para definir o valor">
+      <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${aColorDark(color)}, ${color})`, transition: dragging.current ? 'none' : 'width .25s', boxShadow: `0 0 10px ${color}77` }} />
+      <div style={{ position: 'absolute', top: '50%', left: `${pct}%`, width: 16, height: 16, borderRadius: '50%', transform: 'translate(-50%, -50%)', background: color, border: '2px solid #fff8e6', boxShadow: `0 0 8px ${color}, 0 2px 5px rgba(0,0,0,0.6)`, pointerEvents: 'none', transition: dragging.current ? 'none' : 'left .25s' }} />
+    </div>
+  )
+}
+
+function aColorDark(hex) {
+  return hex + 'aa'
 }

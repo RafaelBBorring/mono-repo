@@ -8,7 +8,8 @@ const NAV = [
   { to: '', label: 'Início', icon: 'bi-house' },
   { to: 'biblioteca', label: 'Biblioteca', icon: 'bi-collection' },
   { to: 'novo', label: 'Nova Ficha', icon: 'bi-plus-square' },
-  { to: 'quadros', label: 'Quadros', icon: 'bi-grid-3x3-gap' }
+  { to: 'quadros', label: 'Quadros', icon: 'bi-grid-3x3-gap' },
+  { to: 'regras', label: 'Regras', icon: 'bi-journal-text' }
 ]
 
 export default function AppShell({ children }) {

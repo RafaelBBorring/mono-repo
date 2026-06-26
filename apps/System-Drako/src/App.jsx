@@ -11,6 +11,7 @@ const WizardView = lazy(() => import('./components/wizard/WizardView.jsx'))
 const SheetView = lazy(() => import('./components/sheet/SheetView.jsx'))
 const BoardsView = lazy(() => import('./components/canvas/BoardsView.jsx'))
 const BoardView = lazy(() => import('./components/canvas/BoardView.jsx'))
+const RegrasView = lazy(() => import('./components/regras/RegrasView.jsx'))
 
 function Fallback() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
     case 'ficha': view = <SheetView id={param} />; break
     case 'quadros': view = <BoardsView />; break
     case 'quadro': view = <BoardView id={param} />; break
+    case 'regras': view = <RegrasView />; break
     default: view = <HomeView />
   }
 

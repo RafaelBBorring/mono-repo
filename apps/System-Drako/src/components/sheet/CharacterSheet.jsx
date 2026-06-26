@@ -76,14 +76,14 @@ export default function CharacterSheet({ character: c, editable = false, onChang
             <div className="col-6">
               <div className="d-flex flex-column gap-2">
                 {ATTRIBUTES.slice(0, 4).map(a => (
-                  <AttributeSphere key={a.key} attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} align="right" />
+                  <AttributeSphere key={a.key} attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} />
                 ))}
               </div>
             </div>
             <div className="col-6">
               <div className="d-flex flex-column gap-2">
                 {ATTRIBUTES.slice(4).map(a => (
-                  <AttributeSphere key={a.key} attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} align="left" />
+                  <AttributeSphere key={a.key} attr={a} value={c.attributes?.[a.key] || 0} editable={editable} onChange={(v) => onAttribute?.(a.key, v)} />
                 ))}
               </div>
             </div>
@@ -174,12 +174,11 @@ function Portrait({ c, size, lvlColor }) {
   )
 }
 
-function AttributeSphere({ attr, value, editable, onChange, align = 'left' }) {
+function AttributeSphere({ attr, value, editable, onChange }) {
   const v = Math.max(0, Math.min(10, value))
   const setValue = (raw) => onChange?.(Math.max(0, Math.min(10, Number(raw) || 0)))
-  const isRight = align === 'right'
   return (
-    <div className="d-flex align-items-center gap-2" style={{ flexDirection: isRight ? 'row' : 'row-reverse', textAlign: isRight ? 'right' : 'left' }}>
+    <div className="d-flex align-items-center gap-2">
       <div style={{ position: 'relative', width: 54, height: 54, flex: '0 0 auto' }}>
         <svg width="54" height="54" viewBox="0 0 54 54">
           <defs>
@@ -198,8 +197,8 @@ function AttributeSphere({ attr, value, editable, onChange, align = 'left' }) {
             : v}
         </div>
       </div>
-      <div className="flex-grow-1 min-w-0">
-        <div className="font-display" style={{ fontSize: '0.96rem', color: 'var(--drako-gold-soft)', lineHeight: 1.1 }}>{attr.name}</div>
+      <div className="min-w-0">
+        <div className="font-display" style={{ fontSize: '0.98rem', color: 'var(--drako-gold-soft)', lineHeight: 1.1 }}>{attr.name}</div>
         <div className="font-mono" style={{ fontSize: '0.64rem', color: attr.color, letterSpacing: '0.06em' }}>{attr.short}</div>
       </div>
     </div>

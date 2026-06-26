@@ -133,19 +133,28 @@ h1, h2, h3, h4 { font-family: 'Fraunces', Georgia, serif; color: var(--drako-gol
               0 0 26px -2px var(--tier),
               0 0 56px -8px color-mix(in srgb, var(--tier) 80%, transparent);
 }
-.lvl-card--press { transform: translateY(3px) scale(0.96); }
+.lvl-card--press { animation: lvl-press-back .46s cubic-bezier(.2,.75,.25,1); }
 
-/* sparks erupt from the card borders */
+@keyframes lvl-press-back {
+  0%   { transform: translateY(-5px) scale(1); filter: brightness(1); }
+  38%  { transform: translateY(8px) scale(.9); filter: brightness(.78); box-shadow: 0 0 0 1px transparent, 0 0 4px -2px color-mix(in srgb, var(--tier) 50%, transparent), 0 14px 22px -16px rgba(0,0,0,0.95); }
+  55%  { filter: brightness(1.18); }
+  100% { transform: translateY(-2px) scale(1.01); filter: brightness(1); }
+}
+
+/* sparks erupt from the card borders — vertical-biased, velocity-aligned streaks */
 .lvl-sparks { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: visible; }
 .lvl-spark {
-  position: absolute; border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0.6);
-  animation: lvl-spark-fly .66s cubic-bezier(.2,.7,.2,1) forwards;
+  position: absolute; border-radius: 2px;
+  transform-origin: center;
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scaleY(.25);
+  opacity: 0;
+  animation: lvl-spark-fly .6s cubic-bezier(.2,.7,.2,1) forwards;
 }
 @keyframes lvl-spark-fly {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-  15%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--ox)), calc(-50% + var(--oy))) scale(1.15); }
+  0%   { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scaleY(.2); }
+  14%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--ox)), calc(-50% + var(--oy))) rotate(var(--rot, 0deg)) scaleY(1); }
 }
 
 /* ---------- Buttons ---------- */

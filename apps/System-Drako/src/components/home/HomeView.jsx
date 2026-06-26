@@ -76,7 +76,8 @@ export default function HomeView() {
 
           {/* Discrete secondary actions */}
           <Reveal delay={440}>
-            <div className="d-flex gap-2 mt-4">
+            <div className="d-flex gap-2 mt-4 flex-wrap justify-content-center">
+              <button className="btn-ghost" style={{ fontSize: '0.88rem', padding: '0.4rem 0.9rem' }} onClick={() => go('regras')}><i className="bi bi-journal-text me-2" />Regras do Sistema</button>
               <button className="btn-ghost" style={{ fontSize: '0.88rem', padding: '0.4rem 0.9rem' }} onClick={() => go('quadros')}><i className="bi bi-grid-3x3-gap me-2" />Quadros</button>
               <button className="btn-ghost" style={{ fontSize: '0.88rem', padding: '0.4rem 0.9rem' }} onClick={() => setShowOracle(true)}><i className="bi bi-stars me-2" />Invocar Oráculo</button>
             </div>
@@ -239,9 +240,9 @@ function HexagonCTA({ label, sub, icon, filled = false, onClick }) {
 
 const FEATURES = [
   { icon: 'bi-hammer', title: 'Forja concisa', desc: 'Fluxo enxuto: identidade, nível, atributos, anotações e habilidades.' },
+  { icon: 'bi-journal-text', title: 'Códex de Regras', desc: 'Dashboard completo com todas as fórmulas, tabelas e valores do sistema.' },
   { icon: 'bi-stars', title: 'Oráculo (IA)', desc: 'Cria fichas completas, gera kits de habilidades e audita balanceamento.' },
   { icon: 'bi-collection', title: 'Biblioteca viva', desc: 'Ícones em evidência, pastas e busca rápida — tudo local.' },
   { icon: 'bi-grid-3x3-gap', title: 'Quadro Infinito', desc: 'Arena de combate: solte fichas, edite vida e energia em tempo real.' },
-  { icon: 'bi-image', title: 'Ícone ajustável', desc: 'Arraste, cole ou importe — ajuste posição e zoom na máscara.' },
   { icon: 'bi-file-earmark-arrow-down', title: 'Exportação total', desc: '.drako (com tudo), PDF e imagem para levar à mesa.' }
 ]
