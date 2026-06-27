@@ -18,6 +18,7 @@ export default function LibraryView() {
   const [folderFilter, setFolderFilter] = useState(null)
   const [showNewFolder, setShowNewFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [showMove, setShowMove] = useState(false)
   const [picked, setPicked] = useState(() => new Set())
   const [selectMode, setSelectMode] = useState(false)
   const fileRef = React.useRef(null)
@@ -106,14 +107,7 @@ export default function LibraryView() {
             <>
               <Button variant="ghost" onClick={pickAllVisible}><i className="bi bi-check2-all me-2" />{filtered.length > 0 && filtered.every(c => picked.has(c.id)) ? 'Desmarcar' : 'Marcar'} todas</Button>
               <Button variant="ghost" onClick={exportSelected} disabled={!picked.size}><i className="bi bi-file-earmark-arrow-down me-2" />Exportar ({picked.size})</Button>
-              <span className="position-relative d-inline-block">
-                <Button variant="ghost" disabled={!picked.size} onClick={() => document.getElementById('lib-folder-move')?.click()}><i className="bi bi-folder-symlink me-2" />Mover</Button>
-                <select id="lib-folder-move" className="d-none" onChange={(e) => { const v = e.target.value; if (v) { moveSelectedToFolder(v === '__none__' ? null : v); e.target.value = '' } }}>
-                  <option value="">—</option>
-                  <option value="__none__">Sem pasta</option>
-                  {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
-              </span>
+              <Button variant="ghost" disabled={!picked.size} onClick={() => picked.size && setShowMove(true)}><i className="bi bi-folder-symlink me-2" />Mover</Button>
               <Button variant="danger" onClick={deleteSelected} disabled={!picked.size}><i className="bi bi-trash me-2" />Excluir ({picked.size})</Button>
               <Button onClick={exitSelectMode}>Concluir</Button>
             </>
@@ -183,6 +177,7 @@ export default function LibraryView() {
         <label className="label-drako">Nome da pasta</label>
         <input className="input-drako" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Ex: Vilões da Campanha" onKeyDown={(e) => { if (e.key === 'Enter') createFolder() }} autoFocus />
       </Modal>
+      <MoveFolderModal open={showMove} onClose={() => setShowMove(false)} folders={folders} chars={chars} pickedCount={picked.size} onMove={(fid) => moveSelectedToFolder(fid)} onCreateFolder={async (name) => { await saveFolder({ id: uid('fld'), name: name.trim() }); await reload() }} />
     </div>
   )
 }
@@ -230,5 +225,61 @@ function IconTile({ character: c, onOpen, onDelete, selectMode, picked, onToggle
       <span className="tag-chip mt-2" style={{ color, fontSize: '0.7rem', padding: '0.18rem 0.55rem' }}>{lvl?.name}</span>
       <span className="font-display text-center mt-1" style={{ fontSize: '0.95rem', color: 'var(--drako-gold-soft)', lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{c.name || 'Sem Nome'}</span>
     </div>
+  )
+}
+
+function MoveFolderModal({ open, onClose, folders, chars, pickedCount, onMove, onCreateFolder }) {
+  const [creating, setCreating] = useState(false)
+  const [name, setName] = useState('')
+  const sorted = [...folders].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  const countFor = (fid) => chars.filter(c => fid === null ? !c.folderId : (c.folderId || null) === fid).length
+  const submit = async () => {
+    const n = name.trim()
+    if (!n) return
+    await onCreateFolder(n)
+    setName('')
+    setCreating(false)
+  }
+  const pick = (fid) => { onMove(fid); onClose() }
+  return (
+    <Modal open={open} onClose={onClose} title="Mover fichas" size="sm"
+      footer={<Button variant="ghost" onClick={onClose}>Cancelar</Button>}>
+      <div className="d-flex align-items-center gap-2 mb-3">
+        <span className="tag-chip text-gold" style={{ fontSize: '0.72rem' }}><i className="bi bi-collection me-1" />{pickedCount} ficha(s)</span>
+        <span className="text-muted-drako" style={{ fontSize: '0.82rem' }}>Escolha o destino</span>
+      </div>
+      <div className="d-flex flex-column gap-2" style={{ maxHeight: 360, overflowY: 'auto', paddingRight: 2 }}>
+        <button className="glass glass-tight glass-hover d-flex align-items-center gap-3 p-3 text-start w-100" onClick={() => pick(null)}>
+          <span className="d-flex align-items-center justify-content-center" style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(224,173,51,0.08)', border: '1px solid var(--drako-border)' }}><i className="bi bi-collection text-gold" /></span>
+          <span className="flex-grow-1">
+            <span className="d-block font-display" style={{ color: 'var(--drako-gold-soft)', fontSize: '0.95rem', lineHeight: 1.1 }}>Sem pasta</span>
+            <span className="text-muted-drako" style={{ fontSize: '0.74rem' }}>Raiz da biblioteca</span>
+          </span>
+          <span className="font-mono text-muted-drako" style={{ fontSize: '0.78rem' }}>{countFor(null)}</span>
+        </button>
+        {sorted.map(f => (
+          <button key={f.id} className="glass glass-tight glass-hover d-flex align-items-center gap-3 p-3 text-start w-100" onClick={() => pick(f.id)}>
+            <span className="d-flex align-items-center justify-content-center" style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(224,173,51,0.08)', border: '1px solid var(--drako-border)' }}><i className="bi bi-folder-fill text-gold" /></span>
+            <span className="flex-grow-1 font-display" style={{ color: 'var(--drako-gold-soft)', fontSize: '0.95rem', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+            <span className="font-mono text-muted-drako" style={{ fontSize: '0.78rem' }}>{countFor(f.id)}</span>
+          </button>
+        ))}
+        {creating ? (
+          <div className="glass glass-tight p-3">
+            <div className="label-drako">Nova pasta</div>
+            <div className="d-flex gap-2">
+              <input className="input-drako" style={{ flex: '1 1 auto' }} value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome da pasta" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { setCreating(false); setName('') } }} />
+              <button className="btn-ghost d-inline-flex align-items-center justify-content-center" style={{ width: 40, height: 38, padding: 0 }} onClick={submit} title="Criar"><i className="bi bi-check-lg" /></button>
+              <button className="btn-ghost d-inline-flex align-items-center justify-content-center" style={{ width: 40, height: 38, padding: 0 }} onClick={() => { setCreating(false); setName('') }} title="Cancelar"><i className="bi bi-x" /></button>
+            </div>
+          </div>
+        ) : (
+          <button className="glass glass-tight glass-hover d-flex align-items-center gap-3 p-3 text-start w-100" style={{ borderStyle: 'dashed' }} onClick={() => setCreating(true)}>
+            <span className="d-flex align-items-center justify-content-center" style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(224,173,51,0.05)', border: '1px dashed var(--drako-border)' }}><i className="bi bi-folder-plus text-gold" /></span>
+            <span className="flex-grow-1 text-muted-drako" style={{ fontSize: '0.9rem' }}>Criar nova pasta</span>
+          </button>
+        )}
+      </div>
+    </Modal>
   )
 }
