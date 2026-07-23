@@ -35,12 +35,20 @@ export default function ParticleBackground() {
     const col = new Float32Array(N * 3);
     const vel = new Float32Array(N * 3);
 
-    const pal = [
-      new THREE.Color("#8fae9b"),
-      new THREE.Color("#a9d6e5"),
-      new THREE.Color("#c98268"),
-      new THREE.Color("#6baa75"),
-    ];
+    const isDark = document.documentElement.classList.contains("dark");
+    const pal = isDark
+      ? [
+          new THREE.Color("#3b82f6"),
+          new THREE.Color("#8b5cf6"),
+          new THREE.Color("#60a5fa"),
+          new THREE.Color("#a78bfa"),
+        ]
+      : [
+          new THREE.Color("#c8a227"),
+          new THREE.Color("#3a1a5e"),
+          new THREE.Color("#b88728"),
+          new THREE.Color("#5b2d8f"),
+        ];
 
     for (let i = 0; i < N; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 130;
@@ -120,7 +128,13 @@ export default function ParticleBackground() {
   }, []);
 
   useEffect(() => {
-    const cleanup = init();
+    let cleanup: (() => void) | undefined;
+    try {
+      cleanup = init();
+    } catch (error) {
+      console.warn("Fundo 3D indisponível neste navegador:", error);
+      canvasRef.current?.setAttribute("data-webgl", "unavailable");
+    }
     return () => cleanup?.();
   }, [init]);
 

@@ -30,6 +30,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      SUPABASE_ACCESS_TOKEN: ""
+      GOOGLE_OAUTH_CLIENT_SECRET: ""
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000"]
       interval: 30s

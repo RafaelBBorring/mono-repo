@@ -75,6 +75,8 @@ function createRenderer(container: HTMLDivElement, maxPixelRatio = 2) {
   renderer.toneMappingExposure = 1.04;
   renderer.domElement.style.display = "block";
   renderer.domElement.style.height = "100%";
+  renderer.domElement.style.inset = "0";
+  renderer.domElement.style.position = "absolute";
   renderer.domElement.style.pointerEvents = "none";
   renderer.domElement.style.width = "100%";
   container.appendChild(renderer.domElement);
@@ -109,113 +111,91 @@ function disposeScene(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 
 function createClinicHeroRig(): ClinicHeroRig {
   const root = new THREE.Group();
-  root.rotation.set(-0.58, -0.48, 0.04);
+  root.rotation.set(0, -0.18, 0);
 
   const palette = [
-    new THREE.Color("#3f6b5b"),
-    new THREE.Color("#8fae9b"),
-    new THREE.Color("#4f8fa5"),
-    new THREE.Color("#c98268"),
-    new THREE.Color("#d8a24a"),
+    new THREE.Color("#7b6bff"),
+    new THREE.Color("#5eead4"),
+    new THREE.Color("#9d90ff"),
+    new THREE.Color("#6e8bff"),
+    new THREE.Color("#a5b6ff"),
   ];
 
   const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(4.9, 0.08, 2.85),
-    new THREE.MeshStandardMaterial({
-      color: "#ece8dd",
-      roughness: 0.76,
-      metalness: 0.02,
+    new THREE.BoxGeometry(5.25, 0.1, 3.65),
+    new THREE.MeshBasicMaterial({
+      color: "#0e1424",
       transparent: true,
-      opacity: 0.84,
+      opacity: 0.96,
     })
   );
-  floor.position.set(0.12, -0.46, 0.04);
+  floor.position.set(0, -0.46, 0);
   root.add(floor);
 
-  const roomMaterial = new THREE.MeshStandardMaterial({
-    color: "#f7f2e8",
-    roughness: 0.72,
-    metalness: 0.02,
-    vertexColors: true,
+  const roomMaterial = new THREE.MeshBasicMaterial({
+    color: "#141d31",
   });
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: "#f7f7f2",
-    roughness: 0.66,
-    metalness: 0.04,
+  const wallMaterial = new THREE.MeshBasicMaterial({
+    color: "#1e2a48",
     transparent: true,
-    opacity: 0.92,
-    vertexColors: true,
+    opacity: 0.96,
   });
-  const doorMaterial = new THREE.MeshStandardMaterial({
-    color: "#3f6b5b",
-    roughness: 0.5,
-    metalness: 0.1,
-    vertexColors: true,
+  const doorMaterial = new THREE.MeshBasicMaterial({
+    color: "#7b6bff",
   });
-  const slotMaterial = new THREE.MeshStandardMaterial({
-    color: "#8fae9b",
-    roughness: 0.62,
-    metalness: 0.04,
+  const slotMaterial = new THREE.MeshBasicMaterial({
+    color: "#5eead4",
     transparent: true,
-    opacity: 0.88,
-    vertexColors: true,
+    opacity: 0.96,
   });
-  const doctorMaterial = new THREE.MeshStandardMaterial({
-    color: "#3f6b5b",
-    roughness: 0.54,
-    metalness: 0.08,
-    vertexColors: true,
+  const doctorMaterial = new THREE.MeshBasicMaterial({
+    color: "#9d90ff",
   });
-  const headMaterial = new THREE.MeshStandardMaterial({
-    color: "#f7f2e8",
-    roughness: 0.7,
-    metalness: 0.02,
+  const headMaterial = new THREE.MeshBasicMaterial({
+    color: "#eef1fb",
   });
-  const signalMaterial = new THREE.MeshStandardMaterial({
-    color: "#d8a24a",
-    emissive: "#d8a24a",
-    emissiveIntensity: 0.18,
-    roughness: 0.38,
-    metalness: 0.18,
+  const signalMaterial = new THREE.MeshBasicMaterial({
+    color: "#a5b6ff",
   });
 
-  const rooms = Array.from({ length: 8 }, (_, index) => ({
-    x: -1.42 + (index % 4) * 0.82,
-    z: -0.56 + Math.floor(index / 4) * 0.72,
+  const rooms = Array.from({ length: 6 }, (_, index) => ({
+    x: -1.6 + (index % 3) * 1.6,
+    z: -0.92 + Math.floor(index / 3) * 1.84,
     color: palette[index % palette.length],
     phase: index * 0.72,
   }));
-  const roomBases = new THREE.InstancedMesh(new THREE.BoxGeometry(0.66, 0.1, 0.5), roomMaterial, rooms.length);
-  const roomWalls = new THREE.InstancedMesh(new THREE.BoxGeometry(0.64, 0.34, 0.055), wallMaterial, rooms.length);
-  const roomDoors = new THREE.InstancedMesh(new THREE.BoxGeometry(0.13, 0.22, 0.055), doorMaterial, rooms.length);
+  const roomBases = new THREE.InstancedMesh(new THREE.BoxGeometry(1.42, 0.1, 1.42), roomMaterial, rooms.length);
+  const roomWalls = new THREE.InstancedMesh(new THREE.BoxGeometry(1.42, 0.42, 0.07), wallMaterial, rooms.length);
+  const roomDoors = new THREE.InstancedMesh(new THREE.BoxGeometry(0.07, 0.42, 1.34), doorMaterial, rooms.length);
   roomBases.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   roomWalls.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   roomDoors.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   root.add(roomBases, roomWalls, roomDoors);
 
-  const slots = Array.from({ length: 24 }, (_, index) => {
-    const row = Math.floor(index / 4);
-    const col = index % 4;
-    const busy = [1, 4, 8, 13, 18, 22].includes(index);
+  const slots = Array.from({ length: 18 }, (_, index) => {
+    const roomIndex = Math.floor(index / 3);
+    const room = rooms[roomIndex];
+    const item = index % 3;
+    const busy = [1, 5, 8, 10, 14, 17].includes(index);
     return {
-      x: 1.18 + col * 0.36,
-      z: -0.96 + row * 0.28,
-      color: busy ? palette[(index + 2) % palette.length] : new THREE.Color("#8fae9b").lerp(new THREE.Color("#f7f2e8"), 0.42),
+      x: room.x + (item === 0 ? -0.3 : item === 1 ? 0.26 : 0.3),
+      z: room.z + (item === 0 ? -0.2 : item === 1 ? 0.16 : -0.3),
+      color: busy ? palette[(index + 2) % palette.length] : new THREE.Color("#121a2e").lerp(new THREE.Color("#5eead4"), 0.18),
       phase: index * 0.4,
       busy,
     };
   });
-  const slotBlocks = new THREE.InstancedMesh(new THREE.BoxGeometry(0.26, 0.08, 0.16), slotMaterial, slots.length);
+  const slotBlocks = new THREE.InstancedMesh(new THREE.BoxGeometry(0.34, 0.12, 0.22), slotMaterial, slots.length);
   slotBlocks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   root.add(slotBlocks);
 
   const doctors = [
-    { x: -1.52, z: -0.9, color: palette[0], roomIndex: 0, phase: 0.1 },
-    { x: -0.72, z: -0.9, color: palette[2], roomIndex: 1, phase: 1.2 },
-    { x: 0.14, z: -0.9, color: palette[3], roomIndex: 2, phase: 2.1 },
-    { x: -1.08, z: 0.48, color: palette[1], roomIndex: 4, phase: 3.2 },
-    { x: -0.18, z: 0.52, color: palette[4], roomIndex: 5, phase: 4.1 },
-    { x: 0.62, z: 0.48, color: palette[0].clone().lerp(palette[2], 0.42), roomIndex: 6, phase: 5.4 },
+    { x: -1.58, z: -0.82, color: palette[0], roomIndex: 0, phase: 0.1 },
+    { x: 0.02, z: -0.82, color: palette[2], roomIndex: 1, phase: 1.2 },
+    { x: 1.62, z: -0.82, color: palette[3], roomIndex: 2, phase: 2.1 },
+    { x: -1.58, z: 1.02, color: palette[1], roomIndex: 3, phase: 3.2 },
+    { x: 0.02, z: 1.02, color: palette[4], roomIndex: 4, phase: 4.1 },
+    { x: 1.62, z: 1.02, color: palette[0].clone().lerp(palette[2], 0.42), roomIndex: 5, phase: 5.4 },
   ];
   const doctorBodies = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.105, 0.13, 0.24, 20), doctorMaterial, doctors.length);
   const doctorHeads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.095, 20, 14), headMaterial, doctors.length);
@@ -231,9 +211,9 @@ function createClinicHeroRig(): ClinicHeroRig {
   const connectors = new THREE.LineSegments(
     connectorGeometry,
     new THREE.LineBasicMaterial({
-      color: "#3f6b5b",
+      color: "#7b6bff",
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.32,
     })
   );
   root.add(connectors);
@@ -242,8 +222,8 @@ function createClinicHeroRig(): ClinicHeroRig {
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
   rooms.forEach((room, index) => {
-    roomBases.setColorAt(index, room.color.clone().lerp(new THREE.Color("#f7f7f2"), 0.5));
-    roomWalls.setColorAt(index, room.color.clone().lerp(new THREE.Color("#f7f7f2"), 0.68));
+    roomBases.setColorAt(index, room.color.clone().lerp(new THREE.Color("#070b16"), 0.64));
+    roomWalls.setColorAt(index, room.color.clone().lerp(new THREE.Color("#12182e"), 0.72));
     roomDoors.setColorAt(index, room.color);
   });
   slots.forEach((slot, index) => {
@@ -261,9 +241,9 @@ function createClinicHeroRig(): ClinicHeroRig {
   rooms.forEach((room, index) => {
     matrix.compose(new THREE.Vector3(room.x, -0.35, room.z), quaternion, scale.set(1, 1, 1));
     roomBases.setMatrixAt(index, matrix);
-    matrix.compose(new THREE.Vector3(room.x, -0.18, room.z - 0.24), quaternion, scale.set(1, 1, 1));
+    matrix.compose(new THREE.Vector3(room.x, -0.18, room.z - 0.68), quaternion, scale.set(1, 1, 1));
     roomWalls.setMatrixAt(index, matrix);
-    matrix.compose(new THREE.Vector3(room.x + (index % 2 === 0 ? -0.2 : 0.2), -0.24, room.z + 0.23), quaternion, scale.set(1, 1, 1));
+    matrix.compose(new THREE.Vector3(room.x - 0.68, -0.18, room.z), quaternion, scale.set(1, 1, 1));
     roomDoors.setMatrixAt(index, matrix);
   });
 
@@ -306,9 +286,9 @@ function updateClinicHeroRig(rig: ClinicHeroRig, progress: number, time: number)
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
 
-  rig.root.rotation.x = -0.58 + focus * 0.08 + Math.sin(time * 0.18) * 0.012;
-  rig.root.rotation.y = -0.5 + focus * 0.23 + Math.sin(time * 0.16) * 0.016;
-  rig.root.rotation.z = 0.04 - focus * 0.035;
+  rig.root.rotation.x = 0;
+  rig.root.rotation.y = -0.18 + focus * 0.08 + Math.sin(time * 0.16) * 0.012;
+  rig.root.rotation.z = 0;
 
   rig.rooms.forEach((room, index) => {
     const bob = Math.sin(time * 0.72 + room.phase) * 0.012;
@@ -318,10 +298,10 @@ function updateClinicHeroRig(rig: ClinicHeroRig, progress: number, time: number)
 
     matrix.compose(new THREE.Vector3(room.x, -0.35 + yOffset + bob, room.z), quaternion, scale.set(1, roomScaleY, 1));
     rig.roomBases.setMatrixAt(index, matrix);
-    matrix.compose(new THREE.Vector3(room.x, -0.18 + yOffset + bob, room.z - 0.24), quaternion, scale.set(1, roomScaleY, 1));
+    matrix.compose(new THREE.Vector3(room.x, -0.18 + yOffset + bob, room.z - 0.68), quaternion, scale.set(1, roomScaleY, 1));
     rig.roomWalls.setMatrixAt(index, matrix);
     matrix.compose(
-      new THREE.Vector3(room.x + (index % 2 === 0 ? -0.2 : 0.2), -0.24 + yOffset + bob, room.z + 0.23),
+      new THREE.Vector3(room.x - 0.68, -0.18 + yOffset + bob, room.z),
       quaternion,
       scale.set(1, roomScaleY, 1)
     );
@@ -392,22 +372,22 @@ function updateClinicHeroRig(rig: ClinicHeroRig, progress: number, time: number)
 
 function createLandingScene(container: HTMLDivElement): SceneController {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  camera.position.set(0.22, 0.42, 5.35);
+  const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 100);
+  camera.position.set(4.8, 6.6, 6.2);
 
   const renderer = createRenderer(container);
   const clock = new THREE.Clock();
   const clinic = createClinicHeroRig();
   const reduced = reduceMotion();
   const layout = {
-    rootX: 1.22,
-    rootY: -0.02,
+    rootX: 0,
+    rootY: 0.06,
     rootScale: 1,
-    cameraX: 0.22,
-    cameraY: 0.42,
-    cameraZ: 5.35,
-    lookX: 0.34,
-    lookY: -0.08,
+    cameraX: 4.8,
+    cameraY: 6.6,
+    cameraZ: 6.2,
+    lookX: 0,
+    lookY: -0.16,
   };
 
   let rafId = 0;
@@ -417,15 +397,17 @@ function createLandingScene(container: HTMLDivElement): SceneController {
   let framePending = false;
   let targetProgress = getLandingProgress();
   let currentProgress = targetProgress;
+  const pointerTarget = new THREE.Vector2();
+  const pointerCurrent = new THREE.Vector2();
 
   scene.add(clinic.root);
 
-  const ambient = new THREE.HemisphereLight("#f7f7f2", "#3f6b5b", 1.2);
-  const key = new THREE.DirectionalLight("#fff9ef", 3.4);
+  const ambient = new THREE.HemisphereLight("#eef1fb", "#070b16", 1.2);
+  const key = new THREE.DirectionalLight("#9d90ff", 3.4);
   key.position.set(2.8, 3.4, 4);
-  const fill = new THREE.PointLight("#a9d6e5", 3.8, 8);
+  const fill = new THREE.PointLight("#5eead4", 3.8, 8);
   fill.position.set(-2.4, 0.7, 2.6);
-  const warm = new THREE.PointLight("#c98268", 2.2, 6);
+  const warm = new THREE.PointLight("#7b6bff", 2.2, 6);
   warm.position.set(2.4, -0.1, 1.5);
   scene.add(ambient, key, fill, warm);
 
@@ -451,21 +433,34 @@ function createLandingScene(container: HTMLDivElement): SceneController {
         : getLandingProgress();
   }
 
+  function updatePointer(event: PointerEvent) {
+    if (reduced) return;
+    const rect = container.getBoundingClientRect();
+    pointerTarget.set(
+      THREE.MathUtils.clamp(((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1, -1, 1),
+      THREE.MathUtils.clamp(((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 - 1, -1, 1)
+    );
+  }
+
+  function clearPointer() {
+    pointerTarget.set(0, 0);
+  }
+
   function resize() {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       const width = container.clientWidth || window.innerWidth;
       const height = container.clientHeight || window.innerHeight;
       const narrow = width < 760;
-      layout.rootX = narrow ? 0.52 : 1.22;
-      layout.rootY = narrow ? -0.5 : -0.02;
-      layout.rootScale = narrow ? 0.72 : 1;
-      layout.cameraX = narrow ? 0.08 : 0.22;
-      layout.cameraY = narrow ? 0.66 : 0.42;
-      layout.cameraZ = narrow ? 5.75 : 5.35;
-      layout.lookX = narrow ? 0.08 : 0.34;
-      layout.lookY = narrow ? -0.18 : -0.08;
-      camera.fov = narrow ? 45 : 40;
+      layout.rootX = 0;
+      layout.rootY = narrow ? -0.12 : 0.06;
+      layout.rootScale = narrow ? 0.78 : 1;
+      layout.cameraX = narrow ? 4.5 : 4.8;
+      layout.cameraY = narrow ? 7.2 : 6.6;
+      layout.cameraZ = narrow ? 7.1 : 6.2;
+      layout.lookX = 0;
+      layout.lookY = narrow ? -0.12 : -0.16;
+      camera.fov = narrow ? 37 : 33;
       camera.aspect = width / Math.max(height, 1);
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -489,8 +484,11 @@ function createLandingScene(container: HTMLDivElement): SceneController {
       ? targetProgress
       : THREE.MathUtils.damp(currentProgress, targetProgress, 5.8, dt);
     const value = currentProgress;
+    pointerCurrent.x = THREE.MathUtils.damp(pointerCurrent.x, pointerTarget.x, 4.8, dt);
+    pointerCurrent.y = THREE.MathUtils.damp(pointerCurrent.y, pointerTarget.y, 4.8, dt);
 
     updateClinicHeroRig(clinic, value, reduced ? 1.4 : time);
+    clinic.root.rotation.y += pointerCurrent.x * 0.055;
 
     const focus = smoothstep(0.12, 0.92, value);
     clinic.root.position.set(
@@ -500,8 +498,8 @@ function createLandingScene(container: HTMLDivElement): SceneController {
     );
     clinic.root.scale.setScalar(layout.rootScale * THREE.MathUtils.lerp(1, 0.94, focus));
 
-    camera.position.x = THREE.MathUtils.lerp(layout.cameraX, layout.cameraX - 0.3, value);
-    camera.position.y = THREE.MathUtils.lerp(layout.cameraY, layout.cameraY + 0.1, value);
+    camera.position.x = THREE.MathUtils.lerp(layout.cameraX, layout.cameraX - 0.2, value) + pointerCurrent.x * 0.08;
+    camera.position.y = THREE.MathUtils.lerp(layout.cameraY, layout.cameraY + 0.12, value) - pointerCurrent.y * 0.04;
     camera.position.z = layout.cameraZ;
     camera.lookAt(layout.lookX, layout.lookY, 0);
 
@@ -514,6 +512,8 @@ function createLandingScene(container: HTMLDivElement): SceneController {
   window.addEventListener("resize", resize);
   window.addEventListener("scroll", syncProgress, { passive: true });
   window.addEventListener("morpheus:lenis-scroll", syncProgress as EventListener);
+  window.addEventListener("pointermove", updatePointer, { passive: true });
+  window.addEventListener("pointerleave", clearPointer);
   requestFrame();
 
   return {
@@ -537,6 +537,8 @@ function createLandingScene(container: HTMLDivElement): SceneController {
       window.removeEventListener("resize", resize);
       window.removeEventListener("scroll", syncProgress);
       window.removeEventListener("morpheus:lenis-scroll", syncProgress as EventListener);
+      window.removeEventListener("pointermove", updatePointer);
+      window.removeEventListener("pointerleave", clearPointer);
       disposeScene(scene, renderer);
       renderer.domElement.remove();
     },
@@ -552,7 +554,45 @@ function viewportAtZ(camera: THREE.PerspectiveCamera, z = 0) {
   };
 }
 
-function createParticlePool(count: number) {
+type DashPalette = {
+  ambient: string;
+  ambientIntensity: number;
+  petal: string;
+  petalOpacity: number;
+  vine: string;
+  vineOpacity: number;
+  particle: string;
+};
+
+function readTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
+
+function dashPalette(theme: "light" | "dark"): DashPalette {
+  if (theme === "dark") {
+    return {
+      ambient: "#1a2238",
+      ambientIntensity: 1.4,
+      petal: "#8b5cf6",
+      petalOpacity: 0.42,
+      vine: "#6d8bff",
+      vineOpacity: 0.24,
+      particle: "#60a5fa",
+    };
+  }
+  return {
+    ambient: "#fff4dd",
+    ambientIntensity: 1.2,
+    petal: "#c8a227",
+    petalOpacity: 0.4,
+    vine: "#9c7a17",
+    vineOpacity: 0.22,
+    particle: "#3a1a5e",
+  };
+}
+
+function createParticlePool(count: number, baseColorHex: string) {
   const particles: ParticleBody[] = Array.from({ length: count }, () => ({
     position: new THREE.Vector3(0, -100, 0),
     velocity: new THREE.Vector3(),
@@ -560,7 +600,7 @@ function createParticlePool(count: number) {
   }));
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
-  const baseColor = new THREE.Color("#c98268");
+  const baseColor = new THREE.Color(baseColorHex);
 
   for (let index = 0; index < count; index += 1) {
     positions[index * 3 + 1] = -100;
@@ -602,6 +642,9 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
+  const direction = new THREE.Vector3();
+  const spring = new THREE.Vector3();
+  const petalEuler = new THREE.Euler();
   const vineLines: Array<{
     geometry: THREE.BufferGeometry;
     positions: Float32Array;
@@ -617,24 +660,28 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
   let activeParticle = 0;
   let lastParticleAt = 0;
 
-  const petals: PetalBody[] = Array.from({ length: 24 }, (_, index) => ({
+  let theme = readTheme();
+  let pal = dashPalette(theme);
+
+  const petals: PetalBody[] = Array.from({ length: 18 }, (_, index) => ({
     base: new THREE.Vector3(),
     position: new THREE.Vector3(),
     velocity: new THREE.Vector3(),
-    normalX: -0.9 + (index / 23) * 1.8 + THREE.MathUtils.randFloatSpread(0.04),
+    normalX: -0.9 + (index / 17) * 1.8 + THREE.MathUtils.randFloatSpread(0.04),
     normalY: 0.74 - Math.random() * 0.36,
     scale: 0.055 + Math.random() * 0.055,
     phase: Math.random() * Math.PI * 2,
   }));
 
   scene.add(vineGroup);
-  scene.add(new THREE.AmbientLight("#f7f2e8", 1.4));
+  const ambient = new THREE.AmbientLight(pal.ambient, pal.ambientIntensity);
+  scene.add(ambient);
 
   const petalGeometry = new THREE.CircleGeometry(1, 5);
   const petalMaterial = new THREE.MeshBasicMaterial({
-    color: "#8fae9b",
+    color: pal.petal,
     transparent: true,
-    opacity: 0.66,
+    opacity: pal.petalOpacity,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
@@ -642,20 +689,23 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
   petalMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   vineGroup.add(petalMesh);
 
-  const { particles, points, positions: particlePositions, colors: particleColors } = createParticlePool(96);
+  const { particles, points, positions: particlePositions, colors: particleColors } = createParticlePool(96, pal.particle);
   vineGroup.add(points);
 
   const vineMaterial = new THREE.LineBasicMaterial({
-    color: "#8fae9b",
+    color: pal.vine,
     transparent: true,
-    opacity: 0.4,
+    opacity: pal.vineOpacity,
   });
+  const vineLineMaterials: THREE.LineBasicMaterial[] = [];
 
   for (let index = 0; index < 5; index += 1) {
     const positions = new Float32Array(72 * 3);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const line = new THREE.Line(geometry, vineMaterial.clone());
+    const lineMat = vineMaterial.clone();
+    vineLineMaterials.push(lineMat);
+    const line = new THREE.Line(geometry, lineMat);
     vineGroup.add(line);
     vineLines.push({
       geometry,
@@ -663,6 +713,27 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
       normalX: -0.92 + index * 0.46,
       phase: index * 1.4,
     });
+  }
+
+  function repaint() {
+    petalMaterial.color.set(pal.petal);
+    petalMaterial.opacity = pal.petalOpacity;
+    vineMaterial.color.set(pal.vine);
+    vineMaterial.opacity = pal.vineOpacity;
+    vineLineMaterials.forEach((m) => {
+      m.color.set(pal.vine);
+      m.opacity = pal.vineOpacity;
+    });
+    ambient.color.set(pal.ambient);
+    ambient.intensity = pal.ambientIntensity;
+    // repaint particle base colors
+    const c = new THREE.Color(pal.particle);
+    for (let index = 0; index < particles.length; index += 1) {
+      particleColors[index * 3] = c.r;
+      particleColors[index * 3 + 1] = c.g;
+      particleColors[index * 3 + 2] = c.b;
+    }
+    (points.geometry.getAttribute("color") as THREE.BufferAttribute).needsUpdate = true;
   }
 
   function layoutVines() {
@@ -772,13 +843,14 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
       const dy = petal.position.y - pointerWorld.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const influence = pointerActive ? Math.max(0, 1 - dist / 0.72) : 0;
-      const direction = dist > 0.001 ? new THREE.Vector3(dx / dist, dy / dist, 0) : new THREE.Vector3();
+      direction.set(dist > 0.001 ? dx / dist : 0, dist > 0.001 ? dy / dist : 0, 0);
       const wind = Math.sin(time * 0.9 + petal.phase) * 0.0014;
 
       if (!passiveDashboard) {
         petal.velocity.addScaledVector(direction, influence * 0.018);
         petal.velocity.x += wind;
-        petal.velocity.addScaledVector(petal.base.clone().sub(petal.position), 0.044);
+        spring.copy(petal.base).sub(petal.position);
+        petal.velocity.addScaledVector(spring, 0.044);
         petal.velocity.multiplyScalar(0.82);
         petal.position.addScaledVector(petal.velocity, dt * 60);
       } else {
@@ -791,13 +863,8 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
       }
 
       scale.set(petal.scale * (1 + influence * 0.5), petal.scale * 0.58, petal.scale);
-      quaternion.setFromEuler(
-        new THREE.Euler(
-          0,
-          0,
-          Math.sin(time + petal.phase) * 0.35 + influence * 0.9
-        )
-      );
+      petalEuler.set(0, 0, Math.sin(time + petal.phase) * 0.35 + influence * 0.9);
+      quaternion.setFromEuler(petalEuler);
       matrix.compose(petal.position, quaternion, scale);
       petalMesh.setMatrixAt(index, matrix);
     });
@@ -816,7 +883,7 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
       particlePositions[ix + 1] = particle.life > 0 ? particle.position.y : -100;
       particlePositions[ix + 2] = particle.life > 0 ? particle.position.z : 0;
 
-      color.set("#c98268").multiplyScalar(particle.life);
+      color.set(pal.particle).multiplyScalar(particle.life);
       particleColors[ix] = color.r;
       particleColors[ix + 1] = color.g;
       particleColors[ix + 2] = color.b;
@@ -835,6 +902,15 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
     window.addEventListener("pointermove", updatePointer, { passive: true });
     window.addEventListener("pointerleave", clearPointer);
   }
+  const themeObserver = new MutationObserver(() => {
+    const next = readTheme();
+    if (next !== theme) {
+      theme = next;
+      pal = dashPalette(theme);
+      repaint();
+    }
+  });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
   requestFrame();
 
   return {
@@ -860,6 +936,7 @@ function createDashboardVinesScene(container: HTMLDivElement): SceneController {
         window.removeEventListener("pointermove", updatePointer);
         window.removeEventListener("pointerleave", clearPointer);
       }
+      themeObserver.disconnect();
       disposeScene(scene, renderer);
       renderer.domElement.remove();
     },
@@ -877,7 +954,14 @@ function ThreeScene({
   useEffect(() => {
     if (!containerRef.current) return undefined;
     const element = containerRef.current;
-    const controller = factory(element);
+    let controller: SceneController;
+    try {
+      controller = factory(element);
+    } catch (error) {
+      console.warn("Morpheus 3D indisponível neste navegador:", error);
+      element.dataset.webgl = "unavailable";
+      return undefined;
+    }
     let inViewport = true;
     let documentVisible = document.visibilityState === "visible";
 

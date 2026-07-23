@@ -9,6 +9,8 @@ export interface Clinic {
   billingEnforced: boolean;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
+  planId?: "essential" | "pro" | "elite";
+  trialUsed: boolean;
 }
 
 export interface ClinicDoctor {
@@ -62,6 +64,8 @@ export interface SupabaseClinic {
   billing_enforced: boolean;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
+  plan_id: "essential" | "pro" | "elite" | null;
+  trial_used: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -110,6 +114,8 @@ export function mapClinic(row: SupabaseClinic): Clinic {
     billingEnforced: row.billing_enforced,
     currentPeriodEnd: row.current_period_end ?? undefined,
     cancelAtPeriodEnd: row.cancel_at_period_end,
+    planId: row.plan_id ?? undefined,
+    trialUsed: row.trial_used ?? false,
   };
 }
 

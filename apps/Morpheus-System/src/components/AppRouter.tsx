@@ -11,6 +11,7 @@ import SignupScreen from "@/components/screens/SignupScreen";
 import WorkspaceScreen from "@/components/screens/WorkspaceScreen";
 import SubscriptionScreen from "@/components/screens/SubscriptionScreen";
 import type { PlanId } from "@/lib/plans";
+import { CreditCard, LogOut } from "lucide-react";
 
 const VALID_PLANS: PlanId[] = ["essential", "pro", "elite"];
 
@@ -133,5 +134,30 @@ export default function AppRouter() {
     return <AdminDashboard />;
   }
 
+  if (billingRequired && !billingActive) {
+    return <DoctorBillingPaused onWorkspace={() => setView("workspace")} />;
+  }
+
   return <PsychDashboard />;
+}
+
+function DoctorBillingPaused({ onWorkspace }: { onWorkspace: () => void }) {
+  const { logout } = useApp();
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4 text-[var(--text-primary)]">
+      <section className="w-full max-w-xl rounded-3xl premium-panel p-8 text-center sm:p-10">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--glass-soft)] text-[var(--accent-amber)]">
+          <CreditCard size={30} />
+        </span>
+        <h1 className="mt-6 font-brand text-3xl font-semibold">Assinatura da clínica pausada</h1>
+        <p className="mt-4 font-body text-base leading-8 text-[var(--text-muted)]">
+          Os dados continuam preservados. Peça ao administrador da clínica para regularizar o plano e liberar a agenda novamente.
+        </p>
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <button onClick={onWorkspace} className="rounded-2xl bg-[var(--action-primary)] px-5 py-3 font-body text-sm font-extrabold text-white">Trocar de clínica</button>
+          <button onClick={logout} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--border-medium)] px-5 py-3 font-body text-sm font-extrabold"><LogOut size={17} /> Sair</button>
+        </div>
+      </section>
+    </div>
+  );
 }

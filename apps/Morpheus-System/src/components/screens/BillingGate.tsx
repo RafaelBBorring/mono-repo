@@ -132,7 +132,7 @@ export default function BillingGate() {
             Escolha o plano e comece agora
           </h1>
           <p className="mx-auto mt-4 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] sm:text-lg">
-            Todos os planos incluem <strong>7 dias gratis</strong>. Cancele quando quiser durante o trial.
+            O teste de <strong>7 dias gratis</strong> esta disponivel no Essential. Os demais planos podem ser assinados imediatamente.
           </p>
         </div>
 

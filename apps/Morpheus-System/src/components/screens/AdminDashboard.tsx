@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { HOURS, MONTHS, WEEKDAYS } from "@/lib/data";
 import { themeHex, themeRgb } from "@/lib/utils";
 import Button from "@/components/ui/Button";
-import ThemeToggle from "@/components/ThemeToggle";
+import AppShell from "@/components/AppShell";
+import AccountPill from "@/components/AccountPill";
 import NewReservationModal from "@/components/modals/NewReservationModal";
 import ReservationDetailModal from "@/components/modals/ReservationDetailModal";
 import type { Psychologist, Reservation, Room } from "@/types";
@@ -16,7 +17,6 @@ import type { PlanId } from "@/lib/plans";
 import { PLANS, getPlanById } from "@/lib/plans";
 import {
   BadgePlus,
-  BookOpen,
   Building2,
   CalendarClock,
   CalendarDays,
@@ -32,7 +32,6 @@ import {
   LayoutGrid,
   LogOut,
   Mail,
-  Menu,
   Plus,
   RefreshCw,
   Settings,
@@ -52,10 +51,10 @@ import {
   startOfWeek,
 } from "date-fns";
 
-const LibraryVinesScene = dynamic(
-  () => import("@/components/visuals/MorpheusThree").then((mod) => mod.LibraryVinesScene),
-  { ssr: false, loading: () => <div className="fixed inset-0 soft-grid opacity-20" /> }
-);
+const RoomSpatialMap = dynamic(() => import("@/components/visuals/RoomSpatialMap"), {
+  ssr: false,
+  loading: () => <div className="h-[520px] animate-pulse rounded-3xl bg-[var(--glass-soft)]" />,
+});
 
 type AdminSection = "overview" | "schedule" | "management" | "settings";
 type AdminScheduleView = "grid" | "map";
@@ -140,8 +139,6 @@ export default function AdminDashboard() {
   const [roomName, setRoomName] = useState("");
   const [psychName, setPsychName] = useState("");
   const [psychEmail, setPsychEmail] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -206,7 +203,6 @@ export default function AdminDashboard() {
     setAccountEmail(user?.email || authUser?.email || "");
     setAccountPassword("");
     setAccountModalOpen(true);
-    setAccountOpen(false);
   }
 
   async function submitAccount(event: FormEvent<HTMLFormElement>) {
@@ -242,226 +238,145 @@ export default function AdminDashboard() {
     );
   }
 
+  const navItems = [
+    { id: "overview", label: "Hoje", icon: <Sparkles size={18} />, active: section === "overview", onClick: () => setSection("overview") },
+    { id: "schedule", label: "Agenda", icon: <CalendarRange size={18} />, active: section === "schedule", onClick: () => setSection("schedule") },
+    { id: "management", label: "Gerenciamento", icon: <UsersRound size={18} />, active: section === "management", onClick: () => setSection("management") },
+    { id: "settings", label: "Assinatura", icon: <Settings size={18} />, active: section === "settings", onClick: () => setSection("settings") },
+  ];
+
+  const accountItems = [
+    { icon: <Building2 size={17} />, label: "Minhas clínicas", onClick: () => setView("workspace") },
+    { icon: <UserCog size={17} />, label: "Alterar dados da conta", onClick: openAccountSettings },
+    { icon: <Home size={17} />, label: "Landing page", onClick: goToLanding },
+    { icon: <LogOut size={17} />, label: "Sair", onClick: handleLogout, danger: true },
+  ];
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="morpheus-screen-wash fixed inset-0 z-0" />
+    <>
+    <AppShell
+      subtitle="Biblioteca operacional"
+      routeKey={section}
+      navItems={navItems}
+      accountSlot={
+        <AccountPill displayName={user?.displayName || authUser?.displayName || "Conta"} items={accountItems} />
+      }
+      primaryAction={
+        <Button variant="gradient" size="lg" onClick={() => openReservation({})}>
+          <Plus size={20} /> Nova reserva
+        </Button>
+      }
+    >
+      {section === "overview" && (
+        <AdminOverview
+          rooms={rooms}
+          psychologists={psychologists}
+          reservations={todayReservations}
+          isDark={isDark}
+          onNew={() => openReservation({ date: todayISO })}
+          onOpenSchedule={() => setSection("schedule")}
+          onOpenManagement={() => setSection("management")}
+          onDetail={setDetailRes}
+        />
+      )}
 
-      <div className="relative z-10 min-h-screen">
-        <header className="sticky top-0 z-40 overflow-visible border-b border-[var(--border-light)] bg-[var(--glass-strong)] backdrop-blur-2xl">
-          <LibraryVinesScene className="pointer-events-none absolute inset-x-0 top-0 z-0 h-full opacity-70" />
-          <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--action-primary)] text-[var(--action-foreground)] shadow-xl sm:h-12 sm:w-12 sm:rounded-2xl">
-                <BookOpen size={20} />
-              </span>
-              <div className="hidden sm:block">
-                <p className="font-body text-xs font-extrabold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                  Biblioteca operacional
+      {section === "schedule" && (
+        <section className="mx-auto max-w-[1800px] px-6 py-10 lg:px-10 lg:py-14">
+          <div className="mb-8 flex flex-col justify-between gap-4 rounded-3xl premium-panel p-6 md:flex-row md:items-center lg:p-8">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setWeekOffset((w) => w - 1)}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--border-medium)] bg-[var(--glass-soft)] text-[var(--text-soft)] transition hover:border-[var(--accent-lavender)] hover:text-[var(--text-primary)]"
+                aria-label="Semana anterior"
+              >
+                <ChevronLeft size={22} />
+              </button>
+              <div className="min-w-[180px] text-center">
+                <p className="font-body text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                  Semana
                 </p>
-                <p className="font-body text-sm font-bold text-[var(--text-soft)]">
-                  {formatDateLong(todayISO)}
-                </p>
-              </div>
-            </div>
-
-            <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 text-center lg:block">
-              <h1 className="font-brand text-2xl font-semibold tracking-[0.28em] aurora-text xl:text-3xl">
-                MORPHEUS
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <ThemeToggle />
-              <div className="relative">
-                <button
-                  onClick={() => setAccountOpen((open) => !open)}
-                  className="inline-flex min-h-[42px] items-center gap-2 rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] px-3 py-2 font-body text-sm font-extrabold text-[var(--text-primary)] transition hover:border-[var(--accent-lavender)] sm:min-h-[48px] sm:rounded-2xl sm:px-4 sm:py-3"
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--action-primary)] text-[var(--action-foreground)]">
-                    {(user?.displayName || authUser?.displayName || "M").slice(0, 1).toUpperCase()}
-                  </span>
-                  <span className="hidden max-w-[140px] truncate sm:inline">
-                    {user?.displayName || authUser?.displayName || "Conta"}
-                  </span>
-                  <ChevronDown size={16} className={`transition ${accountOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                <AnimatePresence>
-                  {accountOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 8, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ duration: 0.18 }}
-                      className="absolute right-0 top-full z-50 w-[260px] overflow-hidden rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-2 shadow-2xl"
-                    >
-                      <AccountMenuButton icon={<Building2 size={17} />} onClick={() => { setAccountOpen(false); setView("workspace"); }}>
-                        Minhas clinicas
-                      </AccountMenuButton>
-                      <AccountMenuButton icon={<CreditCard size={17} />} onClick={() => { setAccountOpen(false); setView("subscription"); }}>
-                        Gerenciar assinatura
-                      </AccountMenuButton>
-                      <AccountMenuButton icon={<UserCog size={17} />} onClick={openAccountSettings}>
-                        Alterar dados da conta
-                      </AccountMenuButton>
-                      <AccountMenuButton icon={<Home size={17} />} onClick={goToLanding}>
-                        Landing page
-                      </AccountMenuButton>
-                      <div className="my-2 h-px bg-[var(--border-light)]" />
-                      <AccountMenuButton danger icon={<LogOut size={17} />} onClick={handleLogout}>
-                        Sair
-                      </AccountMenuButton>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <p className="font-brand text-2xl font-semibold">{weekLabel}</p>
               </div>
               <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] text-[var(--text-soft)] sm:hidden"
+                onClick={() => setWeekOffset((w) => w + 1)}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--border-medium)] bg-[var(--glass-soft)] text-[var(--text-soft)] transition hover:border-[var(--accent-lavender)] hover:text-[var(--text-primary)]"
+                aria-label="Próxima semana"
               >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                <ChevronRight size={22} />
               </button>
+              {weekOffset !== 0 && (
+                <button
+                  onClick={() => setWeekOffset(0)}
+                  className="rounded-2xl px-4 py-2.5 font-body text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                >
+                  Hoje
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 rounded-2xl border border-[var(--border-medium)] bg-[var(--bg-surface)] p-1">
+              <ModeButton active={scheduleView === "grid"} onClick={() => setScheduleView("grid")} icon={<LayoutGrid size={18} />} label="Grade" />
+              <ModeButton active={scheduleView === "map"} onClick={() => setScheduleView("map")} icon={<CalendarClock size={18} />} label="Livre agora" />
             </div>
           </div>
 
-          <nav className={`relative z-10 mx-auto max-w-7xl px-4 pb-3 sm:px-6 sm:pb-4 ${mobileMenuOpen ? "block" : "hidden"} sm:block`}>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 sm:overflow-x-auto">
-              <AdminNavButton active={section === "overview"} onClick={() => { setSection("overview"); setMobileMenuOpen(false); }} icon={<Sparkles size={18} />}>
-                Hoje
-              </AdminNavButton>
-              <AdminNavButton active={section === "schedule"} onClick={() => { setSection("schedule"); setMobileMenuOpen(false); }} icon={<CalendarRange size={18} />}>
-                Agenda completa
-              </AdminNavButton>
-              <AdminNavButton active={section === "management"} onClick={() => { setSection("management"); setMobileMenuOpen(false); }} icon={<UsersRound size={18} />}>
-                Gerenciamento
-              </AdminNavButton>
-              <AdminNavButton active={section === "settings"} onClick={() => { setSection("settings"); setMobileMenuOpen(false); }} icon={<Settings size={18} />}>
-                Assinatura
-              </AdminNavButton>
-            </div>
-          </nav>
-        </header>
+          {scheduleView === "grid" ? (
+            <AdminManagedSchedule
+              weekDays={weekDays}
+              rooms={rooms}
+              psychologists={psychologists}
+              reservations={reservations}
+              isDark={isDark}
+              onBook={openReservation}
+              onDetail={setDetailRes}
+            />
+          ) : (
+            <AdminAvailabilityMap
+              weekDays={weekDays}
+              rooms={rooms}
+              psychologists={psychologists}
+              reservations={reservations}
+              isDark={isDark}
+              onBook={openReservation}
+              onDetail={setDetailRes}
+            />
+          )}
+        </section>
+      )}
 
-        {section === "overview" && (
-          <AdminOverview
-            rooms={rooms}
-            psychologists={psychologists}
-            reservations={todayReservations}
-            isDark={isDark}
-            onNew={() => openReservation({ date: todayISO })}
-            onOpenSchedule={() => setSection("schedule")}
-            onOpenManagement={() => setSection("management")}
-            onDetail={setDetailRes}
-          />
-        )}
+      {section === "management" && (
+        <AdminManagement
+          rooms={rooms}
+          psychologists={psychologists}
+          isDark={isDark}
+          roomName={roomName}
+          psychName={psychName}
+          psychEmail={psychEmail}
+          confirmDeleteRoom={confirmDeleteRoom}
+          confirmDeletePsych={confirmDeletePsych}
+          onRoomName={setRoomName}
+          onPsychName={setPsychName}
+          onPsychEmail={setPsychEmail}
+          onSubmitRoom={submitRoom}
+          onSubmitPsychologist={submitPsychologist}
+          onDeleteRoom={deleteRoom}
+          onDeletePsychologist={deletePsychologist}
+          onConfirmDeleteRoom={setConfirmDeleteRoom}
+          onConfirmDeletePsych={setConfirmDeletePsych}
+        />
+      )}
 
-        {section === "schedule" && (
-          <section className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
-            <div className="mb-6 flex flex-col justify-between gap-4 rounded-3xl premium-panel p-5 md:flex-row md:items-center lg:p-6">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setWeekOffset((w) => w - 1)}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] text-[var(--text-soft)] transition hover:border-[var(--accent-lavender)] hover:text-[var(--text-primary)] sm:h-12 sm:w-12 sm:rounded-2xl"
-                  aria-label="Semana anterior"
-                >
-                  <ChevronLeft size={22} />
-                </button>
-                <div className="min-w-[160px] text-center sm:min-w-[190px]">
-                  <p className="font-body text-xs font-extrabold uppercase tracking-[0.2em] text-[var(--text-muted)]">
-                    Semana
-                  </p>
-                  <p className="font-brand text-xl font-semibold sm:text-2xl">{weekLabel}</p>
-                </div>
-                <button
-                  onClick={() => setWeekOffset((w) => w + 1)}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border-medium)] bg-[var(--glass-soft)] text-[var(--text-soft)] transition hover:border-[var(--accent-lavender)] hover:text-[var(--text-primary)] sm:h-12 sm:w-12 sm:rounded-2xl"
-                  aria-label="Próxima semana"
-                >
-                  <ChevronRight size={22} />
-                </button>
-                {weekOffset !== 0 && (
-                  <button
-                    onClick={() => setWeekOffset(0)}
-                    className="rounded-xl px-3 py-2 font-body text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)] sm:rounded-2xl sm:px-4 sm:py-3"
-                  >
-                    Hoje
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  size="md"
-                  onClick={() => openReservation({})}
-                  variant="gradient"
-                >
-                  <Plus size={20} />
-                  Nova Reserva
-                </Button>
-                <div className="flex items-center gap-1 rounded-xl border border-[var(--border-medium)] bg-[var(--bg-surface)] p-1 sm:rounded-2xl">
-                  <ModeButton active={scheduleView === "grid"} onClick={() => setScheduleView("grid")} icon={<LayoutGrid size={18} />} label="Grade" />
-                  <ModeButton active={scheduleView === "map"} onClick={() => setScheduleView("map")} icon={<CalendarClock size={18} />} label="Livre agora" />
-                </div>
-              </div>
-            </div>
-
-            {scheduleView === "grid" ? (
-              <AdminManagedSchedule
-                weekDays={weekDays}
-                rooms={rooms}
-                psychologists={psychologists}
-                reservations={reservations}
-                isDark={isDark}
-                onBook={openReservation}
-                onDetail={setDetailRes}
-              />
-            ) : (
-              <AdminAvailabilityMap
-                weekDays={weekDays}
-                rooms={rooms}
-                psychologists={psychologists}
-                reservations={reservations}
-                isDark={isDark}
-                onBook={openReservation}
-                onDetail={setDetailRes}
-              />
-            )}
-          </section>
-        )}
-
-        {section === "management" && (
-    <AdminManagement
-      rooms={rooms}
-      psychologists={psychologists}
-      isDark={isDark}
-      roomName={roomName}
-      psychName={psychName}
-      psychEmail={psychEmail}
-      confirmDeleteRoom={confirmDeleteRoom}
-            confirmDeletePsych={confirmDeletePsych}
-            onRoomName={setRoomName}
-            onPsychName={setPsychName}
-            onPsychEmail={setPsychEmail}
-            onSubmitRoom={submitRoom}
-            onSubmitPsychologist={submitPsychologist}
-            onDeleteRoom={deleteRoom}
-            onDeletePsychologist={deletePsychologist}
-            onConfirmDeleteRoom={setConfirmDeleteRoom}
-            onConfirmDeletePsych={setConfirmDeletePsych}
-           />
-        )}
-
-        {section === "settings" && (
-          <AdminSettings
-            clinic={clinic}
-            billingActive={billingActive}
-            onRefresh={refreshBilling}
-            onCheckout={startCheckout}
-            onTrial={startTrial}
-            onPortal={openBillingPortal}
-          />
-        )}
-      </div>
+      {section === "settings" && (
+        <AdminSettings
+          clinic={clinic}
+          billingActive={billingActive}
+          onRefresh={refreshBilling}
+          onCheckout={startCheckout}
+          onTrial={startTrial}
+          onPortal={openBillingPortal}
+        />
+      )}
+    </AppShell>
 
       <NewReservationModal
         open={showNewModal}
@@ -558,7 +473,7 @@ export default function AdminDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
 
@@ -568,59 +483,6 @@ type WeekDay = {
   name: string;
   isToday: boolean;
 };
-
-function AdminNavButton({
-  active,
-  onClick,
-  icon,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="inline-flex min-h-[44px] w-full items-center gap-2 rounded-xl border px-4 py-2 font-body text-sm font-extrabold transition sm:w-auto sm:rounded-2xl"
-      style={{
-        borderColor: active ? "var(--accent-lavender)" : "var(--border-light)",
-        color: active ? "var(--text-primary)" : "var(--text-muted)",
-        background: active ? "var(--bg-elevated)" : "var(--glass-soft)",
-      }}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
-
-function AccountMenuButton({
-  icon,
-  onClick,
-  danger = false,
-  children,
-}: {
-  icon: ReactNode;
-  onClick: () => void;
-  danger?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-body text-sm font-extrabold transition ${
-        danger
-          ? "text-red-500 hover:bg-red-500/10"
-          : "text-[var(--text-soft)] hover:bg-[var(--glass-soft)] hover:text-[var(--text-primary)]"
-      }`}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
 
 function AdminOverview({
   rooms,
@@ -641,19 +503,32 @@ function AdminOverview({
   onOpenManagement: () => void;
   onDetail: (reservation: Reservation) => void;
 }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 30000);
+    return () => window.clearInterval(id);
+  }, []);
+  void tick;
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nextReservationId = reservations.find((r) => timeToMinutes(r.startTime) > nowMin)?.id;
+  const todayISO = format(new Date(), "yyyy-MM-dd");
+
   return (
-    <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:px-8 lg:py-12">
-      <section className="rounded-3xl premium-panel p-6 md:p-8 lg:p-10">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-start">
+    <main className="mx-auto grid max-w-7xl gap-8 px-6 py-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:px-10 lg:py-14">
+      <section className="relative overflow-hidden rounded-[2rem] premium-panel p-6 md:p-8 lg:p-12">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <p className="font-body text-sm font-extrabold uppercase tracking-[0.24em] text-[var(--accent-mint)]">
+            <span className="inline-flex items-center gap-2.5 font-body text-[11px] font-extrabold uppercase tracking-[0.24em] text-[var(--accent-sky)]">
+              <span className="h-px w-8" style={{ background: "var(--aurora-gradient)" }} />
               Agendamentos do dia
-            </p>
-            <h2 className="mt-4 font-brand text-3xl font-semibold md:text-4xl lg:text-5xl">
-              Resumo simples e direto.
+            </span>
+            <h2 className="mt-5 font-brand text-4xl font-semibold leading-[1.02] md:text-5xl lg:text-6xl">
+              Hoje é <span className="aurora-text">{formatDateLong(todayISO)}.</span>
             </h2>
-            <p className="mt-5 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] lg:text-lg lg:leading-9">
-              Tudo que precisa chamar atenção hoje aparece aqui antes de abrir a agenda completa.
+            <p className="mt-6 max-w-2xl font-body text-base leading-8 text-[var(--text-muted)] lg:text-lg lg:leading-9">
+              Tudo que precisa de atenção antes de abrir a agenda completa — sessões em andamento, próximas reservas e o espaço da clínica em tempo real.
             </p>
           </div>
           <Button variant="gradient" size="lg" onClick={onNew} className="shrink-0">
@@ -662,11 +537,19 @@ function AdminOverview({
           </Button>
         </div>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
+        <motion.div
+          className="mt-10 grid gap-4 sm:grid-cols-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.08 } },
+          }}
+        >
           <MetricCard value={String(reservations.length)} label="reservas hoje" icon={<CalendarDays size={22} />} />
           <MetricCard value={String(rooms.length)} label="salas criadas" icon={<DoorOpen size={22} />} />
           <MetricCard value={String(psychologists.length)} label="profissionais" icon={<UsersRound size={22} />} />
-        </div>
+        </motion.div>
 
         <div className="mt-8 grid gap-4">
           {reservations.length === 0 ? (
@@ -684,6 +567,7 @@ function AdminOverview({
                 rooms={rooms}
                 psychologists={psychologists}
                 isDark={isDark}
+                isNext={reservation.id === nextReservationId}
                 onClick={() => onDetail(reservation)}
               />
             ))
@@ -738,13 +622,24 @@ function AdminOverview({
 
 function MetricCard({ value, label, icon }: { value: string; label: string; icon: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--border-light)] bg-[var(--glass-soft)] p-5">
-      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--bg-primary)] text-[var(--accent-lavender)]">
+    <motion.div
+      className="relative overflow-hidden rounded-[1.25rem] border border-[var(--border-light)] p-5"
+      style={{
+        background:
+          "linear-gradient(160deg, var(--glass-soft), color-mix(in srgb, var(--bg-elevated) 55%, transparent))",
+      }}
+      variants={{
+        hidden: { opacity: 0, y: 16 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+      }}
+    >
+      <span className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full opacity-60 blur-2xl" style={{ background: "var(--aurora-gradient)" }} aria-hidden="true" />
+      <div className="relative mb-4 flex h-12 w-12 items-center justify-center rounded-2xl text-[var(--action-foreground)] shadow-lg" style={{ background: "var(--aurora-gradient)" }}>
         {icon}
       </div>
-      <p className="font-brand text-3xl font-semibold lg:text-4xl">{value}</p>
-      <p className="mt-1 font-body text-sm font-bold text-[var(--text-muted)]">{label}</p>
-    </div>
+      <p className="relative font-brand text-4xl font-semibold lg:text-5xl">{value}</p>
+      <p className="relative mt-1 font-body text-sm font-bold text-[var(--text-muted)]">{label}</p>
+    </motion.div>
   );
 }
 
@@ -753,12 +648,14 @@ function AdminTodayReservation({
   rooms,
   psychologists,
   isDark,
+  isNext,
   onClick,
 }: {
   reservation: Reservation;
   rooms: Room[];
   psychologists: Psychologist[];
   isDark: boolean;
+  isNext?: boolean;
   onClick: () => void;
 }) {
   const room = rooms.find((item) => item.id === reservation.roomId);
@@ -769,15 +666,24 @@ function AdminTodayReservation({
   const roomRgb = themeRgb(room, isDark);
   const psychColor = themeHex(psych, isDark);
 
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const startMin = timeToMinutes(reservation.startTime);
+  const endMin = timeToMinutes(reservation.endTime);
+  const isNow = nowMin >= startMin && nowMin < endMin;
+  const progress = isNow ? Math.min(1, Math.max(0, (nowMin - startMin) / Math.max(1, endMin - startMin))) : 0;
+
   return (
     <button
       onClick={onClick}
-      className="grid gap-4 rounded-2xl border p-5 text-left transition hover:-translate-y-1 md:grid-cols-[110px_1fr_auto]"
+      className="group relative grid gap-4 overflow-hidden rounded-2xl border p-5 text-left transition hover:-translate-y-1 md:grid-cols-[120px_1fr_auto]"
       style={{
-        borderColor: `rgba(${roomRgb},${isDark ? 0.32 : 0.24})`,
-        background: `linear-gradient(135deg, rgba(${roomRgb},${isDark ? 0.13 : 0.08}), var(--glass-soft))`,
+        borderColor: isNow ? psychColor : `rgba(${roomRgb},${isDark ? 0.32 : 0.24})`,
+        background: `linear-gradient(135deg, rgba(${roomRgb},${isDark ? 0.14 : 0.09}), var(--glass-soft))`,
+        boxShadow: isNow ? `0 14px 40px rgba(${themeRgb(psych, isDark)},${isDark ? 0.22 : 0.14})` : undefined,
       }}
     >
+      <span className="absolute left-0 top-0 h-full w-1" style={{ background: psychColor }} aria-hidden="true" />
       <div>
         <p className="font-brand text-2xl font-semibold lg:text-3xl" style={{ color: roomColor }}>
           {reservation.startTime}
@@ -785,15 +691,39 @@ function AdminTodayReservation({
         <p className="font-body text-sm font-bold text-[var(--text-muted)]">
           até {reservation.endTime}
         </p>
+        {(isNow || isNext) && (
+          <span
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-body text-[10px] font-extrabold uppercase tracking-[0.14em]"
+            style={{
+              color: isNow ? "#fff" : psychColor,
+              background: isNow ? psychColor : "transparent",
+              border: isNow ? "none" : `1px solid ${psychColor}`,
+            }}
+          >
+            {isNow && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />}
+            {isNow ? "Em sessão" : "A seguir"}
+          </span>
+        )}
       </div>
       <div className="min-w-0">
         <p className="font-brand text-xl font-semibold text-[var(--text-primary)] lg:text-2xl">{room.name}</p>
         <p className="mt-1 truncate font-body text-sm text-[var(--text-muted)] lg:text-base">
           {reservation.notes || "Atendimento reservado"}
         </p>
+        <span className="mt-1 inline-block font-body text-xs font-bold" style={{ color: psychColor }}>
+          {psych.shortName}
+        </span>
+        {isNow && (
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--bg-deep)]">
+            <div className="h-full rounded-full transition-all" style={{ width: `${progress * 100}%`, background: psychColor }} />
+          </div>
+        )}
       </div>
-      <span className="inline-flex items-center rounded-xl border px-3 py-2 font-body text-sm font-extrabold lg:rounded-2xl lg:px-4 lg:py-3" style={{ color: psychColor, borderColor: psychColor }}>
-        {psych.shortName}
+      <span
+        className="inline-flex h-fit items-center rounded-xl border px-3 py-2 font-body text-sm font-extrabold lg:rounded-2xl lg:px-4 lg:py-3"
+        style={{ color: psychColor, borderColor: psychColor }}
+      >
+        {psych.initials}
       </span>
     </button>
   );
@@ -959,7 +889,7 @@ function DayRoomColumn({
       className="relative border-r border-[var(--border-medium)]"
       style={{
         height: BODY_HEIGHT,
-        background: day.isToday ? "rgba(216,200,252,0.055)" : "rgba(255,255,255,0.015)",
+        background: day.isToday ? "color-mix(in srgb, var(--accent-lavender) 7%, transparent)" : "transparent",
       }}
     >
       <div
@@ -1028,20 +958,25 @@ function ManagedReservationMarker({
         event.stopPropagation();
         onClick();
       }}
-      className="absolute left-2 right-2 overflow-hidden rounded-xl border p-2 text-left transition hover:z-10 hover:scale-[1.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-lavender)]/40"
+      className="group absolute left-1 right-1 overflow-hidden rounded-xl border p-2 text-left transition hover:z-10 hover:scale-[1.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--accent-lavender)]/40"
       style={{
         top,
         height,
         color: psychColor,
-        background: `rgba(${psychRgb},${isDark ? 0.25 : 0.14})`,
-        borderColor: `rgba(${psychRgb},${isDark ? 0.55 : 0.38})`,
-        boxShadow: `0 10px 28px rgba(${psychRgb},${isDark ? 0.16 : 0.1})`,
+        background: `linear-gradient(135deg, rgba(${psychRgb},${isDark ? 0.3 : 0.16}), color-mix(in srgb, var(--bg-elevated) 70%, transparent))`,
+        borderColor: `rgba(${psychRgb},${isDark ? 0.6 : 0.42})`,
+        boxShadow: `0 10px 28px rgba(${psychRgb},${isDark ? 0.18 : 0.1})`,
       }}
-      title={`${psych.name} - ${reservation.startTime} às ${reservation.endTime}`}
+      title={`${psych.name} · ${reservation.startTime} às ${reservation.endTime}`}
     >
-      <span className="block truncate font-brand text-sm font-bold leading-tight">{psych.initials}</span>
-      <span className="block truncate font-body text-xs font-extrabold leading-tight text-[var(--text-soft)]">
-        {reservation.startTime}
+      <span
+        className="absolute left-0 top-0 h-full w-1"
+        style={{ background: psychColor }}
+        aria-hidden="true"
+      />
+      <span className="block truncate pl-1.5 font-brand text-sm font-bold leading-tight">{psych.shortName}</span>
+      <span className="block truncate pl-1.5 font-body text-[11px] font-extrabold leading-tight text-[var(--text-soft)]">
+        {reservation.startTime}–{reservation.endTime}
       </span>
     </button>
   );
@@ -1064,96 +999,66 @@ function AdminAvailabilityMap({
   onBook: (prefill: Partial<Reservation>) => void;
   onDetail: (reservation: Reservation) => void;
 }) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const todayDate = new Date();
+  const todayDay: WeekDay = {
+    iso: today,
+    num: todayDate.getDate(),
+    name: WEEKDAYS[todayDate.getDay()],
+    isToday: true,
+  };
+  const todayReservations = reservations.filter((r) => r.date === today);
+  const dayMinWidth = Math.max(rooms.length * ROOM_LANE_MIN_WIDTH, 280);
+
   return (
-    <div className="rounded-3xl premium-panel p-3 md:p-4">
-      <div className="mb-5 flex flex-col gap-2 px-2">
-        <p className="font-body text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--accent-mint)]">
-          Mapa de disponibilidade
-        </p>
-        <p className="font-body text-sm text-[var(--text-muted)] md:text-base">
-          Cada bloco mostra os primeiros horários livres de 1 hora. Clique em um horário para reservar.
-        </p>
-      </div>
-      <div className="overflow-x-auto rounded-2xl border border-[var(--border-light)] md:rounded-[1.5rem]">
-        <div className="grid min-w-[900px] md:min-w-[1180px]" style={{ gridTemplateColumns: "160px repeat(7, minmax(130px, 1fr))" }}>
-          <div className="sticky left-0 z-20 border-b border-r border-[var(--border-medium)] bg-[var(--bg-primary)] p-3 font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)] md:p-4">
-            Sala
+    <div className="grid gap-6">
+      <RoomSpatialMap
+        rooms={rooms}
+        reservations={reservations}
+        date={today}
+        psychologists={psychologists}
+        onSelect={(room) => onBook({ roomId: room.id, date: today })}
+      />
+      <div className="rounded-3xl premium-panel p-3 md:p-4">
+        <div className="mb-4 flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="font-body text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--accent-mint)]">
+              O dia nas salas
+            </p>
+            <h3 className="mt-1 font-brand text-2xl font-semibold md:text-3xl">
+              {formatDateLong(today)}
+            </h3>
+            <p className="mt-1 font-body text-sm text-[var(--text-muted)] md:text-base">
+              Todas as horas do dia, sala por sala. Clique num horário livre para reservar.
+            </p>
           </div>
-          {weekDays.map((day) => (
-            <div key={day.iso} className="border-b border-r border-[var(--border-medium)] bg-[var(--bg-primary)] p-3 text-center md:p-4">
-              <p className="font-body text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--text-muted)]">{day.name}</p>
-              <p className="font-brand text-xl font-semibold md:text-2xl">{day.num}</p>
+          <RoomLegend rooms={rooms} isDark={isDark} />
+        </div>
+        <div className="overflow-auto rounded-2xl border border-[var(--border-light)] md:rounded-[1.5rem]">
+          <div
+            className="grid min-w-[760px] md:min-w-[980px]"
+            style={{
+              gridTemplateColumns: `80px minmax(${dayMinWidth}px, 1fr)`,
+              gridTemplateRows: "110px auto",
+            }}
+          >
+            <div className="sticky left-0 top-0 z-30 flex items-end border-b border-r border-[var(--border-medium)] bg-[var(--bg-primary)] p-3">
+              <span className="font-body text-xs font-extrabold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                Horário
+              </span>
             </div>
-          ))}
-
-          {rooms.map((room) => {
-            const roomColor = themeHex(room, isDark);
-            return (
-              <div key={room.id} className="contents">
-                <div className="sticky left-0 z-10 flex min-h-[140px] items-center gap-2 border-b border-r border-[var(--border-medium)] bg-[var(--bg-primary)] p-3 md:min-h-[150px] md:gap-3 md:p-4">
-                  <span className="h-3.5 w-3.5 rounded-full md:h-4 md:w-4" style={{ background: roomColor }} />
-                  <span className="font-brand text-base font-semibold md:text-xl">{room.name}</span>
-                </div>
-                {weekDays.map((day) => {
-                  const dayReservations = reservations
-                    .filter((reservation) => reservation.roomId === room.id && reservation.date === day.iso)
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime));
-                  const freeSlots = findFreeSlots(dayReservations).slice(0, 4);
-                  const roomRgb = themeRgb(room, isDark);
-
-                  return (
-                    <div
-                      key={`${room.id}-${day.iso}`}
-                      className="min-h-[140px] border-b border-r border-[var(--border-medium)] p-2 md:min-h-[150px] md:p-3"
-                      style={{ background: day.isToday ? `rgba(${roomRgb},0.07)` : "rgba(255,255,255,0.012)" }}
-                    >
-                      {freeSlots.length > 0 ? (
-                        <div className="grid gap-1.5 md:gap-2">
-                          {freeSlots.map((slot) => (
-                            <button
-                              key={`${slot.startTime}-${slot.endTime}`}
-                              onClick={() => onBook({ roomId: room.id, date: day.iso, startTime: slot.startTime, endTime: slot.endTime })}
-                              className="rounded-xl border border-[var(--border-light)] bg-[var(--glass-soft)] px-2 py-1.5 text-left transition hover:-translate-y-0.5 hover:border-[var(--accent-mint)] md:rounded-2xl md:px-3 md:py-2"
-                            >
-                              <span className="block font-brand text-base font-semibold text-[var(--accent-mint)] md:text-lg">
-                                {slot.startTime}
-                              </span>
-                              <span className="font-body text-xs font-bold text-[var(--text-muted)]">
-                                livre até {slot.endTime}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex h-full min-h-[110px] items-center justify-center rounded-xl border border-dashed border-[var(--border-light)] text-center md:rounded-2xl md:min-h-[120px]">
-                          <span className="font-body text-xs font-bold text-[var(--text-muted)] md:text-sm">Sem janelas livres</span>
-                        </div>
-                      )}
-                      {dayReservations.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1 md:mt-3 md:gap-1.5">
-                          {dayReservations.slice(0, 3).map((reservation) => {
-                            const psych = psychologists.find((item) => item.id === reservation.psychId);
-                            if (!psych) return null;
-                            const color = themeHex(psych, isDark);
-                            return (
-                              <button
-                                key={reservation.id}
-                                onClick={() => onDetail(reservation)}
-                                className="rounded-full border px-2 py-1 font-body text-[10px] font-extrabold md:text-[11px]"
-                                style={{ color, borderColor: color }}
-                              >
-                                {psych.initials}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+            <WeekHeader weekDays={[todayDay]} rooms={rooms} isDark={isDark} />
+            <TimeRuler />
+            <DayRoomColumn
+              day={todayDay}
+              rooms={rooms}
+              psychologists={psychologists}
+              reservations={todayReservations}
+              isDark={isDark}
+              onBook={onBook}
+              onDetail={onDetail}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -1216,7 +1121,7 @@ function AdminManagement({
   const inputClass = "w-full rounded-xl border border-[var(--border-medium)] bg-[var(--bg-primary)] px-4 py-3 font-body text-base text-[var(--text-primary)] outline-none transition md:rounded-2xl md:px-5 md:py-4";
 
   return (
-    <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10 lg:px-8 lg:py-12">
+    <main className="mx-auto grid max-w-7xl gap-8 px-6 py-10 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10 lg:px-10 lg:py-14">
       <section className="rounded-3xl premium-panel p-6 md:p-8 lg:p-10">
         <p className="font-body text-sm font-extrabold uppercase tracking-[0.24em] text-[var(--accent-mint)]">
           Estrutura da clínica
@@ -1472,7 +1377,7 @@ function AdminSettings({
       : "var(--text-muted)";
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <main className="mx-auto max-w-5xl px-6 py-10 sm:px-6 lg:px-10 lg:py-14">
       <section className="rounded-3xl premium-panel p-6 md:p-8 lg:p-10">
         <div className="mb-8 flex items-center gap-3">
           <CreditCard size={28} className="text-[var(--accent-lavender)]" />

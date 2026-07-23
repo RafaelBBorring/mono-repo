@@ -1,19 +1,54 @@
-# Configurando Stripe no Morpheus
+# Configuração de produção — Morpheus
 
-Este projeto usa Stripe Checkout para assinatura, Stripe Customer Portal para gerenciamento de cobranca e webhooks para liberar ou bloquear o sistema.
+O Morpheus usa Supabase Auth e RLS para isolamento entre clínicas, Stripe Checkout para novas assinaturas, Customer Portal para manutenção e webhooks assinados como única fonte de liberação dos planos.
 
-## 1. Criar produto e precos no Stripe
+## 1. Banco e autenticação
 
-1. Entre no Stripe Dashboard em modo de teste.
-2. Crie um produto chamado `Morpheus`.
-3. Crie dois precos recorrentes:
-   - mensal: `R$ 30 / mes`;
-   - anual: `R$ 324 / ano`.
-4. Copie os IDs dos precos. Eles comecam com `price_`.
+Execute as migrations do diretório `supabase/migrations` na ordem, incluindo `20260713_morpheus_security_hardening.sql` e `20260714_morpheus_integrity_recovery.sql`.
 
-## 2. Configurar variaveis de ambiente
+Essa migração ativa:
 
-Copie `.env.example` para `.env` e preencha:
+- identidade via Supabase Auth;
+- isolamento multi-tenant por `clinic_id` e `auth.uid()`;
+- limites de salas, profissionais e clínicas no banco;
+- bloqueio de conflitos de reserva com lock transacional;
+- trilha de recuperação em `morpheus_audit_log`;
+- idempotência de webhooks em `stripe_webhook_events`;
+- isolamento relacional entre clínica, sala, profissional e reserva;
+- proteção do último administrador e concorrência nos limites de plano;
+- reaproveitamento seguro do Checkout de trial abandonado;
+- consumo atômico de cupons;
+- cupom de teste `MORPHEUS99` com 99% de desconto.
+
+Cadastros legados baseados em `password_hash` não são mais aceitos como sessão. Para contas antigas, crie o usuário correspondente no Supabase Auth e associe seu UUID em `users.id` e `clinic_doctors.user_id` antes de ativar a migração em produção.
+
+Para habilitar Google, abra Supabase Dashboard > Authentication > Providers > Google, informe o Client ID/Secret do Google Cloud e adicione estas URLs permitidas:
+
+```text
+http://localhost:3000/app
+https://seu-dominio.com/app
+```
+
+Adicione também as URLs em Authentication > URL Configuration.
+
+## 2. Produtos e preços no Stripe
+
+Crie os seis preços recorrentes do produto Morpheus:
+
+```text
+Essential mensal: R$ 30
+Essential anual:  R$ 288
+Pro mensal:       R$ 50
+Pro anual:        R$ 480
+Elite mensal:     R$ 80
+Elite anual:      R$ 768
+```
+
+O Customer Portal deve permitir atualização do cartão, cancelamento e troca entre esses preços. O webhook deriva o plano também pelo Price ID, portanto uma troca feita no portal atualiza os limites no banco.
+
+## 3. Ambiente
+
+Copie `.env.example` para `.env` e preencha todas as chaves reais:
 
 ```bash
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -22,69 +57,31 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
 SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
-STRIPE_PRICE_MONTHLY=price_xxx
-STRIPE_PRICE_YEARLY=price_xxx
+STRIPE_PRICE_ESSENTIAL_MONTHLY=price_xxx
+STRIPE_PRICE_ESSENTIAL_YEARLY=price_xxx
+STRIPE_PRICE_PRO_MONTHLY=price_xxx
+STRIPE_PRICE_PRO_YEARLY=price_xxx
+STRIPE_PRICE_ELITE_MONTHLY=price_xxx
+STRIPE_PRICE_ELITE_YEARLY=price_xxx
 NEXT_PUBLIC_BILLING_REQUIRED=true
+NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED=true
+NEXT_PUBLIC_SERVER_API_AVAILABLE=true
 ```
 
-Nunca exponha `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` ou `STRIPE_WEBHOOK_SECRET` no cliente.
+Nunca exponha `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` ou `STRIPE_WEBHOOK_SECRET` em variáveis `NEXT_PUBLIC_*`.
 
-Antes de subir o app, confirme se a URL publica do Supabase e a `service_role` sao do mesmo projeto. O `ref` aparece na URL:
-
-```text
-https://SEU-REF.supabase.co
-```
-
-## 3. Atualizar o banco no Supabase
-
-Se o banco ainda estiver vazio, execute `supabase.sql` no SQL Editor do Supabase correto.
-
-Se o banco ja tem `rooms`, `psychologists`, `reservations` e `admin_config`, execute `supabase-billing-patch.sql` para adicionar apenas a cobranca.
-
-O SQL cria a tabela `billing_accounts`, a funcao `has_active_billing()` e politicas RLS que bloqueiam `rooms`, `psychologists`, `reservations` e `admin_config` quando a cobranca estiver ativa e a assinatura nao estiver em `active` ou `trialing`.
-
-Durante testes, `billing_enforced` comeca como `false`. Depois que o checkout e o webhook estiverem funcionando, ative a cobranca no banco:
-
-```sql
-UPDATE billing_accounts
-SET billing_enforced = true
-WHERE id = 'default';
-```
-
-## 4. Se voce rodou SQL na conta errada
-
-Use um destes arquivos no SQL Editor da conta errada:
-
-- `supabase-billing-rollback.sql`: remove so a camada Stripe/billing e restaura as policies antigas, mantendo salas, profissionais, reservas e admin_config.
-- `supabase-full-teardown.sql`: apaga tudo que o `supabase.sql` do Morpheus criou no schema publico. Use somente na conta errada.
-
-## 5. Testar webhook localmente
-
-Instale e autentique a Stripe CLI. Depois rode:
+## 4. Webhook local
 
 ```bash
 stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
-
-A CLI vai imprimir um segredo comecando com `whsec_`. Coloque esse valor em `STRIPE_WEBHOOK_SECRET` no `.env`.
-
-Suba o app:
-
-```bash
 docker compose up -d --build
 ```
 
-Abra `http://localhost:3000/app`, assine pelo Checkout e use o cartao de teste `4242 4242 4242 4242`.
+Copie o `whsec_...` fornecido pela Stripe CLI para o `.env`. Em modo teste, use o cartão `4242 4242 4242 4242` e o cupom `MORPHEUS99`.
 
-## 6. Configurar webhook em producao
+Em modo live, cartões de teste não funcionam. O desconto de 99% deixa o Pro mensal em R$ 0,50 e o Elite em R$ 0,80. Use um desses planos para um teste live de baixo valor; o Essential cairia para R$ 0,30, abaixo do mínimo de cobrança em BRL.
 
-Quando o app estiver em um dominio publico com HTTPS, crie um endpoint no Stripe Dashboard:
-
-```text
-https://seu-dominio.com/api/stripe/webhook
-```
-
-Eventos usados pelo Morpheus:
+Eventos necessários:
 
 ```text
 checkout.session.completed
@@ -95,25 +92,32 @@ invoice.paid
 invoice.payment_failed
 ```
 
-Copie o signing secret desse endpoint para `STRIPE_WEBHOOK_SECRET` no servidor.
+O trial de sete dias existe apenas no Essential, exige Checkout Stripe e só pode ser reivindicado uma vez por clínica. A interface nunca libera o painel com base no retorno do navegador: apenas o webhook assinado altera `stripe_status` para `trialing` ou `active`.
 
-## 7. Customer Portal
+O endpoint `GET /api/health` verifica aplicação, acesso ao banco, presença do esquema endurecido e conectividade com o preço Essential no Stripe sem expor credenciais.
 
-Ative o Stripe Customer Portal no Dashboard. O app usa `/api/stripe/portal` para abrir a area onde a clinica pode atualizar cartao, cancelar ou regularizar cobranca.
+## 5. Produção
 
-## Observacoes importantes
+Configure o endpoint HTTPS:
 
-- O Stripe Checkout funciona em dois modos:
-  - **Docker / servidor**: usa as API routes `/api/stripe/*` com `STRIPE_SECRET_KEY`. Webhooks atualizam o Supabase automaticamente.
-  - **GitHub Pages (static)**: nao roda `/api/stripe/*`. Para testar pagamento sem backend, use Stripe Payment Links publicos em `NEXT_PUBLIC_STRIPE_LINK_*`. Apos o pagamento, atualize a clinica no Supabase manualmente ou configure um webhook separado.
-- Configure os seguintes secrets no GitHub Actions:
-  - `MORPHEUS_SUPABASE_URL` e `MORPHEUS_SUPABASE_ANON_KEY`
-- Configure as seguintes variables no GitHub Actions, se quiser checkout no Pages:
-  - `MORPHEUS_STRIPE_CHECKOUT_ENABLED=true`
-  - `MORPHEUS_STRIPE_LINK_ESSENTIAL_MONTHLY`, `MORPHEUS_STRIPE_LINK_ESSENTIAL_ANUAL`
-  - `MORPHEUS_STRIPE_LINK_PRO_MONTHLY`, `MORPHEUS_STRIPE_LINK_PRO_ANUAL`
-  - `MORPHEUS_STRIPE_LINK_ELITE_MONTHLY`, `MORPHEUS_STRIPE_LINK_ELITE_ANUAL`
-  - `MORPHEUS_STRIPE_LINK_TRIAL`
-- Nunca coloque `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` ou `STRIPE_WEBHOOK_SECRET` em variaveis `NEXT_PUBLIC_*`.
-- O projeto ainda e single-tenant. Para varias clinicas independentes, o proximo passo e adicionar autenticacao real, `clinic_id` nas tabelas e uma assinatura por clinica.
-- A barreira existe em duas camadas: tela de bloqueio no React e politicas RLS no Supabase.
+```text
+https://seu-dominio.com/api/stripe/webhook
+```
+
+Suba com:
+
+```bash
+docker compose up -d --build
+```
+
+Valide depois do deploy:
+
+1. login por senha e Google;
+2. criação de clínica e trial Essential;
+3. pagamento com `MORPHEUS99` em modo teste;
+4. recebimento do webhook e liberação do painel;
+5. limites por plano;
+6. cancelamento e troca pelo portal;
+7. bloqueio da clínica após status inválido ou vencimento.
+
+Payment Links públicos continuam disponíveis apenas para export estático. Eles não substituem o fluxo seguro de Docker/API e não devem ser usados para conceder acesso automaticamente.

@@ -1,22 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { sha256 } from "@/lib/auth";
+import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import Button from "@/components/ui/Button";
-import { ArrowLeft, ArrowRight, Building2, Eye, EyeOff, LockKeyhole, Mail, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Chrome, Eye, EyeOff, LockKeyhole, Mail, Wand2 } from "lucide-react";
 
 type SignupMode = "admin" | "doctor";
 
 export default function SignupScreen() {
-  const { signup, addToast, setView } = useApp();
+  const { signup, loginWithGoogle, addToast, setView } = useApp();
   const [mode, setMode] = useState<SignupMode>("admin");
   const [clinicName, setClinicName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
+  const [googleChecked, setGoogleChecked] = useState(false);
+
+  useEffect(() => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl) {
+      setGoogleChecked(true);
+      return;
+    }
+    void fetch(`${supabaseUrl}/auth/v1/settings`, { headers: anonKey ? { apikey: anonKey } : undefined })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings: { external?: { google?: boolean } } | null) => {
+        setGoogleAvailable(settings?.external?.google === true);
+        setGoogleChecked(true);
+      })
+      .catch(() => {
+        setGoogleAvailable(false);
+        setGoogleChecked(true);
+      });
+  }, []);
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -47,8 +67,7 @@ export default function SignupScreen() {
       }
 
       setLoading(true);
-      const hash = await sha256(trimmedPassword);
-      const ok = await signup({ clinicName: trimmedName, email: trimmedEmail, passwordHash: hash, role: "admin" });
+      const ok = await signup({ clinicName: trimmedName, email: trimmedEmail, password: trimmedPassword, role: "admin" });
       if (!ok) {
         setLoading(false);
       }
@@ -63,8 +82,7 @@ export default function SignupScreen() {
       }
 
       setLoading(true);
-      const hash = await sha256(trimmedPassword);
-      const ok = await signup({ email: trimmedEmail, passwordHash: hash, role: "doctor" });
+      const ok = await signup({ email: trimmedEmail, password: trimmedPassword, role: "doctor" });
       if (!ok) {
         setLoading(false);
       }
@@ -139,6 +157,27 @@ export default function SignupScreen() {
           onSubmit={handleSubmit}
           className="rounded-2xl border border-[var(--border-light)] bg-[var(--bg-elevated)] p-6 shadow-2xl sm:rounded-[2rem] sm:p-7"
         >
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            fullWidth
+            disabled={loading || !googleChecked}
+            onClick={() => {
+              if (googleAvailable) void loginWithGoogle();
+              else addToast("O cadastro Google está aguardando as credenciais OAuth do projeto.", "info");
+            }}
+          >
+            <Chrome size={20} />
+            Criar conta com Google
+          </Button>
+
+          <div className="my-5 flex items-center gap-3 text-[var(--text-muted)]">
+            <span className="h-px flex-1 bg-[var(--border-light)]" />
+            <span className="font-body text-xs font-extrabold uppercase tracking-[0.16em]">ou use e-mail</span>
+            <span className="h-px flex-1 bg-[var(--border-light)]" />
+          </div>
+
           {mode === "admin" && (
             <div className="mb-4">
               <label className="mb-2 block font-body text-sm font-bold text-[var(--text-soft)]">Nome da clínica</label>

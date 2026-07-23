@@ -21,14 +21,11 @@ import {
   mapClinic,
   mapUser,
   mapClinicInvitation,
-  sha256,
   type SupabaseClinic,
-  type SupabaseClinicDoctor,
   type SupabaseUser,
-  type SupabaseClinicInvitation,
 } from "@/lib/auth";
 import type { PlanId } from "@/lib/plans";
-import { PLANS, getPlanById } from "@/lib/plans";
+import { getPlanById } from "@/lib/plans";
 import {
   COLOR_PALETTES,
   generateId,
@@ -70,8 +67,9 @@ interface AppContextType {
   user: User | null;
   workspaces: UserWorkspace[];
   pendingInvitations: ClinicInvitation[];
-  login: (email: string, passwordHash: string) => Promise<boolean>;
-  signup: (data: { clinicName?: string; email: string; passwordHash: string; role: "admin" | "doctor" }) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
+  signup: (data: { clinicName?: string; email: string; password: string; role: "admin" | "doctor" }) => Promise<boolean>;
   logout: () => void;
   setView: (view: AppView) => void;
   setActivePsych: (psych: Psychologist | null) => void;
@@ -128,6 +126,30 @@ function apiUrl(path: string) {
   return publicApiBaseUrl ? `${publicApiBaseUrl}${path}` : path;
 }
 
+function readableServiceError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("failed to fetch") ||
+    normalized.includes("fetch failed") ||
+    normalized.includes("network") ||
+    normalized.includes("enotfound")
+  ) {
+    return "O serviço de acesso está indisponível. Verifique a conexão do Supabase e tente novamente.";
+  }
+
+  if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
+    return "Muitas tentativas em pouco tempo. Aguarde alguns minutos ou use o acesso pelo Google.";
+  }
+
+  if (normalized.includes("email address not authorized")) {
+    return "O serviço de e-mail ainda não está autorizado para este endereço.";
+  }
+
+  return message || fallback;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<AppView>("splash");
   const [activePsych, setActivePsych] = useState<Psychologist | null>(null);
@@ -136,7 +158,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [clinic, setClinic] = useState<Clinic | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<PlanId | null>(null);
+  const [selectedPlan] = useState<PlanId | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [theme, setThemeState] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
@@ -167,7 +189,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "light";
+    const initialTheme =
+      savedTheme ||
+      (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     setThemeState(initialTheme);
     applyTheme(initialTheme);
   }, [applyTheme]);
@@ -231,6 +255,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
+  const loadOperationalData = useCallback(async (clinicId: string) => {
+    if (!isSupabaseConfigured) return;
+    const filter = { column: "clinic_id", value: clinicId };
+    const rangeStart = new Date();
+    rangeStart.setFullYear(rangeStart.getFullYear() - 1);
+    const rangeEnd = new Date();
+    rangeEnd.setFullYear(rangeEnd.getFullYear() + 2);
+    const startDate = rangeStart.toISOString().slice(0, 10);
+    const endDate = rangeEnd.toISOString().slice(0, 10);
+    const [roomsRes, psychsRes, reservsRes] = await Promise.all([
+      supabase.from("rooms").select("id,name,hex,rgb,light_hex,light_rgb,created_at").eq(filter.column, filter.value).order("id"),
+      supabase.from("psychologists").select("id,name,short_name,initials,email,hex,rgb,light_hex,light_rgb,created_at").eq(filter.column, filter.value).order("id"),
+      supabase.from("reservations").select("id,room_id,psych_id,date,start_time,end_time,notes,created_at").eq(filter.column, filter.value).gte("date", startDate).lte("date", endDate).order("date").order("start_time"),
+    ]);
+    if (roomsRes.error) throw roomsRes.error;
+    if (psychsRes.error) throw psychsRes.error;
+    if (reservsRes.error) throw reservsRes.error;
+    setRooms((roomsRes.data ?? []).map(mapRoom));
+    setPsychologists((psychsRes.data ?? []).map(mapPsychologist));
+    setReservations((reservsRes.data ?? []).map(mapReservation));
+  }, []);
+
   const selectWorkspace = useCallback(async (clinicId: string) => {
     if (!user || !isSupabaseConfigured) return;
     const ws = workspaces.find((w) => w.clinicId === clinicId);
@@ -261,208 +307,211 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error("selectWorkspace failed:", err);
       addToast("Erro ao acessar a clínica.", "error");
     }
-  }, [user, workspaces, loadPendingInvitations, addToast]);
+  }, [user, workspaces, loadPendingInvitations, loadOperationalData, addToast]);
+
+  const hydrateAuthenticatedUser = useCallback(async (authAccount: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) => {
+    const { data: profileRow } = await supabase.from("users").select("*").eq("id", authAccount.id).maybeSingle();
+    const fallbackName = String(authAccount.user_metadata?.display_name || authAccount.user_metadata?.full_name || authAccount.email?.split("@")[0] || "Usuário");
+    const currentUser = profileRow
+      ? mapUser(profileRow as SupabaseUser)
+      : { id: authAccount.id, email: authAccount.email || "", displayName: fallbackName };
+    setUser(currentUser);
+    localStorage.setItem("morpheus_user_id", currentUser.id);
+
+    const { data: memberships, error } = await supabase
+      .from("clinic_doctors")
+      .select("clinic_id, role, psychologist_id, clinics(id, name)")
+      .eq("user_id", currentUser.id);
+    if (error) throw error;
+    const nextWorkspaces: UserWorkspace[] = (memberships ?? []).map((membership: any) => ({
+      clinicId: membership.clinic_id,
+      clinicName: membership.clinics?.name || "Clínica",
+      role: membership.role === "admin" ? "admin" : "doctor",
+      psychologistId: membership.psychologist_id ?? undefined,
+    }));
+    setWorkspaces(nextWorkspaces);
+
+    const rememberedId = localStorage.getItem("morpheus_workspace");
+    const selected = nextWorkspaces.find((workspace) => workspace.clinicId === rememberedId)
+      || (nextWorkspaces.length === 1 ? nextWorkspaces[0] : undefined);
+    if (!selected) {
+      const placeholder: AuthUser = { role: "admin", clinicId: "", email: currentUser.email, displayName: currentUser.displayName };
+      setAuthUser(placeholder);
+      setClinic(null);
+      setView("workspace");
+      return true;
+    }
+
+    const { data: clinicData, error: clinicError } = await supabase.from("clinics").select("*").eq("id", selected.clinicId).maybeSingle();
+    if (clinicError || !clinicData) throw clinicError || new Error("Clínica não encontrada.");
+    const currentClinic = mapClinic(clinicData as SupabaseClinic);
+    const currentAuthUser: AuthUser = selected.role === "admin"
+      ? { role: "admin", clinicId: currentClinic.id, email: currentUser.email, displayName: currentUser.displayName }
+      : { role: "doctor", clinicId: currentClinic.id, email: currentUser.email, displayName: currentUser.displayName, psychologistId: selected.psychologistId };
+    setAuthUser(currentAuthUser);
+    setClinic(currentClinic);
+    localStorage.setItem("morpheus_auth", JSON.stringify(currentAuthUser));
+    localStorage.setItem("morpheus_workspace", currentClinic.id);
+    await loadOperationalData(currentClinic.id);
+    if (selected.role === "admin") {
+      await loadPendingInvitations(currentClinic.id);
+      const hasBilling = !billingRequired || !currentClinic.billingEnforced || isBillingActive({
+        id: currentClinic.id,
+        stripeStatus: currentClinic.stripeStatus,
+        billingEnforced: currentClinic.billingEnforced,
+        currentPeriodEnd: currentClinic.currentPeriodEnd,
+        cancelAtPeriodEnd: currentClinic.cancelAtPeriodEnd,
+        updatedAt: new Date().toISOString(),
+      });
+      setView(hasBilling ? "admin" : "billing");
+    } else {
+      setView("psych");
+    }
+    return true;
+  }, [loadOperationalData, loadPendingInvitations]);
 
   useEffect(() => {
-    if (!mounted) return;
-    try {
-      const saved = localStorage.getItem("morpheus_auth");
-      const savedUserId = localStorage.getItem("morpheus_user_id");
-      if (saved) {
-        const parsed = JSON.parse(saved) as AuthUser;
-        setAuthUser(parsed);
-        if (savedUserId && isSupabaseConfigured) {
-          supabase.from("users").select("*").eq("id", savedUserId).maybeSingle()
-            .then(({ data }) => { if (data) setUser(mapUser(data as SupabaseUser)); });
-        }
-        if (isSupabaseConfigured && parsed.clinicId) {
-          supabase.from("clinics").select("*").eq("id", parsed.clinicId).maybeSingle()
-            .then(({ data }) => { if (data) setClinic(mapClinic(data as SupabaseClinic)); });
-          if (savedUserId) {
-            supabase.from("clinic_doctors").select("clinic_id, role, psychologist_id, clinics(id, name)").eq("user_id", savedUserId)
-              .then(({ data: memberships }) => {
-                if (memberships && memberships.length > 0) {
-                  setWorkspaces(memberships.map((m: any) => ({
-                    clinicId: m.clinic_id, clinicName: m.clinics?.name || "Clínica",
-                    role: m.role === "admin" ? "admin" : "doctor", psychologistId: m.psychologist_id ?? undefined,
-                  })));
-                }
-              });
-          }
-        }
-      }
-    } catch {}
-    setLoading(false);
-  }, [mounted]);
+    if (!mounted || !isSupabaseConfigured) {
+      if (mounted) setLoading(false);
+      return;
+    }
+    let alive = true;
+    const loadingWatchdog = window.setTimeout(() => {
+      if (alive) setLoading(false);
+    }, 1200);
+    void (async () => {
+      let authTimeout: number | undefined;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) return;
 
-  const loadOperationalData = useCallback(async (clinicId: string) => {
-    if (!isSupabaseConfigured) return;
-    const filter = { column: "clinic_id", value: clinicId };
-    const [roomsRes, psychsRes, reservsRes] = await Promise.all([
-      supabase.from("rooms").select("*").eq(filter.column, filter.value).order("id"),
-      supabase.from("psychologists").select("*").eq(filter.column, filter.value).order("id"),
-      supabase.from("reservations").select("*").eq(filter.column, filter.value).order("date"),
-    ]);
-    if (roomsRes.error) throw roomsRes.error;
-    if (psychsRes.error) throw psychsRes.error;
-    if (reservsRes.error) throw reservsRes.error;
-    setRooms((roomsRes.data ?? []).map(mapRoom));
-    setPsychologists((psychsRes.data ?? []).map(mapPsychologist));
-    setReservations((reservsRes.data ?? []).map(mapReservation));
-  }, []);
+        const timeout = new Promise<never>((_, reject) => {
+          authTimeout = window.setTimeout(() => reject(new Error("Tempo limite ao validar a sessão.")), 5000);
+        });
+        const { data, error } = await Promise.race([supabase.auth.getUser(), timeout]);
+        if (!alive) return;
+        if (error) throw error;
+        if (data.user) await hydrateAuthenticatedUser(data.user);
+      } catch (restoreError) {
+        console.error("Session restore failed:", restoreError);
+        await supabase.auth.signOut().catch(() => undefined);
+      } finally {
+        if (authTimeout) window.clearTimeout(authTimeout);
+        window.clearTimeout(loadingWatchdog);
+        if (alive) setLoading(false);
+      }
+    })();
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setAuthUser(null);
+        setClinic(null);
+        setUser(null);
+        setWorkspaces([]);
+      }
+    });
+    return () => {
+      alive = false;
+      window.clearTimeout(loadingWatchdog);
+      listener.subscription.unsubscribe();
+    };
+  }, [mounted, hydrateAuthenticatedUser]);
 
   const login = useCallback(
-    async (email: string, passwordHash: string): Promise<boolean> => {
-      if (!isSupabaseConfigured) return false;
-      try {
-        const { data: userRow } = await supabase.from("users").select("*").eq("email", email).eq("password_hash", passwordHash).maybeSingle();
-        if (userRow) {
-          const u = mapUser(userRow as SupabaseUser);
-          setUser(u);
-          localStorage.setItem("morpheus_user_id", u.id);
-          const { data: memberships } = await supabase.from("clinic_doctors").select("clinic_id, role, psychologist_id, clinics(id, name)").eq("user_id", u.id);
-          if (memberships && memberships.length > 0) {
-            const ws: UserWorkspace[] = memberships.map((m: any) => ({
-              clinicId: m.clinic_id, clinicName: m.clinics?.name || "Clínica",
-              role: m.role === "admin" ? "admin" : "doctor", psychologistId: m.psychologist_id ?? undefined,
-            }));
-            setWorkspaces(ws);
-            if (ws.length === 1) {
-              const single = ws[0];
-              const { data: clinicData } = await supabase.from("clinics").select("*").eq("id", single.clinicId).maybeSingle();
-              if (clinicData) {
-                const c = mapClinic(clinicData as SupabaseClinic);
-                const aud: AuthUser = single.role === "admin"
-                  ? { role: "admin", clinicId: c.id, email: u.email, displayName: u.displayName }
-                  : { role: "doctor", clinicId: c.id, email: u.email, displayName: u.displayName, psychologistId: single.psychologistId };
-                setAuthUser(aud);
-                setClinic(c);
-                localStorage.setItem("morpheus_auth", JSON.stringify(aud));
-                localStorage.setItem("morpheus_workspace", single.clinicId);
-                await loadOperationalData(c.id);
-                if (single.role === "admin") {
-                  loadPendingInvitations(single.clinicId);
-                  const ba = !billingRequired || !c.billingEnforced || isBillingActive({
-                    id: c.id, stripeStatus: c.stripeStatus, billingEnforced: c.billingEnforced,
-                    currentPeriodEnd: c.currentPeriodEnd, cancelAtPeriodEnd: c.cancelAtPeriodEnd, updatedAt: new Date().toISOString(),
-                  });
-                  setView(ba ? "admin" : "billing");
-                } else {
-                  setView("psych");
-                }
-                return true;
-              }
-            }
-            setAuthUser({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName });
-            localStorage.setItem("morpheus_auth", JSON.stringify({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName }));
-            setView("workspace");
-            return true;
-          }
-          setAuthUser({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName });
-          localStorage.setItem("morpheus_auth", JSON.stringify({ role: "admin", clinicId: "", email: u.email, displayName: u.displayName }));
-          setView("workspace");
-          return true;
-        }
-
-        const { data: clinicRow } = await supabase.from("clinics").select("*").eq("admin_email", email).eq("admin_password_hash", passwordHash).maybeSingle();
-        if (clinicRow) {
-          const c = mapClinic(clinicRow as SupabaseClinic);
-          setAuthUser({ role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name });
-          setClinic(c);
-          localStorage.setItem("morpheus_auth", JSON.stringify({ role: "admin", clinicId: c.id, email: c.adminEmail, displayName: c.name }));
-          localStorage.setItem("morpheus_workspace", c.id);
-          await loadOperationalData(c.id);
-          const ba = !billingRequired || !c.billingEnforced || isBillingActive({
-            id: c.id, stripeStatus: c.stripeStatus, billingEnforced: c.billingEnforced,
-            currentPeriodEnd: c.currentPeriodEnd, cancelAtPeriodEnd: c.cancelAtPeriodEnd, updatedAt: new Date().toISOString(),
-          });
-          setView(ba ? "admin" : "billing");
-          return true;
-        }
-
-        const { data: doctorRow } = await supabase.from("clinic_doctors").select("*").eq("email", email).eq("password_hash", passwordHash).maybeSingle();
-        if (doctorRow) {
-          const doc = doctorRow as SupabaseClinicDoctor;
-          const { data: clinicData } = await supabase.from("clinics").select("*").eq("id", doc.clinic_id).maybeSingle();
-          if (!clinicData) return false;
-          const c = mapClinic(clinicData as SupabaseClinic);
-          const aud: AuthUser = { role: "doctor", clinicId: c.id, email: doc.email, displayName: doc.display_name, psychologistId: doc.psychologist_id ?? undefined };
-          setAuthUser(aud);
-          setClinic(c);
-          localStorage.setItem("morpheus_auth", JSON.stringify(aud));
-          localStorage.setItem("morpheus_workspace", c.id);
-          await loadOperationalData(c.id);
-          setView("psych");
-          return true;
-        }
+    async (email: string, password: string): Promise<boolean> => {
+      if (!isSupabaseConfigured) {
+        addToast("O serviço de acesso ainda não foi configurado.", "error");
         return false;
+      }
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          const invalidCredentials = error.message.toLowerCase().includes("invalid login credentials");
+          addToast(invalidCredentials ? "E-mail ou senha incorretos." : readableServiceError(error, "Não foi possível entrar."), "error");
+          return false;
+        }
+        if (!data.user) {
+          addToast("Não foi possível identificar sua conta.", "error");
+          return false;
+        }
+        return await hydrateAuthenticatedUser(data.user);
       } catch (err) {
         console.error("Login failed:", err);
+        addToast(readableServiceError(err, "Não foi possível entrar."), "error");
         return false;
       }
     },
-    [loadOperationalData, loadPendingInvitations]
+    [addToast, hydrateAuthenticatedUser]
   );
 
+  const loginWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      addToast("O serviço de acesso ainda não foi configurado.", "error");
+      return false;
+    }
+    try {
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+      const redirectTo = `${window.location.origin}${basePath}/app?action=workspace`;
+      const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      addToast(readableServiceError(error, "Não foi possível entrar com Google."), "error");
+      return false;
+    }
+  }, [addToast]);
+
   const signup = useCallback(
-    async (data: { clinicName?: string; email: string; passwordHash: string; role: "admin" | "doctor" }): Promise<boolean> => {
-      if (!isSupabaseConfigured) return false;
+    async (data: { clinicName?: string; email: string; password: string; role: "admin" | "doctor" }): Promise<boolean> => {
+      if (!isSupabaseConfigured) {
+        addToast("O serviço de acesso ainda não foi configurado.", "error");
+        return false;
+      }
       try {
-        const { data: existingUser } = await supabase.from("users").select("id").eq("email", data.email).maybeSingle();
-        if (existingUser) { addToast("Este e-mail já está cadastrado.", "error"); return false; }
-        const { data: newUser, error: userError } = await supabase.from("users").insert({ email: data.email, password_hash: data.passwordHash, display_name: data.email.split("@")[0] }).select().single();
-        if (userError || !newUser) { addToast("Erro ao criar usuário.", "error"); return false; }
-        const u = mapUser(newUser as SupabaseUser);
-        setUser(u);
-        localStorage.setItem("morpheus_user_id", u.id);
-        if (data.role === "doctor" || !data.clinicName) {
-          addToast("Conta criada! Peça ao administrador para convidar seu e-mail.", "success");
+        const displayName = data.clinicName?.trim() || data.email.split("@")[0];
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: { data: { display_name: displayName } },
+        });
+        if (authError || !authData.user) {
+          addToast(readableServiceError(authError, "Erro ao criar usuário."), "error");
+          return false;
+        }
+        if (!authData.session) {
+          addToast("Conta criada. Confirme seu e-mail para continuar.", "success");
           setView("login");
           return true;
         }
-        const { data: newClinic, error: clinicError } = await supabase.from("clinics").insert({
-          name: data.clinicName, admin_email: data.email, admin_password_hash: data.passwordHash,
-          user_id: u.id, stripe_status: "inactive", billing_enforced: true,
-        }).select().single();
-        if (clinicError || !newClinic) { console.error("Clinic creation error:", clinicError); addToast(`Erro ao criar clínica: ${clinicError?.message || "desconhecido"}`, "error"); return false; }
-        const c = mapClinic(newClinic as SupabaseClinic);
-        await supabase.from("clinic_doctors").insert({ clinic_id: c.id, user_id: u.id, email: data.email, password_hash: data.passwordHash, display_name: data.clinicName, role: "admin" });
-        const aud: AuthUser = { role: "admin", clinicId: c.id, email: u.email, displayName: u.displayName };
-        setAuthUser(aud);
-        setClinic(c);
-        setWorkspaces([{ clinicId: c.id, clinicName: c.name, role: "admin" }]);
-        localStorage.setItem("morpheus_auth", JSON.stringify(aud));
-        localStorage.setItem("morpheus_workspace", c.id);
-        addToast("Conta criada com sucesso!", "success");
-        if (billingRequired && !isBillingActive({
-          id: c.id, stripeStatus: c.stripeStatus, billingEnforced: c.billingEnforced,
-          currentPeriodEnd: c.currentPeriodEnd, cancelAtPeriodEnd: c.cancelAtPeriodEnd, updatedAt: new Date().toISOString(),
-        })) {
-          setView("billing");
-        } else {
-          setView("admin");
+        if (data.role === "admin" && data.clinicName) {
+          const { error: clinicError } = await supabase.rpc("create_morpheus_clinic", { clinic_name: data.clinicName.trim() });
+          if (clinicError) throw clinicError;
         }
+        await hydrateAuthenticatedUser(authData.user);
+        addToast(data.role === "admin" ? "Conta e clínica criadas com sucesso!" : "Conta criada. Agora aceite o convite da clínica.", "success");
         return true;
-      } catch (err) { console.error("Signup failed:", err); addToast("Erro ao criar conta.", "error"); return false; }
-    }, [addToast]
+      } catch (err) {
+        console.error("Signup failed:", err);
+        addToast(readableServiceError(err, "Erro ao criar conta."), "error");
+        return false;
+      }
+    }, [addToast, hydrateAuthenticatedUser]
   );
 
   const createClinic = useCallback(
     async (name: string): Promise<boolean> => {
       if (!user || !isSupabaseConfigured) return false;
       try {
-        const { data: newClinic, error } = await supabase.from("clinics").insert({
-          name: name.trim(), admin_email: user.email, admin_password_hash: "",
-          user_id: user.id, stripe_status: "inactive", billing_enforced: true,
-        }).select().single();
-        if (error || !newClinic) { console.error("Create clinic error:", error); addToast(`Erro ao criar clínica: ${error?.message || "desconhecido"}`, "error"); return false; }
-        const c = mapClinic(newClinic as SupabaseClinic);
-        await supabase.from("clinic_doctors").insert({ clinic_id: c.id, user_id: user.id, email: user.email, password_hash: "", display_name: user.displayName, role: "admin" });
-        setWorkspaces((prev) => [...prev, { clinicId: c.id, clinicName: c.name, role: "admin" }]);
-        addToast(`Clínica "${c.name}" criada!`, "success");
+        const { error } = await supabase.rpc("create_morpheus_clinic", { clinic_name: name.trim() });
+        if (error) {
+          if (error.message.includes("workspace_plan_limit")) addToast("Seu plano atingiu o limite de clínicas.", "error");
+          else addToast(`Erro ao criar clínica: ${error.message}`, "error");
+          return false;
+        }
+        await loadWorkspaces();
+        addToast(`Clínica "${name.trim()}" criada!`, "success");
         return true;
       } catch { addToast("Erro ao criar clínica.", "error"); return false; }
-    }, [user, addToast]
+    }, [user, addToast, loadWorkspaces]
   );
 
   const inviteDoctor = useCallback(
@@ -472,13 +521,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const tn = name.trim();
       if (!te || !tn) { addToast("Informe nome e e-mail.", "error"); return { success: false }; }
       try {
-        const { data: eu } = await supabase.from("users").select("id").eq("email", te).maybeSingle();
-        if (!eu) { addToast("Usuário não encontrado. O profissional precisa criar uma conta primeiro.", "error"); return { success: false }; }
-        const { data: em } = await supabase.from("clinic_doctors").select("id").eq("user_id", eu.id).eq("clinic_id", authUser.clinicId).maybeSingle();
-        if (em) { addToast("Este profissional já está na clínica.", "error"); return { success: false }; }
-        await supabase.from("clinic_doctors").insert({ clinic_id: authUser.clinicId, user_id: eu.id, email: te, password_hash: "", display_name: tn, role: "doctor" });
-        addToast(`${tn} adicionado(a) à clínica.`, "success");
-        return { success: true };
+        const { data: invitation, error } = await supabase.from("clinic_invitations").insert({
+          clinic_id: authUser.clinicId,
+          email: te,
+          role: "doctor",
+        }).select("token").single();
+        if (error || !invitation) throw error || new Error("Convite não criado.");
+        const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+        const inviteLink = `${window.location.origin}${basePath}/app?action=accept_invite&invite=${invitation.token}`;
+        addToast(`Convite de ${tn} criado.`, "success");
+        return { success: true, inviteLink };
       } catch { addToast("Erro ao convidar.", "error"); return { success: false }; }
     }, [authUser, addToast]
   );
@@ -487,12 +539,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (token: string): Promise<boolean> => {
       if (!user || !isSupabaseConfigured) return false;
       try {
-        const { data: inv } = await supabase.from("clinic_invitations").select("*").eq("token", token).eq("accepted", false).maybeSingle();
-        if (!inv) { addToast("Convite inválido ou expirado.", "error"); return false; }
-        const i = inv as SupabaseClinicInvitation;
-        if (new Date(i.expires_at) < new Date()) { addToast("Convite expirado.", "error"); return false; }
-        await supabase.from("clinic_doctors").insert({ clinic_id: i.clinic_id, user_id: user.id, email: user.email, password_hash: "", display_name: user.displayName, role: i.role });
-        await supabase.from("clinic_invitations").update({ accepted: true }).eq("id", i.id);
+        const { error } = await supabase.rpc("accept_morpheus_invitation", { invitation_token: token });
+        if (error) { addToast("Convite inválido, expirado ou destinado a outro e-mail.", "error"); return false; }
         addToast("Convite aceito!", "success");
         await loadWorkspaces();
         return true;
@@ -501,6 +549,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    void supabase.auth.signOut();
     setAuthUser(null); setClinic(null); setUser(null); setWorkspaces([]); setPendingInvitations([]);
     setRooms([]); setPsychologists([]); setReservations([]); setView("splash"); setActivePsych(null);
     localStorage.removeItem("morpheus_auth"); localStorage.removeItem("morpheus_user_id"); localStorage.removeItem("morpheus_workspace");
@@ -511,11 +560,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const channel = supabase.channel(`morpheus-${authUser.clinicId}`);
     channel
       .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `clinic_id=eq.${authUser.clinicId}` },
-        async () => { const { data } = await supabase.from("rooms").select("*").eq("clinic_id", authUser.clinicId).order("id"); if (data) setRooms(data.map(mapRoom)); })
+        async () => { const { data } = await supabase.from("rooms").select("id,name,hex,rgb,light_hex,light_rgb,created_at").eq("clinic_id", authUser.clinicId).order("id"); if (data) setRooms(data.map(mapRoom)); })
       .on("postgres_changes", { event: "*", schema: "public", table: "psychologists", filter: `clinic_id=eq.${authUser.clinicId}` },
-        async () => { const { data } = await supabase.from("psychologists").select("*").eq("clinic_id", authUser.clinicId).order("id"); if (data) setPsychologists(data.map(mapPsychologist)); })
+        async () => { const { data } = await supabase.from("psychologists").select("id,name,short_name,initials,email,hex,rgb,light_hex,light_rgb,created_at").eq("clinic_id", authUser.clinicId).order("id"); if (data) setPsychologists(data.map(mapPsychologist)); })
       .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `clinic_id=eq.${authUser.clinicId}` },
-        async () => { const { data } = await supabase.from("reservations").select("*").eq("clinic_id", authUser.clinicId).order("date"); if (data) setReservations(data.map(mapReservation)); })
+        async () => {
+          const rangeStart = new Date(); rangeStart.setFullYear(rangeStart.getFullYear() - 1);
+          const rangeEnd = new Date(); rangeEnd.setFullYear(rangeEnd.getFullYear() + 2);
+          const { data } = await supabase.from("reservations").select("id,room_id,psych_id,date,start_time,end_time,notes,created_at").eq("clinic_id", authUser.clinicId).gte("date", rangeStart.toISOString().slice(0, 10)).lte("date", rangeEnd.toISOString().slice(0, 10)).order("date").order("start_time");
+          if (data) setReservations(data.map(mapReservation));
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [authUser]);
@@ -561,22 +615,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!ensureBillingAccess() || !clinicIdForInsert) return null;
       const name = rawName.trim();
       if (!name) { addToast("Informe o nome da sala.", "error"); return null; }
+      const plan = getPlanById(clinic?.planId || "essential");
+      if (rooms.length >= plan.maxRooms) { addToast(`O plano ${plan.name} permite até ${plan.maxRooms} salas.`, "error"); return null; }
       try {
-        const { data: existing } = await supabase.from("rooms").select("id").eq("clinic_id", clinicIdForInsert).order("id", { ascending: false }).limit(1);
-        const nextId = existing && existing.length > 0 ? existing[0].id + 1 : 1;
-        const palette = COLOR_PALETTES[(nextId - 1) % COLOR_PALETTES.length];
+        const palette = COLOR_PALETTES[rooms.length % COLOR_PALETTES.length];
         const { data, error } = await supabase.from("rooms").insert({ clinic_id: clinicIdForInsert, name, hex: palette.hex, rgb: palette.rgb, light_hex: palette.lightHex, light_rgb: palette.lightRgb }).select().single();
         if (error) throw error;
         addToast(`${name} criada.`, "success"); return mapRoom(data);
       } catch { addToast("Erro ao criar sala.", "error"); return null; }
-    }, [addToast, ensureBillingAccess, clinicIdForInsert]
+    }, [addToast, ensureBillingAccess, clinicIdForInsert, clinic?.planId, rooms.length]
   );
 
   const deleteRoom = useCallback(async (id: number) => {
     if (!ensureBillingAccess()) return;
-    try { const { error } = await supabase.from("rooms").delete().eq("id", id).eq("clinic_id", clinicIdForInsert); if (error) throw error; addToast("Sala removida.", "success"); }
-    catch { addToast("Erro ao remover.", "error"); }
-  }, [addToast, ensureBillingAccess]);
+    if (!clinicIdForInsert) { addToast("Sessão inválida. Reinicie a sessão.", "error"); return; }
+    try {
+      await supabase.from("reservations").delete().eq("room_id", id).eq("clinic_id", clinicIdForInsert);
+      const { error, count } = await supabase.from("rooms").delete({ count: "exact" }).eq("id", id).eq("clinic_id", clinicIdForInsert);
+      if (error) throw error;
+      if (count === 0) { addToast("Sem permissão para remover — verifique a assinatura da clínica.", "error"); return; }
+      setRooms((prev) => prev.filter((r) => r.id !== id));
+      setReservations((prev) => prev.filter((r) => r.roomId !== id));
+      addToast("Sala removida.", "success");
+    } catch (err) {
+      console.error("deleteRoom failed:", err);
+      addToast(`Erro ao remover: ${readableServiceError(err, "tente novamente")}`, "error");
+    }
+  }, [addToast, ensureBillingAccess, clinicIdForInsert]);
 
   const addPsychologist = useCallback(
     async (data: { name: string; email?: string }): Promise<{ psych: Psychologist; credentials?: DoctorCredentials } | null> => {
@@ -584,34 +649,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const name = data.name.trim(); const email = data.email?.trim() || "";
       if (!name) { addToast("Informe o nome.", "error"); return null; }
       if (!email) { addToast("Informe o e-mail.", "error"); return null; }
+      const plan = getPlanById(clinic?.planId || "essential");
+      if (psychologists.length >= plan.maxDoctors) { addToast(`O plano ${plan.name} permite até ${plan.maxDoctors} profissionais.`, "error"); return null; }
       try {
-        const { data: eu } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
-        if (!eu) { addToast("Usuário não encontrado. O profissional precisa criar uma conta primeiro.", "error"); return null; }
-        const { data: em } = await supabase.from("clinic_doctors").select("id").eq("user_id", eu.id).eq("clinic_id", clinicIdForInsert).maybeSingle();
-        if (em) { addToast("Já está na clínica.", "error"); return null; }
-        const { data: existing } = await supabase.from("psychologists").select("id").eq("clinic_id", clinicIdForInsert).order("id", { ascending: false }).limit(1);
-        const nextId = existing && existing.length > 0 ? existing[0].id + 1 : 1;
-        const palette = COLOR_PALETTES[(nextId - 1) % COLOR_PALETTES.length];
-        const cleanName = name.replace(/^dr\.?\s+|^dra\.?\s+/i, "");
-        const initials = cleanName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
-        const { data: inserted, error } = await supabase.from("psychologists").insert({
-          clinic_id: clinicIdForInsert, name, short_name: cleanName, initials: initials || "PS", email,
-          hex: palette.hex, rgb: palette.rgb, light_hex: palette.lightHex, light_rgb: palette.lightRgb,
-        }).select().single();
-        if (error) throw error;
+        const { data: result, error } = await supabase.rpc("invite_morpheus_doctor", {
+          target_clinic: clinicIdForInsert,
+          doctor_name: name,
+          doctor_email: email.toLowerCase(),
+        });
+        if (error || !result?.[0]) throw error || new Error("Convite não criado.");
+        const { data: inserted } = await supabase.from("psychologists").select("*").eq("clinic_id", clinicIdForInsert).eq("id", result[0].psychologist_id).single();
+        if (!inserted) throw new Error("Profissional não encontrado após o convite.");
         const psych = mapPsychologist(inserted);
-        await supabase.from("clinic_doctors").insert({ clinic_id: clinicIdForInsert, user_id: eu.id, psychologist_id: psych.id, email, password_hash: "", display_name: name, role: "doctor" });
-        addToast(`${psych.shortName} adicionado(a).`, "success");
+        if (result[0].invitation_token) {
+          const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+          const inviteLink = `${window.location.origin}${basePath}/app?action=accept_invite&invite=${result[0].invitation_token}`;
+          await navigator.clipboard?.writeText(inviteLink).catch(() => undefined);
+          addToast(`${psych.shortName} convidado(a). O link foi copiado.`, "success");
+        } else {
+          addToast(`${psych.shortName} adicionado(a).`, "success");
+        }
         return { psych };
       } catch { addToast("Erro ao criar profissional.", "error"); return null; }
-    }, [addToast, ensureBillingAccess, clinicIdForInsert]
+    }, [addToast, ensureBillingAccess, clinicIdForInsert, clinic?.planId, psychologists.length]
   );
 
   const deletePsychologist = useCallback(async (id: number) => {
     if (!ensureBillingAccess()) return;
-    try { const { error } = await supabase.from("psychologists").delete().eq("id", id).eq("clinic_id", clinicIdForInsert); if (error) throw error; addToast("Removido.", "success"); }
-    catch { addToast("Erro ao remover.", "error"); }
-  }, [addToast, ensureBillingAccess]);
+    if (!clinicIdForInsert) { addToast("Sessão inválida. Reinicie a sessão.", "error"); return; }
+    try {
+      await supabase.from("reservations").delete().eq("psych_id", id).eq("clinic_id", clinicIdForInsert);
+      const { error, count } = await supabase.from("psychologists").delete({ count: "exact" }).eq("id", id).eq("clinic_id", clinicIdForInsert);
+      if (error) throw error;
+      if (count === 0) { addToast("Sem permissão para remover — verifique a assinatura da clínica.", "error"); return; }
+      setPsychologists((prev) => prev.filter((p) => p.id !== id));
+      setReservations((prev) => prev.filter((r) => r.psychId !== id));
+      addToast("Removido.", "success");
+    } catch (err) {
+      console.error("deletePsychologist failed:", err);
+      addToast(`Erro ao remover: ${readableServiceError(err, "tente novamente")}`, "error");
+    }
+  }, [addToast, ensureBillingAccess, clinicIdForInsert]);
 
   const validateCoupon = useCallback(
     async (code: string): Promise<{ valid: boolean; coupon?: { id: string; code: string; label: string; discountPct: number }; error?: string }> => {
@@ -634,30 +712,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const startCheckout = useCallback(
     async (plan: PlanId, interval: "monthly" | "yearly", email?: string, isTrial = false, couponCode?: string) => {
       if (!checkoutEnabled) { addToast("Checkout indisponivel.", "info"); return; }
-      const resolvedUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("morpheus_user_id") : undefined) || undefined;
       const linkKey = `${plan}-${interval}`;
       const paymentLinkUrl = stripePaymentLinks[linkKey];
-      if (paymentLinkUrl && !isTrial && !couponCode) {
+      if (!serverApiAvailable && paymentLinkUrl && !isTrial && !couponCode) {
         let url = paymentLinkUrl;
         if (email) { url += `${url.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(email)}`; }
         window.location.href = url; return;
       }
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) throw new Error("Sessão expirada.");
         const response = await fetch(apiUrl("/api/stripe/checkout"), {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, userId: resolvedUserId, trial: isTrial, couponCode }),
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ plan, interval, email, clinicId: authUser?.clinicId, trial: isTrial, couponCode }),
         });
         const payload = (await response.json()) as { url?: string; error?: string };
         if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout indisponivel.");
         window.location.href = payload.url;
-      } catch (err) { console.error("Checkout failed:", err); addToast("Nao foi possivel abrir o checkout.", "error"); }
-    }, [addToast, authUser, user]
+      } catch (err) {
+        console.error("Checkout failed:", err);
+        addToast(readableServiceError(err, "Não foi possível abrir o checkout."), "error");
+      }
+    }, [addToast, authUser]
   );
 
   const startTrial = useCallback(
     async (email?: string) => {
       const trialLink = stripePaymentLinks["trial"];
-      if (trialLink) {
+      if (!serverApiAvailable && trialLink) {
         let url = trialLink;
         if (email) { url += `${url.includes("?") ? "&" : "?"}prefilled_email=${encodeURIComponent(email)}`; }
         window.location.href = url; return;
@@ -668,18 +751,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const openBillingPortal = useCallback(async () => {
     if (!checkoutEnabled) { addToast("Portal indisponivel.", "info"); return; }
-    const resolvedUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("morpheus_user_id") : undefined) || undefined;
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada.");
       const response = await fetch(apiUrl("/api/stripe/portal"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicId: clinic?.id, userId: resolvedUserId }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ clinicId: clinic?.id }),
       });
       const payload = (await response.json()) as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Portal indisponível.");
       window.location.href = payload.url;
     } catch (err) { console.error("Portal failed:", err); addToast("Não foi possível abrir o portal.", "error"); }
-  }, [addToast, clinic, user]);
+  }, [addToast, clinic]);
 
   const updateAccount = useCallback(async (data: { displayName?: string; email?: string; password?: string }) => {
     if (!user?.id) return false;
@@ -687,7 +772,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const updates: Record<string, string> = {};
       if (data.displayName) updates["display_name"] = data.displayName;
       if (data.email) updates["email"] = data.email;
-      if (data.password) updates["password_hash"] = await sha256(data.password);
+      const authUpdates: { email?: string; password?: string; data?: { display_name: string } } = {};
+      if (data.email) authUpdates.email = data.email;
+      if (data.password) authUpdates.password = data.password;
+      if (data.displayName) authUpdates.data = { display_name: data.displayName };
+      if (Object.keys(authUpdates).length > 0) {
+        const { error: authError } = await supabase.auth.updateUser(authUpdates);
+        if (authError) throw authError;
+      }
       const { error } = await supabase.from("users").update(updates).eq("id", user.id);
       if (error) throw error;
       setUser({ ...user, displayName: data.displayName ?? user.displayName, email: data.email ?? user.email });
@@ -705,9 +797,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cancelSubscription = useCallback(async () => {
     if (!clinic?.stripeSubscriptionId) { addToast("Nenhuma assinatura para cancelar.", "info"); return; }
-    const resolvedUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("morpheus_user_id") : undefined) || undefined;
     try {
-      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId: clinic.id, userId: resolvedUserId }) });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada.");
+      const response = await fetch(apiUrl("/api/stripe/cancel"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` }, body: JSON.stringify({ clinicId: clinic.id }) });
       const payload = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Falha ao cancelar.");
       addToast("Assinatura cancelada.", "success");
@@ -727,7 +821,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user, workspaces, pendingInvitations, login, signup, logout, setView, setActivePsych,
       addRoom, deleteRoom, addPsychologist, deletePsychologist, addReservation, removeReservation,
       addToast, removeToast, toggleTheme, setTheme, refreshBilling, validateCoupon, startCheckout, startTrial, openBillingPortal,
-      selectWorkspace, inviteDoctor, createClinic, loadWorkspaces, acceptInvitation, updateAccount, serverApiAvailable, cancelSubscription,
+      selectWorkspace, inviteDoctor, createClinic, loadWorkspaces, acceptInvitation, updateAccount, serverApiAvailable, cancelSubscription, loginWithGoogle,
     }}>
       {children}
     </AppContext.Provider>
@@ -743,8 +837,9 @@ export function useApp() {
       theme: "light" as Theme, loading: false, authUser: null as AuthUser | null, clinic: null as Clinic | null,
       selectedPlan: null as PlanId | null, billingRequired, billingActive: !billingRequired, checkoutEnabled,
       user: null as User | null, workspaces: [] as UserWorkspace[], pendingInvitations: [] as ClinicInvitation[],
-      login: (async () => false) as (email: string, passwordHash: string) => Promise<boolean>,
-      signup: (async () => false) as (data: { clinicName?: string; email: string; passwordHash: string; role: "admin" | "doctor" }) => Promise<boolean>,
+      login: (async () => false) as (email: string, password: string) => Promise<boolean>,
+      loginWithGoogle: (async () => false) as () => Promise<boolean>,
+      signup: (async () => false) as (data: { clinicName?: string; email: string; password: string; role: "admin" | "doctor" }) => Promise<boolean>,
       logout: () => {}, setView: () => {}, setActivePsych: () => {},
       addRoom: (async () => null) as (name: string) => Promise<Room | null>,
       deleteRoom: (async () => {}) as (id: number) => Promise<void>,

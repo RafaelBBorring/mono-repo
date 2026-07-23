@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { redeemCheckoutCoupon, rememberCheckoutSession, upsertBillingFromSubscription } from "@/lib/stripeBilling";
+import { createSupabaseAdmin } from "@/lib/supabaseServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,15 @@ export async function POST(request: Request) {
   }
 
   try {
+    const supabase = createSupabaseAdmin();
+    const { error: eventError } = await supabase
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id, event_type: event.type });
+    if (eventError?.code === "23505") {
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    if (eventError) throw eventError;
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -67,6 +77,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
+    try {
+      await createSupabaseAdmin().from("stripe_webhook_events").delete().eq("event_id", event.id);
+    } catch {}
     console.error("Stripe webhook handling failed:", error);
     return NextResponse.json({ error: "Falha ao processar webhook." }, { status: 500 });
   }

@@ -27,24 +27,11 @@ export default function WorkspaceScreen() {
     if (!isSupabaseConfigured || workspaces.length === 0) return;
 
     let alive = true;
-    Promise.all(
-      workspaces.map(async (ws) => {
-        const [roomsRes, doctorsRes] = await Promise.all([
-          supabase.from("rooms").select("id", { count: "exact", head: true }).eq("clinic_id", ws.clinicId),
-          supabase.from("psychologists").select("id", { count: "exact", head: true }).eq("clinic_id", ws.clinicId),
-        ]);
-
-        return {
-          clinicId: ws.clinicId,
-          rooms: roomsRes.count ?? 0,
-          doctors: doctorsRes.count ?? 0,
-        };
-      })
-    ).then((items) => {
+    supabase.rpc("get_morpheus_workspace_counts").then(({ data }) => {
       if (!alive) return;
       setCounts(
-        items.reduce<Record<string, { rooms: number; doctors: number }>>((acc, item) => {
-          acc[item.clinicId] = { rooms: item.rooms, doctors: item.doctors };
+        ((data ?? []) as Array<{ clinic_id: string; room_count: number; doctor_count: number }>).reduce((acc: Record<string, { rooms: number; doctors: number }>, item) => {
+          acc[item.clinic_id] = { rooms: Number(item.room_count), doctors: Number(item.doctor_count) };
           return acc;
         }, {})
       );

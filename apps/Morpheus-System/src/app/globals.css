@@ -9,77 +9,105 @@
 }
 
 :root {
-  --clinical-snow: #f7f7f2;
-  --clinical-sand: #ece8dd;
-  --sage: #8fae9b;
-  --sage-deep: #3f6b5b;
-  --blue-ether: #a9d6e5;
-  --blue-cognitive: #4f8fa5;
-  --terra-soft: #c98268;
-  --graphite-plant: #24312d;
-  --text-secondary: #66736e;
-  --state-success: #6baa75;
-  --state-warning: #d8a24a;
-  --state-error: #c96a5b;
+  /* === Morpheus — Brand primitives ===
+     Light = Branco · Dourado · Roxo Escuro
+     Dark  = Preto · Azul · Roxo */
+  --gold: #c8a227;          /* signature gold */
+  --gold-bright: #e0b94a;
+  --gold-soft: #ddc987;
+  --gold-deep: #9c7a17;
+  --royal: #3a1a5e;         /* deep purple */
+  --royal-deep: #27113c;
+  --royal-bright: #5b2d8f;
+  --azure: #3b82f6;         /* signature blue (dark) */
+  --azure-bright: #60a5fa;
+  --azure-deep: #1e3a8a;
+  --amethyst: #8b5cf6;      /* purple (dark secondary) */
+  --amethyst-bright: #a78bfa;
+
+  --state-success: #2fb47c;
+  --state-warning: #d8a324;
+  --state-error: #d6553f;
   --duration-hover: 150ms;
   --duration-focus: 220ms;
   --duration-validation: 360ms;
-  --bg-primary: var(--clinical-snow);
-  --bg-surface: rgba(236, 232, 221, 0.72);
-  --bg-elevated: rgba(255, 255, 250, 0.92);
-  --text-primary: var(--graphite-plant);
-  --text-muted: rgba(102, 115, 110, 0.86);
-  --text-soft: rgba(36, 49, 45, 0.82);
-  --border-subtle: rgba(63, 107, 91, 0.1);
-  --border-light: rgba(63, 107, 91, 0.18);
-  --border-medium: rgba(63, 107, 91, 0.3);
-  --scrollbar-thumb: rgba(63, 107, 91, 0.26);
-  --placeholder-text: rgba(102, 115, 110, 0.58);
-  --accent-lavender: var(--sage-deep);
-  --accent-sky: var(--blue-cognitive);
-  --accent-rose: var(--terra-soft);
-  --accent-mint: var(--sage);
-  --accent-amber: var(--state-warning);
-  --action-primary: var(--terra-soft);
-  --action-secondary: var(--sage-deep);
-  --action-foreground: #ffffff;
-  --glass-strong: rgba(247, 247, 242, 0.74);
-  --glass-soft: rgba(63, 107, 91, 0.06);
-  --shadow-soft: 0 14px 40px rgba(36, 49, 45, 0.1);
-  --shadow-glow: 0 0 40px rgba(143, 174, 155, 0.18);
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring-soft: cubic-bezier(0.19, 1, 0.22, 1);
+
+  /* === LIGHT THEME (default) — Branco · Dourado · Roxo Escuro === */
+  color-scheme: light;
+  --bg-primary: #fbf9f3;            /* warm white */
+  --bg-surface: rgba(255, 255, 255, 0.78);
+  --bg-elevated: rgba(255, 255, 255, 0.96);
+  --bg-deep: #f3efe3;               /* paper tint */
+  --text-primary: #20143b;          /* graphite purple */
+  --text-muted: rgba(42, 24, 71, 0.62);
+  --text-soft: rgba(32, 20, 59, 0.78);
+  --border-subtle: rgba(58, 26, 94, 0.1);
+  --border-light: rgba(58, 26, 94, 0.16);
+  --border-medium: rgba(58, 26, 94, 0.28);
+  --scrollbar-thumb: rgba(200, 162, 39, 0.4);
+  --placeholder-text: rgba(42, 24, 71, 0.45);
+  --accent-lavender: var(--royal);  /* deep purple */
+  --accent-sky: var(--gold);        /* gold */
+  --accent-rose: #b5478a;
+  --accent-mint: var(--gold-bright);
+  --accent-amber: var(--gold);
+  --action-primary: var(--royal);
+  --action-secondary: var(--gold);
+  --action-foreground: #ffffff;
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-soft: rgba(200, 162, 39, 0.08);
+  --shadow-soft: 0 18px 48px rgba(58, 26, 94, 0.12);
+  --shadow-glow: 0 0 48px rgba(200, 162, 39, 0.22);
+  /* brand gradient: gold → royal */
+  --aurora-gradient: linear-gradient(120deg, #c8a227 0%, #b88728 42%, #3a1a5e 100%);
+  --aurora-gradient-soft: linear-gradient(135deg, rgba(200,162,39,0.2), rgba(58,26,94,0.12));
+  --aurora-text-gradient: linear-gradient(120deg, #c8a227 0%, #9c7a17 45%, #3a1a5e 100%);
+  --scene-bg: #f4efe2;
+  --scene-fog: #efe8d6;
+  --scene-floor: #efe6cf;
 }
 
 html.light {
   color-scheme: light;
+  /* light is the :root default — vars already set above */
 }
 
 html.dark {
+  /* === DARK THEME — Preto · Azul · Roxo === */
   color-scheme: dark;
-  --bg-primary: #101713;
-  --bg-surface: rgba(21, 31, 27, 0.92);
-  --bg-elevated: rgba(28, 41, 36, 0.94);
-  --text-primary: #f7f7f2;
-  --text-muted: rgba(221, 226, 219, 0.66);
-  --text-soft: rgba(247, 247, 242, 0.84);
-  --border-subtle: rgba(169, 214, 229, 0.1);
-  --border-light: rgba(169, 214, 229, 0.2);
-  --border-medium: rgba(169, 214, 229, 0.32);
-  --scrollbar-thumb: rgba(169, 214, 229, 0.3);
-  --placeholder-text: rgba(247, 247, 242, 0.4);
-  --accent-lavender: #8fae9b;
-  --accent-sky: #a9d6e5;
-  --accent-rose: #c98268;
-  --accent-mint: #8fae9b;
-  --accent-amber: #d8a24a;
-  --action-primary: #c98268;
-  --action-secondary: #3f6b5b;
+  --bg-primary: #05070f;            /* deep black */
+  --bg-surface: rgba(13, 18, 33, 0.9);
+  --bg-elevated: rgba(20, 28, 50, 0.96);
+  --bg-deep: #03050c;
+  --text-primary: #e8edff;
+  --text-muted: rgba(190, 205, 255, 0.6);
+  --text-soft: rgba(232, 237, 255, 0.82);
+  --border-subtle: rgba(120, 150, 255, 0.1);
+  --border-light: rgba(120, 150, 255, 0.2);
+  --border-medium: rgba(120, 150, 255, 0.32);
+  --scrollbar-thumb: rgba(96, 165, 250, 0.3);
+  --placeholder-text: rgba(232, 237, 255, 0.38);
+  --accent-lavender: var(--amethyst-bright);
+  --accent-sky: var(--azure-bright);
+  --accent-rose: #f6a0bd;
+  --accent-mint: var(--azure-bright);
+  --accent-amber: #e0b94a;
+  --action-primary: var(--azure);
+  --action-secondary: var(--amethyst);
   --action-foreground: #ffffff;
-  --glass-strong: rgba(16, 23, 19, 0.78);
-  --glass-soft: rgba(247, 247, 242, 0.06);
-  --shadow-soft: 0 14px 42px rgba(0, 0, 0, 0.34);
-  --shadow-glow: 0 0 40px rgba(169, 214, 229, 0.16);
+  --glass-strong: rgba(8, 12, 24, 0.8);
+  --glass-soft: rgba(96, 165, 250, 0.06);
+  --shadow-soft: 0 18px 52px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 48px rgba(59, 130, 246, 0.24);
+  /* brand gradient: azure → amethyst */
+  --aurora-gradient: linear-gradient(120deg, #3b82f6 0%, #4f7cf6 42%, #8b5cf6 100%);
+  --aurora-gradient-soft: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(139,92,246,0.14));
+  --aurora-text-gradient: linear-gradient(120deg, #60a5fa 0%, #7c8ef8 42%, #a78bfa 100%);
+  --scene-bg: #070b16;
+  --scene-fog: #0a0f1c;
+  --scene-floor: #0a1320;
 }
 
 html,
@@ -137,7 +165,7 @@ input:hover:not(:disabled),
 textarea:hover:not(:disabled),
 select:hover:not(:disabled) {
   border-color: var(--border-medium);
-  background-color: color-mix(in srgb, var(--bg-primary) 88%, var(--clinical-sand));
+  background-color: color-mix(in srgb, var(--bg-primary) 88%, var(--bg-deep));
   transition-duration: var(--duration-hover);
 }
 
@@ -235,7 +263,18 @@ button {
 
 .aurora-text {
   color: transparent;
-  background: linear-gradient(100deg, var(--text-primary), var(--accent-lavender), var(--accent-mint));
+  background: var(--aurora-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.aurora-glow {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-lavender) 18%, transparent), 0 18px 60px color-mix(in srgb, var(--accent-lavender) 28%, transparent);
+}
+
+.brand-wordmark {
+  color: transparent;
+  background: var(--aurora-text-gradient);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -255,6 +294,25 @@ button {
       color-mix(in srgb, var(--bg-primary) 86%, transparent) 36%,
       color-mix(in srgb, var(--bg-primary) 44%, transparent) 100%
     );
+}
+
+.morpheus-hero {
+  background:
+    radial-gradient(circle at 78% 28%, color-mix(in srgb, var(--accent-lavender) 30%, transparent), transparent 38%),
+    radial-gradient(circle at 22% 78%, color-mix(in srgb, var(--accent-sky) 22%, transparent), transparent 36%),
+    var(--bg-deep);
+}
+
+.morpheus-hero-shade {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--bg-deep) 98%, transparent) 0%, color-mix(in srgb, var(--bg-deep) 84%, transparent) 42%, color-mix(in srgb, var(--bg-deep) 10%, transparent) 76%, color-mix(in srgb, var(--bg-deep) 26%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-deep) 10%, transparent), color-mix(in srgb, var(--bg-deep) 44%, transparent));
+}
+
+@media (max-width: 1023px) {
+  .morpheus-hero-shade {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--bg-deep) 82%, transparent), color-mix(in srgb, var(--bg-deep) 90%, transparent));
+  }
 }
 
 .morpheus-screen-wash {

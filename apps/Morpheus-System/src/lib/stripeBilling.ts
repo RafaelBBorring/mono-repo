@@ -12,6 +12,17 @@ function customerIdFrom(subscription: Stripe.Subscription) {
   return typeof customer === "string" ? customer : customer.id;
 }
 
+function planFromPrice(priceId?: string | null) {
+  if (!priceId) return null;
+  const plans = ["ESSENTIAL", "PRO", "ELITE"] as const;
+  for (const plan of plans) {
+    if (priceId === process.env[`STRIPE_PRICE_${plan}_MONTHLY`] || priceId === process.env[`STRIPE_PRICE_${plan}_YEARLY`]) {
+      return plan.toLowerCase();
+    }
+  }
+  return null;
+}
+
 export async function upsertBillingFromSubscription(subscription: Stripe.Subscription) {
   const supabase = createSupabaseAdmin();
   const clinicId = subscription.metadata.clinic_id;
@@ -21,8 +32,8 @@ export async function upsertBillingFromSubscription(subscription: Stripe.Subscri
   }
 
   const firstItem = subscription.items.data[0];
-  const periodEnd = (subscription as Stripe.Subscription & { current_period_end?: number | null })
-    .current_period_end;
+  const periodEnd = firstItem?.current_period_end
+    ?? (subscription as Stripe.Subscription & { current_period_end?: number | null }).current_period_end;
 
   const isTrial = subscription.status === "trialing";
 
@@ -33,8 +44,15 @@ export async function upsertBillingFromSubscription(subscription: Stripe.Subscri
     stripe_status: subscription.status,
     current_period_end: toIsoDate(periodEnd),
     cancel_at_period_end: subscription.cancel_at_period_end,
+    trial_checkout_session_id: null,
+    trial_checkout_expires_at: null,
     updated_at: new Date().toISOString(),
   };
+
+  const plan = planFromPrice(firstItem?.price.id) || subscription.metadata.plan;
+  if (plan === "essential" || plan === "pro" || plan === "elite") {
+    updates.plan_id = plan;
+  }
 
   if (isTrial) {
     updates.trial_used = true;
@@ -81,15 +99,12 @@ export async function redeemCheckoutCoupon(session: Stripe.Checkout.Session) {
 
   try {
     const supabase = createSupabaseAdmin();
-    const { data: coupon } = await supabase
-      .from("coupons")
-      .select("id, current_uses")
-      .eq("code", couponCode.toUpperCase())
-      .maybeSingle();
-
-    if (coupon) {
-      const next = (coupon.current_uses ?? 0) + 1;
-      await supabase.from("coupons").update({ current_uses: next }).eq("id", coupon.id);
+    const { data: redeemed, error } = await supabase.rpc("redeem_morpheus_coupon", {
+      coupon_code: couponCode,
+    });
+    if (error) throw error;
+    if (!redeemed) {
+      console.warn("Coupon redemption skipped because the coupon is no longer valid:", couponCode);
     }
   } catch (err) {
     console.error("Coupon redemption in webhook failed (non-fatal):", err);

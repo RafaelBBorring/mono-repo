@@ -1,20 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { sha256 } from "@/lib/auth";
+import { useEffect, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import Button from "@/components/ui/Button";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Chrome, Eye, EyeOff, LockKeyhole, Mail, Wand2 } from "lucide-react";
 
 const appBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 export default function LoginScreen() {
-  const { login, addToast, setView } = useApp();
+  const { login, loginWithGoogle, addToast, setView } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
+  const [googleChecked, setGoogleChecked] = useState(false);
+
+  useEffect(() => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl) return;
+
+    void fetch(`${supabaseUrl}/auth/v1/settings`, {
+      headers: anonKey ? { apikey: anonKey } : undefined,
+    })
+      .then((response) => response.ok ? response.json() : null)
+      .then((settings: { external?: { google?: boolean } } | null) => {
+        setGoogleAvailable(settings?.external?.google === true);
+        setGoogleChecked(true);
+      })
+      .catch(() => {
+        setGoogleAvailable(false);
+        setGoogleChecked(true);
+      });
+  }, []);
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -36,11 +56,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const hash = await sha256(trimmedPassword);
-      const ok = await login(trimmedEmail, hash);
-      if (!ok) {
-        addToast("E-mail ou senha incorretos.", "error");
-      }
+      await login(trimmedEmail, trimmedPassword);
     } catch (err) {
       console.error("Login error:", err);
       addToast("Erro ao fazer login. Tente novamente.", "error");
@@ -123,6 +139,27 @@ export default function LoginScreen() {
           <Button variant="gradient" size="xl" fullWidth disabled={loading} type="submit">
             <ArrowRight size={22} />
             {loading ? "Entrando..." : "Entrar"}
+          </Button>
+
+          <div className="my-5 flex items-center gap-3 text-[var(--text-muted)]">
+            <span className="h-px flex-1 bg-[var(--border-light)]" />
+            <span className="font-body text-xs font-extrabold uppercase tracking-[0.16em]">ou</span>
+            <span className="h-px flex-1 bg-[var(--border-light)]" />
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            fullWidth
+            disabled={loading || !googleChecked}
+            onClick={() => {
+              if (googleAvailable) void loginWithGoogle();
+              else addToast("O login Google está aguardando as credenciais OAuth do projeto.", "info");
+            }}
+          >
+            <Chrome size={20} />
+            Continuar com Google
           </Button>
         </form>
 

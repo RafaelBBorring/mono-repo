@@ -24,9 +24,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   transpilePackages: ["@supabase/supabase-js"],
-  experimental: {
-    outputFileTracingRoot: path.join(__dirname),
-  },
+  outputFileTracingRoot: path.join(__dirname),
   images: {
     unoptimized: true,
   },

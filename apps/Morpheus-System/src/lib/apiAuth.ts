@@ -5,25 +5,19 @@ export async function validateClinicAccess(request: Request): Promise<{
   userId: string;
 } | { error: string; status: number }> {
   try {
-    const body = await request.clone().json().catch(() => ({})) as { clinicId?: string; userId?: string };
+    const body = await request.clone().json().catch(() => ({})) as { clinicId?: string };
     const clinicId = body.clinicId;
-    const userId = body.userId;
 
     if (!clinicId) return { error: "clinicId e obrigatorio.", status: 400 };
 
-    const supabase = createSupabaseAdmin();
+    const authorization = request.headers.get("authorization");
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+    if (!token) return { error: "Autenticacao obrigatoria.", status: 401 };
 
-    if (!userId) {
-      const { data: adminMember } = await supabase
-        .from("clinic_doctors")
-        .select("user_id, role")
-        .eq("clinic_id", clinicId)
-        .eq("role", "admin")
-        .limit(1)
-        .maybeSingle();
-      if (!adminMember?.user_id) return { error: "userId e obrigatorio.", status: 400 };
-      return { clinicId, userId: adminMember.user_id };
-    }
+    const supabase = createSupabaseAdmin();
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    const userId = authData.user?.id;
+    if (authError || !userId) return { error: "Sessao invalida ou expirada.", status: 401 };
 
     const { data: membership, error } = await supabase
       .from("clinic_doctors")
