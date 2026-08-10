@@ -8,6 +8,7 @@ import { useToast } from '../../contexts/ToastContext.jsx'
 import Modal from '../ui/Modal.jsx'
 import { Button } from '../ui/Button.jsx'
 import EditableNumber from '../ui/EditableNumber.jsx'
+import AutoGrow from '../ui/AutoGrow.jsx'
 import { uid } from '../../lib/id.js'
 import { LEVEL_COLORS } from '../sheet/CharacterSheet.jsx'
 
@@ -469,7 +470,7 @@ function NoteBody({ node, patch }) {
         {NOTE_COLORS.map(col => <button key={col} data-no-drag="1" onPointerDown={(e) => e.stopPropagation()} onClick={() => patch(node.id, { color: col })} style={{ width: 14, height: 14, borderRadius: 4, background: col, border: node.color === col ? '2px solid #fff8e6' : '2px solid transparent', cursor: 'pointer' }} />)}
       </div>
       <textarea value={node.text} onChange={(e) => patch(node.id, { text: e.target.value })} onPointerDown={(e) => e.stopPropagation()} placeholder="Anotação..."
-        style={{ width: '100%', minHeight: 70, background: 'transparent', border: 'none', color: 'var(--drako-text)', resize: 'none', outline: 'none', fontFamily: 'Lexend', fontSize: '0.92rem' }} />
+        className="scroll-drako" style={{ width: '100%', minHeight: 70, maxHeight: 220, overflowY: 'auto', background: 'transparent', border: 'none', color: 'var(--drako-text)', resize: 'none', outline: 'none', fontFamily: 'Lexend', fontSize: '0.92rem' }} aria-label="Anotação do quadro" />
     </div>
   )
 }
@@ -569,7 +570,7 @@ function CharacterBody({ node, character: c, patch, setResource, onOpen, onDamag
                     <span className="font-display" style={{ fontSize: '0.78rem', color: '#fff8e6' }}>{ab.name || '—'}</span>
                     {ab.kind !== 'passiva' && ab.energia != null && <span className="font-mono text-energy" style={{ fontSize: '0.62rem' }}>{ab.energia}E</span>}
                   </div>
-                  {ab.descricao && <div className="text-muted-drako" style={{ fontSize: '0.66rem', lineHeight: 1.35, marginTop: 2 }}>{ab.descricao}</div>}
+                  {ab.descricao && <div className="text-muted-drako read-scroll" style={{ fontSize: '0.66rem', lineHeight: 1.35, marginTop: 2, maxHeight: 90, overflowY: 'auto', whiteSpace: 'pre-wrap', paddingRight: 4 }}>{ab.descricao}</div>}
                 </div>
               )
             })}
@@ -956,7 +957,7 @@ function DetailDrawer({ characterId, chars, onClose, onOpen, onDamage, onResourc
             ))}
           </div>
 
-          {c.anotacoes && <div className="mb-3" style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 8, padding: 10 }}><div className="label-drako">Anotações</div><div style={{ fontSize: '0.88rem', color: '#d4c8ab', whiteSpace: 'pre-wrap' }}>{c.anotacoes}</div></div>}
+          {c.anotacoes && <div className="mb-3" style={{ background: 'rgba(0,0,0,0.32)', borderRadius: 8, padding: 10 }}><div className="label-drako">Anotações</div><div className="read-scroll" style={{ fontSize: '0.88rem', color: '#d4c8ab', whiteSpace: 'pre-wrap', maxHeight: 200, overflowY: 'auto', paddingRight: 6 }}>{c.anotacoes}</div></div>}
 
           <div className="label-drako">Habilidades</div>
           <div className="d-flex flex-column gap-2">
@@ -989,7 +990,7 @@ function AbilityDrawerEditor({ slotName, ability: ab, onChange }) {
         )}
       </div>
       <input value={ab.name || ''} onChange={(e) => onChange({ name: e.target.value })} className="input-drako font-display mb-2" style={{ height: 32, padding: '0.2rem 0.45rem', fontSize: '0.9rem', color: 'var(--drako-gold-soft)' }} placeholder="Nome da habilidade" />
-      <textarea value={ab.descricao || ''} onChange={(e) => onChange({ descricao: e.target.value })} className="textarea-drako" rows={3} style={{ minHeight: 74, fontSize: '0.78rem', lineHeight: 1.35, padding: '0.45rem' }} placeholder="Descrição da habilidade" />
+      <AutoGrow value={ab.descricao || ''} onChange={(v) => onChange({ descricao: v })} minRows={3} maxHeight={200} style={{ fontSize: '0.78rem', lineHeight: 1.35, padding: '0.45rem' }} placeholder="Descrição da habilidade" aria-label={`Descrição de ${slotName}`} />
     </div>
   )
 }

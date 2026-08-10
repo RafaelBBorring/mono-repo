@@ -6,6 +6,7 @@ import { ABILITY_SLOTS } from '../../lib/character.js'
 import HexagonResource from '../ui/HexagonResource.jsx'
 import EditableNumber from '../ui/EditableNumber.jsx'
 import Tag from '../ui/Tag.jsx'
+import AutoGrow from '../ui/AutoGrow.jsx'
 import AbilityEditor, { SLOT_STYLE } from './abilities/AbilityEditor.jsx'
 
 export const LEVEL_COLORS = {
@@ -94,9 +95,9 @@ export default function CharacterSheet({ character: c, editable = false, onChang
         <div className="glass p-4">
           <div className="label-drako">Anotações</div>
           {editable ? (
-            <textarea className="textarea-drako" rows={3} value={c.anotacoes || ''} onChange={(e) => onChange?.({ anotacoes: e.target.value })} placeholder="Ferro, fraquezas, comportamento, gatilhos..." />
+            <AutoGrow value={c.anotacoes || ''} onChange={(v) => onChange?.({ anotacoes: v })} placeholder="Ferro, fraquezas, comportamento, gatilhos..." minRows={3} maxHeight={300} aria-label="Anotações do personagem" />
           ) : (
-            <p className="m-0" style={{ fontSize: '0.98rem', color: '#cdc1a6', whiteSpace: 'pre-wrap' }}>{c.anotacoes || '—'}</p>
+            <p className="m-0 read-scroll" style={{ fontSize: '0.98rem', color: '#cdc1a6', whiteSpace: 'pre-wrap', maxHeight: 260, paddingRight: 6 }}>{c.anotacoes || '—'}</p>
           )}
         </div>
       </div>
@@ -137,7 +138,7 @@ export default function CharacterSheet({ character: c, editable = false, onChang
                       </span>
                     )}
                   </div>
-                  {a.descricao && <p className="mt-2 mb-0" style={{ fontSize: '1rem', color: '#d4c8ab', lineHeight: 1.55 }}>{a.descricao}</p>}
+                  {a.descricao && <p className="mt-2 mb-0 read-scroll" style={{ fontSize: '1rem', color: '#d4c8ab', lineHeight: 1.55, maxHeight: 220, whiteSpace: 'pre-wrap', paddingRight: 6 }}>{a.descricao}</p>}
                   {a.tags?.length > 0 && (
                     <div className="d-flex flex-wrap gap-2 mt-2">
                       {a.tags.map((t, i) => <Tag key={i} label={t.label} color={t.color} />)}
