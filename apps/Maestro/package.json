@@ -1,0 +1,50 @@
+{
+  "name": "maestro-creative-os",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "supabase:provision-users": "node scripts/provision-supabase-users.mjs",
+    "supabase:deploy": "node scripts/deploy-supabase.mjs",
+    "supabase:check": "node scripts/check-supabase-integration.mjs",
+    "openrouter:check": "node scripts/check-openrouter.mjs"
+  },
+  "dependencies": {
+    "@react-spring/web": "^10.0.3",
+    "@supabase/supabase-js": "^2.76.1",
+    "@xyflow/react": "^12.11.2",
+    "animejs": "^3.2.2",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "dexie": "^4.4.4",
+    "lucide-react": "^0.548.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.5",
+    "three": "^0.180.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "jsdom": "^27.1.0",
+    "supabase": "^2.109.1",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.9"
+  }
+}
